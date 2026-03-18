@@ -1,0 +1,35 @@
+{
+  "backup_created": "2026-02-12",
+  "notes": "Orders to be restored after data wipeout",
+  "orders_to_restore": [
+    {
+      "original_order_number": "PASTE_ORDER_NUMBER_HERE",
+      "customer_name": "Amit Kumar",
+      "original_email": "PASTE_ORIGINAL_EMAIL_HERE",
+      "new_email_after_reregistration": "PASTE_NEW_EMAIL_HERE",
+      "phone": "PASTE_PHONE_HERE",
+      "items": [],
+      "pricing": {
+        "subtotal": 0,
+        "bulk_discount": 0,
+        "coupon_discount": 0,
+        "shipping": 0,
+        "final_total": 0
+      },
+      "shipping_address": {
+        "name": "Amit Kumar",
+        "address": "",
+        "city": "",
+        "state": "",
+        "pincode": "",
+        "landmark": ""
+      },
+      "payment_details": {
+        "razorpay_payment_id": "PASTE_PAYMENT_ID_HERE",
+        "razorpay_order_id": "PASTE_ORDER_ID_HERE",
+        "payment_mode": "UPI/Card/etc",
+        "paid_at": "PASTE_DATE_HERE"
+      }
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+# Robots.txt for Addrika - Premium Incense Store
+# https://centraders.com
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://centraders.com/sitemap.xml
+
+# Disallow admin and retailer areas
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /retailer
+Disallow: /retailer/*
+Disallow: /api/
+Disallow: /checkout
+Disallow: /account
+Disallow: /auth
+
+# Allow search engines to crawl main content
+Allow: /
+Allow: /about-us
+Allow: /our-story
+Allow: /shipping-returns
+Allow: /privacy-policy
+Allow: /terms
+Allow: /blog
+Allow: /find-retailers
+Allow: /track-order
+
+# Crawl delay for polite crawling
+Crawl-delay: 1

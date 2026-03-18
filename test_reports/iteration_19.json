@@ -1,0 +1,152 @@
+{
+  "summary": "E2E testing of Addrika checkout flow with self-pickup feature. All features tested and verified: Delivery mode selection, Self-pickup store dropdown, Time slots, Rs.11 token payment, MRP pricing in UI, Coupon codes only for shipping, Find Retailers page with test emails.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "backend/routers/products.py",
+        "issue": "Products API returns discounted prices (105/380) while frontend uses MRP (110/402). Frontend uses mockData.js for display which has correct MRP prices. Not a breaking issue as checkout calculates from MRP.",
+        "priority": "LOW"
+      }
+    ]
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "features_tested": {
+    "delivery_mode_selection": {
+      "status": "PASSED",
+      "ship_to_address": "Shows 'Discount codes available' label",
+      "self_pickup": "Shows 'No shipping charges - Pay at store option'"
+    },
+    "self_pickup_stores": {
+      "status": "PASSED",
+      "delhi_store": {
+        "name": "M.G. Shoppie",
+        "address": "745 Sector 17 Pocket A Phase II, Dwarka, South West Delhi",
+        "pincode": "110078",
+        "email": "amitkumar.911@proton.me"
+      },
+      "bhagalpur_store": {
+        "name": "Mela Stores",
+        "address": "D.N. Singh Road, Variety Chowk, Bhagalpur",
+        "pincode": "812002",
+        "email": "mr.amitbgp@gmail.com"
+      }
+    },
+    "pickup_time_slots": {
+      "status": "PASSED",
+      "slots": [
+        "11:00 AM - 2:00 PM",
+        "2:00 PM - 5:00 PM",
+        "5:00 PM - 8:00 PM"
+      ],
+      "validation": "Shows 'Please select a pickup time slot' error if not selected"
+    },
+    "pickup_payment_options": {
+      "status": "PASSED",
+      "token_payment": {
+        "option": "Pay ₹11 Token Now, Rest at Store",
+        "description": "Reserve your order with ₹11 token - Pay ₹99 at pickup"
+      },
+      "full_payment": {
+        "option": "Pay Full Amount Now (₹110)",
+        "description": "Complete payment online - Just show order ID at store"
+      }
+    },
+    "mrp_pricing": {
+      "status": "PASSED - IN FRONTEND",
+      "50g_mrp": "₹110",
+      "200g_mrp": "₹402",
+      "note": "Frontend mockData.js shows MRP prices. Backend products.py still has 5% discount (105/380) but checkout uses MRP for calculations"
+    },
+    "discount_codes_shipping_only": {
+      "status": "PASSED",
+      "shipping_mode": "Shows discount code input with 'Have a discount code?' and available hints",
+      "pickup_mode": "Discount code section HIDDEN when self-pickup selected"
+    },
+    "shipping_tiers": {
+      "status": "PASSED",
+      "tier_1": "Cart < ₹249: ₹149 shipping",
+      "tier_2": "Cart ₹249-₹998: ₹49 shipping",
+      "tier_3": "Cart ≥ ₹999: FREE shipping",
+      "verified_message": "Add ₹139 more for reduced shipping (₹49) - shown for ₹110 cart"
+    },
+    "find_retailers_page": {
+      "status": "PASSED",
+      "delhi_email": "amitkumar.911@proton.me VERIFIED",
+      "bhagalpur_email": "mr.amitbgp@gmail.com VERIFIED",
+      "map": "Leaflet map with store markers working",
+      "buttons": "View on Map, WhatsApp, Email buttons working"
+    }
+  },
+  
+  "test_results": {
+    "backend_tests": {
+      "file": "/app/backend/tests/test_checkout_selfpickup.py",
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    "frontend_tests": {
+      "method": "Playwright browser automation",
+      "tests_run": 5,
+      "all_passed": true
+    }
+  },
+  
+  "test_report_links": [
+    "/app/backend/tests/test_checkout_selfpickup.py",
+    "/app/test_reports/pytest/checkout_selfpickup_results.xml"
+  ],
+  
+  "action_items": [
+    "OPTIONAL: Sync backend products.py prices to match MRP (110/402) for consistency. Currently frontend uses mockData.js with correct MRP prices."
+  ],
+  
+  "critical_code_review_comments": [
+    "Checkout.jsx correctly implements delivery mode selection with data-testid attributes for testing",
+    "Self-pickup flow properly hides discount codes and shows token payment option",
+    "Time slots are hardcoded in frontend (PICKUP_TIME_SLOTS array) - working correctly",
+    "Retailer emails in shipping_config.py correctly use test emails for both stores",
+    "Order creation API includes pickup_time_slot field in payment session and order documents"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_checkout_selfpickup.py (new test file)"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (9/9)",
+    "frontend": "100%"
+  },
+  
+  "test_credentials": {
+    "test_user": {
+      "email": "test.checkout@example.com",
+      "password": "TestPass123!",
+      "name": "Test User"
+    }
+  },
+  
+  "seed_data_creation": "Created test user: test.checkout@example.com for checkout flow testing",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Complete checkout flow with self-pickup feature verified. Login required for checkout. Test user test.checkout@example.com created. Retailer test emails: Delhi=amitkumar.911@proton.me, Bhagalpur=mr.amitbgp@gmail.com. All time slots and payment options working. Razorpay integration requires actual payment for full E2E test.",
+  
+  "verification_screenshots": [
+    ".screenshots/13_checkout_logged_in.png - Checkout page with delivery mode selection",
+    ".screenshots/14_self_pickup_selected.png - Self-pickup with store selection",
+    ".screenshots/16_time_slots_payment.png - Time slots and payment options",
+    ".screenshots/17_find_retailers.png - Find Retailers page with map",
+    ".screenshots/18_retailers_list.png - Retailers list with test emails"
+  ]
+}

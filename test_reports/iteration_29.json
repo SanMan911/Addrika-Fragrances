@@ -1,0 +1,108 @@
+{
+  "summary": "Tested Phase 1B Store Pickup OTP Flow - Backend Only. All 11 tests PASSED. Retailer APIs (states-districts, by-location, recommend) working correctly. OTP verification endpoint properly returns 404 for non-existent orders. Admin endpoints correctly require authentication (403). 4 test retailers confirmed in database (Delhi x2, Mumbai, Bangalore).",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/retailers/recommend",
+        "issue": "Returns 'Could not determine your location' for Mumbai (400xxx) and Bangalore (560xxx) pincodes because PINCODE_COORDINATES mapping in shipping_config.py only includes Delhi NCR and Bihar prefixes. Fallback returns first retailer instead of nearest.",
+        "priority": "LOW"
+      }
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "GET /api/retailers/states-districts": {
+      "status": "PASSED",
+      "details": "Returns 3 states (Delhi, Karnataka, Maharashtra) with correct district mappings. Response structure: {states: [...], state_districts: {...}}"
+    },
+    "GET /api/retailers/by-location": {
+      "status": "PASSED",
+      "details": "Returns 4 active retailers. Filters by state and district work correctly. Excludes sensitive fields (password_hash, gst_number)."
+    },
+    "GET /api/retailers/recommend": {
+      "status": "PASSED_WITH_NOTE",
+      "details": "Works for Delhi pincodes (110xxx) - correctly recommends nearest store (2.1km). For Mumbai/Bangalore, falls back to first retailer due to missing coordinate mappings."
+    },
+    "POST /api/store-pickup/verify-otp": {
+      "status": "PASSED",
+      "details": "Returns 404 for non-existent orders with message 'Order OTP not found'. Returns 422 for missing required fields. OTP model validation working."
+    },
+    "GET /api/retailers/admin/list": {
+      "status": "PASSED",
+      "details": "Returns 403 without admin authentication. Requires admin session cookie."
+    },
+    "POST /api/retailers/admin/create": {
+      "status": "PASSED",
+      "details": "Returns 403 without admin authentication. Requires admin session cookie."
+    },
+    "Frontend PickupStoreSelector": {
+      "status": "CODE_VERIFIED",
+      "details": "Component has State→District→Retailer dropdowns, Top Recommended mode, and all required data-testid attributes (mode-recommended, mode-manual, select-state, select-district, select-recommended-store, etc.)"
+    },
+    "Frontend ThankYou page": {
+      "status": "CODE_VERIFIED",
+      "details": "Displays OTP for pickup orders when delivery_mode='self_pickup' and pickup_otp_code exists. Has data-testid='pickup-otp-code' for testing."
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_store_pickup_retailers.py",
+    "/app/test_reports/pytest/store_pickup_retailers_results.xml"
+  ],
+
+  "action_items": [
+    "Consider adding Mumbai (400xxx) and Bangalore (560xxx) pincode prefixes to PINCODE_COORDINATES in /app/backend/services/shipping_config.py for better retailer recommendations"
+  ],
+
+  "critical_code_review_comments": [
+    "✓ Retailer endpoints properly separate public (by-location, states-districts, recommend) from admin (admin/list, admin/create)",
+    "✓ Admin endpoints correctly check is_admin_email() for authorization",
+    "✓ OTP verification endpoint validates order_number, otp_code, and retailer_id match",
+    "✓ Password hashes and sensitive data excluded from public API responses",
+    "✓ Frontend components have comprehensive data-testid attributes for testing",
+    "✓ ThankYou page conditionally renders OTP section only for pickup orders"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_store_pickup_retailers.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "N/A (backend-only testing requested - code verified)"
+  },
+
+  "test_credentials": {
+    "test_user": {
+      "email": "test.user@example.com",
+      "password": "test123"
+    },
+    "admin_user": {
+      "email": "contact.us@centraders.com",
+      "pin": "110078",
+      "note": "Requires 2FA OTP sent to email"
+    }
+  },
+
+  "seed_data_creation": "4 test retailers pre-created: RTL_DELHI001 (Karol Bagh), RTL_DELHI002 (Connaught Place), RTL_MUMBAI001 (Andheri), RTL_BLR001 (Koramangala)",
+
+  "retailers_data": [
+    {"retailer_id": "RTL_DELHI001", "name": "Addrika Store - Karol Bagh", "city": "Delhi", "state": "Delhi", "pincode": "110005"},
+    {"retailer_id": "RTL_DELHI002", "name": "Addrika Store - Connaught Place", "city": "New Delhi", "state": "Delhi", "pincode": "110001"},
+    {"retailer_id": "RTL_MUMBAI001", "name": "Addrika Store - Andheri", "city": "Mumbai", "state": "Maharashtra", "pincode": "400058"},
+    {"retailer_id": "RTL_BLR001", "name": "Addrika Store - Koramangala", "city": "Bengaluru", "state": "Karnataka", "pincode": "560034"}
+  ],
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Phase 1B Store Pickup with OTP verification is implemented. 4 retailers in DB (Delhi x2, Mumbai, Bangalore). Public APIs: /api/retailers/states-districts, /api/retailers/by-location, /api/retailers/recommend (works best for Delhi pincodes). OTP APIs: /api/store-pickup/verify-otp (needs real order with OTP), /api/store-pickup/otp/{order_number} (auth required). Admin APIs require 2FA. Frontend PickupStoreSelector has State→District→Retailer selection with 'Top Recommended' feature."
+}

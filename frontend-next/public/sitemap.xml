@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage - Priority 1.0 -->
+  <url>
+    <loc>https://centraders.com/</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Product Pages - Priority 0.9 (High SEO value) -->
+  <url>
+    <loc>https://centraders.com/products/kesar-chandan</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://customer-assets.emergentagent.com/job_premium-incense-2/artifacts/kuzvgiue_KC_50%20gms_1.jpg</image:loc>
+      <image:title>Kesar Chandan - Saffron Sandalwood Premium Incense</image:title>
+    </image:image>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/products/regal-rose</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://customer-assets.emergentagent.com/job_32618d6c-b353-4dca-9dd0-4057e45012d0/artifacts/7m9n9evq_Rose%20Packet%20%231.png</image:loc>
+      <image:title>Regal Rose - Floral Incense</image:title>
+    </image:image>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/products/oriental-oudh</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://customer-assets.emergentagent.com/job_a97378cd-15ad-4008-ac7f-564e8862eb85/artifacts/svoqkq58_Architectural%20Oudh%20Shot.png</image:loc>
+      <image:title>Oriental Oudh - Premium Agarwood Incense</image:title>
+    </image:image>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/products/bold-bakhoor</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://customer-assets.emergentagent.com/job_434d883a-a02c-48ab-b964-a5cf2e94edda/artifacts/w49zefo9_Bakhoor%20Packet%20%231.png</image:loc>
+      <image:title>Bold Bakhoor - Traditional Maghreb Incense</image:title>
+    </image:image>
+  </url>
+  
+  <!-- SEO Content Pages - High Priority for AI/LLM -->
+  <url>
+    <loc>https://centraders.com/low-smoke-incense</loc>
+    <lastmod>2026-03-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/why-zero-charcoal</loc>
+    <lastmod>2026-03-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/our-quality</loc>
+    <lastmod>2026-03-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/ingredients</loc>
+    <lastmod>2026-03-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/faq</loc>
+    <lastmod>2026-03-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/why-choose-addrika</loc>
+    <lastmod>2026-03-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- About Pages - Priority 0.8 -->
+  <url>
+    <loc>https://centraders.com/about-us</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/our-story</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Store Locator - Priority 0.8 -->
+  <url>
+    <loc>https://centraders.com/find-retailers</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Blog - Priority 0.7 -->
+  <url>
+    <loc>https://centraders.com/blog</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- E-commerce Pages (noindex for user-specific) -->
+  <url>
+    <loc>https://centraders.com/cart</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/track-order</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- Auth Pages -->
+  <url>
+    <loc>https://centraders.com/login</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/register</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  
+  <!-- Legal Pages - Priority 0.4 -->
+  <url>
+    <loc>https://centraders.com/shipping-returns</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/privacy-policy</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/terms-of-service</loc>
+    <lastmod>2026-03-16</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  
+</urlset>

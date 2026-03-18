@@ -1,0 +1,132 @@
+{
+  "summary": "Tested business logic refactor for Addrika e-commerce platform: 3-tier shipping, coupon MRP calculation, promo banner WELCOME10 removal, registration warnings, and checkout read-only fields. Fixed critical ShoppingCart.jsx bug where getShippingTier was not destructured from useCart hook.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ShoppingCart.jsx",
+        "issue": "getShippingTier was not destructured from useCart hook causing 'ReferenceError: getShippingTier is not defined'",
+        "selector": "ShoppingCart component",
+        "priority": "CRITICAL - FIXED",
+        "fix_applied": "Added getShippingTier to destructured imports from useCart()"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "shipping_tiers": {
+      "status": "PASSED",
+      "tier_1": "Cart < ₹249 = ₹149 shipping - VERIFIED",
+      "tier_2": "Cart ₹249-₹998 = ₹49 shipping - VERIFIED",
+      "tier_3": "Cart ≥ ₹999 = FREE shipping - VERIFIED",
+      "boundary_tests": "Exact boundaries at ₹249 and ₹999 tested and working"
+    },
+    "promo_banner_welcome10": {
+      "status": "PASSED",
+      "details": "WELCOME10 code NOT displayed in promo banner. Banner only shows shipping tier info."
+    },
+    "registration_warnings": {
+      "status": "PASSED",
+      "email_warning": "⚠️ Email cannot be changed after registration. Used for order updates.",
+      "phone_warning": "⚠️ Phone cannot be changed after registration."
+    },
+    "checkout_readonly_fields": {
+      "status": "VERIFIED BY CODE REVIEW",
+      "details": "Email and phone fields have readOnly={hasBillingFromUser || usingSavedDetails} attribute",
+      "code_location": "Checkout.jsx lines 964 and 979"
+    },
+    "coupon_mrp_calculation": {
+      "status": "VERIFIED BY CODE REVIEW",
+      "details": "When coupon applied, calculation uses MRP (mrpTotal - codeDiscount), bulk discount set to 0",
+      "code_location": "Checkout.jsx lines 608-623",
+      "api_test": "TESTDISCOUNT10 coupon validated - 10% of ₹500 = ₹50 discount"
+    },
+    "coupon_bulk_discount_removal": {
+      "status": "VERIFIED",
+      "details": "hasCouponApplied ? 0 : getBulkDiscount() - bulk discount is 0 when coupon applied"
+    }
+  },
+
+  "test_results": {
+    "backend_tests": {
+      "file": "/app/backend/tests/test_shipping_coupon_logic.py",
+      "passed": 15,
+      "skipped": 1,
+      "failed": 0,
+      "details": "Skipped test was HAPPYBDAY validation which requires login"
+    },
+    "frontend_tests": {
+      "promo_banner": "PASSED - No WELCOME10 in banner",
+      "cart_shipping_tier_1": "PASSED - ₹149 shown for cart < ₹249",
+      "cart_shipping_tier_2": "PASSED - ₹49 shown for cart ₹249-₹998",
+      "registration_warnings": "PASSED - Both email and phone warnings visible"
+    }
+  },
+
+  "bug_fixed": {
+    "file": "/app/frontend/src/components/ShoppingCart.jsx",
+    "issue": "getShippingTier is not defined - ReferenceError",
+    "root_cause": "getShippingTier function was being called but not destructured from useCart hook",
+    "fix": "Added getShippingTier to the destructured imports: const { ..., getShippingTier, ... } = useCart();",
+    "verification": "Cart now opens without error and displays correct shipping tiers"
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_shipping_coupon_logic.py",
+    "/app/test_reports/pytest/shipping_coupon_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Shipping logic correctly implements 3-tier system in both backend (services/shipping_config.py) and frontend (CartContext.jsx, Checkout.jsx)",
+    "Coupon calculation from MRP correctly implemented - when coupon applied, uses mrpTotal instead of discounted subtotal",
+    "Registration page has clear amber warnings for email/phone immutability",
+    "Checkout page has readOnly attribute on email/phone for logged-in users with billing data"
+  ],
+
+  "updated_files": [
+    "/app/frontend/src/components/ShoppingCart.jsx (bug fix - added getShippingTier to useCart destructure)",
+    "/app/backend/tests/test_shipping_coupon_logic.py (new test file)"
+  ],
+
+  "success_rate": {
+    "backend": "100% (15/15 passed, 1 skipped)",
+    "frontend": "100% (after bug fix)"
+  },
+
+  "test_credentials": {
+    "admin_email": "contact.us@centraders.com",
+    "admin_pin": "110078",
+    "note": "These are admin credentials, not regular user login"
+  },
+
+  "seed_data_creation": "None - used existing products and discount codes",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Business logic refactor verified. Fixed critical ShoppingCart.jsx bug. Shipping tiers work: <₹249=₹149, ₹249-998=₹49, ≥₹999=FREE. Coupon calculation from MRP verified in code. Registration warnings for email/phone immutability are present. Checkout requires login - cannot test with guest checkout.",
+
+  "pricing_reference": {
+    "50g_mrp": 110,
+    "50g_discounted": 105,
+    "200g_mrp": 402,
+    "200g_discounted": 380,
+    "discount_note": "5% general discount on MRP"
+  },
+
+  "verification_screenshots": [
+    ".screenshots/homepage_promo_banner.png - Shows promo banner without WELCOME10",
+    ".screenshots/cart_fixed.png - Shows cart with ₹149 shipping for small order",
+    ".screenshots/cart_tier2.png - Shows cart with ₹49 shipping for medium order",
+    ".screenshots/registration_form.png - Shows email/phone warnings"
+  ]
+}
