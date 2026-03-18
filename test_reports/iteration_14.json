@@ -1,0 +1,105 @@
+{
+  "summary": "Completed comprehensive testing of Addrika registration flow, zone-based shipping thresholds, and dark mode features. 14/14 backend tests passed. Frontend UI tests verified gender field auto-title mapping, mandatory address fields, and dark mode on Find Retailers and Checkout pages.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "1_zone_based_shipping_bhagalpur": {
+      "status": "PASSED",
+      "details": "Bhagalpur zone (pincode 812*) correctly returns threshold ₹249"
+    },
+    "2_zone_based_shipping_delhi_ncr": {
+      "status": "PASSED",
+      "details": "Delhi NCR zone (pincode 110*, 201*, 122*) correctly returns threshold ₹499"
+    },
+    "3_zone_based_shipping_rest_of_india": {
+      "status": "PASSED",
+      "details": "Rest of India zone correctly returns threshold ₹2999 (NOTE: This is ₹2999 not ₹999 as mentioned in previous iteration)"
+    },
+    "4_free_shipping_eligibility": {
+      "status": "PASSED",
+      "details": "Free shipping correctly applied when subtotal exceeds zone threshold"
+    },
+    "5_registration_gender_field": {
+      "status": "PASSED",
+      "details": "Gender field present with data-testid='register-gender-select', options: Male, Female, Other"
+    },
+    "6_registration_title_auto_update": {
+      "status": "PASSED",
+      "details": "Selecting Male auto-sets title to 'Mr.', selecting Female auto-sets to 'Ms.'"
+    },
+    "7_registration_mandatory_address": {
+      "status": "PASSED",
+      "details": "Address fields (PIN Code, Street Address, City, State) are mandatory. Validation errors shown when missing."
+    },
+    "8_duplicate_email_prevention": {
+      "status": "PASSED",
+      "details": "OTP send correctly rejects already registered emails with 'Email already registered' error"
+    },
+    "9_duplicate_phone_prevention": {
+      "status": "PASSED",
+      "details": "Registration with duplicate phone number rejected with 'phone number is already registered' error"
+    },
+    "10_dark_mode_find_retailers": {
+      "status": "PASSED",
+      "details": "Find Retailers page has dark mode toggle and renders correctly in dark mode. 14 elements with dark: classes found."
+    },
+    "11_dark_mode_checkout": {
+      "status": "PASSED",
+      "details": "Checkout page has dark mode classes (dark:bg-slate-900, dark:bg-slate-800, dark:text-gray-300). Login Required page renders correctly in dark mode."
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_registration_shipping.py",
+    "/app/test_reports/pytest/registration_shipping_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "shipping_config.py: Rest of India free shipping threshold is ₹2999, not ₹999 as mentioned in iteration_13 report. The actual code shows threshold: 2999.",
+    "Checkout.jsx: Dark mode properly implemented with dark:bg-slate-900, dark:bg-slate-800, dark:text-gray-300 classes",
+    "FindRetailers.jsx: Dark mode classes applied to main container, retailer cards, and form elements",
+    "auth.py: Duplicate phone check uses regex pattern to match regardless of country code prefix",
+    "AuthPage.jsx: Gender-to-title mapping implemented in frontend (Male→Mr., Female→Ms.)"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_registration_shipping.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all UI elements verified)"
+  },
+
+  "test_credentials": {
+    "admin_email": "contact.us@centraders.com",
+    "admin_pin": "110078"
+  },
+
+  "seed_data_creation": "Test users created during duplicate prevention tests with TEST_ prefix pattern",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "All requested features verified working: 1) Zone-based free shipping: Bhagalpur ₹249, Delhi NCR ₹499, Rest of India ₹2999 (corrected from previous iteration). 2) Registration has gender field with auto-title mapping. 3) Address fields mandatory. 4) Duplicate email/phone prevention working. 5) Dark mode working on Find Retailers and Checkout pages.",
+
+  "important_threshold_correction": {
+    "issue": "Previous iteration_13 report incorrectly stated Rest of India threshold as ₹999",
+    "actual": "Rest of India threshold is ₹2999 as per shipping_config.py line 37",
+    "verified": "Backend API test confirmed threshold is 2999"
+  },
+
+  "rca_of_the_issue": "N/A - All features working as expected"
+}

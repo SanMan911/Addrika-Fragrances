@@ -1,0 +1,103 @@
+{
+  "summary": "Tested Admin 2FA Login & B2B Management features. Fixed critical bug in admin_b2b.py that was looking for sessions in wrong MongoDB collection. All 25 backend tests pass. B2B API endpoints (orders, vouchers, credit notes, self-pickup) are fully functional.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": [],
+    "fixed": [
+      {
+        "file": "/app/backend/routers/admin/admin_b2b.py",
+        "issue": "Admin B2B router had local require_admin function that checked 'admin_sessions' collection, but sessions are stored in 'user_sessions'",
+        "fix": "Removed local require_admin function and imported shared require_admin from dependencies.py",
+        "root_cause": "The admin_b2b.py had a duplicate require_admin function that used wrong collection"
+      },
+      {
+        "file": "/app/frontend/src/pages/admin/pages/AdminB2BPage.jsx",
+        "issue": "API call to /api/retailers/admin was returning 404",
+        "fix": "Changed to correct endpoint /api/retailers/admin/list"
+      }
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "Admin 2FA Login Flow": {
+      "POST /api/admin/login/initiate": "PASSED - Initiates 2FA, stores token in MongoDB admin_2fa_tokens collection",
+      "POST /api/admin/login/verify-otp": "PASSED - Verifies OTP, creates session, returns session_token",
+      "Token Storage in MongoDB": "VERIFIED - Tokens stored in admin_2fa_tokens with TTL index (auto-cleanup)",
+      "Invalid credentials": "PASSED - Returns 401 for wrong PIN, 403 for non-admin email",
+      "Invalid/expired token": "PASSED - Returns 400 for invalid token_id",
+      "Wrong OTP": "PASSED - Returns 401 with remaining attempts counter",
+      "Legacy endpoint": "PASSED - Returns 400 with message to use new 2FA flow"
+    },
+    "B2B Management Endpoints (all require admin auth)": {
+      "GET /api/admin/b2b/orders": "PASSED - Lists B2B orders with status counts and pagination",
+      "PUT /api/admin/b2b/orders/{order_id}/status": "PASSED - Updates order status with history",
+      "POST /api/admin/b2b/vouchers": "PASSED - Creates retailer voucher (auto-generates code if empty)",
+      "GET /api/admin/b2b/vouchers": "PASSED - Lists vouchers with pagination",
+      "PUT /api/admin/b2b/vouchers/{code}/deactivate": "PASSED - Deactivates voucher",
+      "POST /api/admin/b2b/credit-notes": "PASSED - Creates credit note for retailer",
+      "GET /api/admin/b2b/credit-notes": "PASSED - Lists credit notes with summary",
+      "GET /api/admin/b2b/credit-notes/reasons": "PASSED - Returns valid CN reasons list",
+      "GET /api/admin/b2b/self-pickup/leaderboard": "PASSED - Returns retailer self-pickup rankings",
+      "GET /api/admin/b2b/self-pickup/report": "PASSED - Returns detailed pickup report",
+      "GET /api/admin/b2b/abandoned-carts": "PASSED - Lists abandoned B2B carts"
+    },
+    "Frontend Admin B2B Page": {
+      "Route /admin/b2b": "CONFIGURED - AdminB2BPage component at correct route",
+      "Sidebar Navigation": "CONFIGURED - 'B2B Wholesale' item added to navItems in AdminLayout.jsx",
+      "Tabs Component": "IMPLEMENTED - Orders, Vouchers, Credit Notes, Self-Pickup tabs"
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_admin_2fa_b2b.py",
+    "/app/test_reports/pytest/admin_2fa_b2b_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "✓ Admin 2FA tokens stored in MongoDB with TTL index for auto-cleanup",
+    "✓ B2B endpoints properly protected with admin authentication",
+    "✓ MongoDB ObjectId (_id) excluded from API responses",
+    "✓ Voucher codes auto-generated if not provided",
+    "✓ Credit notes have 45-day expiry with email notification",
+    "✓ B2B page has data-testid attributes on interactive elements"
+  ],
+
+  "updated_files": [
+    "/app/backend/routers/admin/admin_b2b.py",
+    "/app/frontend/src/pages/admin/pages/AdminB2BPage.jsx",
+    "/app/backend/tests/test_admin_2fa_b2b.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (25/25 tests passed)",
+    "frontend": "Code verified - manual testing recommended"
+  },
+
+  "test_credentials": {
+    "admin_email": "contact.us@centraders.com",
+    "admin_pin": "110078"
+  },
+
+  "seed_data_creation": "Created test voucher RV-36833E (15% off, max ₹1000, min order ₹5000)",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+
+  "context_for_next_testing_agent": "Admin 2FA login and B2B Management features are fully functional. Fixed critical bug where admin_b2b.py was checking wrong MongoDB collection for sessions. All B2B endpoints work correctly when authenticated. Frontend B2B page (AdminB2BPage.jsx) has 4 tabs: Orders, Vouchers, Credit Notes, Self-Pickup. The sidebar navigation includes 'B2B Wholesale' item. To test frontend manually: login via admin login page, then navigate to /admin/b2b.",
+
+  "rca_of_issue": {
+    "bug_description": "B2B endpoints were returning 'Invalid session' even with valid session token",
+    "root_cause": "The admin_b2b.py router had its own local require_admin() function that was checking the 'admin_sessions' MongoDB collection, but the actual sessions created by create_session() were being stored in the 'user_sessions' collection",
+    "fix_applied": "Removed the local require_admin function from admin_b2b.py and imported the shared require_admin from dependencies.py which correctly validates sessions from user_sessions collection",
+    "verification": "After fix, all B2B endpoints work correctly with valid admin session tokens"
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "summary": "Completed E2E verification of Addrika self-pickup checkout UI text changes and Track Order page. All features tested successfully: promotional text, token payment text ('Fully adjusted at pickup', 'Prevents fake reservations'), dynamic balance calculation, time slots, store selection, and coupon code visibility toggle.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "features_tested": {
+    "self_pickup_checkout_ui": {
+      "promotional_text": {
+        "status": "PASSED",
+        "text": "For faster service, choose pickup from your nearest Authorized Addrika Retailer.",
+        "location": "Below delivery mode title, gold/italic styling"
+      },
+      "delivery_mode_selection": {
+        "status": "PASSED",
+        "shipping_option": {
+          "label": "Ship to My Address",
+          "sub_label": "Discount codes available"
+        },
+        "pickup_option": {
+          "label": "Self-Pickup from Store",
+          "sub_label": "No shipping charges • Pay at store option"
+        }
+      },
+      "token_payment_option": {
+        "status": "PASSED",
+        "title": "Pay ₹11 Token Now",
+        "fully_adjusted_text": "Fully adjusted at pickup • Pay ₹99 at store",
+        "prevents_fake_text": "Prevents fake reservations",
+        "verified": true
+      },
+      "dynamic_balance_calculation": {
+        "status": "PASSED",
+        "cart_total": "₹110 (50g MRP)",
+        "token_amount": "₹11",
+        "balance_at_store": "₹99",
+        "display_text": "You have prepaid ₹11. Pay no more than ₹99 at store to collect your order."
+      },
+      "time_slots": {
+        "status": "PASSED",
+        "slots": [
+          "11:00 AM - 2:00 PM",
+          "2:00 PM - 5:00 PM",
+          "5:00 PM - 8:00 PM"
+        ],
+        "validation": "Please select a pickup time slot"
+      },
+      "coupon_code_visibility": {
+        "status": "PASSED",
+        "shipping_mode": "VISIBLE with Enter code input, Apply button, and hints (TESTDISCOUNT10, HOLISPECIAL2026)",
+        "pickup_mode": "HIDDEN as expected"
+      }
+    },
+    "track_order_page": {
+      "status": "PASSED",
+      "self_pickup_statuses": {
+        "pending_pickup": "Pending Store Confirmation",
+        "ready_for_pickup": "Ready for Pickup",
+        "collected": "Collected"
+      },
+      "note": "Status timeline switches between shipping (5 steps) and self-pickup (3 steps) based on delivery_mode"
+    },
+    "find_retailers_page": {
+      "status": "PASSED",
+      "retailers_count": 2,
+      "delhi_store": {
+        "name": "M.G. Shoppie",
+        "email": "amitkumar.911@proton.me",
+        "phone": "(+91) 6202-311-736",
+        "whatsapp_button": true,
+        "email_button": true
+      },
+      "bhagalpur_store": {
+        "name": "Mela Stores",
+        "email": "mr.amitbgp@gmail.com",
+        "phone": "(+91) 7061-483-566",
+        "whatsapp_button": true,
+        "email_button": true
+      },
+      "map": "Leaflet map with store markers working"
+    }
+  },
+  
+  "test_results": {
+    "backend_tests": {
+      "file": "/app/backend/tests/test_checkout_selfpickup.py",
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    "frontend_tests": {
+      "method": "Playwright browser automation",
+      "tests_run": 6,
+      "all_passed": true
+    }
+  },
+  
+  "test_report_links": [
+    "/app/backend/tests/test_checkout_selfpickup.py"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Checkout.jsx properly implements all self-pickup UI elements with correct data-testid attributes",
+    "TrackOrder.jsx has correct self-pickup status handling (lines 120-176): pending_pickup, ready_for_pickup, collected",
+    "FindRetailers.jsx correctly displays WhatsApp and Email buttons with retailer contact info",
+    "Retailer email notifications (retailer_emails.py) include dynamic balance text with token prepaid amounts"
+  ],
+  
+  "updated_files": [],
+  
+  "success_rate": {
+    "backend": "100% (9/9)",
+    "frontend": "100%"
+  },
+  
+  "test_credentials": {
+    "test_user": {
+      "email": "test.checkout@example.com",
+      "password": "TestPass123!",
+      "name": "Test User"
+    }
+  },
+  
+  "seed_data_creation": "Used existing test user from iteration_19",
+  
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "All self-pickup UI text changes verified. Token payment shows 'Fully adjusted at pickup' and 'Prevents fake reservations'. Dynamic balance calculation working (₹110 cart - ₹11 token = ₹99 at store). Track Order page has self-pickup status timeline. Find Retailers page shows test emails: amitkumar.911@proton.me (Delhi), mr.amitbgp@gmail.com (Bhagalpur). Razorpay integration is live - test only up to payment initiation.",
+  
+  "mocked_apis": {
+    "Instagram feed": "MOCKED - returns empty/placeholder data",
+    "Amazon QR code": "MOCKED",
+    "WhatsApp Business API notifications": "MOCKED"
+  },
+  
+  "verification_screenshots": [
+    ".screenshots/13_checkout_full.png - Checkout with delivery mode selection",
+    ".screenshots/15_self_pickup_mode.png - Self-pickup with store list",
+    ".screenshots/17_payment_options.png - Time slots and payment options",
+    ".screenshots/18_payment_option_panel.png - Token payment with 'Fully adjusted at pickup' and 'Prevents fake reservations' text",
+    ".screenshots/19_track_order_page.png - Track Order page",
+    ".screenshots/20_find_retailers.png - Find Retailers with emails and WhatsApp",
+    ".screenshots/21_shipping_mode_coupon.png - Shipping mode with coupon code visible"
+  ]
+}

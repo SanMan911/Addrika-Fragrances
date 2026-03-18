@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "regions": ["bom1"],
+  "env": {
+    "NEXT_PUBLIC_API_URL": "@backend_url"
+  },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_API_URL": "@backend_url"
+    }
+  }
+}

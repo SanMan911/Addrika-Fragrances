@@ -1,0 +1,110 @@
+{
+  "summary": "Backend refactoring verification complete. Tested that orders.py correctly uses extracted functions from services/order_pricing.py. All 14 tests passed including: order creation (shipping & self-pickup), coupon validation (no coupons for self-pickup), order status logic, and package calculation.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "health_check": {
+      "status": "PASSED",
+      "endpoint": "/api/health"
+    },
+    "shipping_order_creation": {
+      "status": "PASSED",
+      "description": "Order creation with delivery_mode='shipping' works, returns session_id and Razorpay order"
+    },
+    "self_pickup_pay_at_store": {
+      "status": "PASSED",
+      "description": "Self-pickup with token payment (Rs.11) works correctly, balance_at_store calculated"
+    },
+    "self_pickup_pay_online": {
+      "status": "PASSED",
+      "description": "Self-pickup with full online payment charges full MRP"
+    },
+    "coupon_not_applied_for_self_pickup": {
+      "status": "PASSED",
+      "description": "Discount codes are ignored for self-pickup mode (coupon_discount=0)"
+    },
+    "order_status_logic": {
+      "status": "PASSED",
+      "tests": [
+        "shipping mode -> 'confirmed'",
+        "self_pickup + pay_at_store -> 'pending_pickup'",
+        "self_pickup + pay_online -> 'ready_for_pickup'"
+      ]
+    },
+    "package_calculation": {
+      "status": "PASSED",
+      "description": "calculate_package_details correctly calculates weight with packaging adjustments"
+    },
+    "retailers_endpoint": {
+      "status": "PASSED",
+      "endpoint": "/api/maps/retailers/self-pickup"
+    }
+  },
+
+  "test_results": {
+    "backend_tests": {
+      "file": "/app/backend/tests/test_order_pricing_refactor.py",
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "report": "/app/test_reports/pytest/order_pricing_refactor_results.xml"
+    },
+    "existing_checkout_tests": {
+      "file": "/app/backend/tests/test_checkout_selfpickup.py",
+      "total": 9,
+      "passed": 9,
+      "failed": 0
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_order_pricing_refactor.py",
+    "/app/test_reports/pytest/order_pricing_refactor_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Refactoring is clean: validate_and_apply_coupon, get_order_status_for_delivery_mode, calculate_package_details extracted to services/order_pricing.py",
+    "orders.py correctly imports and uses the extracted functions (line 66)",
+    "TOKEN_AMOUNT constant (Rs.11) properly shared between orders.py and service module"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_order_pricing_refactor.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (14/14 + 9/9 existing)",
+    "frontend": "N/A (backend-only testing)"
+  },
+
+  "test_credentials": {
+    "email": "test.checkout@example.com",
+    "password": "TestPass123!"
+  },
+
+  "seed_data_creation": "No seed data created. Tests use existing products and create payment sessions that are not completed.",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Backend refactoring verified. Order pricing logic extracted to services/order_pricing.py is working correctly. Checkout flow remains functional. Order creation requires 'sessionId' field (client-generated). Mocked APIs: Instagram feed, Amazon QR code, WhatsApp Business API.",
+
+  "mocked_apis": {
+    "Instagram feed": "MOCKED",
+    "Amazon QR code": "MOCKED",
+    "WhatsApp Business API": "MOCKED"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "summary": "Verified checkout price mismatch bug fix. Bug was: Checkout showed ₹103 but Razorpay asked for ₹197. Root cause: Weight calculation in backend was using raw item['weight'] field (containing grams as integer, e.g., 50 for 50g) but treating it as kg (resulting in 150kg for 3 items!). Fix: Added _calculate_shipping_weight_kg() helper function that correctly calculates 0.08kg per 50g pack and 0.35kg per 200g jar with 0.25kg minimum.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "Bug Fix Verification - Weight Calculation": {
+      "test_create_order_with_rto_voucher_price_match": "PASSED - Final total ₹103 matches Razorpay amount 10300 paise",
+      "test_different_product_sizes_weight_calculation": "PASSED - 200g jar pricing consistent",
+      "test_mixed_sizes_cart": "PASSED - Mixed 50g/200g cart pricing correct",
+      "test_free_shipping_threshold": "PASSED - Free shipping applied at ₹999+",
+      "test_self_pickup_no_shipping_charge": "PASSED - Zero shipping for self-pickup",
+      "test_single_50g_pack_weight": "PASSED - Single item weight calculation correct",
+      "test_three_50g_packs_exact_scenario": "PASSED - Exact bug scenario (3x50g + RTO voucher + PIN 812002) returns correct pricing"
+    },
+    "API Verification": {
+      "Order Create API": "PASSED - Returns correct pricing breakdown",
+      "Weight Calculation": "PASSED - 3x50g = 0.24kg (min 0.25kg) not 150kg",
+      "ShipRocket Rate": "PASSED - Gets dynamic rate ~₹35 + ₹20 margin = ~₹55",
+      "RTO Voucher Application": "PASSED - ₹282 discount applied correctly"
+    }
+  },
+
+  "bug_fix_details": {
+    "original_bug": "Checkout showed ₹103 but Razorpay asked for ₹197",
+    "root_cause": "Weight calculation in backend orders.py used item['weight'] field (50 for 50g pack) as kg instead of grams. 3 x 50g items calculated as 150kg instead of 0.24kg",
+    "fix_location": "backend/routers/orders.py lines 68-91",
+    "fix_description": "Added _calculate_shipping_weight_kg() function that calculates: 50g pack = 0.08kg (80g with packaging), 200g jar = 0.35kg (350g with packaging), minimum 0.25kg",
+    "verification": {
+      "expected_result": "MRP ₹330 - RTO discount ₹282 + Shipping ~₹55 = Final ~₹103",
+      "actual_result": "Final total ₹103, Razorpay amount 10300 paise (₹103)",
+      "status": "FIXED"
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_checkout_weight_fix.py",
+    "/app/test_reports/pytest/checkout_weight_fix_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "✓ _calculate_shipping_weight_kg() function correctly handles both 50g and 200g sizes",
+    "✓ Function is consistent with frontend calculatePackageWeight() in CheckoutPage.jsx",
+    "✓ Minimum weight of 0.25kg enforced correctly",
+    "✓ ShipRocket rate fetched with correct weight, capped at slab maximum"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_checkout_weight_fix.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "UI loads correctly, checkout flow works"
+  },
+
+  "test_credentials": {
+    "RTO_voucher_code": "RTO-EF7DE05D",
+    "RTO_voucher_value": 282,
+    "test_pincode": "812002",
+    "test_product": "kesar-chandan 50g x 3"
+  },
+
+  "seed_data_creation": "None - used existing RTO voucher RTO-EF7DE05D",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Weight calculation bug is fixed. The _calculate_shipping_weight_kg() function in backend/routers/orders.py correctly calculates shipping weight. Test file /app/backend/tests/test_checkout_weight_fix.py contains comprehensive tests for this fix including the exact bug scenario (3x50g + RTO voucher + PIN 812002).",
+
+  "rca_of_the_issue": {
+    "bug_type": "Data Type Mismatch",
+    "symptom": "User sees ₹103 on checkout page but Razorpay asks for ₹197",
+    "root_cause": "Backend orders.py was using item['weight'] field directly for ShipRocket rate calculation. The weight field contains grams as integer (50 for 50g pack). Code was treating this as kg, so 3 x 50g = 150kg instead of 0.24kg. ShipRocket returned very high rates for 150kg, which got capped at the maximum slab rate (₹149 instead of ~₹55)",
+    "fix_applied": "Added _calculate_shipping_weight_kg() helper function that maps product sizes to correct weights: 50g = 0.08kg, 200g = 0.35kg, minimum 0.25kg",
+    "files_changed": ["backend/routers/orders.py"],
+    "verification_method": "API test with exact bug scenario confirms final_total matches razorpay.amount"
+  }
+}

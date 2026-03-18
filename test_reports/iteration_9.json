@@ -1,0 +1,99 @@
+{
+  "summary": "Completed testing of ShipRocket integration and dark mode/logo features. All 8 backend API tests passed. Frontend verification confirms: 1) Dark mode is default for new visitors, 2) Favicon uses Addrika 'A' logo, 3) Hero logo shows brand name with 'A' emblem in both modes, 4) ShipRocket API returns real rates (not fallback), 5) Weight calculation correct (50g=80g, 200g=350g), 6) Pickup pincode is 110078.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "1_dark_mode_default": {
+      "status": "PASSED",
+      "details": "Cleared localStorage and verified page loads with 'dark' class on html element. localStorage addrika_dark_mode is set to 'true' by default."
+    },
+    "2_favicon_a_logo": {
+      "status": "PASSED",
+      "details": "Favicon links point to /images/logos/addrika-logo-transparent.png (the 'A' logo). Both 32x32 icon and apple-touch-icon are correctly configured."
+    },
+    "3_hero_logo_light_mode": {
+      "status": "PASSED",
+      "details": "Light mode hero uses same logo as dark mode: /images/logos/addrika-brand-name-gold-transparent.png - shows 'A' emblem above ADDRIKA text with tagline."
+    },
+    "4_shiprocket_api_real_rates": {
+      "status": "PASSED",
+      "details": "GET /api/shipping/rates/quick?pincode=110001&weight=0.25 returns success=true with real ShipRocket rates: ₹35.40 via India Post-Speed Post Air Prepaid, ETD Feb 19, 2026"
+    },
+    "5_checkout_shipping_integration": {
+      "status": "PASSED",
+      "details": "Checkout.jsx correctly: 1) Fetches live rates when pincode entered (fetchShippingRates), 2) Converts cart weight from grams to kg (getCartWeight()/1000), 3) Displays courier name and ETD"
+    },
+    "6_weight_calculation": {
+      "status": "PASSED",
+      "details": "CartContext.jsx getCartWeight() correctly uses: 50g packet = 80g shipping weight, 200g jar = 350g shipping weight (for packaging and volumetric consideration)"
+    },
+    "7_pickup_pincode_110078": {
+      "status": "PASSED",
+      "details": "backend/.env has ADDRIKA_PICKUP_PINCODE=110078, shipping.py uses DEFAULT_PICKUP_PINCODE from env. All shipping rate calculations use Delhi 110078 as origin."
+    },
+    "8_pincode_serviceability": {
+      "status": "PASSED",
+      "details": "GET /api/shipping/check-pincode?pincode=110001 returns serviceable=true with city=Central Delhi, state=Delhi"
+    }
+  },
+
+  "backend_api_tests": {
+    "test_quick_shipping_rate_success": "PASSED - Returns real ShipRocket rates with courier_name != 'Standard'",
+    "test_quick_shipping_rate_weight_80g": "PASSED - 80g weight returns valid rate",
+    "test_quick_shipping_rate_weight_350g": "PASSED - 350g weight returns valid rate",
+    "test_pincode_serviceability": "PASSED - Returns city and state info",
+    "test_supported_countries": "PASSED - Returns popular and all countries list",
+    "test_invalid_pincode_format": "PASSED - Returns 422 for invalid format",
+    "test_pickup_pincode_is_delhi": "PASSED - Same-pincode delivery works",
+    "test_domestic_shipping_rates": "PASSED - POST endpoint returns courier options"
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_shiprocket.py",
+    "/app/test_reports/pytest/shiprocket_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "ShipRocket credentials properly configured in backend/.env with real email/password",
+    "Token caching implemented in shiprocket_service.py (20-hour expiry for 24-hour tokens)",
+    "Weight adjustments correctly applied: 50g→80g, 200g→350g in frontend CartContext",
+    "Checkout page fetches live rates on pincode change and displays courier name + ETD",
+    "Hero uses single logo (brand-name-gold-transparent.png) for both light/dark modes - includes 'A' emblem",
+    "ThemeContext defaults to dark mode (line 22: return true) when no localStorage preference exists"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_shiprocket.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (All features verified)"
+  },
+
+  "test_credentials": {
+    "admin_email": "contact.us@centraders.com",
+    "admin_pin": "110078"
+  },
+
+  "seed_data_creation": "Created test cart item via localStorage for checkout testing",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "ShipRocket integration is fully functional with real API calls. Weight calculation: 50g packet = 80g, 200g jar = 350g. Pickup pincode is 110078 (Delhi). Checkout requires authentication - cart items are preserved. Dark mode is default for new visitors. All shipping endpoints working: /api/shipping/rates/quick, /api/shipping/rates, /api/shipping/check-pincode, /api/shipping/countries.",
+
+  "rca_of_the_issue": "N/A - All requested features working as expected. ShipRocket returning real rates, not fallback."
+}

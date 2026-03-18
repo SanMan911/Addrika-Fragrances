@@ -1,0 +1,102 @@
+==============================================================================
+  QUICK IMAGE UPLOAD - Copy & Paste These Commands
+==============================================================================
+
+STEP 1: Get Your Image URL Ready
+---------------------------------
+Upload your image to Google Drive, Dropbox, or any image host.
+Make sure the URL is a DIRECT download link.
+
+For Google Drive links:
+- Original: https://drive.google.com/file/d/1abc123xyz/view
+- Convert to: https://drive.google.com/uc?export=download&id=1abc123xyz
+
+
+STEP 2: Open Terminal in VSCode
+---------------------------------
+1. In VSCode, click "Terminal" menu at top
+2. Click "New Terminal"
+3. You'll see a command line at the bottom
+
+
+STEP 3: Copy & Paste This Command
+---------------------------------
+Replace YOUR_IMAGE_URL with your actual image URL:
+
+wget -O /app/frontend/public/images/logos/addrika-logo.png "YOUR_IMAGE_URL"
+
+
+STEP 4: Restart Frontend
+---------------------------------
+sudo supervisorctl restart frontend
+
+
+STEP 5: Wait & Refresh
+---------------------------------
+Wait 15 seconds, then refresh your browser with: Ctrl+Shift+R
+
+
+==============================================================================
+  EXAMPLE - Uploading Product Photos
+==============================================================================
+
+# Upload Kesar Chandan photo
+wget -O /app/frontend/public/images/products/kesar-chandan.jpg "YOUR_URL_HERE"
+
+# Upload Regal Rose photo
+wget -O /app/frontend/public/images/products/regal-rose.jpg "YOUR_URL_HERE"
+
+# Upload Oriental Oudh photo
+wget -O /app/frontend/public/images/products/oriental-oudh.jpg "YOUR_URL_HERE"
+
+# Upload Bold Bakhoor photo
+wget -O /app/frontend/public/images/products/bold-bakhoor.jpg "YOUR_URL_HERE"
+
+# Restart
+sudo supervisorctl restart frontend
+
+
+==============================================================================
+  FILE LOCATIONS
+==============================================================================
+
+Logo folder:
+/app/frontend/public/images/logos/
+
+Products folder:
+/app/frontend/public/images/products/
+
+Check what's uploaded:
+ls -lh /app/frontend/public/images/logos/
+ls -lh /app/frontend/public/images/products/
+
+
+==============================================================================
+  EXACT FILENAMES REQUIRED (case-sensitive!)
+==============================================================================
+
+Logo:
+✓ addrika-logo.png
+
+Products:
+✓ kesar-chandan.jpg
+✓ regal-rose.jpg
+✓ oriental-oudh.jpg
+✓ bold-bakhoor.jpg
+
+
+==============================================================================
+  TROUBLESHOOTING
+==============================================================================
+
+Logo not showing?
+1. Clear browser cache: Ctrl+Shift+R
+2. Try incognito mode
+3. Wait 2-3 minutes
+4. Check file exists: ls -lh /app/frontend/public/images/logos/
+
+
+Need help?
+Share the error message or command output!
+
+==============================================================================

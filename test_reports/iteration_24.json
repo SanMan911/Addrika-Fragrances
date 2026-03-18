@@ -1,0 +1,130 @@
+{
+  "summary": "Frontend testing of refactored checkout page. All checkout components working correctly: DeliveryModeSelector toggles between shipping/pickup modes, PickupStoreSelector shows stores and time slots, DiscountCodeSection conditionally hidden in pickup mode, BillingAddressForm with pincode lookup, OrderSummaryPanel with correct pricing. RecentlyViewedSection triggers on cart add.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "checkout_page_loads": {
+      "status": "PASSED",
+      "details": [
+        "Checkout page loads at /checkout",
+        "Shows guest login prompt for unauthenticated users",
+        "Empty cart state shows 'Your cart is empty' with Browse Fragrances button",
+        "Cart items display correctly in checkout"
+      ]
+    },
+    "delivery_mode_selector": {
+      "status": "PASSED",
+      "details": [
+        "data-testid='delivery-mode-shipping' correctly selects Ship to Address mode",
+        "data-testid='delivery-mode-pickup' correctly selects Self-Pickup mode",
+        "Default mode is 'shipping'",
+        "Mode selection updates UI appropriately"
+      ]
+    },
+    "billing_address_form": {
+      "status": "PASSED",
+      "details": [
+        "All form fields visible: Title, Name, Email, Phone, Pincode, Address, City, State",
+        "Pincode lookup auto-fills City and State (tested with 110001 -> Central Delhi, Delhi)",
+        "data-testid attributes present: checkout-name-input, checkout-email-input, checkout-phone-input, checkout-pincode-input, checkout-address-input",
+        "Form title changes to 'Your Details' in pickup mode"
+      ]
+    },
+    "pickup_store_selector": {
+      "status": "PASSED",
+      "details": [
+        "Shows 2 pickup stores (M.G. Shoppie in Delhi, Mela Stores in Bhagalpur)",
+        "Payment options: 'Pay ₹11 Token Now' and 'Pay Full Amount Now'",
+        "Time slots: 11:00 AM - 2:00 PM, 2:00 PM - 5:00 PM, 5:00 PM - 8:00 PM",
+        "Validation message shown when time slot not selected"
+      ]
+    },
+    "discount_code_section": {
+      "status": "PASSED",
+      "details": [
+        "Visible only in shipping mode",
+        "Hidden in self-pickup mode (as designed)",
+        "Shows available discount codes: TESTDISCOUNT10, HOLISPECIAL2026, TESTDIWALIUI2026",
+        "Apply button with data-testid='apply-discount-btn'"
+      ]
+    },
+    "order_summary_panel": {
+      "status": "PASSED",
+      "details": [
+        "data-testid='order-summary-panel' present",
+        "Shows cart items with images, names, quantities, prices",
+        "Shipping mode: Subtotal + Shipping = Total (₹110 + ₹149 = ₹259)",
+        "Pickup mode: FREE shipping, Token/Store payment breakdown",
+        "Free shipping progress bar visible",
+        "data-testid='place-order-btn' present and functional"
+      ]
+    },
+    "shipping_address_section": {
+      "status": "PASSED",
+      "details": [
+        "Shows 'Same as billing address' checkbox",
+        "Only visible in shipping mode"
+      ]
+    },
+    "recently_viewed_section": {
+      "status": "PASSED",
+      "details": [
+        "RecentlyViewedSection component imported in LandingPage.jsx",
+        "localStorage key 'addrika_recently_viewed' populated on cart add",
+        "Products added to recently viewed include: id, name, subtitle, image, viewedAt",
+        "Section displays after page refresh when localStorage has data"
+      ]
+    }
+  },
+
+  "test_report_links": [
+    "/app/frontend/src/pages/CheckoutPage.jsx",
+    "/app/frontend/src/pages/checkout/DeliveryModeSelector.jsx",
+    "/app/frontend/src/pages/checkout/PickupStoreSelector.jsx",
+    "/app/frontend/src/pages/checkout/DiscountCodeSection.jsx",
+    "/app/frontend/src/pages/checkout/BillingAddressForm.jsx",
+    "/app/frontend/src/pages/checkout/OrderSummaryPanel.jsx"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "✓ CheckoutPage.jsx properly uses modular hooks (useCheckoutForm, useDeliveryMode, useDiscountCode, useOrderPricing, useRazorpayPayment)",
+    "✓ All checkout sub-components have proper data-testid attributes for testing",
+    "✓ utils.js contains shared constants (TOKEN_AMOUNT=11, PICKUP_TIME_SLOTS, SHIPPING_TIERS)",
+    "✓ Conditional rendering works correctly (discount section hidden in pickup mode)",
+    "✓ RecentlyViewedSection integrates with FragranceGrid via addToRecentlyViewed on cart add"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100%"
+  },
+
+  "test_credentials": {
+    "note": "Provided admin credentials (contact.us@centraders.com / 110078) do not work for user login - shows 'Invalid credentials'. Guest checkout works correctly."
+  },
+
+  "seed_data_creation": "None",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Checkout refactoring complete. All modular components in /app/frontend/src/pages/checkout/ working correctly. Recently Viewed feature stores products in localStorage when added to cart. Guest checkout fully functional. User login credentials provided in review_request appear to be admin-only credentials.",
+
+  "mocked_apis": {
+    "note": "No checkout APIs mocked per review_request"
+  }
+}
