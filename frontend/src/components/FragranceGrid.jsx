@@ -371,12 +371,11 @@ const FragranceGrid = () => {
   return (
     <section 
       id="fragrances" 
-      className="py-20 sm:py-28 relative overflow-hidden"
-      style={{ backgroundColor: '#faf7f2' }}
+      className="py-20 sm:py-28 relative overflow-hidden bg-[#faf7f2] dark:bg-[#0f1419]"
       data-testid="fragrance-grid-section"
     >
       {/* Subtle decorative background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30 dark:opacity-20">
         <div 
           className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.1) 0%, transparent 70%)' }}
@@ -401,9 +400,8 @@ const FragranceGrid = () => {
             HANDCRAFTED IN INDIA
           </span>
           <h2 
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6"
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-[#2B3A4A] dark:text-white"
             style={{ 
-              color: '#2B3A4A',
               fontFamily: "'Playfair Display', serif"
             }}
             data-testid="incense-section-title"
@@ -411,8 +409,7 @@ const FragranceGrid = () => {
             Premium Incense Collection
           </h2>
           <p 
-            className="text-lg sm:text-xl max-w-3xl mx-auto mb-10"
-            style={{ color: '#666' }}
+            className="text-lg sm:text-xl max-w-3xl mx-auto mb-10 text-[#666] dark:text-gray-300"
           >
             Four exquisite zero-charcoal fragrances, each offering 40-50 minutes of pure, 
             low-smoke aromatherapy crafted with 100% natural ingredients
@@ -434,7 +431,7 @@ const FragranceGrid = () => {
         {loading && (
           <div className="py-24 text-center">
             <Loader2 className="w-12 h-12 mx-auto animate-spin" style={{ color: '#D4AF37' }} />
-            <p className="mt-4 text-lg" style={{ color: '#666' }}>Loading premium fragrances...</p>
+            <p className="mt-4 text-lg text-[#666] dark:text-gray-400">Loading premium fragrances...</p>
           </div>
         )}
         
@@ -456,8 +453,8 @@ const FragranceGrid = () => {
         {/* Filter Count */}
         {!loading && !error && Object.values(activeFilters).some(arr => arr?.length > 0) && (
           <div className="mb-8 text-center">
-            <p style={{ color: '#666' }}>
-              Showing <strong style={{ color: '#D4AF37' }}>{filteredFragrances.length}</strong> of {fragrances.length} fragrances
+            <p className="text-[#666] dark:text-gray-400">
+              Showing <strong className="text-[#D4AF37]">{filteredFragrances.length}</strong> of {fragrances.length} fragrances
             </p>
           </div>
         )}
@@ -467,7 +464,7 @@ const FragranceGrid = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {filteredFragrances.length === 0 ? (
               <div className="col-span-full py-20 text-center">
-                <p className="text-xl" style={{ color: '#666' }}>
+                <p className="text-xl text-[#666] dark:text-gray-400">
                   No fragrances match your filters. Try adjusting your selection.
                 </p>
               </div>
@@ -488,7 +485,7 @@ const FragranceGrid = () => {
         {/* Bottom tagline */}
         {!loading && !error && filteredFragrances.length > 0 && (
           <div className="text-center mt-16">
-            <p className="text-sm" style={{ color: '#999' }}>
+            <p className="text-sm text-[#999] dark:text-gray-500">
               All products are 100% natural, charcoal-free, and produce 80% less smoke than traditional agarbatti
             </p>
           </div>
