@@ -61,16 +61,16 @@ const ProductCard = ({ product, onWishlistToggle, isWishlisted, wishlistLoading 
   const hasDiscount = lowestMRP > lowestPrice;
   const discountPercent = hasDiscount ? Math.round(((lowestMRP - lowestPrice) / lowestMRP) * 100) : 0;
   
-  // Auto-rotate images
+  // Auto-rotate images every 2 seconds
   useEffect(() => {
-    if (allImages.length <= 1 || !isHovered) return;
+    if (allImages.length <= 1) return;
     
     const interval = setInterval(() => {
       setCurrentImageIndex(prev => (prev + 1) % allImages.length);
     }, 2000);
     
     return () => clearInterval(interval);
-  }, [allImages.length, isHovered]);
+  }, [allImages.length]);
 
   const handleClick = () => {
     addToRecentlyViewed(product);
