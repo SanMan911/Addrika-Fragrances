@@ -49,3 +49,7 @@ coverage/
 # Next.js
 next-env.d.ts
 *.tsbuildinfo
+-e 
+# Environment files
+*.env
+*.env.*
