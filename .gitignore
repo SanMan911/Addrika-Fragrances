@@ -57,3 +57,4 @@ coverage/
 # Environment files
 *.env
 *.env.*
+backend/secrets/
