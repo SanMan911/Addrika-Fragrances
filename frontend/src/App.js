@@ -40,6 +40,11 @@ import ReviewPage from './pages/ReviewPage';
 import ThankYou from './pages/ThankYou';
 import WishlistPage from './pages/WishlistPage';
 import SharedWishlistPage from './pages/SharedWishlistPage';
+// SEO Content Pages
+import FAQPage from './pages/FAQPage';
+import OurQualityPage from './pages/OurQualityPage';
+import IngredientsPage from './pages/IngredientsPage';
+import WhyZeroCharcoalPage from './pages/WhyZeroCharcoalPage';
 import { Toaster } from './components/ui/sonner';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
@@ -100,6 +105,11 @@ function CustomerRouter() {
       <Route path="/shipping-returns" element={<ShippingReturns />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />
+      {/* SEO Content Pages */}
+      <Route path="/faq" element={<FAQPage />} />
+      <Route path="/our-quality" element={<OurQualityPage />} />
+      <Route path="/ingredients" element={<IngredientsPage />} />
+      <Route path="/why-zero-charcoal" element={<WhyZeroCharcoalPage />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/account" element={<AccountPage />} />
