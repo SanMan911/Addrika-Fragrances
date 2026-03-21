@@ -1,43 +1,44 @@
-# Environment files - NEVER COMMIT THESE
+# Node modules - NEVER COMMIT
+node_modules/
+**/node_modules/
+
+# Environment files
 .env
 .env.*
 .env.local
-.env.development
-.env.production
 *.env
 backend/.env
 frontend/.env
 frontend-next/.env.local
 
-# Dependencies
-node_modules/
+# Build outputs
+.next/
+**/.next/
+out/
+build/
+dist/
+
+# Dependencies and caches
 __pycache__/
 *.pyc
 venv/
 .venv/
+.yarn/
+.npm/
+yarn-error.log
 
-# Build outputs
-.next/
-out/
-build/
-dist/
-*.egg-info/
+# Large files
+*.log
+*.zip
+*.tar.gz
 
 # IDE
 .idea/
 .vscode/
-*.swp
-*.swo
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Testing
 coverage/
@@ -46,10 +47,9 @@ coverage/
 # Vercel
 .vercel
 
-# Next.js
-next-env.d.ts
-*.tsbuildinfo
--e 
-# Environment files
-*.env
-*.env.*
+# Emergent internal
+.emergent/
+
+# Lock files (optional - can be large)
+# yarn.lock
+# package-lock.json
