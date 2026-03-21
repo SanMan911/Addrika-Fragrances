@@ -74,6 +74,35 @@
     <priority>0.8</priority>
   </url>
   
+  <!-- SEO Content Pages -->
+  <url>
+    <loc>https://centraders.com/faq</loc>
+    <lastmod>2026-03-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/our-quality</loc>
+    <lastmod>2026-03-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/ingredients</loc>
+    <lastmod>2026-03-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://centraders.com/why-zero-charcoal</loc>
+    <lastmod>2026-03-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
   <!-- Store Locator -->
   <url>
     <loc>https://centraders.com/find-retailers</loc>
