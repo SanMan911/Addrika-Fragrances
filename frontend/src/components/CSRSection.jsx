@@ -1,5 +1,5 @@
 import React from 'react';
-import { csrActivities } from '../mockData';
+import { csrActivities } from '../data/staticContent';
 import { GraduationCap, Heart, Users, Leaf, Activity, Shield } from 'lucide-react';
 
 const iconMap = {

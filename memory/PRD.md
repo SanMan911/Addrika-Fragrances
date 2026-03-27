@@ -1,6 +1,17 @@
 # Addrika E-commerce Platform - PRD
 
 ## Latest Updates
+- **27 Mar 2026**: Password Recovery Feature & Codebase Refactoring:
+  - Implemented User Password Recovery (via Mobile Number + OTP to email)
+  - Implemented Admin PIN Recovery (via Email + OTP)
+  - Added "Forgot Password?" links to User and Admin login pages
+  - Frontend routes: `/forgot-password` and `/admin/forgot-password`
+  - Backend endpoints: `/api/auth/forgot-password/*` and `/api/admin/forgot-pin/*`
+  - Fixed datetime comparison bug in recovery endpoints
+  - Refactored: Moved static content from `mockData.js` to `data/staticContent.js`
+  - Deprecated: `mockData.js` renamed to `DEPRECATED_mockData.js.bak`
+  - Created `test_credentials.md` for testing documentation
+  - Added `STATUS.md` to `frontend-next/` clarifying its side-lined status
 - **18 Mar 2026**: Comprehensive AI/LLM SEO Optimization based on user recommendations:
   - Created `/our-quality` page (quality standards & artisan craftsmanship)
   - Created `/ingredients` page (detailed natural ingredients guide)
@@ -42,6 +53,7 @@ Build a premium incense e-commerce platform for Addrika with:
 - [x] Wishlist functionality
 - [x] **Individual product pages with SEO** (NEW - 16 Mar 2026)
 - [x] **Related Products section on product pages** (NEW - 16 Mar 2026)
+- [x] **Password Recovery via Mobile Number** (NEW - 27 Mar 2026)
 
 ### Admin Features
 - [x] 2FA login (MongoDB-backed)
@@ -51,6 +63,7 @@ Build a premium incense e-commerce platform for Addrika with:
 - [x] Profile change tickets
 - [x] Retailer activity dashboard (basic)
 - [x] Analytics dashboard
+- [x] **PIN Recovery via Email** (NEW - 27 Mar 2026)
 
 ### Retailer Features
 - [x] Retailer portal login

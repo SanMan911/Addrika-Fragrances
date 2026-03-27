@@ -153,24 +153,10 @@ export const fetchProductById = async (productId) => {
   }
 };
 
-// Export filter options (unchanged from mockData)
+// Export filter options from staticContent
+import { filterOptions } from '../data/staticContent';
 export const fragranceFilters = {
-  moods: [
-    { id: 'meditative', label: 'Meditative', icon: '🧘', description: 'Perfect for meditation & prayer' },
-    { id: 'relaxing', label: 'Relaxing', icon: '🌙', description: 'Calming & stress-relieving' },
-    { id: 'energizing', label: 'Energizing', icon: '✨', description: 'Uplifting & refreshing' },
-    { id: 'romantic', label: 'Romantic', icon: '💕', description: 'Sensual & inviting' },
-    { id: 'luxurious', label: 'Luxurious', icon: '👑', description: 'Rich & sophisticated' }
-  ],
-  notes: [
-    { id: 'woody', label: 'Woody', icon: '🌲', description: 'Sandalwood, Cedar, Oud' },
-    { id: 'floral', label: 'Floral', icon: '🌸', description: 'Rose, Lotus, Jasmine' },
-    { id: 'spicy', label: 'Spicy', icon: '🔥', description: 'Saffron, Pepper, Cardamom' },
-    { id: 'oriental', label: 'Oriental', icon: '🏺', description: 'Amber, Musk, Bakhoor' }
-  ],
-  intensity: [
-    { id: 'light', label: 'Light', description: 'Subtle & gentle' },
-    { id: 'medium', label: 'Medium', description: 'Balanced & versatile' },
-    { id: 'strong', label: 'Strong', description: 'Bold & long-lasting' }
-  ]
+  moods: filterOptions.mood,
+  notes: filterOptions.notes,
+  intensity: filterOptions.intensity
 };

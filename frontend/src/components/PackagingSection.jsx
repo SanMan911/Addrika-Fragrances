@@ -1,5 +1,5 @@
 import React from 'react';
-import { packageSizes } from '../mockData';
+import { packageSizes } from '../data/staticContent';
 import { Package, Check } from 'lucide-react';
 
 const PackagingSection = () => {

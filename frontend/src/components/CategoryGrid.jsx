@@ -1,5 +1,5 @@
 import React from 'react';
-import { productCategories } from '../mockData';
+import { productCategories } from '../data/staticContent';
 import { Sparkles, ArrowRight, Clock, Flame, Award } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { ScrollReveal, StaggeredReveal } from '../hooks/useScrollAnimation';

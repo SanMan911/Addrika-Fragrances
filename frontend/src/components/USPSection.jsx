@@ -1,6 +1,6 @@
 import React from 'react';
 import { Flame, Sparkles, Award, Shield, Heart } from 'lucide-react';
-import { companyInfo } from '../mockData';
+import { companyInfo } from '../data/staticContent';
 import { ScrollReveal } from '../hooks/useScrollAnimation';
 
 const USPSection = () => {
