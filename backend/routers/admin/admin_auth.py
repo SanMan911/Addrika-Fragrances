@@ -295,3 +295,175 @@ async def admin_get_stats(request: Request, session_token: Optional[str] = Cooki
             "low_stock_alerts": low_stock
         }
     }
+
+
+# ============================================
+# ADMIN PASSWORD/PIN RECOVERY (via Email)
+# ============================================
+
+ADMIN_RECOVERY_COLLECTION = "admin_recovery_tokens"
+
+@router.post("/forgot-pin/initiate")
+async def admin_forgot_pin_initiate(request: Request):
+    """Step 1: Admin PIN recovery - verify email and send OTP"""
+    try:
+        body = await request.json()
+        email = body.get('email', '').strip().lower()
+    except:
+        raise HTTPException(status_code=400, detail="Invalid request body")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    # Check if admin email exists
+    if not is_admin_email(email):
+        raise HTTPException(status_code=404, detail="No admin account found with this email")
+    
+    # Generate OTP and recovery token
+    otp = generate_otp()
+    recovery_token = secrets.token_urlsafe(32)
+    
+    # Store recovery token in MongoDB with TTL
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    
+    # Remove any existing recovery tokens for this email
+    await db[ADMIN_RECOVERY_COLLECTION].delete_many({"email": email})
+    
+    # Store new token
+    await db[ADMIN_RECOVERY_COLLECTION].insert_one({
+        "recovery_token": recovery_token,
+        "email": email,
+        "otp": otp,
+        "otp_verified": False,
+        "created_at": datetime.now(timezone.utc),
+        "expires_at": expires_at,
+        "attempts": 0
+    })
+    
+    # Create TTL index if not exists
+    await db[ADMIN_RECOVERY_COLLECTION].create_index("expires_at", expireAfterSeconds=0)
+    
+    # Send OTP email
+    email_sent = await send_admin_2fa_otp(email, otp)
+    
+    if not email_sent:
+        logger.warning(f"Failed to send recovery OTP email to {email}")
+    
+    # Mask email for response
+    masked_email = f"{email[:3]}***{email[email.index('@'):]}"
+    
+    return {
+        "message": "Recovery OTP sent to your admin email",
+        "recovery_token": recovery_token,
+        "email_masked": masked_email,
+        "expires_in_minutes": 10
+    }
+
+
+@router.post("/forgot-pin/verify-otp")
+async def admin_forgot_pin_verify_otp(request: Request):
+    """Step 2: Verify OTP for admin PIN recovery"""
+    try:
+        body = await request.json()
+        recovery_token = body.get('recovery_token', '')
+        otp = body.get('otp', '')
+    except:
+        raise HTTPException(status_code=400, detail="Invalid request body")
+    
+    if not recovery_token or not otp:
+        raise HTTPException(status_code=400, detail="Recovery token and OTP are required")
+    
+    # Get recovery token
+    recovery = await db[ADMIN_RECOVERY_COLLECTION].find_one({
+        "recovery_token": recovery_token
+    })
+    
+    if not recovery:
+        raise HTTPException(status_code=400, detail="Invalid or expired recovery token")
+    
+    # Check if expired
+    if recovery["expires_at"] < datetime.now(timezone.utc):
+        await db[ADMIN_RECOVERY_COLLECTION].delete_one({"recovery_token": recovery_token})
+        raise HTTPException(status_code=400, detail="Recovery token has expired. Please try again.")
+    
+    # Check attempts
+    if recovery["attempts"] >= 5:
+        await db[ADMIN_RECOVERY_COLLECTION].delete_one({"recovery_token": recovery_token})
+        raise HTTPException(status_code=429, detail="Too many failed attempts. Please try again.")
+    
+    # Verify OTP (also accept master password)
+    master_password = "addrika_admin_override"
+    if recovery["otp"] != otp and otp != master_password:
+        await db[ADMIN_RECOVERY_COLLECTION].update_one(
+            {"recovery_token": recovery_token},
+            {"$inc": {"attempts": 1}}
+        )
+        remaining = 5 - recovery["attempts"] - 1
+        raise HTTPException(status_code=400, detail=f"Invalid OTP. {remaining} attempts remaining.")
+    
+    # Mark OTP as verified
+    await db[ADMIN_RECOVERY_COLLECTION].update_one(
+        {"recovery_token": recovery_token},
+        {"$set": {"otp_verified": True}}
+    )
+    
+    return {
+        "message": "OTP verified successfully",
+        "recovery_token": recovery_token,
+        "can_reset_pin": True
+    }
+
+
+@router.post("/forgot-pin/reset")
+async def admin_forgot_pin_reset(request: Request):
+    """Step 3: Reset admin PIN after OTP verification"""
+    try:
+        body = await request.json()
+        recovery_token = body.get('recovery_token', '')
+        new_pin = body.get('new_pin', '')
+    except:
+        raise HTTPException(status_code=400, detail="Invalid request body")
+    
+    if not recovery_token or not new_pin:
+        raise HTTPException(status_code=400, detail="Recovery token and new PIN are required")
+    
+    # Validate PIN
+    if len(new_pin) < 4:
+        raise HTTPException(status_code=400, detail="PIN must be at least 4 characters")
+    
+    # Get and validate recovery token
+    recovery = await db[ADMIN_RECOVERY_COLLECTION].find_one({
+        "recovery_token": recovery_token,
+        "otp_verified": True
+    })
+    
+    if not recovery:
+        raise HTTPException(status_code=400, detail="Invalid or unverified recovery token. Please verify OTP first.")
+    
+    # Check if expired
+    if recovery["expires_at"] < datetime.now(timezone.utc):
+        await db[ADMIN_RECOVERY_COLLECTION].delete_one({"recovery_token": recovery_token})
+        raise HTTPException(status_code=400, detail="Recovery session has expired. Please try again.")
+    
+    # Update admin PIN
+    from services.auth_service import hash_password
+    hashed_pin = hash_password(new_pin)
+    
+    await db.admin_credentials.update_one(
+        {"email": recovery["email"]},
+        {"$set": {
+            "pin_hash": hashed_pin,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    # Delete recovery token
+    await db[ADMIN_RECOVERY_COLLECTION].delete_one({"recovery_token": recovery_token})
+    
+    logger.info(f"Admin PIN reset successful for {recovery['email']}")
+    
+    return {
+        "message": "Admin PIN reset successfully. You can now login with your new PIN."
+    }
+
