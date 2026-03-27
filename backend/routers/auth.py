@@ -914,3 +914,174 @@ async def update_notification_preferences(
     
     return {"message": "Preferences saved successfully", "preferences": clean_prefs}
 
+
+# ============================================
+# PASSWORD RECOVERY - USER (via Mobile Number)
+# ============================================
+
+class PasswordRecoveryInitiate(BaseModel):
+    phone: str
+    country_code: Optional[str] = "+91"
+
+class PasswordRecoveryVerifyOTP(BaseModel):
+    phone: str
+    otp: str
+    recovery_token: str
+
+class PasswordRecoveryReset(BaseModel):
+    recovery_token: str
+    new_password: str
+
+# Store recovery tokens in MongoDB
+RECOVERY_COLLECTION = "password_recovery_tokens"
+
+@router.post("/forgot-password/initiate")
+async def forgot_password_initiate(data: PasswordRecoveryInitiate):
+    """Step 1: User password recovery - verify phone exists and send OTP"""
+    import secrets
+    
+    phone = data.phone.strip()
+    country_code = data.country_code or "+91"
+    
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+    
+    # Find user by phone number
+    user = await db.users.find_one({"phone": phone})
+    if not user:
+        # Don't reveal if user exists or not for security
+        raise HTTPException(status_code=404, detail="No account found with this phone number")
+    
+    # Generate OTP and recovery token
+    otp = generate_otp()
+    recovery_token = secrets.token_urlsafe(32)
+    
+    # Store recovery token in MongoDB with TTL
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    
+    # Remove any existing recovery tokens for this phone
+    await db[RECOVERY_COLLECTION].delete_many({"phone": phone})
+    
+    # Store new token
+    await db[RECOVERY_COLLECTION].insert_one({
+        "recovery_token": recovery_token,
+        "phone": phone,
+        "user_id": user["user_id"],
+        "otp": otp,
+        "otp_verified": False,
+        "created_at": datetime.now(timezone.utc),
+        "expires_at": expires_at,
+        "attempts": 0
+    })
+    
+    # Create TTL index if not exists
+    await db[RECOVERY_COLLECTION].create_index("expires_at", expireAfterSeconds=0)
+    
+    # Send OTP via email (we don't have SMS integration yet)
+    # For now, send to user's email
+    user_email = user.get("email")
+    if user_email:
+        try:
+            await send_otp_email(user_email, otp)
+        except Exception as e:
+            logger.error(f"Failed to send recovery OTP: {e}")
+    
+    # Mask phone for response
+    masked_phone = f"{phone[:3]}****{phone[-3:]}" if len(phone) > 6 else "****"
+    masked_email = f"{user_email[:3]}***{user_email[user_email.index('@'):]}" if user_email else None
+    
+    return {
+        "message": "OTP sent to your registered email",
+        "recovery_token": recovery_token,
+        "phone_masked": masked_phone,
+        "email_masked": masked_email,
+        "expires_in_minutes": 10
+    }
+
+
+@router.post("/forgot-password/verify-otp")
+async def forgot_password_verify_otp(data: PasswordRecoveryVerifyOTP):
+    """Step 2: Verify OTP for password recovery"""
+    
+    # Get recovery token
+    recovery = await db[RECOVERY_COLLECTION].find_one({
+        "recovery_token": data.recovery_token,
+        "phone": data.phone
+    })
+    
+    if not recovery:
+        raise HTTPException(status_code=400, detail="Invalid or expired recovery token")
+    
+    # Check if expired
+    if recovery["expires_at"] < datetime.now(timezone.utc):
+        await db[RECOVERY_COLLECTION].delete_one({"recovery_token": data.recovery_token})
+        raise HTTPException(status_code=400, detail="Recovery token has expired. Please try again.")
+    
+    # Check attempts
+    if recovery["attempts"] >= 5:
+        await db[RECOVERY_COLLECTION].delete_one({"recovery_token": data.recovery_token})
+        raise HTTPException(status_code=429, detail="Too many failed attempts. Please try again.")
+    
+    # Verify OTP
+    if recovery["otp"] != data.otp:
+        await db[RECOVERY_COLLECTION].update_one(
+            {"recovery_token": data.recovery_token},
+            {"$inc": {"attempts": 1}}
+        )
+        remaining = 5 - recovery["attempts"] - 1
+        raise HTTPException(status_code=400, detail=f"Invalid OTP. {remaining} attempts remaining.")
+    
+    # Mark OTP as verified
+    await db[RECOVERY_COLLECTION].update_one(
+        {"recovery_token": data.recovery_token},
+        {"$set": {"otp_verified": True}}
+    )
+    
+    return {
+        "message": "OTP verified successfully",
+        "recovery_token": data.recovery_token,
+        "can_reset_password": True
+    }
+
+
+@router.post("/forgot-password/reset")
+async def forgot_password_reset(data: PasswordRecoveryReset):
+    """Step 3: Reset password after OTP verification"""
+    
+    # Get and validate recovery token
+    recovery = await db[RECOVERY_COLLECTION].find_one({
+        "recovery_token": data.recovery_token,
+        "otp_verified": True
+    })
+    
+    if not recovery:
+        raise HTTPException(status_code=400, detail="Invalid or unverified recovery token. Please verify OTP first.")
+    
+    # Check if expired
+    if recovery["expires_at"] < datetime.now(timezone.utc):
+        await db[RECOVERY_COLLECTION].delete_one({"recovery_token": data.recovery_token})
+        raise HTTPException(status_code=400, detail="Recovery session has expired. Please try again.")
+    
+    # Validate new password
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    # Hash new password and update user
+    hashed_password = hash_password(data.new_password)
+    
+    await db.users.update_one(
+        {"user_id": recovery["user_id"]},
+        {"$set": {
+            "password_hash": hashed_password,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Delete recovery token
+    await db[RECOVERY_COLLECTION].delete_one({"recovery_token": data.recovery_token})
+    
+    return {
+        "message": "Password reset successfully. You can now login with your new password."
+    }
+
+
