@@ -8,7 +8,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://seo-next-migration.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://forgot-pass-4.preview.emergentagent.com';
 
 export default function CheckoutPage() {
   const router = useRouter();

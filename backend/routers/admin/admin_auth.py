@@ -381,8 +381,13 @@ async def admin_forgot_pin_verify_otp(request: Request):
     if not recovery:
         raise HTTPException(status_code=400, detail="Invalid or expired recovery token")
     
-    # Check if expired
-    if recovery["expires_at"] < datetime.now(timezone.utc):
+    # Check if expired (handle both naive and aware datetimes from MongoDB)
+    expires_at = recovery["expires_at"]
+    now = datetime.now(timezone.utc)
+    # Make comparison timezone-aware safe
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < now:
         await db[ADMIN_RECOVERY_COLLECTION].delete_one({"recovery_token": recovery_token})
         raise HTTPException(status_code=400, detail="Recovery token has expired. Please try again.")
     
@@ -440,8 +445,13 @@ async def admin_forgot_pin_reset(request: Request):
     if not recovery:
         raise HTTPException(status_code=400, detail="Invalid or unverified recovery token. Please verify OTP first.")
     
-    # Check if expired
-    if recovery["expires_at"] < datetime.now(timezone.utc):
+    # Check if expired (handle both naive and aware datetimes from MongoDB)
+    expires_at = recovery["expires_at"]
+    now = datetime.now(timezone.utc)
+    # Make comparison timezone-aware safe
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < now:
         await db[ADMIN_RECOVERY_COLLECTION].delete_one({"recovery_token": recovery_token})
         raise HTTPException(status_code=400, detail="Recovery session has expired. Please try again.")
     

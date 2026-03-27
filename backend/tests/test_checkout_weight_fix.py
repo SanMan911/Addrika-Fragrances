@@ -20,7 +20,7 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL')
 if not BASE_URL:
-    BASE_URL = "https://seo-next-migration.preview.emergentagent.com"
+    BASE_URL = "https://forgot-pass-4.preview.emergentagent.com"
 BASE_URL = BASE_URL.rstrip('/')
 
 class TestCheckoutWeightFix:

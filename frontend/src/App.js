@@ -45,6 +45,8 @@ import FAQPage from './pages/FAQPage';
 import OurQualityPage from './pages/OurQualityPage';
 import IngredientsPage from './pages/IngredientsPage';
 import WhyZeroCharcoalPage from './pages/WhyZeroCharcoalPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import AdminForgotPasswordPage from './pages/AdminForgotPasswordPage';
 import { Toaster } from './components/ui/sonner';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
@@ -111,11 +113,13 @@ function CustomerRouter() {
       <Route path="/ingredients" element={<IngredientsPage />} />
       <Route path="/why-zero-charcoal" element={<WhyZeroCharcoalPage />} />
       <Route path="/login" element={<AuthPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/account" element={<AccountPage />} />
       <Route path="/orders" element={<UserOrders />} />
       <Route path="/notifications" element={<NotificationPreferences />} />
       <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/forgot-password" element={<AdminForgotPasswordPage />} />
       {/* New modular admin routes with sidebar layout */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminOverviewPage />} />

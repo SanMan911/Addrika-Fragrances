@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Eye, EyeOff, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -292,10 +292,18 @@ const AdminLogin = () => {
             </form>
 
             {/* Footer */}
-            <div className="text-center mt-6">
+            <div className="text-center mt-6 space-y-2">
               <p className="text-xs" style={{ color: 'var(--text-subtle)' }}>
                 This is a secure admin-only area.
               </p>
+              <Link
+                to="/admin/forgot-password"
+                className="text-sm font-medium hover:underline"
+                style={{ color: '#dc2626' }}
+                data-testid="admin-forgot-password-link"
+              >
+                Forgot PIN?
+              </Link>
             </div>
           </div>
         </div>

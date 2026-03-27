@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Phone, Mail, Lock, ArrowLeft, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowLeft, CheckCircle, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-const ForgotPasswordPage = () => {
+const AdminForgotPasswordPage = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Enter phone, 2: Verify OTP, 3: Reset password
+  const [step, setStep] = useState(1); // 1: Enter email, 2: Verify OTP, 3: Reset PIN
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
   // Form data
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [recoveryToken, setRecoveryToken] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
   const [maskedEmail, setMaskedEmail] = useState('');
 
   const handleInitiate = async (e) => {
@@ -25,10 +25,10 @@ const ForgotPasswordPage = () => {
     setLoading(true);
     
     try {
-      const res = await fetch(`${API_URL}/api/auth/forgot-password/initiate`, {
+      const res = await fetch(`${API_URL}/api/admin/forgot-pin/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, country_code: '+91' })
+        body: JSON.stringify({ email: email.toLowerCase().trim() })
       });
       
       const data = await res.json();
@@ -40,14 +40,9 @@ const ForgotPasswordPage = () => {
       setRecoveryToken(data.recovery_token);
       setMaskedEmail(data.email_masked);
       setStep(2);
-      setSuccess('OTP sent to your registered email');
+      setSuccess('Recovery OTP sent to your admin email');
     } catch (err) {
-      // Handle JSON parse errors gracefully
-      if (err.message.includes('body stream already read') || err.message.includes('JSON')) {
-        setError('No account found with this phone number');
-      } else {
-        setError(err.message);
-      }
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -59,10 +54,10 @@ const ForgotPasswordPage = () => {
     setLoading(true);
     
     try {
-      const res = await fetch(`${API_URL}/api/auth/forgot-password/verify-otp`, {
+      const res = await fetch(`${API_URL}/api/admin/forgot-pin/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp, recovery_token: recoveryToken })
+        body: JSON.stringify({ recovery_token: recoveryToken, otp })
       });
       
       const data = await res.json();
@@ -72,7 +67,7 @@ const ForgotPasswordPage = () => {
       }
       
       setStep(3);
-      setSuccess('OTP verified! Now set your new password');
+      setSuccess('OTP verified! Now set your new PIN');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -80,37 +75,37 @@ const ForgotPasswordPage = () => {
     }
   };
 
-  const handleResetPassword = async (e) => {
+  const handleResetPin = async (e) => {
     e.preventDefault();
     setError('');
     
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+    if (newPin !== confirmPin) {
+      setError('PINs do not match');
       return;
     }
     
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (newPin.length < 4) {
+      setError('PIN must be at least 4 characters');
       return;
     }
     
     setLoading(true);
     
     try {
-      const res = await fetch(`${API_URL}/api/auth/forgot-password/reset`, {
+      const res = await fetch(`${API_URL}/api/admin/forgot-pin/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recovery_token: recoveryToken, new_password: newPassword })
+        body: JSON.stringify({ recovery_token: recoveryToken, new_pin: newPin })
       });
       
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.detail || 'Failed to reset password');
+        throw new Error(data.detail || 'Failed to reset PIN');
       }
       
-      setSuccess('Password reset successful! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 2000);
+      setSuccess('PIN reset successful! Redirecting to admin login...');
+      setTimeout(() => navigate('/admin/login'), 2000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -119,29 +114,30 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2B3A4A] to-[#1a252f] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back link */}
         <Link 
-          to="/login" 
+          to="/admin/login" 
           className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+          data-testid="admin-forgot-back-link"
         >
           <ArrowLeft size={18} />
-          Back to Login
+          Back to Admin Login
         </Link>
         
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8" style={{ border: '2px solid #dc2626' }}>
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-[#D4AF37]" />
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShieldCheck className="w-8 h-8 text-red-600" />
             </div>
-            <h1 className="text-2xl font-bold text-[#2B3A4A] mb-2">Forgot Password?</h1>
+            <h1 className="text-2xl font-bold text-red-600 mb-2">Admin PIN Recovery</h1>
             <p className="text-gray-500 text-sm">
-              {step === 1 && "Enter your registered mobile number to recover your account"}
+              {step === 1 && "Enter your admin email to recover your PIN"}
               {step === 2 && `Enter the OTP sent to ${maskedEmail}`}
-              {step === 3 && "Create a new password for your account"}
+              {step === 3 && "Create a new PIN for your admin account"}
             </p>
           </div>
           
@@ -151,7 +147,7 @@ const ForgotPasswordPage = () => {
               <div
                 key={s}
                 className={`w-3 h-3 rounded-full transition-all ${
-                  s === step ? 'bg-[#D4AF37] w-8' : 
+                  s === step ? 'bg-red-600 w-8' : 
                   s < step ? 'bg-green-500' : 'bg-gray-200'
                 }`}
               />
@@ -173,38 +169,37 @@ const ForgotPasswordPage = () => {
             </div>
           )}
           
-          {/* Step 1: Enter Phone */}
+          {/* Step 1: Enter Email */}
           {step === 1 && (
             <form onSubmit={handleInitiate}>
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mobile Number
+                  Admin Email
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Enter your 10-digit mobile number"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                    maxLength={10}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@company.com"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
                     required
-                    data-testid="forgot-phone-input"
+                    data-testid="admin-forgot-email-input"
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  We'll send an OTP to your registered email address
+                  We'll send an OTP to your registered admin email
                 </p>
               </div>
               
               <button
                 type="submit"
-                disabled={loading || phone.length !== 10}
-                className="w-full py-3 bg-[#D4AF37] text-[#2B3A4A] rounded-xl font-semibold hover:bg-[#c9a432] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                data-testid="forgot-send-otp-btn"
+                disabled={loading || !email}
+                className="w-full py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                data-testid="admin-forgot-send-otp-btn"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send OTP'}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Recovery OTP'}
               </button>
             </form>
           )}
@@ -221,10 +216,10 @@ const ForgotPasswordPage = () => {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   placeholder="6-digit OTP"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none text-center text-2xl tracking-widest"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none text-center text-2xl tracking-widest"
                   maxLength={6}
                   required
-                  data-testid="forgot-otp-input"
+                  data-testid="admin-forgot-otp-input"
                 />
                 <p className="text-xs text-gray-500 mt-2 text-center">
                   OTP expires in 10 minutes
@@ -234,8 +229,8 @@ const ForgotPasswordPage = () => {
               <button
                 type="submit"
                 disabled={loading || otp.length !== 6}
-                className="w-full py-3 bg-[#D4AF37] text-[#2B3A4A] rounded-xl font-semibold hover:bg-[#c9a432] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                data-testid="forgot-verify-otp-btn"
+                className="w-full py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                data-testid="admin-forgot-verify-otp-btn"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Verify OTP'}
               </button>
@@ -243,71 +238,71 @@ const ForgotPasswordPage = () => {
               <button
                 type="button"
                 onClick={() => { setStep(1); setOtp(''); setError(''); setSuccess(''); }}
-                className="w-full mt-3 py-3 text-gray-600 hover:text-[#2B3A4A] transition-colors text-sm"
+                className="w-full mt-3 py-3 text-gray-600 hover:text-red-600 transition-colors text-sm"
               >
-                Use a different number
+                Use a different email
               </button>
             </form>
           )}
           
-          {/* Step 3: Reset Password */}
+          {/* Step 3: Reset PIN */}
           {step === 3 && (
-            <form onSubmit={handleResetPassword}>
+            <form onSubmit={handleResetPin}>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  New Password
+                  New PIN
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                    minLength={6}
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value)}
+                    placeholder="Enter new PIN"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+                    minLength={4}
                     required
-                    data-testid="forgot-new-password-input"
+                    data-testid="admin-forgot-new-pin-input"
                   />
                 </div>
               </div>
               
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm Password
+                  Confirm PIN
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                    minLength={6}
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value)}
+                    placeholder="Confirm new PIN"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+                    minLength={4}
                     required
-                    data-testid="forgot-confirm-password-input"
+                    data-testid="admin-forgot-confirm-pin-input"
                   />
                 </div>
               </div>
               
               <button
                 type="submit"
-                disabled={loading || !newPassword || !confirmPassword}
-                className="w-full py-3 bg-[#D4AF37] text-[#2B3A4A] rounded-xl font-semibold hover:bg-[#c9a432] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                data-testid="forgot-reset-btn"
+                disabled={loading || !newPin || !confirmPin}
+                className="w-full py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                data-testid="admin-forgot-reset-btn"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Reset Password'}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Reset PIN'}
               </button>
             </form>
           )}
         </div>
         
         {/* Footer */}
-        <p className="text-center text-gray-500 text-sm mt-6">
-          Remember your password?{' '}
-          <Link to="/login" className="text-[#D4AF37] hover:underline">
-            Sign in
+        <p className="text-center text-gray-400 text-sm mt-6">
+          Remember your PIN?{' '}
+          <Link to="/admin/login" className="text-red-400 hover:underline">
+            Admin Login
           </Link>
         </p>
       </div>
@@ -315,4 +310,4 @@ const ForgotPasswordPage = () => {
   );
 };
 
-export default ForgotPasswordPage;
+export default AdminForgotPasswordPage;

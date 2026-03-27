@@ -3,7 +3,7 @@
   "framework": "create-react-app",
   "regions": ["bom1"],
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://seo-next-migration.preview.emergentagent.com/api/:path*" }
+    { "source": "/api/:path*", "destination": "https://forgot-pass-4.preview.emergentagent.com/api/:path*" }
   ],
   "routes": [
     { "handle": "filesystem" },

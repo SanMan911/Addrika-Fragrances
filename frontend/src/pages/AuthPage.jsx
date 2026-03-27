@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -1028,6 +1028,18 @@ const AuthForm = () => {
                       </button>
                     </div>
                     {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                  </div>
+                  
+                  {/* Forgot Password Link */}
+                  <div className="text-right">
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm font-medium hover:underline"
+                      style={{ color: 'var(--metallic-gold)' }}
+                      data-testid="forgot-password-link"
+                    >
+                      Forgot Password?
+                    </Link>
                   </div>
                 </>
               )}

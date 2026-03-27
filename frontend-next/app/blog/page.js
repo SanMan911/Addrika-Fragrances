@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Calendar, Eye, Tag, Search } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://seo-next-migration.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://forgot-pass-4.preview.emergentagent.com';
 
 export const metadata = {
   title: 'Blog | Addrika - Fragrance Tips, Aromatherapy & Incense Guides',
