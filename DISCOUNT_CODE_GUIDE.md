@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://seo-next-migration.preview.emergentagent.com/api
+https://forgot-pass-4.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

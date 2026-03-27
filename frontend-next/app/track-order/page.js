@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Search, Package, Truck, CheckCircle, Clock, Loader2 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://seo-next-migration.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://forgot-pass-4.preview.emergentagent.com';
 
 export default function TrackOrderPage() {
   const [orderNumber, setOrderNumber] = useState('');

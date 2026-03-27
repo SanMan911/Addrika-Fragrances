@@ -4,6 +4,7 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel
 import re
+import logging
 
 from models.users import UserCreate, UserLogin
 from services.auth_service import (
@@ -15,6 +16,7 @@ from services.email_service import send_otp_email, generate_otp, is_email_servic
 from dependencies import db, verify_hcaptcha, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+logger = logging.getLogger(__name__)
 
 
 # Pydantic models for OTP
@@ -1012,8 +1014,12 @@ async def forgot_password_verify_otp(data: PasswordRecoveryVerifyOTP):
     if not recovery:
         raise HTTPException(status_code=400, detail="Invalid or expired recovery token")
     
-    # Check if expired
-    if recovery["expires_at"] < datetime.now(timezone.utc):
+    # Check if expired (handle both naive and aware datetimes from MongoDB)
+    expires_at = recovery["expires_at"]
+    now = datetime.now(timezone.utc)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < now:
         await db[RECOVERY_COLLECTION].delete_one({"recovery_token": data.recovery_token})
         raise HTTPException(status_code=400, detail="Recovery token has expired. Please try again.")
     
@@ -1057,8 +1063,12 @@ async def forgot_password_reset(data: PasswordRecoveryReset):
     if not recovery:
         raise HTTPException(status_code=400, detail="Invalid or unverified recovery token. Please verify OTP first.")
     
-    # Check if expired
-    if recovery["expires_at"] < datetime.now(timezone.utc):
+    # Check if expired (handle both naive and aware datetimes from MongoDB)
+    expires_at = recovery["expires_at"]
+    now = datetime.now(timezone.utc)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < now:
         await db[RECOVERY_COLLECTION].delete_one({"recovery_token": data.recovery_token})
         raise HTTPException(status_code=400, detail="Recovery session has expired. Please try again.")
     
