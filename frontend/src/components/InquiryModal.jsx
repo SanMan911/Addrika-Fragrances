@@ -6,7 +6,7 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { fetchProducts } from '../services/productService';
-import { packageSizes } from '../mockData';
+import { packageSizes } from '../data/staticContent';
 import { toast as sonnerToast } from 'sonner';
 import axios from 'axios';
 import HCaptcha from '@hcaptcha/react-hcaptcha';

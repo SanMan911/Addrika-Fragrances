@@ -1,6 +1,6 @@
 import React from 'react';
 import { Mail, Phone, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
-import { companyInfo } from '../mockData';
+import { companyInfo } from '../data/staticContent';
 import NewsletterSubscribe from './NewsletterSubscribe';
 import { useInquiry } from '../context/InquiryContext';
 
