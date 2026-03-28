@@ -1,6 +1,14 @@
 # Addrika E-commerce Platform - PRD
 
 ## Latest Updates
+- **28 Mar 2026**: ✅ **USERNAME FEATURE & ADMIN NOTIFICATIONS COMPLETE**
+  - Added **username field** to registration (case-sensitive for display, case-insensitive for lookups)
+  - Username can be used for login alongside email
+  - Added **"Forgot Username"** feature - retrieves username via phone number, sends to masked email
+  - Blocked reserved usernames: `SanMan911`, `911SanMan`, `SanMan`
+  - Admin panel now logs all new registrations with unread notification count
+  - Updated "Premium & Eco-Conscious" section with AI-generated Bakhoor jar image
+
 - **28 Mar 2026**: ✅ **DARK THEME, CART FIXES & QUICK VIEW COMPLETE**
   - Fixed CartContext to support both addToCart signatures
   - Added isCartOpen/setIsCartOpen state for cart sidebar
@@ -98,6 +106,10 @@ All public-facing pages now use consistent dark theme with shared Header/Footer:
 - `/app/frontend-next/components/CartSidebar.js` - Cart sidebar component
 - `/app/frontend-next/components/QuickViewModal.js` - Quick view modal for products
 - `/app/frontend-next/components/FragranceGrid.js` - Product grid with Quick View buttons
+- `/app/frontend-next/components/PackagingSection.js` - Premium & Eco-Conscious section with AI image
+- `/app/frontend-next/app/forgot-username/page.js` - Forgot Username page
+- `/app/backend/routers/auth.py` - Auth endpoints including username validation, forgot-username
+- `/app/backend/routers/admin/admin_users.py` - Admin user management + registration logs
 
 ---
 
@@ -106,6 +118,9 @@ All public-facing pages now use consistent dark theme with shared Header/Footer:
 - [x] Dark theme consistency
 - [x] Cart functionality
 - [x] Shared Header/Footer
+- [x] Username registration & login
+- [x] Forgot Username feature
+- [x] Admin registration notifications
 
 ## P1 (High Priority)
 - [ ] Google Search Console setup (submit sitemap.xml)
