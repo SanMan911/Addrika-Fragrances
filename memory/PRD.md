@@ -1,10 +1,11 @@
 # Addrika E-commerce Platform - PRD
 
 ## Latest Updates
-- **28 Mar 2026**: ✅ **DARK THEME & CART FIXES COMPLETE**
+- **28 Mar 2026**: ✅ **DARK THEME, CART FIXES & QUICK VIEW COMPLETE**
   - Fixed CartContext to support both addToCart signatures
   - Added isCartOpen/setIsCartOpen state for cart sidebar
   - Created CartSidebar component for smooth cart experience
+  - **NEW: Quick View Modal** - Add products to cart without leaving the page
   - Switched frontend from React SPA to Next.js (now serving on port 3000)
   - All auxiliary pages now use shared Header/Footer with dark theme
   - Fixed routing so all routes serve from Next.js app
@@ -95,6 +96,8 @@ All public-facing pages now use consistent dark theme with shared Header/Footer:
 - `/app/frontend-next/components/Header.js` - Shared header with cart icon
 - `/app/frontend-next/components/Footer.js` - Shared footer
 - `/app/frontend-next/components/CartSidebar.js` - Cart sidebar component
+- `/app/frontend-next/components/QuickViewModal.js` - Quick view modal for products
+- `/app/frontend-next/components/FragranceGrid.js` - Product grid with Quick View buttons
 
 ---
 
