@@ -1,57 +1,61 @@
 # Next.js Migration Status
 
-## Status: ACTIVE - MIGRATION IN PROGRESS
+## Status: ACTIVE - MIGRATION NEARLY COMPLETE
 
-This directory contains the Next.js version of the Addrika e-commerce application. Migration is actively ongoing with significant progress.
+This directory contains the Next.js version of the Addrika e-commerce application.
 
 ---
 
 ## Migration Progress (Updated: March 2026)
 
-### ✅ COMPLETED
-1. **Core Pages (SSR/SSG)**
-   - Homepage with products (SSR)
-   - Product detail pages (SSG for all 4 products)
-   - About Us, Our Story, Blog, FAQ
-   - Find Retailers, Privacy Policy, Terms, Shipping
+### ✅ COMPLETED - 48 Routes
 
-2. **Authentication Flow** (NEW)
-   - Login page (`/login`)
-   - Register page with OTP verification (`/register`)
-   - Forgot Password (`/forgot-password`)
-   - Auth Callback for Google OAuth (`/auth/callback`)
-   - Admin Login with 2FA (`/admin/login`)
-   - Admin Forgot PIN (`/admin/forgot-password`)
+#### Core Pages (SSR/SSG)
+- Homepage with products
+- Product detail pages (4 products with SSG)
+- All SEO pages (About, FAQ, Blog, Our Story, etc.)
 
-3. **E-commerce Flow** (NEW)
-   - Cart page (`/cart`)
-   - Checkout page with Razorpay (`/checkout`)
-   - Orders page (`/orders`)
-   - Order success page (`/orders/success`)
-   - Wishlist page (`/wishlist`)
+#### Authentication Flow
+- `/login` - User login
+- `/register` - User registration with OTP
+- `/forgot-password` - Password recovery via mobile
+- `/auth/callback` - Google OAuth callback
+- `/admin/login` - Admin login with 2FA
+- `/admin/forgot-password` - Admin PIN recovery
 
-4. **Account Pages** (NEW)
-   - Account dashboard (`/account`)
+#### E-commerce Flow
+- `/cart` - Shopping cart
+- `/checkout` - Checkout with Razorpay
+- `/orders` - Order history
+- `/orders/success` - Order confirmation
+- `/wishlist` - Saved products
+- `/account` - User dashboard
+- `/track-order` - Order tracking
 
-5. **Contexts**
-   - AuthContext (fully featured with Google OAuth, Admin 2FA)
-   - CartContext
-   - WishlistContext
+#### Admin Dashboard (13 Pages)
+- `/admin` - Overview with stats
+- `/admin/orders` - Order management
+- `/admin/users` - User management
+- `/admin/analytics` - Business analytics
+- `/admin/retailers` - Retailer management
+- `/admin/retailer-activity` - Retailer performance
+- `/admin/profile-tickets` - Profile change requests
+- `/admin/b2b` - B2B wholesale orders
+- `/admin/marketing` - Coupons & gift codes
+- `/admin/content` - Reviews moderation
+- `/admin/inventory` - Stock management
+- `/admin/inquiries` - Customer inquiries
+- `/admin/settings` - Store settings
 
-### 🔄 IN PROGRESS / REMAINING
-1. **Admin Dashboard** (Not started)
-   - Admin overview
-   - Order management
-   - B2B orders
-   - Retailer management
-   - Analytics
+### 🔄 REMAINING
+1. **Retailer Portal** (Not started)
+   - `/retailer/login`
+   - `/retailer/dashboard`
+   - `/retailer/orders`
+   - `/retailer/products`
+   - `/retailer/settings`
 
-2. **Retailer Portal** (Not started)
-   - Retailer login
-   - Retailer dashboard
-   - B2B ordering
-
-3. **Account Sub-pages**
+2. **Account Sub-pages**
    - `/account/addresses`
    - `/account/notifications`
    - `/account/payments`
@@ -60,21 +64,35 @@ This directory contains the Next.js version of the Addrika e-commerce applicatio
 ---
 
 ## Build Status
-- ✅ Build successful
-- 35 routes compiled
-- All pages generate without errors
+- ✅ Build successful (48 routes)
+- ✅ All pages compile without errors
+- ✅ Static generation working for products
 
 ## Deployment
 - Configured for Vercel deployment
 - `vercel.json` present
-- `.env.local` configured with API URL
+- `.env.local` configured
 
-## To Deploy
-```bash
-cd frontend-next
-yarn build
-# Push to GitHub for Vercel auto-deploy
+## To Switch to Next.js on Vercel
+1. Update Vercel project root directory to `frontend-next`
+2. Set environment variables in Vercel dashboard
+3. Deploy
+
+## Files Structure
 ```
-
-## Primary Application
-The original React app (`/app/frontend`) remains active. Once migration is complete, switch the Vercel project to deploy from `frontend-next`.
+/app/frontend-next/
+├── app/
+│   ├── admin/           # 13 admin pages
+│   ├── account/         # User account
+│   ├── auth/            # OAuth callback
+│   ├── cart/            # Shopping cart
+│   ├── checkout/        # Checkout flow
+│   ├── orders/          # Order pages
+│   ├── products/        # Product pages
+│   └── ...              # Other pages
+├── context/
+│   ├── AuthContext.js
+│   ├── CartContext.js
+│   └── WishlistContext.js
+└── components/          # Shared components
+```
