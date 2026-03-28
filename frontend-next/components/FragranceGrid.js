@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, Heart, Loader2, AlertCircle } from 'lucide-react';
+import { Star, Heart, Loader2, AlertCircle, Eye } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
+import QuickViewModal from './QuickViewModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 // Product Card Component - Premium Dark Theme
-function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading }) {
+function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading, onQuickView }) {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -226,21 +227,39 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading 
         </div>
         
         {/* View Details Button */}
-        <button
-          className="w-full py-3.5 rounded-xl font-semibold text-sm tracking-wide transition-all duration-300"
-          style={{ 
-            background: isHovered 
-              ? 'linear-gradient(135deg, #D4AF37 0%, #f5d67a 50%, #D4AF37 100%)'
-              : 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
-            color: '#1a1a2e',
-            boxShadow: isHovered 
-              ? '0 8px 30px rgba(212,175,55,0.5)' 
-              : '0 4px 20px rgba(212,175,55,0.3)',
-            transform: isHovered ? 'scale(1.02)' : 'scale(1)'
-          }}
-        >
-          View Details
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuickView(product);
+            }}
+            className="flex-1 py-3.5 rounded-xl font-semibold text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2"
+            style={{ 
+              background: 'rgba(255,255,255,0.08)',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.15)'
+            }}
+            data-testid={`quick-view-btn-${product.id}`}
+          >
+            <Eye size={16} />
+            Quick View
+          </button>
+          <button
+            className="flex-1 py-3.5 rounded-xl font-semibold text-sm tracking-wide transition-all duration-300"
+            style={{ 
+              background: isHovered 
+                ? 'linear-gradient(135deg, #D4AF37 0%, #f5d67a 50%, #D4AF37 100%)'
+                : 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+              color: '#1a1a2e',
+              boxShadow: isHovered 
+                ? '0 8px 30px rgba(212,175,55,0.5)' 
+                : '0 4px 20px rgba(212,175,55,0.3)',
+              transform: isHovered ? 'scale(1.02)' : 'scale(1)'
+            }}
+          >
+            View Details
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -252,6 +271,8 @@ export default function FragranceGrid() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [wishlistLoading, setWishlistLoading] = useState({});
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   
   // Fetch products
   useEffect(() => {
@@ -290,6 +311,16 @@ export default function FragranceGrid() {
     } finally {
       setWishlistLoading(prev => ({ ...prev, [wishlistKey]: false }));
     }
+  };
+
+  const handleQuickView = (product) => {
+    setQuickViewProduct(product);
+    setIsQuickViewOpen(true);
+  };
+
+  const closeQuickView = () => {
+    setIsQuickViewOpen(false);
+    setQuickViewProduct(null);
   };
 
   return (
@@ -376,6 +407,7 @@ export default function FragranceGrid() {
                   onWishlistToggle={handleWishlistToggle}
                   isWishlisted={isInWishlist(product.id, product.sizes?.[0]?.size)}
                   wishlistLoading={wishlistLoading[`${product.id}-${product.sizes?.[0]?.size}`]}
+                  onQuickView={handleQuickView}
                 />
               ))
             )}
@@ -391,6 +423,13 @@ export default function FragranceGrid() {
           </div>
         )}
       </div>
+
+      {/* Quick View Modal */}
+      <QuickViewModal 
+        product={quickViewProduct}
+        isOpen={isQuickViewOpen}
+        onClose={closeQuickView}
+      />
     </section>
   );
 }
