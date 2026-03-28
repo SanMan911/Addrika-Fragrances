@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Star, ShoppingCart, ArrowRight } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://forgot-pass-4.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ecommerce-nextjs-2.preview.emergentagent.com';
 
 // Server-side data fetching - This runs on the server
 async function getProducts() {

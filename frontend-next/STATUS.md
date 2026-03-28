@@ -47,19 +47,22 @@ This directory contains the Next.js version of the Addrika e-commerce applicatio
 - `/admin/inquiries` - Customer inquiries
 - `/admin/settings` - Store settings
 
-### 🔄 REMAINING
-1. **Retailer Portal** (Not started)
-   - `/retailer/login`
-   - `/retailer/dashboard`
-   - `/retailer/orders`
-   - `/retailer/products`
-   - `/retailer/settings`
+### ✅ COMPLETED - Retailer Portal (10 Pages)
+- `/retailer/login` - Retailer authentication
+- `/retailer/dashboard` - Overview with metrics
+- `/retailer/orders` - Customer order management
+- `/retailer/b2b` - B2B wholesale ordering
+- `/retailer/badges` - Achievement badges & history
+- `/retailer/leaderboard` - Performance rankings
+- `/retailer/grievances` - Submit & track complaints
+- `/retailer/messages` - Inter-retailer messaging
+- `/retailer/profile-requests` - Profile change tickets
 
-2. **Account Sub-pages**
-   - `/account/addresses`
-   - `/account/notifications`
-   - `/account/payments`
-   - `/account/settings`
+### ✅ COMPLETED - Account Sub-pages (4 Pages)
+- `/account/addresses` - Manage delivery addresses
+- `/account/notifications` - Email/SMS/Push preferences
+- `/account/payments` - Saved payment methods
+- `/account/settings` - Password & account deletion
 
 ---
 

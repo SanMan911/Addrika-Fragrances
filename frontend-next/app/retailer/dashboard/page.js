@@ -7,9 +7,7 @@ import {
   ChevronRight, RefreshCw, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -17,7 +15,6 @@ const formatCurrency = (amount) => {
     maximumFractionDigits: 0
   }).format(amount);
 };
-
 const MetricCard = ({ icon: Icon, label, value, subtext, color }) => (
   <div className="p-5 rounded-xl bg-white border border-gray-200">
     <div className="flex items-center gap-3 mb-3">
@@ -32,13 +29,11 @@ const MetricCard = ({ icon: Icon, label, value, subtext, color }) => (
     )}
   </div>
 );
-
 export default function RetailerDashboardPage() {
   const { retailer, fetchWithAuth } = useRetailerAuth();
   const [metrics, setMetrics] = useState(null);
   const [profileSummary, setProfileSummary] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -62,11 +57,9 @@ export default function RetailerDashboardPage() {
       setLoading(false);
     }
   }, [fetchWithAuth]);
-
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -74,7 +67,6 @@ export default function RetailerDashboardPage() {
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
@@ -94,7 +86,6 @@ export default function RetailerDashboardPage() {
           Refresh
         </button>
       </div>
-
       {/* Alerts */}
       {profileSummary?.alerts?.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
@@ -112,7 +103,6 @@ export default function RetailerDashboardPage() {
           </ul>
         </div>
       )}
-
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
@@ -142,7 +132,6 @@ export default function RetailerDashboardPage() {
           color="#F59E0B"
         />
       </div>
-
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Link
@@ -162,7 +151,6 @@ export default function RetailerDashboardPage() {
             <ChevronRight className="text-gray-400 group-hover:translate-x-1 transition-transform" />
           </div>
         </Link>
-
         <Link
           href="/retailer/b2b"
           className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-md transition-shadow group"
@@ -180,7 +168,6 @@ export default function RetailerDashboardPage() {
             <ChevronRight className="text-gray-400 group-hover:translate-x-1 transition-transform" />
           </div>
         </Link>
-
         <Link
           href="/retailer/leaderboard"
           className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-md transition-shadow group"
@@ -199,7 +186,6 @@ export default function RetailerDashboardPage() {
           </div>
         </Link>
       </div>
-
       {/* Profile Completion */}
       {profileSummary?.completion_percentage < 100 && (
         <div className="bg-white rounded-xl p-6 border border-gray-200">

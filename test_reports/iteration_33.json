@@ -89,15 +89,15 @@
   "context_for_next_testing_agent": "Admin panel refactored to modular structure. Test session created: sess_285453942e11456aba12d9a277c7751a. To test admin UI, set this token in localStorage (addrika_session_token) and cookies (session_token). All 9 admin pages under /admin route: Overview, Orders, Analytics, Users, Marketing, Content, Inventory, Inquiries, Settings.",
 
   "tested_urls": [
-    "https://forgot-pass-4.preview.emergentagent.com/admin",
-    "https://forgot-pass-4.preview.emergentagent.com/admin/login",
-    "https://forgot-pass-4.preview.emergentagent.com/admin/orders",
-    "https://forgot-pass-4.preview.emergentagent.com/admin/analytics",
-    "https://forgot-pass-4.preview.emergentagent.com/admin/users",
-    "https://forgot-pass-4.preview.emergentagent.com/admin/marketing",
-    "https://forgot-pass-4.preview.emergentagent.com/admin/content",
-    "https://forgot-pass-4.preview.emergentagent.com/admin/inventory",
-    "https://forgot-pass-4.preview.emergentagent.com/admin/inquiries",
-    "https://forgot-pass-4.preview.emergentagent.com/admin/settings"
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin",
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin/login",
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin/orders",
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin/analytics",
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin/users",
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin/marketing",
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin/content",
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin/inventory",
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin/inquiries",
+    "https://ecommerce-nextjs-2.preview.emergentagent.com/admin/settings"
   ]
 }

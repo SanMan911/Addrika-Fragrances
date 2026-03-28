@@ -5,12 +5,24 @@ import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
-const RetailerAuthContext = createContext();
+const RetailerAuthContext = createContext(null);
+
+// Default values for when hook is used outside provider (during SSR/prerender)
+const defaultValue = {
+  retailer: null,
+  isLoading: true,
+  isAuthenticated: false,
+  login: async () => ({ success: false, error: 'Provider not mounted' }),
+  logout: async () => {},
+  fetchWithAuth: async () => new Response(null, { status: 401 }),
+  checkAuth: async () => {}
+};
 
 export function useRetailerAuth() {
   const context = useContext(RetailerAuthContext);
+  // Return default value during SSR instead of throwing
   if (!context) {
-    throw new Error('useRetailerAuth must be used within RetailerAuthProvider');
+    return defaultValue;
   }
   return context;
 }

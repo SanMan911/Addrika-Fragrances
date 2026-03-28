@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Star, Leaf, Wind, Heart, Shield, CheckCircle, ArrowRight, FlaskConical } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://forgot-pass-4.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ecommerce-nextjs-2.preview.emergentagent.com';
 
 export const metadata = {
   title: 'Low Smoke Agarbatti | Zero Charcoal Incense Sticks | Addrika Fragrances',

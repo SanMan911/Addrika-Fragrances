@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   Store, Package, MessageSquare, AlertTriangle, ShoppingBag,
   Trophy, Award, FileEdit, LogOut, Menu, X, ChevronRight
 } from 'lucide-react';
-import { useRetailerAuth } from '../../context/RetailerAuthContext';
+import { RetailerAuthProvider, useRetailerAuth } from '../../context/RetailerAuthContext';
 import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -24,7 +25,8 @@ const navItems = [
   { icon: MessageSquare, label: 'Messages', path: '/retailer/messages', badgeKey: 'unread_messages' },
 ];
 
-export default function RetailerLayout({ children }) {
+// Inner layout component that uses the auth context
+function RetailerLayoutInner({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const { retailer, isAuthenticated, isLoading, logout, fetchWithAuth } = useRetailerAuth();
@@ -32,12 +34,15 @@ export default function RetailerLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [metrics, setMetrics] = useState(null);
 
-  // Check auth
+  // Check if we're on the login page - don't apply auth layout to login
+  const isLoginPage = pathname === '/retailer/login';
+
+  // Check auth - only redirect if not on login page
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated && !isLoginPage) {
       router.push('/retailer/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, isLoginPage]);
 
   // Fetch metrics for badges
   const fetchMetrics = useCallback(async () => {
@@ -68,6 +73,11 @@ export default function RetailerLayout({ children }) {
     toast.success('Logged out successfully');
     router.push('/retailer/login');
   };
+
+  // For login page, just render children without the layout
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (
@@ -185,5 +195,14 @@ export default function RetailerLayout({ children }) {
         </div>
       </main>
     </div>
+  );
+}
+
+// Export wrapper that provides the context
+export default function RetailerLayout({ children }) {
+  return (
+    <RetailerAuthProvider>
+      <RetailerLayoutInner>{children}</RetailerLayoutInner>
+    </RetailerAuthProvider>
   );
 }

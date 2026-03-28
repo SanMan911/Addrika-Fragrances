@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Calendar, Eye, ArrowLeft, Share2 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://forgot-pass-4.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ecommerce-nextjs-2.preview.emergentagent.com';
 
 async function getBlogPost(slug) {
   try {

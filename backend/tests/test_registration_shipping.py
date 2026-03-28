@@ -15,7 +15,7 @@ from datetime import datetime
 # Get the backend URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://forgot-pass-4.preview.emergentagent.com"
+    BASE_URL = "https://ecommerce-nextjs-2.preview.emergentagent.com"
 
 # Admin credentials for testing
 ADMIN_EMAIL = "contact.us@centraders.com"
