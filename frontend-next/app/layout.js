@@ -1,8 +1,9 @@
-import '../styles/globals.css';
+import './globals.css';
 import { Toaster } from 'sonner';
 import { CartProvider } from '../context/CartContext';
 import { AuthProvider } from '../context/AuthContext';
 import { WishlistProvider } from '../context/WishlistContext';
+import { ThemeProvider } from '../context/ThemeContext';
 
 export const metadata = {
   title: {
@@ -96,14 +97,16 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className="min-h-screen bg-white antialiased">
-        <AuthProvider>
-          <CartProvider>
-            <WishlistProvider>
-              {children}
-            </WishlistProvider>
-          </CartProvider>
-        </AuthProvider>
+      <body className="min-h-screen bg-white dark:bg-[#0f1419] antialiased">
+        <ThemeProvider>
+          <AuthProvider>
+            <CartProvider>
+              <WishlistProvider>
+                {children}
+              </WishlistProvider>
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
         <Toaster position="bottom-right" />
       </body>
     </html>
