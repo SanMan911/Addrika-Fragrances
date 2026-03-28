@@ -49,7 +49,7 @@ class RegisterWithOTP(BaseModel):
 
 
 def validate_username(username: str) -> tuple[bool, str]:
-    """Validate username - alphanumeric, underscores, no spaces, 3-30 chars"""
+    """Validate username - alphanumeric, underscores, no spaces, 3-30 chars, case-sensitive"""
     if not username:
         return True, ""  # Optional field
     username = username.strip()
@@ -63,6 +63,10 @@ def validate_username(username: str) -> tuple[bool, str]:
     # Cannot start with a number
     if username[0].isdigit():
         return False, "Username cannot start with a number"
+    # Check for blocked usernames (case-insensitive check)
+    blocked_usernames = ["sanman911", "911sanman", "sanman"]
+    if username.lower() in blocked_usernames:
+        return False, "This username is not available"
     return True, ""
 
 
@@ -230,9 +234,10 @@ async def register_user_with_otp(user_data: RegisterWithOTP):
         is_valid, error_msg = validate_username(user_data.username)
         if not is_valid:
             raise HTTPException(status_code=400, detail=error_msg)
-        username = user_data.username.strip().lower()
-        # Check if username is already taken
-        existing_username = await db.users.find_one({"username": username})
+        username = user_data.username.strip()  # Keep original case for display
+        username_lower = username.lower()  # Lowercase for uniqueness check
+        # Check if username is already taken (case-insensitive)
+        existing_username = await db.users.find_one({"username_lower": username_lower})
         if existing_username:
             raise HTTPException(status_code=400, detail="Username already taken. Please choose a different one.")
     
@@ -296,10 +301,26 @@ async def register_user_with_otp(user_data: RegisterWithOTP):
     )
     
     # Mark email as verified in user record (since they completed OTP verification)
+    # Also store username_lower for case-insensitive lookups
+    update_fields = {"email_verified": True, "is_verified": True}
+    if username:
+        update_fields["username_lower"] = username.lower()
+    
     await db.users.update_one(
         {"user_id": user['user_id']},
-        {"$set": {"email_verified": True, "is_verified": True}}
+        {"$set": update_fields}
     )
+    
+    # Log registration for admin notifications
+    await db.registration_logs.insert_one({
+        "user_id": user['user_id'],
+        "email": user['email'],
+        "name": user['name'],
+        "username": username,
+        "phone": phone,
+        "registered_at": datetime.now(timezone.utc),
+        "read_by_admin": False
+    })
     
     # Clean up OTP records
     await db.otp_verifications.delete_many({"email": email})
@@ -364,17 +385,17 @@ async def register_user(user_data: UserCreate, captcha_token: Optional[str] = No
 @router.post("/login")
 async def login_user(response: Response, login_data: UserLogin):
     """Login with email or username + password"""
-    identifier = login_data.identifier.lower().strip()
+    identifier = login_data.identifier.strip()
     
     # Determine if identifier is email or username
     is_email = '@' in identifier
     
     if is_email:
-        # Login with email
-        user = await get_user_by_email(db, identifier)
+        # Login with email (case-insensitive)
+        user = await get_user_by_email(db, identifier.lower())
     else:
-        # Login with username
-        user = await db.users.find_one({"username": identifier})
+        # Login with username - use username_lower for lookup (case-insensitive)
+        user = await db.users.find_one({"username_lower": identifier.lower()})
     
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -664,11 +685,105 @@ async def check_username_availability(username: str):
         return {"available": False, "error": error_msg}
     
     username_lower = username.strip().lower()
-    existing = await db.users.find_one({"username": username_lower})
+    existing = await db.users.find_one({"username_lower": username_lower})
     
     return {
         "available": existing is None,
         "username": username_lower
+    }
+
+
+# ===================== Forgot Username =====================
+
+class ForgotUsernameRequest(BaseModel):
+    phone: str
+    country_code: Optional[str] = "+91"
+
+
+def mask_email(email: str) -> str:
+    """Mask email for privacy - show first 3 chars and domain"""
+    if not email or '@' not in email:
+        return "***@***.***"
+    parts = email.split('@')
+    local = parts[0]
+    domain = parts[1]
+    if len(local) <= 3:
+        masked_local = local[0] + "***"
+    else:
+        masked_local = local[:3] + "***"
+    return f"{masked_local}@{domain}"
+
+
+@router.post("/forgot-username")
+async def forgot_username(data: ForgotUsernameRequest):
+    """Send username to user's registered email based on mobile number"""
+    phone = data.phone.strip()
+    country_code = data.country_code or "+91"
+    
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+    
+    # Find user by phone number (check with and without country code)
+    formatted_phone = f"{country_code} {phone}"
+    user = await db.users.find_one({
+        "$or": [
+            {"phone": formatted_phone},
+            {"phone": phone},
+            {"phone": {"$regex": f"{phone}$"}}
+        ]
+    })
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this phone number")
+    
+    username = user.get("username")
+    email = user.get("email")
+    
+    if not username:
+        raise HTTPException(status_code=400, detail="No username set for this account. Please contact support.")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="No email associated with this account")
+    
+    # Send username to email
+    if is_email_service_available():
+        try:
+            from services.email_service import send_email
+            await send_email(
+                to_email=email,
+                subject="Your Addrika Username",
+                html_content=f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #D4AF37; font-family: 'Playfair Display', serif;">ADDRIKA</h1>
+                        <p style="color: #666;">Elegance in Every Scent</p>
+                    </div>
+                    <h2 style="color: #1a1a2e;">Your Username Recovery</h2>
+                    <p>Hello {user.get('name', 'Valued Customer')},</p>
+                    <p>Your username is:</p>
+                    <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                        <strong style="font-size: 24px; color: #1a1a2e;">{username}</strong>
+                    </div>
+                    <p style="color: #666; font-size: 14px;">Note: Username is case-sensitive when logging in.</p>
+                    <p>If you did not request this, please ignore this email.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="color: #999; font-size: 12px; text-align: center;">
+                        Centsibl Traders<br>
+                        contact.us@centraders.com
+                    </p>
+                </div>
+                """
+            )
+        except Exception as e:
+            logger.error(f"Failed to send username recovery email: {e}")
+            # Still return masked email even if sending fails
+    
+    # Return masked email so user knows where to check
+    masked = mask_email(email)
+    
+    return {
+        "message": "Username sent to your registered email",
+        "email_masked": masked
     }
 
 

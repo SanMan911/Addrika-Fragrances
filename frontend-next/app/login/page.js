@@ -175,11 +175,18 @@ export default function LoginPage() {
                 {errors.password && <p className="text-red-400 text-sm mt-1">{errors.password}</p>}
               </div>
 
-              {/* Forgot Password Link */}
-              <div className="text-right">
+              {/* Forgot Password/Username Links */}
+              <div className="flex justify-between text-sm">
+                <Link
+                  href="/forgot-username"
+                  className="font-medium text-gray-400 hover:text-[#D4AF37] transition-colors"
+                  data-testid="forgot-username-link"
+                >
+                  Forgot Username?
+                </Link>
                 <Link
                   href="/forgot-password"
-                  className="text-sm font-medium text-[#D4AF37] hover:underline"
+                  className="font-medium text-[#D4AF37] hover:underline"
                   data-testid="forgot-password-link"
                 >
                   Forgot Password?

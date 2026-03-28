@@ -22,6 +22,7 @@ async def admin_get_users(request: Request, session_token: Optional[str] = Cooki
             "id": user.get("user_id", str(user.get("_id", ""))),
             "email": user.get("email"),
             "name": user.get("name"),
+            "username": user.get("username"),
             "phone": user.get("phone"),
             "salutation": user.get("salutation"),
             "authProvider": user.get("auth_provider", "email"),
@@ -31,6 +32,81 @@ async def admin_get_users(request: Request, session_token: Optional[str] = Cooki
         })
     
     return {"users": normalized, "total": len(normalized)}
+
+
+@router.get("/registration-logs")
+async def get_registration_logs(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    limit: int = 50,
+    unread_only: bool = False
+):
+    """Get registration logs for admin notifications"""
+    await require_admin(request, session_token)
+    
+    query = {}
+    if unread_only:
+        query["read_by_admin"] = False
+    
+    logs = await db.registration_logs.find(query).sort("registered_at", -1).limit(limit).to_list(limit)
+    
+    # Count unread notifications
+    unread_count = await db.registration_logs.count_documents({"read_by_admin": False})
+    
+    normalized = []
+    for log in logs:
+        normalized.append({
+            "id": str(log.get("_id")),
+            "user_id": log.get("user_id"),
+            "email": log.get("email"),
+            "name": log.get("name"),
+            "username": log.get("username"),
+            "phone": log.get("phone"),
+            "registered_at": log.get("registered_at"),
+            "read_by_admin": log.get("read_by_admin", False)
+        })
+    
+    return {
+        "logs": normalized,
+        "total": len(normalized),
+        "unread_count": unread_count
+    }
+
+
+@router.post("/registration-logs/mark-read")
+async def mark_registration_logs_read(
+    request: Request,
+    session_token: Optional[str] = Cookie(None)
+):
+    """Mark all registration logs as read"""
+    await require_admin(request, session_token)
+    
+    result = await db.registration_logs.update_many(
+        {"read_by_admin": False},
+        {"$set": {"read_by_admin": True, "read_at": datetime.now(timezone.utc)}}
+    )
+    
+    return {
+        "message": "Notifications marked as read",
+        "marked_count": result.modified_count
+    }
+
+
+@router.get("/notifications/count")
+async def get_admin_notification_count(
+    request: Request,
+    session_token: Optional[str] = Cookie(None)
+):
+    """Get count of unread admin notifications"""
+    await require_admin(request, session_token)
+    
+    unread_registrations = await db.registration_logs.count_documents({"read_by_admin": False})
+    
+    return {
+        "unread_registrations": unread_registrations,
+        "total_unread": unread_registrations
+    }
+
 
 
 @router.delete("/users/{user_id}")

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Calendar, Eye, ArrowLeft, Share2 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fragrance-next-1.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://elegance-scent-1.preview.emergentagent.com';
 
 async function getBlogPost(slug) {
   try {

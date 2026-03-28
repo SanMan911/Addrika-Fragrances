@@ -33,6 +33,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     salutation: '',
     name: '',
+    username: '',
     email: '',
     password: '',
     gender: '',
@@ -48,6 +49,7 @@ export default function RegisterPage() {
   });
   
   const [errors, setErrors] = useState({});
+  const [usernameStatus, setUsernameStatus] = useState({ checking: false, available: null });
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -69,12 +71,49 @@ export default function RegisterPage() {
     return str.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
   };
 
+  // Check username availability
+  const checkUsernameAvailability = useCallback(async (username) => {
+    if (!username || username.length < 3) {
+      setUsernameStatus({ checking: false, available: null });
+      return;
+    }
+    
+    // Check blocked usernames client-side first
+    const blocked = ['sanman911', '911sanman', 'sanman'];
+    if (blocked.includes(username.toLowerCase())) {
+      setUsernameStatus({ checking: false, available: false, error: 'This username is not available' });
+      return;
+    }
+    
+    setUsernameStatus({ checking: true, available: null });
+    try {
+      const response = await fetch(`${API_URL}/api/auth/check-username/${encodeURIComponent(username)}`);
+      const data = await response.json();
+      setUsernameStatus({ 
+        checking: false, 
+        available: data.available, 
+        error: data.error 
+      });
+    } catch (error) {
+      setUsernameStatus({ checking: false, available: null });
+    }
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     let filteredValue = value;
     
     if (name === 'name') {
       filteredValue = capitalizeWords(value.replace(/[^a-zA-Z\s.'-]/g, ''));
+    } else if (name === 'username') {
+      // Allow alphanumeric and underscores, preserve case
+      filteredValue = value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30);
+      // Debounce username check
+      if (filteredValue.length >= 3) {
+        setTimeout(() => checkUsernameAvailability(filteredValue), 500);
+      } else {
+        setUsernameStatus({ checking: false, available: null });
+      }
     } else if (name === 'phone') {
       filteredValue = value.replace(/[^0-9]/g, '');
     } else if (name === 'email') {
@@ -120,6 +159,18 @@ export default function RegisterPage() {
     
     if (!formData.salutation) newErrors.salutation = 'Title is required';
     if (!formData.name.trim() || formData.name.length < 2) newErrors.name = 'Valid name is required';
+    
+    // Username validation (required, 3-30 chars, alphanumeric + underscore)
+    if (!formData.username || formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
+    } else if (formData.username.length > 30) {
+      newErrors.username = 'Username cannot exceed 30 characters';
+    } else if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(formData.username)) {
+      newErrors.username = 'Username must start with a letter and contain only letters, numbers, and underscores';
+    } else if (usernameStatus.available === false) {
+      newErrors.username = usernameStatus.error || 'Username is not available';
+    }
+    
     if (!formData.gender) newErrors.gender = 'Gender is required';
     if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
     if (!formData.email.match(/^[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/)) {
@@ -215,6 +266,7 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         name: formData.name.trim(),
+        username: formData.username.trim(),
         phone: formData.phone,
         country_code: formData.countryCode.split('-')[0],
         salutation: formData.salutation,
@@ -359,9 +411,45 @@ export default function RegisterPage() {
                         placeholder="Enter your full name"
                         className="w-full h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
                         style={inputStyles}
+                        data-testid="register-name-input"
                       />
                       {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
                     </div>
+                  </div>
+
+                  {/* Username */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
+                      Username * <span className="text-gray-500">(case-sensitive)</span>
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                      <input
+                        name="username"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        placeholder="Choose a unique username"
+                        className="w-full h-11 pl-10 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
+                        data-testid="register-username-input"
+                      />
+                      {usernameStatus.checking && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 animate-spin" />
+                      )}
+                      {!usernameStatus.checking && usernameStatus.available === true && (
+                        <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 w-4 h-4" />
+                      )}
+                      {!usernameStatus.checking && usernameStatus.available === false && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 text-lg">✕</span>
+                      )}
+                    </div>
+                    {errors.username && <p className="text-red-400 text-xs mt-1">{errors.username}</p>}
+                    {!errors.username && usernameStatus.available === true && (
+                      <p className="text-green-400 text-xs mt-1">Username is available!</p>
+                    )}
+                    {!errors.username && usernameStatus.error && (
+                      <p className="text-red-400 text-xs mt-1">{usernameStatus.error}</p>
+                    )}
                   </div>
 
                   {/* Gender & DOB */}
