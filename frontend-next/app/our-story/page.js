@@ -1,10 +1,12 @@
 import Link from 'next/link';
-import { Heart, Leaf, Users } from 'lucide-react';
+import { Heart, Leaf, Users, ArrowLeft } from 'lucide-react';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 export const metadata = {
   title: 'Our Story | Addrika - The Journey Behind Premium Incense',
   description: 'Discover the story behind Addrika - born from a belief that everyday rituals deserve care and intention. Learn about our journey into mindful creation and ethical fragrance crafting.',
-  keywords: ['addrika story', 'incense brand story', 'premium agarbatti brand', 'ethical incense', 'mindful fragrance', 'centsibl traders story'],
+  keywords: ['addrika story', 'incense brand story', 'premium agarbatti brand', 'ethical incense', 'mindful fragrance', 'centsible traders story'],
   openGraph: {
     title: 'Our Story | Addrika',
     description: 'Born from a belief that everyday rituals deserve care and intention.',
@@ -17,7 +19,7 @@ export default function OurStoryPage() {
     {
       year: '2022',
       title: 'The Beginning',
-      description: 'Centsibl Traders was founded with a vision to create premium, ethical products.'
+      description: 'Centsible Traders was founded with a vision to create premium, ethical products.'
     },
     {
       year: '2023',
@@ -36,153 +38,201 @@ export default function OurStoryPage() {
     }
   ];
 
-  return (
-    <>
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/#fragrances" className="hover:text-[#D4AF37] transition-colors">Fragrances</Link>
-            <Link href="/our-story" className="text-[#D4AF37]">Our Story</Link>
-            <Link href="/about-us" className="hover:text-[#D4AF37] transition-colors">About Us</Link>
-            <Link href="/find-retailers" className="hover:text-[#D4AF37] transition-colors">Find Retailers</Link>
-          </nav>
-        </div>
-      </header>
+  const values = [
+    {
+      icon: Heart,
+      title: 'Mindful Creation',
+      description: 'Every product is crafted with intention, care, and respect for tradition.'
+    },
+    {
+      icon: Leaf,
+      title: 'Natural Ingredients',
+      description: 'We use only pure, natural ingredients - no synthetic fragrances or harmful chemicals.'
+    },
+    {
+      icon: Users,
+      title: 'Community Focus',
+      description: 'Supporting artisan communities and traditional craftsmanship across India.'
+    }
+  ];
 
-      <main className="pt-16">
+  return (
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
+      <Header />
+      
+      <main className="pt-24">
         {/* Hero Section */}
-        <section className="relative py-20 bg-gradient-to-br from-[#F5F0E8] to-white">
-          <div className="max-w-4xl mx-auto px-4 text-center">
-            <p className="text-[#D4AF37] text-sm font-medium tracking-widest uppercase mb-4">
+        <section className="relative py-20">
+          <div 
+            className="absolute inset-0 overflow-hidden pointer-events-none"
+            style={{ 
+              background: 'radial-gradient(ellipse at center top, rgba(212,175,55,0.1) 0%, transparent 50%)'
+            }}
+          />
+          <div className="max-w-4xl mx-auto px-4 text-center relative">
+            <span 
+              className="inline-block px-5 py-2 rounded-full text-sm font-medium tracking-wider mb-6"
+              style={{ 
+                background: 'rgba(212,175,55,0.1)', 
+                color: '#D4AF37',
+                border: '1px solid rgba(212,175,55,0.2)'
+              }}
+            >
+              OUR JOURNEY
+            </span>
+            <h1 
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-white"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               Our Story
-            </p>
-            <h1 className="text-4xl sm:text-5xl font-bold text-[#2B3A4A] font-serif mb-6">
-              Where Tradition Meets Intention
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Addrika was born from a simple belief: that the everyday rituals that ground us 
-              deserve the same care and intention as life&apos;s grandest moments.
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+              Born from a belief that everyday rituals deserve care and intention. 
+              This is our journey into mindful creation.
             </p>
           </div>
         </section>
 
         {/* Story Content */}
-        <section className="py-16 px-4 bg-white">
-          <div className="max-w-3xl mx-auto">
-            <div className="prose prose-lg">
-              <p className="text-gray-600 leading-relaxed mb-6">
-                In the quiet moments of our day — the early morning meditation, the evening wind-down, 
-                the pause between tasks — we found ourselves searching for something more meaningful 
-                than mass-produced fragrances that promised everything but delivered little.
-              </p>
-              <p className="text-gray-600 leading-relaxed mb-6">
-                We discovered that the art of incense-making, practiced for millennia across cultures, 
-                had been diluted by modern shortcuts. Synthetic fragrances replaced natural essences. 
-                Quick profits overshadowed careful craftsmanship. The sacred had become ordinary.
-              </p>
-              <p className="text-gray-600 leading-relaxed mb-6">
-                <strong className="text-[#2B3A4A]">So we decided to go back to the source.</strong>
-              </p>
-              <p className="text-gray-600 leading-relaxed">
-                Working with master artisans who have preserved traditional techniques for generations, 
-                we developed four signature fragrances. Each blend tells a story — of saffron fields in 
-                Kashmir, rose gardens in the morning dew, ancient agarwood forests, and the mystical 
-                bakhoor traditions of Arabia.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Values */}
-        <section className="py-16 px-4 bg-[#F5F0E8]">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-12">
-              What Drives Us
-            </h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mx-auto mb-4">
-                  <Heart className="w-8 h-8 text-[#D4AF37]" />
-                </div>
-                <h3 className="text-xl font-semibold text-[#2B3A4A] mb-2">Mindful Creation</h3>
-                <p className="text-gray-600">
-                  Every stick is crafted with intention, honoring both the ingredients and the artisans.
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mx-auto mb-4">
-                  <Leaf className="w-8 h-8 text-[#D4AF37]" />
-                </div>
-                <h3 className="text-xl font-semibold text-[#2B3A4A] mb-2">Natural Purity</h3>
-                <p className="text-gray-600">
-                  100% natural ingredients sourced responsibly from trusted suppliers across India.
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-[#D4AF37]" />
-                </div>
-                <h3 className="text-xl font-semibold text-[#2B3A4A] mb-2">Community First</h3>
-                <p className="text-gray-600">
-                  Supporting artisan communities and ensuring fair compensation for their craft.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Timeline */}
-        <section className="py-16 px-4 bg-white">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-12">
-              Our Journey
-            </h2>
-            <div className="space-y-8">
-              {milestones.map((milestone, index) => (
-                <div key={index} className="flex gap-6">
-                  <div className="flex-shrink-0 w-20">
-                    <span className="text-2xl font-bold text-[#D4AF37]">{milestone.year}</span>
-                  </div>
-                  <div className="flex-1 pb-8 border-l-2 border-[#D4AF37]/30 pl-6">
-                    <h3 className="text-lg font-semibold text-[#2B3A4A] mb-1">{milestone.title}</h3>
-                    <p className="text-gray-600">{milestone.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="py-16 px-4 bg-[#2B3A4A]">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-white font-serif mb-4">
-              Be Part of Our Story
-            </h2>
-            <p className="text-gray-300 mb-8">
-              Experience the Addrika difference and join us in celebrating mindful moments.
-            </p>
-            <Link
-              href="/#fragrances"
-              className="inline-flex items-center gap-2 bg-[#D4AF37] text-[#2B3A4A] px-8 py-4 rounded-full font-semibold hover:bg-[#c9a432] transition-colors"
+        <section className="py-16">
+          <div className="max-w-4xl mx-auto px-4">
+            <div 
+              className="p-8 sm:p-12 rounded-2xl mb-16"
+              style={{ 
+                background: 'linear-gradient(165deg, rgba(26,26,46,0.8) 0%, rgba(22,33,62,0.8) 100%)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
             >
-              Explore Our Fragrances
-            </Link>
+              <h2 
+                className="text-2xl sm:text-3xl font-bold mb-6 text-white"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                The Beginning
+              </h2>
+              <div className="space-y-4 text-gray-300 leading-relaxed">
+                <p>
+                  Addrika was born from a simple observation: in our rush through daily life, 
+                  we often overlook the small rituals that ground us. The morning prayer, 
+                  the evening meditation, the quiet moments of reflection.
+                </p>
+                <p>
+                  We asked ourselves: what if these moments could be elevated? What if the 
+                  incense we light could be as thoughtfully crafted as the intentions behind them?
+                </p>
+                <p>
+                  This question led us on a journey across India, meeting master artisans who 
+                  have perfected their craft over generations. We learned about traditional 
+                  methods, natural ingredients, and the art of creating fragrances that touch the soul.
+                </p>
+              </div>
+            </div>
+
+            {/* Values */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+              {values.map((value, index) => {
+                const Icon = value.icon;
+                return (
+                  <div 
+                    key={index}
+                    className="p-6 rounded-xl text-center"
+                    style={{ 
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}
+                  >
+                    <div 
+                      className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center"
+                      style={{ background: 'rgba(212,175,55,0.15)' }}
+                    >
+                      <Icon size={28} className="text-[#D4AF37]" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">{value.title}</h3>
+                    <p className="text-sm text-gray-400">{value.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Timeline */}
+            <div className="mb-16">
+              <h2 
+                className="text-2xl sm:text-3xl font-bold mb-8 text-center text-white"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                Our Journey
+              </h2>
+              <div className="relative">
+                <div 
+                  className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5"
+                  style={{ background: 'rgba(212,175,55,0.3)' }}
+                />
+                {milestones.map((milestone, index) => (
+                  <div 
+                    key={index}
+                    className={`relative flex items-center mb-8 ${
+                      index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
+                    }`}
+                  >
+                    <div className="hidden md:block w-1/2" />
+                    <div 
+                      className="absolute left-4 md:left-1/2 w-4 h-4 rounded-full transform -translate-x-1/2"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+                        boxShadow: '0 0 20px rgba(212,175,55,0.5)'
+                      }}
+                    />
+                    <div 
+                      className={`ml-12 md:ml-0 md:w-1/2 p-6 rounded-xl ${
+                        index % 2 === 0 ? 'md:pr-12' : 'md:pl-12'
+                      }`}
+                      style={{ 
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                      }}
+                    >
+                      <span className="text-[#D4AF37] font-bold text-lg">{milestone.year}</span>
+                      <h3 className="text-xl font-semibold text-white mt-1">{milestone.title}</h3>
+                      <p className="text-gray-400 mt-2">{milestone.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div 
+              className="text-center p-8 sm:p-12 rounded-2xl"
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(42,59,73,0.2) 100%)',
+                border: '1px solid rgba(212,175,55,0.2)'
+              }}
+            >
+              <h2 
+                className="text-2xl sm:text-3xl font-bold mb-4 text-white"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                Experience Addrika
+              </h2>
+              <p className="text-gray-300 mb-6 max-w-lg mx-auto">
+                Discover our collection of premium, zero-charcoal incense and bring 
+                mindful moments into your daily rituals.
+              </p>
+              <Link
+                href="/#fragrances"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all"
+                style={{ 
+                  background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+                  color: '#1a1a2e'
+                }}
+              >
+                Explore Our Fragrances
+              </Link>
+            </div>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#1a252f] text-white py-12 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika</p>
-          <p className="text-sm text-gray-400">© 2026 Centsibl Traders Private Limited. All rights reserved.</p>
-        </div>
-      </footer>
-    </>
+      <Footer />
+    </div>
   );
 }

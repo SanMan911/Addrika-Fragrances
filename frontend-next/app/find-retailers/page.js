@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import { Store, MapPin, Phone, Mail } from 'lucide-react';
+import { Store, MapPin, Phone, Mail, Search } from 'lucide-react';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ecommerce-nextjs-2.preview.emergentagent.com';
 
@@ -38,7 +40,6 @@ async function getStates() {
   }
 }
 
-// LocalBusiness structured data
 function RetailersStructuredData({ retailers }) {
   if (!retailers || retailers.length === 0) return null;
   
@@ -72,145 +73,150 @@ export default async function FindRetailersPage() {
   ]);
 
   return (
-    <>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
       <RetailersStructuredData retailers={retailers} />
+      <Header />
       
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/#fragrances" className="hover:text-[#D4AF37] transition-colors">Fragrances</Link>
-            <Link href="/our-story" className="hover:text-[#D4AF37] transition-colors">Our Story</Link>
-            <Link href="/about-us" className="hover:text-[#D4AF37] transition-colors">About Us</Link>
-            <Link href="/find-retailers" className="text-[#D4AF37]">Find Retailers</Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="pt-16 min-h-screen bg-[#F5F0E8]">
-        {/* Hero */}
-        <section className="py-16 px-4 bg-gradient-to-br from-[#2B3A4A] to-[#1a252f]">
-          <div className="max-w-4xl mx-auto text-center">
-            <Store className="w-16 h-16 text-[#D4AF37] mx-auto mb-4" />
-            <h1 className="text-4xl sm:text-5xl font-bold text-white font-serif mb-4">
-              Find Addrika Near You
+      <main className="pt-24 pb-16">
+        {/* Hero Section */}
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <span 
+              className="inline-block px-5 py-2 rounded-full text-sm font-medium tracking-wider mb-6"
+              style={{ 
+                background: 'rgba(212,175,55,0.1)', 
+                color: '#D4AF37',
+                border: '1px solid rgba(212,175,55,0.2)'
+              }}
+            >
+              STORE LOCATOR
+            </span>
+            <h1 
+              className="text-4xl sm:text-5xl font-bold mb-6 text-white"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
+              Find Addrika Retailers
             </h1>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Discover authorized retailers where you can experience and purchase our premium incense collection.
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Discover authorized Addrika retailers near you and experience our 
+              premium incense collection in person.
             </p>
           </div>
         </section>
 
-        {/* States Overview */}
-        <section className="py-12 px-4 bg-white">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              We&apos;re Available In
-            </h2>
-            <div className="flex flex-wrap justify-center gap-3">
-              {states.length > 0 ? (
-                states.map((state) => (
-                  <span
-                    key={state}
-                    className="px-4 py-2 rounded-full text-sm font-medium bg-[#F5F0E8] text-[#2B3A4A]"
-                  >
-                    {state}
-                  </span>
-                ))
-              ) : (
-                <p className="text-gray-600">Expanding across India soon!</p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Retailers List */}
-        <section className="py-12 px-4">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              Our Retail Partners
-            </h2>
-            
+        {/* Retailers Grid */}
+        <section className="py-8">
+          <div className="max-w-7xl mx-auto px-4">
             {retailers.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-xl">
-                <Store className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[#2B3A4A] mb-2">
-                  Retail Network Growing
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  We&apos;re expanding our retail presence. In the meantime, shop online!
+              <div 
+                className="text-center py-16 rounded-2xl"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              >
+                <Store size={48} className="mx-auto mb-4 text-gray-500" />
+                <h3 className="text-xl font-semibold text-white mb-2">No Retailers Found</h3>
+                <p className="text-gray-400 mb-6">
+                  We're expanding our network. Check back soon or contact us for assistance.
                 </p>
                 <Link
-                  href="/#fragrances"
-                  className="inline-flex items-center gap-2 bg-[#2B3A4A] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#1a252f] transition-colors"
+                  href="mailto:care@centraders.com"
+                  className="inline-flex items-center gap-2 text-[#D4AF37] hover:underline"
                 >
-                  Shop Online
+                  <Mail size={16} />
+                  Contact Us
                 </Link>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {retailers.map((retailer, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    <h3 className="text-lg font-semibold text-[#2B3A4A] mb-2">
-                      {retailer.business_name}
-                    </h3>
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <p className="flex items-start gap-2">
-                        <MapPin size={16} className="flex-shrink-0 mt-0.5 text-[#D4AF37]" />
-                        {retailer.address}, {retailer.district}, {retailer.state}
-                      </p>
-                      {retailer.phone && (
-                        <p className="flex items-center gap-2">
-                          <Phone size={16} className="text-[#D4AF37]" />
-                          {retailer.phone}
-                        </p>
-                      )}
-                      {retailer.email && (
-                        <p className="flex items-center gap-2">
-                          <Mail size={16} className="text-[#D4AF37]" />
-                          {retailer.email}
-                        </p>
-                      )}
+              <>
+                <div className="mb-8">
+                  <p className="text-gray-400">
+                    Showing <span className="text-[#D4AF37] font-semibold">{retailers.length}</span> authorized retailers
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {retailers.map((retailer, index) => (
+                    <div 
+                      key={index}
+                      className="p-6 rounded-xl transition-all hover:-translate-y-1"
+                      style={{ 
+                        background: 'linear-gradient(165deg, rgba(26,26,46,0.8) 0%, rgba(22,33,62,0.8) 100%)',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                      }}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div 
+                          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'rgba(212,175,55,0.15)' }}
+                        >
+                          <Store size={24} className="text-[#D4AF37]" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-white text-lg mb-1">
+                            {retailer.business_name}
+                          </h3>
+                          <div className="flex items-start gap-2 text-sm text-gray-400 mb-2">
+                            <MapPin size={14} className="flex-shrink-0 mt-1" />
+                            <span>{retailer.address}, {retailer.district}, {retailer.state}</span>
+                          </div>
+                          {retailer.phone && (
+                            <a 
+                              href={`tel:${retailer.phone}`}
+                              className="flex items-center gap-2 text-sm text-[#D4AF37] hover:underline"
+                            >
+                              <Phone size={14} />
+                              {retailer.phone}
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </section>
 
         {/* Become a Retailer CTA */}
-        <section className="py-16 px-4 bg-white">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif mb-4">
-              Become an Addrika Retailer
-            </h2>
-            <p className="text-gray-600 mb-8">
-              Interested in stocking Addrika products? Join our growing network of retail partners.
-            </p>
-            <Link
-              href="mailto:contact.us@centraders.com?subject=Retailer%20Inquiry"
-              className="inline-flex items-center gap-2 bg-[#D4AF37] text-[#2B3A4A] px-8 py-4 rounded-full font-semibold hover:bg-[#c9a432] transition-colors"
+        <section className="py-16">
+          <div className="max-w-4xl mx-auto px-4">
+            <div 
+              className="text-center p-8 sm:p-12 rounded-2xl"
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(42,59,73,0.2) 100%)',
+                border: '1px solid rgba(212,175,55,0.2)'
+              }}
             >
-              Contact Us
-            </Link>
+              <h2 
+                className="text-2xl sm:text-3xl font-bold mb-4 text-white"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                Become an Addrika Retailer
+              </h2>
+              <p className="text-gray-300 mb-6 max-w-lg mx-auto">
+                Join our growing network of authorized retailers and bring premium 
+                incense to your customers.
+              </p>
+              <a
+                href="mailto:care@centraders.com?subject=Retailer Partnership Inquiry"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all"
+                style={{ 
+                  background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+                  color: '#1a1a2e'
+                }}
+              >
+                <Mail size={18} />
+                Contact for Partnership
+              </a>
+            </div>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#2B3A4A] text-white py-12 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika</p>
-          <p className="text-sm text-gray-400">© 2026 Centsibl Traders Private Limited. All rights reserved.</p>
-        </div>
-      </footer>
-    </>
+      <Footer />
+    </div>
   );
 }
