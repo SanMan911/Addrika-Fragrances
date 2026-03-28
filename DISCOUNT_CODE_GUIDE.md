@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://fragrance-next-1.preview.emergentagent.com/api
+https://elegance-scent-1.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

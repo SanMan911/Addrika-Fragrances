@@ -6,7 +6,7 @@ import ProductActions from './ProductActions';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fragrance-next-1.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://elegance-scent-1.preview.emergentagent.com';
 
 // Generate static params for all products (SSG)
 export async function generateStaticParams() {

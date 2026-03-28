@@ -28,7 +28,7 @@ mv /app/frontend-next /app/frontend
 echo ""
 echo "Step 4: Creating environment file..."
 cat > /app/frontend/.env.local << 'EOF'
-NEXT_PUBLIC_API_URL=https://fragrance-next-1.preview.emergentagent.com
+NEXT_PUBLIC_API_URL=https://elegance-scent-1.preview.emergentagent.com
 EOF
 
 # Step 5: Update supervisor config for Next.js
