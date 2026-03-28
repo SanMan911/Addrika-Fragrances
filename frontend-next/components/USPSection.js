@@ -30,7 +30,7 @@ const uspItems = [
   },
   {
     icon: Sparkles,
-    title: 'Handcrafted',
+    title: 'Crafted in India',
     description: 'Each stick is carefully crafted in India using traditional methods passed down through generations.',
     color: '#EC4899'
   },
