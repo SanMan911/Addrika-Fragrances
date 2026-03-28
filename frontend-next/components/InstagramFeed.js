@@ -34,7 +34,7 @@ export default function InstagramFeed() {
               className="text-sm font-medium tracking-wider"
               style={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'var(--text-subtle)' }}
             >
-              @ADDRIKA.IN
+              @ADDRIKA.FRAGRANCES
             </span>
           </div>
           <h2 
@@ -59,7 +59,7 @@ export default function InstagramFeed() {
           {instagramPosts.map((post) => (
             <a
               key={post.id}
-              href="https://instagram.com/addrika.in"
+              href="https://instagram.com/addrika.fragrances"
               target="_blank"
               rel="noopener noreferrer"
               className="group relative aspect-square rounded-xl overflow-hidden"
@@ -99,7 +99,7 @@ export default function InstagramFeed() {
         {/* Follow Button */}
         <div className="text-center mt-10">
           <a
-            href="https://instagram.com/addrika.in"
+            href="https://instagram.com/addrika.fragrances"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all hover:-translate-y-1"
@@ -110,7 +110,7 @@ export default function InstagramFeed() {
             }}
           >
             <Instagram size={20} />
-            Follow @addrika.in
+            Follow @addrika.fragrances
           </a>
         </div>
       </div>
