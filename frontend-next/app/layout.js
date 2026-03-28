@@ -12,8 +12,8 @@ export const metadata = {
   },
   description: 'Discover Addrika premium natural incense sticks. Experience authentic Arabian fragrances - Kesar Chandan, Regal Rose, Oriental Oudh & Bold Bakhoor. Sacred luxury for mindful spaces.',
   keywords: ['addrika', 'premium incense', 'natural incense', 'agarbatti', 'kesar chandan', 'regal rose', 'oriental oudh', 'bold bakhoor', 'arabian incense'],
-  authors: [{ name: 'Centsibl Traders Private Limited' }],
-  creator: 'Centsibl Traders',
+  authors: [{ name: 'Centraders Private Limited' }],
+  creator: 'Centraders',
   metadataBase: new URL('https://centraders.com'),
   // Google Search Console verification - Replace YOUR_CODE with actual verification code
   // verification: {
@@ -25,7 +25,7 @@ export const metadata = {
     url: 'https://centraders.com',
     siteName: 'Addrika',
     title: 'Addrika - Premium Natural Incense',
-    description: 'Sacred luxury in every scent. Premium natural incense from Centsibl Traders.',
+    description: 'Sacred luxury in every scent. Premium natural incense from Centraders.',
     images: [
       {
         url: '/og-image.png',
@@ -65,7 +65,7 @@ export default function RootLayout({ children }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              "name": "Centsibl Traders Private Limited",
+              "name": "Centraders Private Limited",
               "alternateName": "Addrika",
               "url": "https://centraders.com",
               "logo": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png",
