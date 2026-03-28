@@ -1,7 +1,14 @@
 # Addrika E-commerce Platform - PRD
 
 ## Latest Updates
-- **27 Mar 2026**: Password Recovery Feature & Codebase Refactoring:
+- **27 Mar 2026 (Session 2)**: Next.js Migration - Auth, Cart & Checkout:
+  - **Auth Flow**: Login, Register (OTP), Forgot Password, Admin Login (2FA), Admin Forgot PIN
+  - **E-commerce Flow**: Cart, Checkout (Razorpay), Orders, Order Success, Wishlist
+  - **Account**: User account dashboard with order history
+  - **Contexts**: Full AuthContext with Google OAuth + Admin 2FA, CartContext, WishlistContext
+  - All 35 routes build successfully
+  - Testing: 100% pass rate (11/11 pages verified)
+- **27 Mar 2026 (Session 1)**: Password Recovery Feature & Codebase Refactoring:
   - Implemented User Password Recovery (via Mobile Number + OTP to email)
   - Implemented Admin PIN Recovery (via Email + OTP)
   - Added "Forgot Password?" links to User and Admin login pages
@@ -40,6 +47,20 @@ Build a premium incense e-commerce platform for Addrika with:
 ---
 
 ## Core Requirements
+
+### Next.js Migration Status
+- [x] Homepage with SSR
+- [x] Product pages with SSG (4 products)
+- [x] SEO pages (About, FAQ, Blog, etc.)
+- [x] Auth flow (Login, Register, Forgot Password)
+- [x] Admin Auth (Login with 2FA, Forgot PIN)
+- [x] Cart & Checkout with Razorpay
+- [x] Orders & Order Success
+- [x] Wishlist
+- [x] Account Dashboard
+- [ ] Admin Dashboard (not started)
+- [ ] Retailer Portal (not started)
+- [ ] Account sub-pages (addresses, settings, etc.)
 
 ### Customer Features
 - [x] Product browsing with image galleries
