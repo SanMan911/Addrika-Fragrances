@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Star, ChevronLeft, ArrowRight } from 'lucide-react';
+import { Star, ArrowRight } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import ProductActions from './ProductActions';
+import Header from '../../../components/Header';
+import Footer from '../../../components/Footer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ecommerce-nextjs-2.preview.emergentagent.com';
 
@@ -74,88 +76,53 @@ async function getAllProducts() {
   }
 }
 
-// Product structured data for SEO - Enhanced for LLM extraction
+// Product structured data for SEO
 function ProductStructuredData({ product }) {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": `${product.name} - Premium Zero Charcoal Incense Sticks`,
+    "name": product.name,
+    "image": product.sizes?.map(s => s.images?.[0]).filter(Boolean) || [product.image],
     "description": product.description,
-    "image": product.image,
+    "sku": product.id,
     "brand": {
       "@type": "Brand",
-      "name": "Addrika Fragrances",
-      "url": "https://centraders.com"
+      "name": "Addrika"
     },
-    "manufacturer": {
-      "@type": "Organization",
-      "name": "Centsibl Traders Private Limited",
-      "address": {
-        "@type": "PostalAddress",
-        "addressCountry": "IN"
-      }
-    },
-    "countryOfOrigin": "India",
-    "material": "Natural flower dust, pure essential oils, natural resins - 100% Charcoal-free",
+    "category": "Incense > Premium Agarbatti",
+    "material": "Natural herbs, Essential oils, Bamboo core",
     "additionalProperty": [
       {
         "@type": "PropertyValue",
-        "name": "burnTime",
-        "value": "PT50M",
-        "unitText": "40-50 minutes extended burn"
+        "name": "Charcoal Content",
+        "value": "Zero Charcoal (Charcoal-Free)"
       },
       {
         "@type": "PropertyValue",
-        "name": "smokeEmission",
-        "value": "Low",
-        "description": "80% less smoke than traditional agarbatti"
+        "name": "Burn Time",
+        "value": product.burnTime || "40-50 minutes"
       },
       {
         "@type": "PropertyValue",
-        "name": "charcoalFree",
-        "value": true,
-        "description": "Zero charcoal - completely charcoal-free formula"
+        "name": "Smoke Level",
+        "value": "Low Smoke (80% less than traditional)"
       },
       {
         "@type": "PropertyValue",
-        "name": "ingredients",
-        "value": "100% Natural - Pure essential oils, flower dust, natural resins"
-      },
-      {
-        "@type": "PropertyValue",
-        "name": "bambooCore",
-        "value": false,
-        "description": "Bambooless design for pure fragrance"
-      },
-      {
-        "@type": "PropertyValue",
-        "name": "suitableFor",
-        "value": "Daily puja, meditation, yoga, aromatherapy, small apartments, indoor use"
-      },
-      {
-        "@type": "PropertyValue",
-        "name": "safeForIndoorUse",
-        "value": true,
-        "description": "Non-toxic, safe for indoor use with children and pets"
+        "name": "Suitable For",
+        "value": "Daily Puja, Meditation, Yoga, Aromatherapy, Home Fragrance"
       }
     ],
-    "category": "Premium Natural Incense Sticks",
     "offers": {
       "@type": "AggregateOffer",
       "priceCurrency": "INR",
-      "lowPrice": Math.min(...product.sizes.map(s => s.mrp)),
-      "highPrice": Math.max(...product.sizes.map(s => s.mrp)),
+      "lowPrice": Math.min(...product.sizes.map(s => s.price)),
+      "highPrice": Math.max(...product.sizes.map(s => s.price)),
+      "offerCount": product.sizes.length,
       "availability": "https://schema.org/InStock",
       "seller": {
         "@type": "Organization",
-        "name": "Centsibl Traders Private Limited"
-      },
-      "shippingDetails": {
-        "@type": "OfferShippingDetails",
-        "shippingDestination": {
-          "@type": "DefinedRegion",
-          "addressCountry": "IN"
-        }
+        "name": "Centsible Traders Private Limited"
       }
     },
     "aggregateRating": {
@@ -164,19 +131,6 @@ function ProductStructuredData({ product }) {
       "reviewCount": product.reviews,
       "bestRating": "5",
       "worstRating": "1"
-    },
-    "review": {
-      "@type": "Review",
-      "reviewRating": {
-        "@type": "Rating",
-        "ratingValue": product.rating,
-        "bestRating": "5"
-      },
-      "author": {
-        "@type": "Person",
-        "name": "Verified Buyer"
-      },
-      "reviewBody": `Premium quality ${product.name} incense with authentic fragrance. Low smoke, perfect for daily puja and meditation. The scent lasts for hours after burning.`
     }
   };
 
@@ -188,47 +142,16 @@ function ProductStructuredData({ product }) {
   );
 }
 
-// Breadcrumb structured data
-function BreadcrumbStructuredData({ product }) {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Home",
-        "item": "https://centraders.com"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Fragrances",
-        "item": "https://centraders.com/#fragrances"
-      },
-      {
-        "@type": "ListItem",
-        "position": 3,
-        "name": product.name,
-        "item": `https://centraders.com/products/${product.id}`
-      }
-    ]
-  };
-
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-    />
-  );
-}
-
-// Related Product Card
+// Related Product Card - Dark Theme
 function RelatedProductCard({ product }) {
   return (
     <Link
       href={`/products/${product.id}`}
-      className="group block rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 bg-white"
+      className="group block rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-2"
+      style={{ 
+        background: 'linear-gradient(165deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.25)'
+      }}
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <Image
@@ -238,20 +161,20 @@ function RelatedProductCard({ product }) {
           sizes="(max-width: 768px) 100vw, 33vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#16213e] via-transparent to-transparent" />
         <div className="absolute bottom-3 left-3 right-3">
           <p className="text-xs font-medium mb-1 text-[#D4AF37]">{product.tagline}</p>
           <h3 className="text-lg font-bold text-white">{product.name}</h3>
         </div>
       </div>
-      <div className="p-4">
+      <div className="p-4" style={{ background: 'linear-gradient(180deg, rgba(22,33,62,0.95) 0%, rgba(26,26,46,1) 100%)' }}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1">
             <Star size={14} fill="#D4AF37" color="#D4AF37" />
-            <span className="text-sm font-semibold text-[#2B3A4A]">{product.rating}</span>
-            <span className="text-xs text-gray-500">({product.reviews})</span>
+            <span className="text-sm font-semibold text-white">{product.rating}</span>
+            <span className="text-xs text-gray-400">({product.reviews})</span>
           </div>
-          <span className="text-lg font-bold text-[#2B3A4A]">₹{product.sizes[0]?.mrp}</span>
+          <span className="text-lg font-bold text-[#D4AF37]">₹{product.sizes[0]?.price}</span>
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-[#D4AF37]">
           View Details
@@ -276,53 +199,46 @@ export default async function ProductPage({ params }) {
   const relatedProducts = allProducts.filter(p => p.id !== params.slug).slice(0, 3);
   
   return (
-    <>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
       {/* Structured Data */}
       <ProductStructuredData product={product} />
-      <BreadcrumbStructuredData product={product} />
       
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/#fragrances" className="hover:text-[#D4AF37] transition-colors">Fragrances</Link>
-            <Link href="/our-story" className="hover:text-[#D4AF37] transition-colors">Our Story</Link>
-            <Link href="/about-us" className="hover:text-[#D4AF37] transition-colors">About Us</Link>
-            <Link href="/find-retailers" className="hover:text-[#D4AF37] transition-colors">Find Retailers</Link>
-          </nav>
-        </div>
-      </header>
+      <Header />
       
       {/* Main Content */}
       <main className="pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 mb-8 text-sm">
-            <Link href="/" className="hover:text-[#D4AF37] transition-colors text-[#2B3A4A]">
+            <Link href="/" className="hover:text-[#D4AF37] transition-colors text-gray-300">
               Home
             </Link>
-            <span className="text-gray-400">/</span>
-            <Link href="/#fragrances" className="hover:text-[#D4AF37] transition-colors text-[#2B3A4A]">
+            <span className="text-gray-600">/</span>
+            <Link href="/#fragrances" className="hover:text-[#D4AF37] transition-colors text-gray-300">
               Fragrances
             </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-500">{product.name}</span>
+            <span className="text-gray-600">/</span>
+            <span className="text-[#D4AF37]">{product.name}</span>
           </nav>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Image Gallery */}
             <div className="space-y-4">
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100">
+              <div 
+                className="relative aspect-square rounded-2xl overflow-hidden"
+                style={{ 
+                  background: 'linear-gradient(165deg, #1a1a2e 0%, #16213e 100%)',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.4)'
+                }}
+              >
                 <Image
                   src={product.image}
                   alt={product.name}
                   fill
                   priority
                   sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
+                  className="object-contain p-8"
                 />
               </div>
             </div>
@@ -331,7 +247,10 @@ export default async function ProductPage({ params }) {
             <div className="space-y-6">
               <div>
                 <p className="text-sm font-medium mb-2 text-[#D4AF37]">{product.tagline}</p>
-                <h1 className="text-3xl sm:text-4xl font-bold mb-4 font-serif text-[#2B3A4A]">
+                <h1 
+                  className="text-3xl sm:text-4xl font-bold mb-4 text-white"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                >
                   {product.name}
                 </h1>
                 
@@ -347,12 +266,12 @@ export default async function ProductPage({ params }) {
                       />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-400">
                     {product.rating} ({product.reviews} reviews)
                   </span>
                 </div>
                 
-                <p className="text-lg leading-relaxed text-gray-700">
+                <p className="text-lg leading-relaxed text-gray-300">
                   {product.description}
                 </p>
               </div>
@@ -366,7 +285,12 @@ export default async function ProductPage({ params }) {
                   {product.notes?.map((note, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 rounded-full text-sm bg-[#D4AF37]/15 text-[#2B3A4A]"
+                      className="px-3 py-1 rounded-full text-sm"
+                      style={{ 
+                        background: 'rgba(212,175,55,0.15)',
+                        color: '#D4AF37',
+                        border: '1px solid rgba(212,175,55,0.3)'
+                      }}
                     >
                       {note}
                     </span>
@@ -377,24 +301,27 @@ export default async function ProductPage({ params }) {
               {/* Burn Time */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Burn Time:</span>
-                <span className="font-semibold text-[#2B3A4A]">{product.burnTime}</span>
+                <span className="font-semibold text-[#D4AF37]">{product.burnTime}</span>
               </div>
               
               {/* Client-side Actions (Add to Cart, etc.) */}
               <ProductActions product={product} />
               
               {/* Trust Badges */}
-              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-200">
+              <div 
+                className="grid grid-cols-3 gap-4 pt-6 border-t"
+                style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+              >
                 <div className="text-center">
-                  <p className="font-semibold text-sm text-[#2B3A4A]">Free Shipping</p>
+                  <p className="font-semibold text-sm text-white">Free Shipping</p>
                   <p className="text-xs text-gray-500">Orders above ₹499</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold text-sm text-[#2B3A4A]">Natural Ingredients</p>
+                  <p className="font-semibold text-sm text-white">Natural Ingredients</p>
                   <p className="text-xs text-gray-500">100% Pure</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold text-sm text-[#2B3A4A]">Easy Returns</p>
+                  <p className="font-semibold text-sm text-white">Easy Returns</p>
                   <p className="text-xs text-gray-500">7-day policy</p>
                 </div>
               </div>
@@ -403,10 +330,16 @@ export default async function ProductPage({ params }) {
           
           {/* Related Products */}
           {relatedProducts.length > 0 && (
-            <div className="mt-16 pt-12 border-t border-gray-200">
+            <div 
+              className="mt-16 pt-12 border-t"
+              style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+            >
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold font-serif text-[#2B3A4A]">
+                  <h2 
+                    className="text-2xl sm:text-3xl font-bold text-white"
+                    style={{ fontFamily: "'Playfair Display', serif" }}
+                  >
                     You May Also Like
                   </h2>
                   <p className="text-sm mt-1 text-gray-500">
@@ -433,12 +366,7 @@ export default async function ProductPage({ params }) {
       </main>
       
       {/* Footer */}
-      <footer className="bg-[#2B3A4A] text-white py-12 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika</p>
-          <p className="text-sm text-gray-400">© 2026 Centsibl Traders Private Limited. All rights reserved.</p>
-        </div>
-      </footer>
-    </>
+      <Footer />
+    </div>
   );
 }

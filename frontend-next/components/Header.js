@@ -20,6 +20,9 @@ export default function Header({ onInquiryClick }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Always use dark mode styling for consistency
+  const useDarkStyle = true;
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
@@ -60,23 +63,17 @@ export default function Header({ onInquiryClick }) {
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? isDarkMode 
-            ? 'bg-slate-900/95 backdrop-blur-md shadow-md' 
-            : 'bg-white/95 backdrop-blur-md shadow-md' 
-          : isDarkMode
-            ? 'bg-slate-900/80 backdrop-blur-sm'
-            : 'bg-transparent'
+          ? 'bg-[#0f1419]/95 backdrop-blur-md shadow-lg' 
+          : 'bg-[#0f1419]/80 backdrop-blur-sm'
       }`}
+      style={{ borderBottom: isScrolled ? '1px solid rgba(212,175,55,0.2)' : 'none' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
             <img 
-              src={isDarkMode 
-                ? "/images/logos/addrika-logo-gold.png" 
-                : "/images/logos/addrika-logo-transparent.png"
-              }
+              src="/images/logos/addrika-logo-gold.png"
               alt="Addrika - Elegance in Every Scent" 
               className="h-16 md:h-20 w-auto"
               style={{ maxWidth: '200px' }}
@@ -90,8 +87,8 @@ export default function Header({ onInquiryClick }) {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="text-sm font-medium transition-colors hover:opacity-70"
-                  style={{ color: isDarkMode ? '#e8e6e3' : 'var(--text-dark)' }}
+                  className="text-sm font-medium transition-colors hover:text-[#D4AF37]"
+                  style={{ color: '#e8e6e3' }}
                 >
                   {item.label}
                 </Link>
@@ -100,32 +97,22 @@ export default function Header({ onInquiryClick }) {
                   key={item.label}
                   href={item.href}
                   onClick={(e) => handleNavClick(item, e)}
-                  className="text-sm font-medium transition-colors hover:opacity-70"
-                  style={{ color: isDarkMode ? '#e8e6e3' : 'var(--text-dark)' }}
+                  className="text-sm font-medium transition-colors hover:text-[#D4AF37]"
+                  style={{ color: '#e8e6e3' }}
                 >
                   {item.label}
                 </a>
               )
             ))}
             
-            {/* Dark Mode Toggle */}
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full transition-colors"
-              style={{ color: isDarkMode ? 'var(--metallic-gold)' : 'var(--japanese-indigo)' }}
-            >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            
             {/* Account Button */}
             <button
               onClick={() => router.push(isAuthenticated ? '/account' : '/login')}
-              className="relative p-2 flex items-center gap-1"
-              style={{ color: isDarkMode ? 'var(--metallic-gold)' : 'var(--japanese-indigo)' }}
+              className="relative p-2 flex items-center gap-1 text-[#D4AF37] hover:opacity-80 transition-opacity"
             >
               <User size={22} />
               {isAuthenticated && user && (
-                <span className="text-sm font-medium hidden lg:inline">
+                <span className="text-sm font-medium hidden lg:inline text-[#e8e6e3]">
                   {user.name?.split(' ')[0]}
                 </span>
               )}
@@ -135,8 +122,7 @@ export default function Header({ onInquiryClick }) {
             {isAuthenticated && (
               <button
                 onClick={() => router.push('/orders')}
-                className="relative p-2"
-                style={{ color: isDarkMode ? 'var(--metallic-gold)' : 'var(--japanese-indigo)' }}
+                className="relative p-2 text-[#D4AF37] hover:opacity-80 transition-opacity"
                 title="My Orders"
               >
                 <Package size={22} />
@@ -146,8 +132,7 @@ export default function Header({ onInquiryClick }) {
             {/* Wishlist Icon */}
             <button
               onClick={() => router.push('/wishlist')}
-              className="relative p-2"
-              style={{ color: 'var(--japanese-indigo)' }}
+              className="relative p-2 text-[#D4AF37] hover:opacity-80 transition-opacity"
             >
               <Heart size={24} />
               {wishlistCount > 0 && (
@@ -160,14 +145,13 @@ export default function Header({ onInquiryClick }) {
             {/* Cart Icon */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative p-2"
-              style={{ color: 'var(--japanese-indigo)' }}
+              className="relative p-2 text-[#D4AF37] hover:opacity-80 transition-opacity"
             >
               <ShoppingBag size={24} />
               {cartCount > 0 && (
                 <span 
-                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                  style={{ backgroundColor: 'var(--metallic-gold)' }}
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{ backgroundColor: '#D4AF37', color: '#1a1a2e' }}
                 >
                   {cartCount}
                 </span>
@@ -176,8 +160,11 @@ export default function Header({ onInquiryClick }) {
 
             <button
               onClick={onInquiryClick}
-              className="px-4 py-2 rounded-md text-white font-medium transition-opacity hover:opacity-85"
-              style={{ backgroundColor: 'var(--japanese-indigo)' }}
+              className="px-4 py-2 rounded-md font-medium transition-all hover:opacity-90"
+              style={{ 
+                background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+                color: '#1a1a2e'
+              }}
             >
               Wholesale Inquiry
             </button>
@@ -185,15 +172,11 @@ export default function Header({ onInquiryClick }) {
 
           {/* Mobile Right Side */}
           <div className="md:hidden flex items-center gap-2">
-            <button onClick={toggleDarkMode} className="p-2" style={{ color: isDarkMode ? 'var(--metallic-gold)' : 'var(--japanese-indigo)' }}>
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            
-            <button onClick={() => router.push(isAuthenticated ? '/account' : '/login')} className="relative p-2" style={{ color: 'var(--japanese-indigo)' }}>
+            <button onClick={() => router.push(isAuthenticated ? '/account' : '/login')} className="relative p-2 text-[#D4AF37]">
               <User size={22} />
             </button>
             
-            <button onClick={() => router.push('/wishlist')} className="relative p-2" style={{ color: 'var(--japanese-indigo)' }}>
+            <button onClick={() => router.push('/wishlist')} className="relative p-2 text-[#D4AF37]">
               <Heart size={22} />
               {wishlistCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white bg-red-500">
@@ -202,16 +185,16 @@ export default function Header({ onInquiryClick }) {
               )}
             </button>
             
-            <button onClick={() => setIsCartOpen(true)} className="relative p-2" style={{ color: 'var(--japanese-indigo)' }}>
+            <button onClick={() => setIsCartOpen(true)} className="relative p-2 text-[#D4AF37]">
               <ShoppingBag size={24} />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: 'var(--metallic-gold)' }}>
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#D4AF37', color: '#1a1a2e' }}>
                   {cartCount}
                 </span>
               )}
             </button>
             
-            <button className="p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} style={{ color: 'var(--japanese-indigo)' }}>
+            <button className="p-2 text-[#e8e6e3]" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
@@ -219,7 +202,7 @@ export default function Header({ onInquiryClick }) {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t" style={{ borderColor: 'var(--border)', backgroundColor: isDarkMode ? '#0f1419' : 'white' }}>
+          <div className="md:hidden py-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)', backgroundColor: '#0f1419' }}>
             <nav className="flex flex-col space-y-4 px-4">
               {navItems.map((item) => (
                 item.type === 'route' ? (
@@ -227,8 +210,8 @@ export default function Header({ onInquiryClick }) {
                     key={item.label}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="text-sm font-medium transition-colors hover:opacity-70"
-                    style={{ color: isDarkMode ? '#e8e6e3' : 'var(--text-dark)' }}
+                    className="text-sm font-medium transition-colors hover:text-[#D4AF37]"
+                    style={{ color: '#e8e6e3' }}
                   >
                     {item.label}
                   </Link>
@@ -237,8 +220,8 @@ export default function Header({ onInquiryClick }) {
                     key={item.label}
                     href={item.href}
                     onClick={(e) => handleNavClick(item, e)}
-                    className="text-sm font-medium transition-colors hover:opacity-70"
-                    style={{ color: isDarkMode ? '#e8e6e3' : 'var(--text-dark)' }}
+                    className="text-sm font-medium transition-colors hover:text-[#D4AF37]"
+                    style={{ color: '#e8e6e3' }}
                   >
                     {item.label}
                   </a>
@@ -247,8 +230,11 @@ export default function Header({ onInquiryClick }) {
               
               <button
                 onClick={() => { onInquiryClick?.(); setIsMobileMenuOpen(false); }}
-                className="w-full py-2 rounded-md text-white font-medium"
-                style={{ backgroundColor: 'var(--japanese-indigo)' }}
+                className="w-full py-2 rounded-md font-medium"
+                style={{ 
+                  background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+                  color: '#1a1a2e'
+                }}
               >
                 Wholesale Inquiry
               </button>
