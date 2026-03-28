@@ -1,6 +1,12 @@
 # Addrika E-commerce Platform - PRD
 
 ## Latest Updates
+- **December 2025**: ✅ **NEXT.JS MIGRATION COMPLETE**
+  - **Retailer Portal (9 pages)**: Login, Dashboard, Orders, B2B Ordering, Badges, Leaderboard, Grievances, Messages, Profile Requests
+  - **Account Sub-pages (4 pages)**: Addresses, Notifications, Payments, Settings
+  - Total routes: 62 pages fully migrated and tested
+  - All protected routes properly redirect to login when unauthenticated
+  - Build verified successful
 - **27 Mar 2026 (Session 2)**: Next.js Migration - Auth, Cart, Checkout & Admin:
   - **Auth Flow**: Login, Register (OTP), Forgot Password, Admin Login (2FA), Admin Forgot PIN
   - **E-commerce Flow**: Cart, Checkout (Razorpay), Orders, Order Success, Wishlist
@@ -49,7 +55,7 @@ Build a premium incense e-commerce platform for Addrika with:
 
 ## Core Requirements
 
-### Next.js Migration Status
+### Next.js Migration Status ✅ COMPLETE
 - [x] Homepage with SSR
 - [x] Product pages with SSG (4 products)
 - [x] SEO pages (About, FAQ, Blog, etc.)
@@ -59,13 +65,17 @@ Build a premium incense e-commerce platform for Addrika with:
 - [x] Orders & Order Success
 - [x] Wishlist
 - [x] Account Dashboard
-- [x] **Admin Dashboard (13 pages)** - NEW
+- [x] **Admin Dashboard (13 pages)**
   - Overview, Orders, Users, Analytics
   - Retailers, Retailer Activity, Profile Tickets
   - B2B, Marketing, Content, Inventory
   - Inquiries, Settings
-- [ ] Retailer Portal (not started)
-- [ ] Account sub-pages (addresses, settings, etc.)
+- [x] **Retailer Portal (9 pages)** - COMPLETED December 2025
+  - Login, Dashboard, Orders, B2B Ordering
+  - Badges, Leaderboard, Grievances
+  - Messages, Profile Requests
+- [x] **Account Sub-pages (4 pages)** - COMPLETED December 2025
+  - Addresses, Notifications, Payments, Settings
 
 ### Customer Features
 - [x] Product browsing with image galleries
