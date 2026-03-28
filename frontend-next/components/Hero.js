@@ -66,7 +66,7 @@ export default function Hero({ onBuyClick }) {
               filter: isDarkMode 
                 ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
                 : 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
-              height: 'clamp(180px, 35vw, 320px)',
+              height: 'clamp(220px, 42vw, 400px)',
               width: 'auto'
             }}
           />
