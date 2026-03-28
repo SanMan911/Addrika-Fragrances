@@ -57,7 +57,7 @@ export default function Hero({ onBuyClick }) {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-40 text-center overflow-hidden">
         {/* Logo/Brand */}
-        <div className="mb-6 sm:mb-10 animate-fade-in-up">
+        <div className="mb-8 sm:mb-12 animate-fade-in-up">
           <img 
             src="/images/logos/addrika-brand-name-gold-transparent.png"
             alt="Addrika - Elegance in Every Scent" 
@@ -66,7 +66,7 @@ export default function Hero({ onBuyClick }) {
               filter: isDarkMode 
                 ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
                 : 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
-              height: 'clamp(140px, 28vw, 260px)',
+              height: 'clamp(180px, 35vw, 320px)',
               width: 'auto'
             }}
           />
