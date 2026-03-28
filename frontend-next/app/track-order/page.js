@@ -223,7 +223,7 @@ export default function TrackOrderPage() {
           <div className="mt-8 text-center">
             <p className="text-gray-500 text-sm mb-2">Need help with your order?</p>
             <a 
-              href="mailto:care@centraders.com"
+              href="mailto:contact.us@centraders.com"
               className="text-[#D4AF37] hover:underline text-sm flex items-center justify-center gap-1"
             >
               Contact Support

@@ -4,8 +4,8 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
 export const metadata = {
-  title: 'Terms of Service | Addrika by Centsible Traders',
-  description: 'Read Addrika\'s terms of service. Understand the terms and conditions for purchasing premium incense products from Centsible Traders.',
+  title: 'Terms of Service | Addrika by Centsibl Traders',
+  description: 'Read Addrika\'s terms of service. Understand the terms and conditions for purchasing premium incense products from Centsibl Traders.',
   robots: { index: true, follow: true },
 };
 
@@ -88,7 +88,7 @@ export default function TermsOfServicePage() {
               <h2 className="text-xl font-semibold text-white mb-4">6. Intellectual Property</h2>
               <p className="text-gray-300 leading-relaxed">
                 All content on this website, including text, images, logos, and designs, is 
-                the property of Centsible Traders Private Limited and is protected by 
+                the property of Centsibl Traders Private Limited and is protected by 
                 copyright laws.
               </p>
             </section>
@@ -96,7 +96,7 @@ export default function TermsOfServicePage() {
             <section>
               <h2 className="text-xl font-semibold text-white mb-4">7. Limitation of Liability</h2>
               <p className="text-gray-300 leading-relaxed">
-                Centsible Traders shall not be liable for any indirect, incidental, special, 
+                Centsibl Traders shall not be liable for any indirect, incidental, special, 
                 or consequential damages arising from your use of our products or services.
               </p>
             </section>

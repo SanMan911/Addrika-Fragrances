@@ -49,11 +49,11 @@ export default function HomePage() {
               <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-700">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Email</p>
                 <a 
-                  href="mailto:care@centraders.com" 
+                  href="mailto:contact.us@centraders.com" 
                   className="text-lg font-semibold hover:underline"
                   style={{ color: '#D4AF37' }}
                 >
-                  care@centraders.com
+                  contact.us@centraders.com
                 </a>
               </div>
               <div className="p-4 rounded-xl bg-gray-50 dark:bg-slate-700">

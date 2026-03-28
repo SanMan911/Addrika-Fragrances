@@ -4,7 +4,7 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
 export const metadata = {
-  title: 'Privacy Policy | Addrika by Centsible Traders',
+  title: 'Privacy Policy | Addrika by Centsibl Traders',
   description: 'Read Addrika\'s privacy policy. Learn how we collect, use, and protect your personal information when you shop for premium incense products.',
   robots: { index: true, follow: true },
 };

@@ -121,7 +121,7 @@ export default async function FindRetailersPage() {
                   We're expanding our network. Check back soon or contact us for assistance.
                 </p>
                 <Link
-                  href="mailto:care@centraders.com"
+                  href="mailto:contact.us@centraders.com"
                   className="inline-flex items-center gap-2 text-[#D4AF37] hover:underline"
                 >
                   <Mail size={16} />
@@ -201,7 +201,7 @@ export default async function FindRetailersPage() {
                 incense to your customers.
               </p>
               <a
-                href="mailto:care@centraders.com?subject=Retailer Partnership Inquiry"
+                href="mailto:contact.us@centraders.com?subject=Retailer Partnership Inquiry"
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all"
                 style={{ 
                   background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',

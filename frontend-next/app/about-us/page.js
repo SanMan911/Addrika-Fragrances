@@ -4,11 +4,11 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
 export const metadata = {
-  title: 'About Us | Centsible Traders - Addrika Premium Incense Manufacturer',
-  description: 'Centsible Traders Private Limited - A purpose-driven Indian enterprise creating Addrika premium incense. Built on ethical trade, inclusive growth, and responsible entrepreneurship.',
+  title: 'About Us | Centsibl Traders - Addrika Premium Incense Manufacturer',
+  description: 'Centsibl Traders Private Limited - A purpose-driven Indian enterprise creating Addrika premium incense. Built on ethical trade, inclusive growth, and responsible entrepreneurship.',
   keywords: ['centsible traders', 'addrika manufacturer', 'incense company india', 'ethical incense brand', 'premium agarbatti company'],
   openGraph: {
-    title: 'About Us | Centsible Traders',
+    title: 'About Us | Centsibl Traders',
     description: 'A purpose-driven Indian enterprise creating premium natural incense.',
     url: 'https://centraders.com/about-us',
   },
@@ -79,7 +79,7 @@ export default function AboutUsPage() {
               Building a Better Tomorrow Through Ethical Trade
             </h1>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Centsible Traders Private Limited is a purpose-driven Indian enterprise, 
+              Centsibl Traders Private Limited is a purpose-driven Indian enterprise, 
               committed to ethical trade, inclusive growth, and responsible entrepreneurship.
             </p>
           </div>
@@ -97,7 +97,7 @@ export default function AboutUsPage() {
                   Our Mission
                 </h2>
                 <p className="text-gray-300 mb-4 leading-relaxed">
-                  At Centsible Traders, we believe that business can be a force for good. 
+                  At Centsibl Traders, we believe that business can be a force for good. 
                   Our mission is to create premium products that honor traditional craftsmanship 
                   while providing fair opportunities for artisans across India.
                 </p>
@@ -144,7 +144,7 @@ export default function AboutUsPage() {
                 Our Core Values
               </h2>
               <p className="text-gray-400 max-w-2xl mx-auto">
-                These principles guide everything we do at Centsible Traders.
+                These principles guide everything we do at Centsibl Traders.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
