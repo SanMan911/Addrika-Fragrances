@@ -25,11 +25,13 @@ export default function ProductActions({ product }) {
     setAddingToCart(true);
     
     try {
-      await addToCart({
+      // Pass full product object with sizes so CartContext can look up price
+      addToCart({
         id: product.id,
         name: product.name,
         image: product.image,
         tagline: product.tagline,
+        sizes: product.sizes,
       }, selectedSize.size, quantity);
       
       toast.success(`${product.name} (${selectedSize.size}) added to cart!`);

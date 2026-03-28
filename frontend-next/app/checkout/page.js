@@ -6,8 +6,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { MapPin, CreditCard, Truck, Store, ChevronRight, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
+import { MapPin, CreditCard, Truck, Store, ArrowLeft, CheckCircle, Loader2, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -16,12 +18,11 @@ export default function CheckoutPage() {
   const { cart, getCartTotal, clearCart, isLoaded } = useCart();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   
-  const [step, setStep] = useState(1); // 1: Address, 2: Delivery, 3: Payment
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState({});
   
   // Delivery mode
-  const [deliveryMode, setDeliveryMode] = useState('delivery'); // 'delivery' or 'pickup'
+  const [deliveryMode, setDeliveryMode] = useState('delivery');
   
   // Address state
   const [address, setAddress] = useState({
@@ -166,7 +167,6 @@ export default function CheckoutPage() {
     setLoading(true);
     
     try {
-      // Create order
       const orderData = {
         items: cart.map(item => ({
           product_id: item.productId,
@@ -204,7 +204,6 @@ export default function CheckoutPage() {
           description: 'Premium Incense Purchase',
           order_id: data.razorpay_order_id,
           handler: async (response) => {
-            // Verify payment
             const verifyRes = await fetch(`${API_URL}/api/orders/verify-payment`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -252,274 +251,326 @@ export default function CheckoutPage() {
 
   if (authLoading || !isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F5F0E8]">
-        <div className="w-12 h-12 border-4 border-[#2B3A4A] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
+        <div className="w-12 h-12 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
+  const inputStyles = {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.15)',
+    color: 'white'
+  };
+
   return (
-    <div className="min-h-screen bg-[#F5F0E8]">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
       {/* Load Razorpay script */}
       <script src="https://checkout.razorpay.com/v1/checkout.js" async />
       
-      {/* Header */}
-      <header className="bg-white shadow-sm py-4 px-4 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link href="/cart" className="flex items-center gap-2 text-[#2B3A4A] hover:opacity-70">
-            <ArrowLeft size={20} />
-            <span>Back to Cart</span>
-          </Link>
-          <Link href="/" className="text-xl font-bold text-[#2B3A4A]">ADDRIKA</Link>
-          <div className="w-24" />
-        </div>
-      </header>
+      <Header />
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-[#2B3A4A] mb-6">Checkout</h1>
+      <main className="pt-24 pb-16">
+        <div className="max-w-5xl mx-auto px-4">
+          {/* Page Header */}
+          <div className="text-center mb-10">
+            <div 
+              className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center"
+              style={{ background: 'rgba(212,175,55,0.15)' }}
+            >
+              <ShoppingBag className="w-10 h-10 text-[#D4AF37]" />
+            </div>
+            <h1 
+              className="text-3xl sm:text-4xl font-bold text-white mb-3"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
+              Checkout
+            </h1>
+            <p className="text-gray-400">Complete your order</p>
+          </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Delivery Mode Selection */}
-            <div className="bg-white rounded-xl p-6">
-              <h2 className="text-lg font-bold text-[#2B3A4A] mb-4">Delivery Method</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => setDeliveryMode('delivery')}
-                  className={`p-4 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${
-                    deliveryMode === 'delivery' 
-                      ? 'border-[#D4AF37] bg-[#D4AF37]/5' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Truck size={24} className={deliveryMode === 'delivery' ? 'text-[#D4AF37]' : 'text-gray-400'} />
-                  <span className="font-medium">Home Delivery</span>
-                  <span className="text-xs text-gray-500">{subtotal >= 499 ? 'FREE' : '₹49'}</span>
-                </button>
-                <button
-                  onClick={() => setDeliveryMode('pickup')}
-                  className={`p-4 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${
-                    deliveryMode === 'pickup' 
-                      ? 'border-[#D4AF37] bg-[#D4AF37]/5' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Store size={24} className={deliveryMode === 'pickup' ? 'text-[#D4AF37]' : 'text-gray-400'} />
-                  <span className="font-medium">Store Pickup</span>
-                  <span className="text-xs text-gray-500">FREE</span>
-                </button>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Delivery Mode Selection */}
+              <div 
+                className="p-6 rounded-xl"
+                style={{ 
+                  background: 'linear-gradient(165deg, rgba(26,26,46,0.8) 0%, rgba(22,33,62,0.8) 100%)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              >
+                <h2 className="text-lg font-bold text-white mb-4">Delivery Method</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setDeliveryMode('delivery')}
+                    className="p-4 rounded-xl flex flex-col items-center gap-2 transition-all"
+                    style={{
+                      border: deliveryMode === 'delivery' ? '2px solid #D4AF37' : '2px solid rgba(255,255,255,0.1)',
+                      background: deliveryMode === 'delivery' ? 'rgba(212,175,55,0.1)' : 'transparent'
+                    }}
+                  >
+                    <Truck size={24} className={deliveryMode === 'delivery' ? 'text-[#D4AF37]' : 'text-gray-400'} />
+                    <span className="font-medium text-white">Home Delivery</span>
+                    <span className="text-xs text-gray-400">{subtotal >= 499 ? 'FREE' : 'Rs. 49'}</span>
+                  </button>
+                  <button
+                    onClick={() => setDeliveryMode('pickup')}
+                    className="p-4 rounded-xl flex flex-col items-center gap-2 transition-all"
+                    style={{
+                      border: deliveryMode === 'pickup' ? '2px solid #D4AF37' : '2px solid rgba(255,255,255,0.1)',
+                      background: deliveryMode === 'pickup' ? 'rgba(212,175,55,0.1)' : 'transparent'
+                    }}
+                  >
+                    <Store size={24} className={deliveryMode === 'pickup' ? 'text-[#D4AF37]' : 'text-gray-400'} />
+                    <span className="font-medium text-white">Store Pickup</span>
+                    <span className="text-xs text-gray-400">FREE</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Address Form (for delivery) */}
+              {deliveryMode === 'delivery' && (
+                <div 
+                  className="p-6 rounded-xl"
+                  style={{ 
+                    background: 'linear-gradient(165deg, rgba(26,26,46,0.8) 0%, rgba(22,33,62,0.8) 100%)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <MapPin size={20} className="text-[#D4AF37]" />
+                    Delivery Address
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">Full Name *</label>
+                      <input
+                        name="name"
+                        value={address.name}
+                        onChange={handleAddressChange}
+                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">Phone *</label>
+                      <input
+                        name="phone"
+                        value={address.phone}
+                        onChange={handleAddressChange}
+                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">PIN Code *</label>
+                      <input
+                        name="pincode"
+                        value={address.pincode}
+                        onChange={handleAddressChange}
+                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-400 mb-1">Address *</label>
+                      <input
+                        name="address"
+                        value={address.address}
+                        onChange={handleAddressChange}
+                        placeholder="House/Flat No., Building, Street"
+                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-400 mb-1">Landmark</label>
+                      <input
+                        name="landmark"
+                        value={address.landmark}
+                        onChange={handleAddressChange}
+                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">City *</label>
+                      <input
+                        name="city"
+                        value={address.city}
+                        readOnly
+                        className="w-full px-4 py-3 rounded-lg"
+                        style={{ ...inputStyles, opacity: 0.7 }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">State *</label>
+                      <input
+                        name="state"
+                        value={address.state}
+                        readOnly
+                        className="w-full px-4 py-3 rounded-lg"
+                        style={{ ...inputStyles, opacity: 0.7 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Store Selection (for pickup) */}
+              {deliveryMode === 'pickup' && (
+                <div 
+                  className="p-6 rounded-xl"
+                  style={{ 
+                    background: 'linear-gradient(165deg, rgba(26,26,46,0.8) 0%, rgba(22,33,62,0.8) 100%)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <Store size={20} className="text-[#D4AF37]" />
+                    Select Pickup Location
+                  </h2>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Your PIN Code</label>
+                    <input
+                      value={address.pincode}
+                      onChange={(e) => handleAddressChange({ target: { name: 'pincode', value: e.target.value } })}
+                      placeholder="Enter PIN code to find stores"
+                      className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                      style={inputStyles}
+                    />
+                  </div>
+                  
+                  {retailers.length > 0 ? (
+                    <div className="space-y-3">
+                      {retailers.map((retailer) => (
+                        <button
+                          key={retailer.id}
+                          onClick={() => setSelectedRetailer(retailer)}
+                          className="w-full text-left p-4 rounded-xl transition-all"
+                          style={{
+                            border: selectedRetailer?.id === retailer.id ? '2px solid #D4AF37' : '2px solid rgba(255,255,255,0.1)',
+                            background: selectedRetailer?.id === retailer.id ? 'rgba(212,175,55,0.1)' : 'transparent'
+                          }}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-semibold text-white">{retailer.store_name}</p>
+                              <p className="text-sm text-gray-400">{retailer.address}</p>
+                              <p className="text-sm text-gray-400">{retailer.city}, {retailer.state}</p>
+                            </div>
+                            {selectedRetailer?.id === retailer.id && (
+                              <CheckCircle size={20} className="text-[#D4AF37]" />
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : address.pincode?.length === 6 ? (
+                    <p className="text-gray-400 text-center py-8">No pickup locations found in your area</p>
+                  ) : (
+                    <p className="text-gray-400 text-center py-8">Enter your PIN code to find nearby stores</p>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Address Form (for delivery) */}
-            {deliveryMode === 'delivery' && (
-              <div className="bg-white rounded-xl p-6">
-                <h2 className="text-lg font-bold text-[#2B3A4A] mb-4 flex items-center gap-2">
-                  <MapPin size={20} />
-                  Delivery Address
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                    <input
-                      name="name"
-                      value={address.name}
-                      onChange={handleAddressChange}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
-                    <input
-                      name="phone"
-                      value={address.phone}
-                      onChange={handleAddressChange}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
-                    <input
-                      name="pincode"
-                      value={address.pincode}
-                      onChange={handleAddressChange}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-                    <input
-                      name="address"
-                      value={address.address}
-                      onChange={handleAddressChange}
-                      placeholder="House/Flat No., Building, Street"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Landmark</label>
-                    <input
-                      name="landmark"
-                      value={address.landmark}
-                      onChange={handleAddressChange}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-                    <input
-                      name="city"
-                      value={address.city}
-                      readOnly
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-                    <input
-                      name="state"
-                      value={address.state}
-                      readOnly
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Store Selection (for pickup) */}
-            {deliveryMode === 'pickup' && (
-              <div className="bg-white rounded-xl p-6">
-                <h2 className="text-lg font-bold text-[#2B3A4A] mb-4 flex items-center gap-2">
-                  <Store size={20} />
-                  Select Pickup Location
-                </h2>
+            {/* Order Summary */}
+            <div className="lg:col-span-1">
+              <div 
+                className="p-6 rounded-xl sticky top-24"
+                style={{ 
+                  background: 'linear-gradient(165deg, rgba(26,26,46,0.8) 0%, rgba(22,33,62,0.8) 100%)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              >
+                <h2 className="text-lg font-bold text-white mb-4">Order Summary</h2>
                 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Your PIN Code</label>
-                  <input
-                    value={address.pincode}
-                    onChange={(e) => handleAddressChange({ target: { name: 'pincode', value: e.target.value } })}
-                    placeholder="Enter PIN code to find stores"
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-                
-                {retailers.length > 0 ? (
-                  <div className="space-y-3">
-                    {retailers.map((retailer) => (
-                      <button
-                        key={retailer.id}
-                        onClick={() => setSelectedRetailer(retailer)}
-                        className={`w-full text-left p-4 border-2 rounded-xl transition-all ${
-                          selectedRetailer?.id === retailer.id
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-semibold text-[#2B3A4A]">{retailer.store_name}</p>
-                            <p className="text-sm text-gray-500">{retailer.address}</p>
-                            <p className="text-sm text-gray-500">{retailer.city}, {retailer.state}</p>
-                          </div>
-                          {selectedRetailer?.id === retailer.id && (
-                            <CheckCircle size={20} className="text-[#D4AF37]" />
+                {/* Cart Items */}
+                <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
+                  {cart.map((item) => {
+                    const product = products[item.productId];
+                    return (
+                      <div key={`${item.productId}-${item.size}`} className="flex gap-3">
+                        <div 
+                          className="w-12 h-12 rounded flex-shrink-0 overflow-hidden"
+                          style={{ background: 'rgba(255,255,255,0.05)' }}
+                        >
+                          {(item.image || product?.image) && (
+                            <img
+                              src={item.image || product?.image}
+                              alt={item.name}
+                              className="w-full h-full object-contain p-1"
+                            />
                           )}
                         </div>
-                      </button>
-                    ))}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{item.name}</p>
+                          <p className="text-xs text-gray-400">{item.size} x {item.quantity}</p>
+                        </div>
+                        <p className="text-sm font-medium text-white">Rs. {item.price * item.quantity}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Price Breakdown */}
+                <div className="space-y-2 text-sm border-t pt-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Subtotal</span>
+                    <span className="text-white">Rs. {subtotal}</span>
                   </div>
-                ) : address.pincode?.length === 6 ? (
-                  <p className="text-gray-500 text-center py-8">No pickup locations found in your area</p>
-                ) : (
-                  <p className="text-gray-500 text-center py-8">Enter your PIN code to find nearby stores</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl p-6 sticky top-24">
-              <h2 className="text-lg font-bold text-[#2B3A4A] mb-4">Order Summary</h2>
-              
-              {/* Cart Items */}
-              <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
-                {cart.map((item) => {
-                  const product = products[item.productId];
-                  return (
-                    <div key={`${item.productId}-${item.size}`} className="flex gap-3">
-                      <div className="w-12 h-12 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
-                        {product?.image && (
-                          <Image
-                            src={product.image}
-                            alt={item.name}
-                            width={48}
-                            height={48}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.name}</p>
-                        <p className="text-xs text-gray-500">{item.size} × {item.quantity}</p>
-                      </div>
-                      <p className="text-sm font-medium">₹{item.price * item.quantity}</p>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-400">
+                      <span>Discount</span>
+                      <span>-Rs. {discount}</span>
                     </div>
-                  );
-                })}
-              </div>
-              
-              {/* Price Breakdown */}
-              <div className="space-y-2 text-sm border-t border-gray-100 pt-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Subtotal</span>
-                  <span>₹{subtotal}</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount</span>
-                    <span>-₹{discount}</span>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Shipping</span>
+                    <span className={shipping === 0 ? 'text-green-400' : 'text-white'}>
+                      {shipping === 0 ? 'FREE' : `Rs. ${shipping}`}
+                    </span>
                   </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Shipping</span>
-                  <span className={shipping === 0 ? 'text-green-600' : ''}>
-                    {shipping === 0 ? 'FREE' : `₹${shipping}`}
-                  </span>
+                  <div className="flex justify-between font-bold text-lg border-t pt-2" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <span className="text-white">Total</span>
+                    <span className="text-[#D4AF37]">Rs. {total}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between font-bold text-lg border-t border-gray-100 pt-2">
-                  <span>Total</span>
-                  <span>₹{total}</span>
-                </div>
+                
+                {/* Pay Button */}
+                <button
+                  onClick={handlePayment}
+                  disabled={loading}
+                  className="w-full mt-6 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+                    color: '#1a1a2e'
+                  }}
+                  data-testid="pay-btn"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <CreditCard size={18} />
+                      Pay Rs. {total}
+                    </>
+                  )}
+                </button>
+                
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  Secured by Razorpay
+                </p>
               </div>
-              
-              {/* Pay Button */}
-              <button
-                onClick={handlePayment}
-                disabled={loading}
-                className="w-full mt-6 py-3 bg-[#D4AF37] text-[#2B3A4A] rounded-xl font-semibold hover:bg-[#c9a432] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                data-testid="pay-btn"
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <CreditCard size={18} />
-                    Pay ₹{total}
-                  </>
-                )}
-              </button>
-              
-              <p className="text-xs text-gray-400 text-center mt-4">
-                🔒 Secured by Razorpay
-              </p>
             </div>
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

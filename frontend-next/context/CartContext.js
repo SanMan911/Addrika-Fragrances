@@ -7,6 +7,7 @@ const CartContext = createContext();
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -28,19 +29,39 @@ export function CartProvider({ children }) {
     }
   }, [cart, isLoaded]);
 
-  const addToCart = (item) => {
+  // Support both signatures: addToCart(item) and addToCart(product, size, quantity)
+  const addToCart = (productOrItem, size, quantity = 1) => {
+    let cartItem;
+    
+    if (size !== undefined) {
+      // Called as addToCart(product, size, quantity)
+      const product = productOrItem;
+      cartItem = {
+        productId: product.id,
+        name: product.name,
+        image: product.image,
+        tagline: product.tagline,
+        size: size,
+        price: product.sizes?.find(s => s.size === size)?.price || 0,
+        quantity: quantity
+      };
+    } else {
+      // Called as addToCart(item) - legacy support
+      cartItem = productOrItem;
+    }
+    
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex(
-        (i) => i.productId === item.productId && i.size === item.size
+        (i) => i.productId === cartItem.productId && i.size === cartItem.size
       );
       
       if (existingIndex >= 0) {
         const newCart = [...prevCart];
-        newCart[existingIndex].quantity += item.quantity || 1;
+        newCart[existingIndex].quantity += cartItem.quantity || 1;
         return newCart;
       }
       
-      return [...prevCart, { ...item, quantity: item.quantity || 1 }];
+      return [...prevCart, { ...cartItem, quantity: cartItem.quantity || 1 }];
     });
   };
 
@@ -88,6 +109,8 @@ export function CartProvider({ children }) {
         getCartTotal,
         getCartCount,
         isLoaded,
+        isCartOpen,
+        setIsCartOpen,
       }}
     >
       {children}
