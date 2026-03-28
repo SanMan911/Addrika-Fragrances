@@ -1,142 +1,169 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Heart, Trash2, ShoppingCart, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
+import { Heart, ShoppingCart, Trash2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
 export default function WishlistPage() {
+  const router = useRouter();
   const { wishlist, removeFromWishlist, isLoaded } = useWishlist();
   const { addToCart } = useCart();
-  const [movingToCart, setMovingToCart] = useState(null);
+  
+  const [products, setProducts] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const handleMoveToCart = (item) => {
-    setMovingToCart(`${item.productId}-${item.size}`);
-    addToCart({
-      productId: item.productId,
-      name: item.name,
-      size: item.size,
-      price: item.price,
-      image: item.image,
-      quantity: 1,
-    });
-    removeFromWishlist(item.productId, item.size);
-    toast.success('Moved to cart');
-    setMovingToCart(null);
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/products`);
+        const data = await res.json();
+        const productMap = {};
+        data.forEach(p => { productMap[p.id] = p; });
+        setProducts(productMap);
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const handleAddToCart = (item) => {
+    const product = products[item.productId];
+    if (product) {
+      const sizeData = product.sizes?.find(s => s.weight === item.size);
+      addToCart({
+        productId: item.productId,
+        name: product.name,
+        size: item.size,
+        price: sizeData?.mrp || item.price,
+        quantity: 1
+      });
+      toast.success('Added to cart!');
+    }
   };
 
-  const handleRemove = (item) => {
-    removeFromWishlist(item.productId, item.size);
-    toast.success('Removed from wishlist');
+  const handleRemove = (productId, size) => {
+    removeFromWishlist(productId, size);
+    toast.info('Removed from wishlist');
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F0E8]">
+        <div className="w-12 h-12 border-4 border-[#2B3A4A] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-[#F5F0E8]">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span>
+      <header className="bg-white shadow-sm py-4 px-4 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <Link href="/account" className="flex items-center gap-2 text-[#2B3A4A] hover:opacity-70">
+            <ArrowLeft size={20} />
+            <span>Account</span>
           </Link>
+          <Link href="/" className="text-xl font-bold text-[#2B3A4A]">ADDRIKA</Link>
+          <div className="w-20" />
         </div>
       </header>
 
-      <main className="pt-24 pb-16 min-h-screen bg-[#F5F0E8]">
-        <div className="max-w-4xl mx-auto px-4">
-          <h1 className="text-3xl font-bold text-[#2B3A4A] font-serif mb-8">
-            My Wishlist ({wishlist.length} items)
-          </h1>
-
-          {wishlist.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center">
-              <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-[#2B3A4A] mb-2">
-                Your wishlist is empty
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Save items you love to your wishlist and shop them later.
-              </p>
-              <Link
-                href="/#fragrances"
-                className="inline-flex items-center gap-2 bg-[#2B3A4A] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#1a252f] transition-colors"
-              >
-                Explore Products
-                <ArrowRight size={18} />
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {wishlist.map((item) => (
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold text-[#2B3A4A] mb-6 flex items-center gap-2">
+          <Heart className="text-red-500" />
+          My Wishlist ({wishlist.length})
+        </h1>
+        
+        {wishlist.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center">
+            <Heart size={64} className="mx-auto text-gray-300 mb-4" />
+            <h2 className="text-xl font-bold text-[#2B3A4A] mb-2">Your wishlist is empty</h2>
+            <p className="text-gray-500 mb-6">Save items you love for later</p>
+            <Link
+              href="/"
+              className="inline-block bg-[#D4AF37] text-[#2B3A4A] px-6 py-3 rounded-xl font-semibold hover:bg-[#c9a432] transition-colors"
+            >
+              Explore Products
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {wishlist.map((item) => {
+              const product = products[item.productId];
+              const sizeData = product?.sizes?.find(s => s.weight === item.size);
+              
+              return (
                 <div
                   key={`${item.productId}-${item.size}`}
-                  className="bg-white rounded-xl p-4 flex gap-4 shadow-sm"
+                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                 >
                   {/* Product Image */}
-                  <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
+                  <Link href={`/products/${item.productId}`} className="block relative aspect-square">
+                    {product?.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <Heart size={32} />
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <Heart size={40} className="text-gray-300" />
                       </div>
                     )}
-                  </div>
-
-                  {/* Product Details */}
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <div>
-                        <h3 className="font-semibold text-[#2B3A4A]">{item.name}</h3>
-                        <p className="text-sm text-gray-500">{item.size}</p>
-                        <p className="font-bold text-[#2B3A4A] mt-1">
-                          ₹{item.price?.toLocaleString('en-IN')}
-                        </p>
-                      </div>
+                    
+                    {/* Remove Button */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleRemove(item.productId, item.size);
+                      }}
+                      className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-50 transition-colors"
+                      data-testid={`remove-wishlist-${item.productId}`}
+                    >
+                      <Trash2 size={16} className="text-red-500" />
+                    </button>
+                  </Link>
+                  
+                  {/* Product Info */}
+                  <div className="p-4">
+                    <Link href={`/products/${item.productId}`}>
+                      <h3 className="font-semibold text-[#2B3A4A] hover:text-[#D4AF37] transition-colors">
+                        {product?.name || item.name}
+                      </h3>
+                    </Link>
+                    <p className="text-sm text-gray-500 mb-3">{item.size}</p>
+                    
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold text-[#2B3A4A]">
+                        ₹{sizeData?.mrp || item.price}
+                      </p>
                       <button
-                        onClick={() => handleRemove(item)}
-                        className="text-gray-400 hover:text-red-500 transition-colors h-fit"
+                        onClick={() => handleAddToCart(item)}
+                        className="flex items-center gap-1 bg-[#D4AF37] text-[#2B3A4A] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#c9a432] transition-colors"
+                        data-testid={`add-to-cart-${item.productId}`}
                       >
-                        <Trash2 size={18} />
+                        <ShoppingCart size={16} />
+                        Add to Cart
                       </button>
                     </div>
-
-                    <button
-                      onClick={() => handleMoveToCart(item)}
-                      disabled={movingToCart === `${item.productId}-${item.size}`}
-                      className="mt-4 flex items-center gap-2 text-[#D4AF37] font-medium hover:underline"
-                    >
-                      <ShoppingCart size={16} />
-                      Move to Cart
-                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </main>
-
-      {/* Footer */}
-      <footer className="bg-[#2B3A4A] text-white py-8 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika</p>
-          <p className="text-sm text-gray-400">© 2026 Centsibl Traders Private Limited</p>
-        </div>
-      </footer>
-    </>
+    </div>
   );
 }

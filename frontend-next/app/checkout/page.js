@@ -1,70 +1,168 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, CreditCard, Truck, MapPin, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { MapPin, CreditCard, Truck, Store, ChevronRight, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://forgot-pass-4.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, getCartTotal, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { cart, getCartTotal, clearCart, isLoaded } = useCart();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   
+  const [step, setStep] = useState(1); // 1: Address, 2: Delivery, 3: Payment
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1: Address, 2: Payment
-  const [deliveryMode, setDeliveryMode] = useState('shipping'); // shipping or pickup
+  const [products, setProducts] = useState({});
   
+  // Delivery mode
+  const [deliveryMode, setDeliveryMode] = useState('delivery'); // 'delivery' or 'pickup'
+  
+  // Address state
   const [address, setAddress] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
+    name: '',
     phone: '',
-    line1: '',
-    line2: '',
-    city: '',
-    state: '',
     pincode: '',
+    address: '',
+    landmark: '',
+    city: '',
+    state: ''
   });
+  
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  
+  // Retailers for pickup
+  const [retailers, setRetailers] = useState([]);
+  const [selectedRetailer, setSelectedRetailer] = useState(null);
 
+  // Redirect if not authenticated
   useEffect(() => {
-    if (cart.length === 0) {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login?redirect=/checkout');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (isLoaded && cart.length === 0) {
       router.push('/cart');
     }
-  }, [cart, router]);
+  }, [cart, isLoaded, router]);
 
-  const subtotal = getCartTotal();
-  const shipping = deliveryMode === 'pickup' ? 0 : (subtotal >= 499 ? 0 : 49);
-  const total = subtotal + shipping;
+  // Load user address
+  useEffect(() => {
+    if (user) {
+      setAddress({
+        name: user.name || '',
+        phone: user.phone || '',
+        pincode: user.pincode || '',
+        address: user.address || '',
+        landmark: user.landmark || '',
+        city: user.city || '',
+        state: user.state || ''
+      });
+    }
+  }, [user]);
+
+  // Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/products`);
+        const data = await res.json();
+        const productMap = {};
+        data.forEach(p => { productMap[p.id] = p; });
+        setProducts(productMap);
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  // Fetch retailers for pickup
+  useEffect(() => {
+    const fetchRetailers = async () => {
+      if (address.pincode?.length === 6) {
+        try {
+          const res = await fetch(`${API_URL}/api/retailers/by-pincode/${address.pincode}`);
+          if (res.ok) {
+            const data = await res.json();
+            setRetailers(data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch retailers:', error);
+        }
+      }
+    };
+    fetchRetailers();
+  }, [address.pincode]);
+
+  // Pincode lookup
+  const handlePincodeLookup = useCallback(async (pincode) => {
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await res.json();
+      
+      if (data[0]?.Status === 'Success' && data[0]?.PostOffice?.length > 0) {
+        const postOffice = data[0].PostOffice[0];
+        setAddress(prev => ({
+          ...prev,
+          city: postOffice.District || '',
+          state: postOffice.State || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Pincode lookup failed:', error);
+    }
+  }, []);
 
   const handleAddressChange = (e) => {
-    setAddress({ ...address, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let filteredValue = value;
+    
+    if (name === 'pincode') {
+      filteredValue = value.replace(/\D/g, '').slice(0, 6);
+      if (filteredValue.length === 6) {
+        handlePincodeLookup(filteredValue);
+      }
+    } else if (name === 'phone') {
+      filteredValue = value.replace(/\D/g, '').slice(0, 10);
+    }
+    
+    setAddress(prev => ({ ...prev, [name]: filteredValue }));
   };
 
   const validateAddress = () => {
-    if (!address.name || !address.email || !address.phone) {
-      toast.error('Please fill in contact details');
+    if (!address.name || !address.phone || !address.pincode || !address.address || !address.city || !address.state) {
+      toast.error('Please fill all required fields');
       return false;
     }
-    if (deliveryMode === 'shipping') {
-      if (!address.line1 || !address.city || !address.state || !address.pincode) {
-        toast.error('Please fill in complete address');
-        return false;
-      }
+    if (address.phone.length !== 10) {
+      toast.error('Please enter a valid 10-digit phone number');
+      return false;
+    }
+    if (address.pincode.length !== 6) {
+      toast.error('Please enter a valid 6-digit PIN code');
+      return false;
     }
     return true;
   };
 
-  const handleContinueToPayment = () => {
-    if (validateAddress()) {
-      setStep(2);
+  const handlePayment = async () => {
+    if (deliveryMode === 'delivery' && !validateAddress()) return;
+    if (deliveryMode === 'pickup' && !selectedRetailer) {
+      toast.error('Please select a pickup location');
+      return;
     }
-  };
-
-  const handlePlaceOrder = async () => {
+    
     setLoading(true);
     
     try {
@@ -72,346 +170,356 @@ export default function CheckoutPage() {
       const orderData = {
         items: cart.map(item => ({
           product_id: item.productId,
-          name: item.name,
           size: item.size,
-          price: item.price,
           quantity: item.quantity,
+          price: item.price,
+          name: item.name
         })),
         delivery_mode: deliveryMode,
-        shipping_address: deliveryMode === 'shipping' ? address : null,
-        customer: {
-          name: address.name,
-          email: address.email,
-          phone: address.phone,
-        },
-        subtotal,
-        shipping,
-        total,
+        shipping_address: deliveryMode === 'delivery' ? address : null,
+        retailer_id: deliveryMode === 'pickup' ? selectedRetailer.id : null,
+        coupon_code: appliedCoupon?.code || null
       };
-
-      const res = await fetch(`${API_URL}/api/orders`, {
+      
+      const res = await fetch(`${API_URL}/api/orders/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData),
+        credentials: 'include',
+        body: JSON.stringify(orderData)
       });
-
+      
+      const data = await res.json();
+      
       if (!res.ok) {
-        throw new Error('Failed to create order');
+        throw new Error(data.detail || 'Failed to create order');
       }
-
-      const order = await res.json();
       
-      // Clear cart and redirect
-      clearCart();
-      toast.success('Order placed successfully!');
-      router.push(`/track-order?order=${order.order_number}`);
-      
+      // Initialize Razorpay
+      if (data.razorpay_order_id) {
+        const options = {
+          key: data.razorpay_key_id,
+          amount: data.amount,
+          currency: 'INR',
+          name: 'Addrika',
+          description: 'Premium Incense Purchase',
+          order_id: data.razorpay_order_id,
+          handler: async (response) => {
+            // Verify payment
+            const verifyRes = await fetch(`${API_URL}/api/orders/verify-payment`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                order_id: data.order_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+            
+            if (verifyRes.ok) {
+              clearCart();
+              toast.success('Payment successful!');
+              router.push(`/orders/success?id=${data.order_id}`);
+            } else {
+              toast.error('Payment verification failed');
+            }
+          },
+          prefill: {
+            name: address.name,
+            email: user?.email,
+            contact: address.phone
+          },
+          theme: {
+            color: '#D4AF37'
+          }
+        };
+        
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      }
     } catch (error) {
-      toast.error('Failed to place order. Please try again.');
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (cart.length === 0) {
-    return null;
+  const subtotal = getCartTotal();
+  const discount = appliedCoupon?.discount || 0;
+  const shipping = deliveryMode === 'pickup' ? 0 : (subtotal >= 499 ? 0 : 49);
+  const total = subtotal - discount + shipping;
+
+  if (authLoading || !isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F0E8]">
+        <div className="w-12 h-12 border-4 border-[#2B3A4A] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-[#F5F0E8]">
+      {/* Load Razorpay script */}
+      <script src="https://checkout.razorpay.com/v1/checkout.js" async />
+      
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span>
+      <header className="bg-white shadow-sm py-4 px-4 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <Link href="/cart" className="flex items-center gap-2 text-[#2B3A4A] hover:opacity-70">
+            <ArrowLeft size={20} />
+            <span>Back to Cart</span>
           </Link>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <ShoppingCart size={18} />
-            Secure Checkout
-          </div>
+          <Link href="/" className="text-xl font-bold text-[#2B3A4A]">ADDRIKA</Link>
+          <div className="w-24" />
         </div>
       </header>
 
-      <main className="pt-24 pb-16 min-h-screen bg-[#F5F0E8]">
-        <div className="max-w-6xl mx-auto px-4">
-          {/* Back Button */}
-          <Link
-            href="/cart"
-            className="inline-flex items-center gap-2 text-[#2B3A4A] hover:text-[#D4AF37] mb-6"
-          >
-            <ArrowLeft size={18} />
-            Back to Cart
-          </Link>
-
-          {/* Progress Steps */}
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-[#D4AF37]' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-[#D4AF37] text-white' : 'bg-gray-200'}`}>
-                {step > 1 ? <CheckCircle size={18} /> : '1'}
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold text-[#2B3A4A] mb-6">Checkout</h1>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Delivery Mode Selection */}
+            <div className="bg-white rounded-xl p-6">
+              <h2 className="text-lg font-bold text-[#2B3A4A] mb-4">Delivery Method</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setDeliveryMode('delivery')}
+                  className={`p-4 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${
+                    deliveryMode === 'delivery' 
+                      ? 'border-[#D4AF37] bg-[#D4AF37]/5' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Truck size={24} className={deliveryMode === 'delivery' ? 'text-[#D4AF37]' : 'text-gray-400'} />
+                  <span className="font-medium">Home Delivery</span>
+                  <span className="text-xs text-gray-500">{subtotal >= 499 ? 'FREE' : '₹49'}</span>
+                </button>
+                <button
+                  onClick={() => setDeliveryMode('pickup')}
+                  className={`p-4 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${
+                    deliveryMode === 'pickup' 
+                      ? 'border-[#D4AF37] bg-[#D4AF37]/5' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Store size={24} className={deliveryMode === 'pickup' ? 'text-[#D4AF37]' : 'text-gray-400'} />
+                  <span className="font-medium">Store Pickup</span>
+                  <span className="text-xs text-gray-500">FREE</span>
+                </button>
               </div>
-              <span className="font-medium">Address</span>
             </div>
-            <div className="w-12 h-0.5 bg-gray-300" />
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-[#D4AF37]' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-[#D4AF37] text-white' : 'bg-gray-200'}`}>
-                2
-              </div>
-              <span className="font-medium">Payment</span>
-            </div>
-          </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-2">
-              {step === 1 && (
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold text-[#2B3A4A] mb-6">Delivery Details</h2>
-
-                  {/* Delivery Mode */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-[#2B3A4A] mb-3">
-                      Delivery Method
-                    </label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setDeliveryMode('shipping')}
-                        className={`p-4 rounded-lg border-2 text-left transition-colors ${
-                          deliveryMode === 'shipping'
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <Truck className="w-6 h-6 text-[#D4AF37] mb-2" />
-                        <p className="font-semibold text-[#2B3A4A]">Home Delivery</p>
-                        <p className="text-sm text-gray-500">3-7 business days</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeliveryMode('pickup')}
-                        className={`p-4 rounded-lg border-2 text-left transition-colors ${
-                          deliveryMode === 'pickup'
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <MapPin className="w-6 h-6 text-[#D4AF37] mb-2" />
-                        <p className="font-semibold text-[#2B3A4A]">Store Pickup</p>
-                        <p className="text-sm text-gray-500">Same day available</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Contact Details */}
-                  <div className="grid md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-[#2B3A4A] mb-1">
-                        Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={address.name}
-                        onChange={handleAddressChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#2B3A4A] mb-1">
-                        Phone *
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={address.phone}
-                        onChange={handleAddressChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-[#2B3A4A] mb-1">
-                      Email *
-                    </label>
+            {/* Address Form (for delivery) */}
+            {deliveryMode === 'delivery' && (
+              <div className="bg-white rounded-xl p-6">
+                <h2 className="text-lg font-bold text-[#2B3A4A] mb-4 flex items-center gap-2">
+                  <MapPin size={20} />
+                  Delivery Address
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
                     <input
-                      type="email"
-                      name="email"
-                      value={address.email}
+                      name="name"
+                      value={address.name}
                       onChange={handleAddressChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                      required
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
                     />
                   </div>
-
-                  {/* Shipping Address */}
-                  {deliveryMode === 'shipping' && (
-                    <>
-                      <h3 className="font-semibold text-[#2B3A4A] mb-4">Shipping Address</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-[#2B3A4A] mb-1">
-                            Address Line 1 *
-                          </label>
-                          <input
-                            type="text"
-                            name="line1"
-                            value={address.line1}
-                            onChange={handleAddressChange}
-                            placeholder="House/Flat No., Building Name"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-[#2B3A4A] mb-1">
-                            Address Line 2
-                          </label>
-                          <input
-                            type="text"
-                            name="line2"
-                            value={address.line2}
-                            onChange={handleAddressChange}
-                            placeholder="Street, Area, Landmark"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-[#2B3A4A] mb-1">
-                              City *
-                            </label>
-                            <input
-                              type="text"
-                              name="city"
-                              value={address.city}
-                              onChange={handleAddressChange}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-[#2B3A4A] mb-1">
-                              PIN Code *
-                            </label>
-                            <input
-                              type="text"
-                              name="pincode"
-                              value={address.pincode}
-                              onChange={handleAddressChange}
-                              maxLength={6}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-[#2B3A4A] mb-1">
-                            State *
-                          </label>
-                          <input
-                            type="text"
-                            name="state"
-                            value={address.state}
-                            onChange={handleAddressChange}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  <button
-                    onClick={handleContinueToPayment}
-                    className="w-full mt-6 bg-[#2B3A4A] text-white py-4 rounded-lg font-semibold hover:bg-[#1a252f] transition-colors"
-                  >
-                    Continue to Payment
-                  </button>
-                </div>
-              )}
-
-              {step === 2 && (
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold text-[#2B3A4A] mb-6">Payment</h2>
-                  
-                  <div className="bg-[#F5F0E8] rounded-lg p-4 mb-6">
-                    <div className="flex items-center gap-3">
-                      <CreditCard className="w-6 h-6 text-[#D4AF37]" />
-                      <div>
-                        <p className="font-semibold text-[#2B3A4A]">Pay with Razorpay</p>
-                        <p className="text-sm text-gray-600">Cards, UPI, Netbanking & more</p>
-                      </div>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                    <input
+                      name="phone"
+                      value={address.phone}
+                      onChange={handleAddressChange}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
+                    />
                   </div>
-
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => setStep(1)}
-                      className="flex-1 py-4 rounded-lg font-semibold border border-gray-300 hover:bg-gray-50 transition-colors"
-                    >
-                      Back
-                    </button>
-                    <button
-                      onClick={handlePlaceOrder}
-                      disabled={loading}
-                      className="flex-1 bg-[#D4AF37] text-[#2B3A4A] py-4 rounded-lg font-semibold hover:bg-[#c9a432] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {loading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        `Pay ₹${total.toLocaleString('en-IN')}`
-                      )}
-                    </button>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code *</label>
+                    <input
+                      name="pincode"
+                      value={address.pincode}
+                      onChange={handleAddressChange}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
+                    />
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Order Summary */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl p-6 shadow-sm sticky top-24">
-                <h2 className="text-lg font-semibold text-[#2B3A4A] mb-4">Order Summary</h2>
-                
-                <div className="space-y-3 mb-4">
-                  {cart.map((item) => (
-                    <div key={`${item.productId}-${item.size}`} className="flex justify-between text-sm">
-                      <span className="text-gray-600">
-                        {item.name} ({item.size}) × {item.quantity}
-                      </span>
-                      <span className="font-medium">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <hr className="my-4" />
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span>₹{subtotal.toLocaleString('en-IN')}</span>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+                    <input
+                      name="address"
+                      value={address.address}
+                      onChange={handleAddressChange}
+                      placeholder="House/Flat No., Building, Street"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
+                    />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping</span>
-                    <span className={shipping === 0 ? 'text-green-600' : ''}>
-                      {shipping === 0 ? 'FREE' : `₹${shipping}`}
-                    </span>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Landmark</label>
+                    <input
+                      name="landmark"
+                      value={address.landmark}
+                      onChange={handleAddressChange}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
+                    />
                   </div>
-                </div>
-
-                <hr className="my-4" />
-
-                <div className="flex justify-between text-lg font-bold text-[#2B3A4A]">
-                  <span>Total</span>
-                  <span>₹{total.toLocaleString('en-IN')}</span>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                    <input
+                      name="city"
+                      value={address.city}
+                      readOnly
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                    <input
+                      name="state"
+                      value={address.state}
+                      readOnly
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50"
+                    />
+                  </div>
                 </div>
               </div>
+            )}
+
+            {/* Store Selection (for pickup) */}
+            {deliveryMode === 'pickup' && (
+              <div className="bg-white rounded-xl p-6">
+                <h2 className="text-lg font-bold text-[#2B3A4A] mb-4 flex items-center gap-2">
+                  <Store size={20} />
+                  Select Pickup Location
+                </h2>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Your PIN Code</label>
+                  <input
+                    value={address.pincode}
+                    onChange={(e) => handleAddressChange({ target: { name: 'pincode', value: e.target.value } })}
+                    placeholder="Enter PIN code to find stores"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D4AF37]"
+                  />
+                </div>
+                
+                {retailers.length > 0 ? (
+                  <div className="space-y-3">
+                    {retailers.map((retailer) => (
+                      <button
+                        key={retailer.id}
+                        onClick={() => setSelectedRetailer(retailer)}
+                        className={`w-full text-left p-4 border-2 rounded-xl transition-all ${
+                          selectedRetailer?.id === retailer.id
+                            ? 'border-[#D4AF37] bg-[#D4AF37]/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-semibold text-[#2B3A4A]">{retailer.store_name}</p>
+                            <p className="text-sm text-gray-500">{retailer.address}</p>
+                            <p className="text-sm text-gray-500">{retailer.city}, {retailer.state}</p>
+                          </div>
+                          {selectedRetailer?.id === retailer.id && (
+                            <CheckCircle size={20} className="text-[#D4AF37]" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : address.pincode?.length === 6 ? (
+                  <p className="text-gray-500 text-center py-8">No pickup locations found in your area</p>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">Enter your PIN code to find nearby stores</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl p-6 sticky top-24">
+              <h2 className="text-lg font-bold text-[#2B3A4A] mb-4">Order Summary</h2>
+              
+              {/* Cart Items */}
+              <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
+                {cart.map((item) => {
+                  const product = products[item.productId];
+                  return (
+                    <div key={`${item.productId}-${item.size}`} className="flex gap-3">
+                      <div className="w-12 h-12 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
+                        {product?.image && (
+                          <Image
+                            src={product.image}
+                            alt={item.name}
+                            width={48}
+                            height={48}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{item.name}</p>
+                        <p className="text-xs text-gray-500">{item.size} × {item.quantity}</p>
+                      </div>
+                      <p className="text-sm font-medium">₹{item.price * item.quantity}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Price Breakdown */}
+              <div className="space-y-2 text-sm border-t border-gray-100 pt-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Subtotal</span>
+                  <span>₹{subtotal}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount</span>
+                    <span>-₹{discount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Shipping</span>
+                  <span className={shipping === 0 ? 'text-green-600' : ''}>
+                    {shipping === 0 ? 'FREE' : `₹${shipping}`}
+                  </span>
+                </div>
+                <div className="flex justify-between font-bold text-lg border-t border-gray-100 pt-2">
+                  <span>Total</span>
+                  <span>₹{total}</span>
+                </div>
+              </div>
+              
+              {/* Pay Button */}
+              <button
+                onClick={handlePayment}
+                disabled={loading}
+                className="w-full mt-6 py-3 bg-[#D4AF37] text-[#2B3A4A] rounded-xl font-semibold hover:bg-[#c9a432] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                data-testid="pay-btn"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <CreditCard size={18} />
+                    Pay ₹{total}
+                  </>
+                )}
+              </button>
+              
+              <p className="text-xs text-gray-400 text-center mt-4">
+                🔒 Secured by Razorpay
+              </p>
             </div>
           </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }
