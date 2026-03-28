@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, Phone, Eye, EyeOff, CheckCircle, Loader2, UserPlus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -248,34 +250,57 @@ export default function RegisterPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F5F0E8]">
-        <div className="w-12 h-12 border-4 border-[#2B3A4A] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
+        <div className="w-12 h-12 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
+  const inputStyles = {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.15)',
+    color: 'white'
+  };
+
+  const selectStyles = {
+    ...inputStyles,
+    appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23999'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 8px center',
+    backgroundSize: '16px'
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F0E8]">
-      {/* Header */}
-      <header className="py-6 px-4">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-[#2B3A4A] hover:opacity-70">
-            <ArrowLeft size={20} />
-            <span>Back</span>
-          </Link>
-          <Link href="/" className="text-xl font-bold text-[#2B3A4A]">ADDRIKA</Link>
-          <div className="w-16" />
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
+      <Header />
 
       {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+      <main className="flex-1 flex items-center justify-center px-4 py-24">
+        <div className="w-full max-w-lg">
+          <div 
+            className="rounded-2xl p-8"
+            style={{ 
+              background: 'linear-gradient(165deg, rgba(26,26,46,0.9) 0%, rgba(22,33,62,0.9) 100%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.3)'
+            }}
+          >
             {/* Title */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-[#2B3A4A] mb-2">Create Account</h1>
-              <p className="text-gray-500 text-sm">
+              <div 
+                className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                style={{ background: 'rgba(212,175,55,0.15)' }}
+              >
+                <UserPlus className="w-8 h-8 text-[#D4AF37]" />
+              </div>
+              <h1 
+                className="text-2xl font-bold text-white mb-2"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
+                Create Account
+              </h1>
+              <p className="text-gray-400 text-sm">
                 {step === 1 && "Join us for a seamless shopping experience"}
                 {step === 2 && "Enter the OTP sent to your email"}
                 {step === 3 && "Complete your registration"}
@@ -287,10 +312,11 @@ export default function RegisterPage() {
               {[1, 2, 3].map((s) => (
                 <div
                   key={s}
-                  className={`w-3 h-3 rounded-full transition-all ${
-                    s === step ? 'bg-[#D4AF37] w-8' : 
-                    s < step ? 'bg-green-500' : 'bg-gray-200'
-                  }`}
+                  className="h-2 rounded-full transition-all"
+                  style={{
+                    width: s === step ? '2rem' : '0.5rem',
+                    background: s === step ? '#D4AF37' : s < step ? '#10B981' : 'rgba(255,255,255,0.2)'
+                  }}
                 />
               ))}
             </div>
@@ -301,8 +327,8 @@ export default function RegisterPage() {
                 <>
                   {/* Title & Name */}
                   <div className="grid grid-cols-6 gap-3">
-                    <div className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Title *</label>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Title *</label>
                       <select
                         name="salutation"
                         value={formData.salutation}
@@ -313,55 +339,59 @@ export default function RegisterPage() {
                           else if (title === 'Mrs.' || title === 'Ms.') gender = 'Female';
                           setFormData(prev => ({ ...prev, salutation: title, gender }));
                         }}
-                        className="w-full h-10 rounded-lg border border-gray-200 px-2 text-sm"
+                        className="w-full h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        style={selectStyles}
                         required
                       >
-                        <option value="">--</option>
-                        <option value="Mr.">Mr.</option>
-                        <option value="Mrs.">Mrs.</option>
-                        <option value="Ms.">Ms.</option>
-                        <option value="Dr.">Dr.</option>
+                        <option value="" className="bg-[#1a252f]">Select</option>
+                        <option value="Mr." className="bg-[#1a252f]">Mr.</option>
+                        <option value="Mrs." className="bg-[#1a252f]">Mrs.</option>
+                        <option value="Ms." className="bg-[#1a252f]">Ms.</option>
+                        <option value="Dr." className="bg-[#1a252f]">Dr.</option>
                       </select>
                     </div>
-                    <div className="col-span-5">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Full Name *</label>
+                    <div className="col-span-4">
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Full Name *</label>
                       <input
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
                         placeholder="Enter your full name"
-                        className={`w-full h-10 rounded-lg border px-3 text-sm ${errors.name ? 'border-red-500' : 'border-gray-200'}`}
+                        className="w-full h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
                       />
-                      {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                      {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
                     </div>
                   </div>
 
                   {/* Gender & DOB */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Gender *</label>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Gender *</label>
                       <select
                         name="gender"
                         value={formData.gender}
                         onChange={handleInputChange}
-                        className="w-full h-10 rounded-lg border border-gray-200 px-2 text-sm"
+                        className="w-full h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        style={selectStyles}
                         required
                       >
-                        <option value="">Select</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                        <option value="" className="bg-[#1a252f]">Select</option>
+                        <option value="Male" className="bg-[#1a252f]">Male</option>
+                        <option value="Female" className="bg-[#1a252f]">Female</option>
+                        <option value="Other" className="bg-[#1a252f]">Other</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Date of Birth *</label>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Date of Birth *</label>
                       <input
                         type="date"
                         name="dateOfBirth"
                         value={formData.dateOfBirth}
                         onChange={handleInputChange}
                         max={new Date().toISOString().split('T')[0]}
-                        className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm"
+                        className="w-full h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        style={inputStyles}
                         required
                       />
                     </div>
@@ -369,55 +399,58 @@ export default function RegisterPage() {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Email *</label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                       <input
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
                         placeholder="your@email.com"
-                        className={`w-full h-10 pl-9 pr-3 rounded-lg border text-sm ${errors.email ? 'border-red-500' : 'border-gray-200'}`}
+                        className="w-full h-11 pl-10 pr-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
                       />
                     </div>
-                    {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                    {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
                   </div>
 
                   {/* Password */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Password *</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Password *</label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                       <input
                         type={showPassword ? 'text' : 'password'}
                         name="password"
                         value={formData.password}
                         onChange={handleInputChange}
                         placeholder="Min 6 characters"
-                        className={`w-full h-10 pl-9 pr-10 rounded-lg border text-sm ${errors.password ? 'border-red-500' : 'border-gray-200'}`}
+                        className="w-full h-11 pl-10 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
-                    {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                    {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
                   </div>
 
                   {/* Phone */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Phone *</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Phone *</label>
                     <div className="flex gap-2">
                       <select
                         value={formData.countryCode}
                         onChange={(e) => setFormData(prev => ({ ...prev, countryCode: e.target.value }))}
-                        className="w-24 h-10 rounded-lg border border-gray-200 px-2 text-sm"
+                        className="w-28 h-11 rounded-lg px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        style={selectStyles}
                       >
                         {countryCodes.map(c => (
-                          <option key={c.key} value={c.key}>{c.flag} {c.code}</option>
+                          <option key={c.key} value={c.key} className="bg-[#1a252f]">{c.flag} {c.code}</option>
                         ))}
                       </select>
                       <input
@@ -425,72 +458,78 @@ export default function RegisterPage() {
                         value={formData.phone}
                         onChange={handleInputChange}
                         placeholder="Phone number"
-                        className={`flex-1 h-10 rounded-lg border px-3 text-sm ${errors.phone ? 'border-red-500' : 'border-gray-200'}`}
+                        className="flex-1 h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                        style={inputStyles}
                       />
                     </div>
-                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                    {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
                   </div>
 
                   {/* Address Section */}
-                  <div className="pt-3 border-t">
-                    <h3 className="text-sm font-semibold text-[#2B3A4A] mb-3">Billing Address</h3>
+                  <div className="pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <h3 className="text-sm font-semibold text-white mb-3">Billing Address</h3>
                     
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">PIN Code *</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">PIN Code *</label>
                         <input
                           name="pincode"
                           value={formData.pincode}
                           onChange={handleInputChange}
                           placeholder="6-digit PIN code"
                           maxLength={6}
-                          className={`w-full h-10 rounded-lg border px-3 text-sm ${errors.pincode ? 'border-red-500' : 'border-gray-200'}`}
+                          className="w-full h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                          style={inputStyles}
                         />
-                        {errors.pincode && <p className="text-red-500 text-xs mt-1">{errors.pincode}</p>}
+                        {errors.pincode && <p className="text-red-400 text-xs mt-1">{errors.pincode}</p>}
                       </div>
                       
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Street Address *</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Street Address *</label>
                         <input
                           name="address"
                           value={formData.address}
                           onChange={handleInputChange}
                           placeholder="House/Flat No., Building, Street"
-                          className={`w-full h-10 rounded-lg border px-3 text-sm ${errors.address ? 'border-red-500' : 'border-gray-200'}`}
+                          className="w-full h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                          style={inputStyles}
                         />
-                        {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                        {errors.address && <p className="text-red-400 text-xs mt-1">{errors.address}</p>}
                       </div>
                       
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Landmark (Optional)</label>
+                        <label className="block text-xs font-medium text-gray-400 mb-1">Landmark (Optional)</label>
                         <input
                           name="landmark"
                           value={formData.landmark}
                           onChange={handleInputChange}
                           placeholder="Near ABC Hospital"
-                          className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm"
+                          className="w-full h-11 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
+                          style={inputStyles}
                         />
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">City *</label>
+                          <label className="block text-xs font-medium text-gray-400 mb-1">City *</label>
                           <input
                             name="city"
                             value={formData.city}
                             readOnly
                             placeholder="Auto-filled"
-                            className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm bg-gray-50"
+                            className="w-full h-11 rounded-lg px-3 text-sm placeholder-gray-600"
+                            style={{ ...inputStyles, opacity: 0.7 }}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">State *</label>
+                          <label className="block text-xs font-medium text-gray-400 mb-1">State *</label>
                           <input
                             name="state"
                             value={formData.state}
                             readOnly
                             placeholder="Auto-filled"
-                            className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm bg-gray-50"
+                            className="w-full h-11 rounded-lg px-3 text-sm placeholder-gray-600"
+                            style={{ ...inputStyles, opacity: 0.7 }}
                           />
                         </div>
                       </div>
@@ -501,13 +540,16 @@ export default function RegisterPage() {
 
               {/* Step 2: OTP Verification */}
               {step === 2 && (
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-[#F5F0E8] flex items-center justify-center mx-auto mb-4">
-                    <Mail size={32} className="text-[#2B3A4A]" />
+                <div className="text-center py-4">
+                  <div 
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
+                    style={{ background: 'rgba(212,175,55,0.15)' }}
+                  >
+                    <Mail size={36} className="text-[#D4AF37]" />
                   </div>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-gray-400 mb-6">
                     We&apos;ve sent a verification code to<br />
-                    <strong className="text-[#2B3A4A]">{formData.email}</strong>
+                    <strong className="text-white">{formData.email}</strong>
                   </p>
                   
                   <input
@@ -516,19 +558,20 @@ export default function RegisterPage() {
                     onChange={handleInputChange}
                     placeholder="000000"
                     maxLength={6}
-                    className={`w-full h-12 rounded-lg border text-center text-2xl tracking-widest ${errors.otp ? 'border-red-500' : 'border-gray-200'}`}
+                    className="w-full h-14 rounded-xl text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-600"
+                    style={inputStyles}
                   />
-                  {errors.otp && <p className="text-red-500 text-sm mt-1">{errors.otp}</p>}
+                  {errors.otp && <p className="text-red-400 text-sm mt-2">{errors.otp}</p>}
                   
-                  <p className="text-sm text-gray-500 mt-4">
+                  <p className="text-sm text-gray-500 mt-6">
                     Didn&apos;t receive the code?{' '}
                     {resendTimer > 0 ? (
-                      <span>Resend in {resendTimer}s</span>
+                      <span className="text-gray-400">Resend in {resendTimer}s</span>
                     ) : (
                       <button
                         type="button"
                         onClick={() => { setStep(1); setOtpSent(false); }}
-                        className="font-semibold text-[#2B3A4A] hover:underline"
+                        className="font-semibold text-[#D4AF37] hover:underline"
                       >
                         Resend OTP
                       </button>
@@ -539,17 +582,28 @@ export default function RegisterPage() {
 
               {/* Step 3: Complete Registration */}
               {step === 3 && (
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle size={32} className="text-green-600" />
+                <div className="text-center py-4">
+                  <div 
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
+                    style={{ background: 'rgba(16,185,129,0.15)' }}
+                  >
+                    <CheckCircle size={36} className="text-green-500" />
                   </div>
-                  <h3 className="text-lg font-semibold text-[#2B3A4A] mb-2">Email Verified!</h3>
-                  <p className="text-sm text-gray-600 mb-4">Click below to complete your registration</p>
+                  <h3 
+                    className="text-xl font-semibold text-white mb-2"
+                    style={{ fontFamily: "'Playfair Display', serif" }}
+                  >
+                    Email Verified!
+                  </h3>
+                  <p className="text-gray-400 mb-6">Click below to complete your registration</p>
                   
-                  <div className="bg-[#F5F0E8] rounded-lg p-4 text-left text-sm space-y-1">
-                    <p><strong>Name:</strong> {formData.salutation} {formData.name}</p>
-                    <p><strong>Email:</strong> {formData.email}</p>
-                    <p><strong>Phone:</strong> {formData.countryCode.split('-')[0]} {formData.phone}</p>
+                  <div 
+                    className="rounded-xl p-4 text-left text-sm space-y-2"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}
+                  >
+                    <p className="text-gray-300"><span className="text-gray-500">Name:</span> {formData.salutation} {formData.name}</p>
+                    <p className="text-gray-300"><span className="text-gray-500">Email:</span> {formData.email}</p>
+                    <p className="text-gray-300"><span className="text-gray-500">Phone:</span> {formData.countryCode.split('-')[0]} {formData.phone}</p>
                   </div>
                 </div>
               )}
@@ -558,9 +612,18 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-[#2B3A4A] text-white rounded-xl font-semibold hover:bg-[#1a252f] transition-colors disabled:opacity-50"
+                className="w-full py-4 rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-6"
+                style={{ 
+                  background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+                  color: '#1a1a2e'
+                }}
               >
-                {loading ? 'Please wait...' : (
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Please wait...
+                  </>
+                ) : (
                   step === 1 ? 'Send OTP' :
                   step === 2 ? 'Verify OTP' :
                   'Complete Registration'
@@ -569,10 +632,10 @@ export default function RegisterPage() {
             </form>
 
             {/* Toggle Mode */}
-            <div className="text-center mt-6">
-              <p className="text-gray-500">
+            <div className="text-center mt-6 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <p className="text-gray-400">
                 Already have an account?{' '}
-                <Link href="/login" className="font-semibold text-[#2B3A4A] hover:underline">
+                <Link href="/login" className="font-semibold text-[#D4AF37] hover:underline">
                   Sign In
                 </Link>
               </p>
@@ -580,6 +643,8 @@ export default function RegisterPage() {
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
