@@ -4,6 +4,7 @@ import { CartProvider } from '../context/CartContext';
 import { AuthProvider } from '../context/AuthContext';
 import { WishlistProvider } from '../context/WishlistContext';
 import { ThemeProvider } from '../context/ThemeContext';
+import CartSidebar from '../components/CartSidebar';
 
 export const metadata = {
   title: {
@@ -103,6 +104,7 @@ export default function RootLayout({ children }) {
             <CartProvider>
               <WishlistProvider>
                 {children}
+                <CartSidebar />
               </WishlistProvider>
             </CartProvider>
           </AuthProvider>

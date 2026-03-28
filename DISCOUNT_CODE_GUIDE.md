@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://ecommerce-nextjs-2.preview.emergentagent.com/api
+https://fragrance-next-1.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

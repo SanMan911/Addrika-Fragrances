@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import { HelpCircle, ChevronDown, Leaf, Wind, FlaskConical } from 'lucide-react';
+import { HelpCircle, Leaf, Wind, FlaskConical } from 'lucide-react';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 export const metadata = {
   title: 'FAQs | Addrika Fragrances - Zero Charcoal Low Smoke Incense Questions',
@@ -96,11 +98,11 @@ const faqs = [
     questions: [
       {
         q: "Where are Addrika incense sticks made?",
-        a: "Addrika incense sticks are proudly made in India. They are crafted by skilled Indian artisans using traditional techniques perfected over generations. Centsibl Traders Private Limited, the company behind Addrika, is a purpose-driven Indian enterprise committed to ethical trade and supporting local communities."
+        a: "Addrika incense sticks are proudly made in India. They are crafted by skilled Indian artisans using traditional techniques perfected over generations. Centsible Traders Private Limited, the company behind Addrika, is a purpose-driven Indian enterprise committed to ethical trade and supporting local communities."
       },
       {
         q: "Who makes Addrika incense?",
-        a: "Addrika is the flagship brand of Centsibl Traders Private Limited, a purpose-driven Indian enterprise committed to ethical trade and sustainable practices. We work with skilled artisans who craft each incense stick using time-honored methods perfected in India."
+        a: "Addrika is the flagship brand of Centsible Traders Private Limited, a purpose-driven Indian enterprise committed to ethical trade and sustainable practices. We work with skilled artisans who craft each incense stick using time-honored methods perfected in India."
       },
       {
         q: "Where can I buy Addrika incense in India?",
@@ -108,7 +110,7 @@ const faqs = [
       },
       {
         q: "Does Addrika ship across India?",
-        a: "Yes, we ship to all PIN codes across India. Orders above ₹499 qualify for free shipping. Standard delivery takes 3-7 business days depending on your location."
+        a: "Yes, we ship to all PIN codes across India. Orders above Rs. 499 qualify for free shipping. Standard delivery takes 3-7 business days depending on your location."
       },
       {
         q: "What is Addrika's return policy?",
@@ -151,45 +153,51 @@ function FAQPageSchema() {
 
 export default function FAQPage() {
   return (
-    <>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
       <FAQPageSchema />
-      
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span> Fragrances
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/#fragrances" className="hover:text-[#D4AF37]">Products</Link>
-            <Link href="/low-smoke-incense" className="hover:text-[#D4AF37]">Low Smoke</Link>
-            <Link href="/faq" className="text-[#D4AF37] font-medium">FAQs</Link>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
-      <main className="pt-24 pb-16 min-h-screen bg-[#F5F0E8]">
+      <main className="pt-24 pb-16">
         <div className="max-w-4xl mx-auto px-4">
           {/* Hero */}
           <div className="text-center mb-12">
-            <HelpCircle className="w-16 h-16 text-[#D4AF37] mx-auto mb-4" />
-            <h1 className="text-4xl font-bold text-[#2B3A4A] font-serif mb-4">
+            <div 
+              className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center"
+              style={{ background: 'rgba(212,175,55,0.15)' }}
+            >
+              <HelpCircle className="w-10 h-10 text-[#D4AF37]" />
+            </div>
+            <h1 
+              className="text-4xl sm:text-5xl font-bold text-white mb-4"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               Frequently Asked Questions
             </h1>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-gray-400 max-w-2xl mx-auto">
               Everything you need to know about Addrika&apos;s zero charcoal, low smoke incense sticks
             </p>
           </div>
 
           {/* Quick Links */}
-          <div className="bg-white rounded-xl p-6 mb-8 shadow-sm">
-            <h2 className="font-semibold text-[#2B3A4A] mb-4">Jump to:</h2>
+          <div 
+            className="p-6 mb-8 rounded-xl"
+            style={{ 
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}
+          >
+            <h2 className="font-semibold text-white mb-4">Jump to:</h2>
             <div className="flex flex-wrap gap-2">
               {faqs.map((category, index) => (
                 <a
                   key={index}
                   href={`#${category.category.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="px-4 py-2 bg-[#F5F0E8] text-[#2B3A4A] rounded-full text-sm hover:bg-[#D4AF37]/20 transition-colors"
+                  className="px-4 py-2 rounded-full text-sm transition-colors"
+                  style={{ 
+                    background: 'rgba(212,175,55,0.1)',
+                    color: '#D4AF37',
+                    border: '1px solid rgba(212,175,55,0.2)'
+                  }}
                 >
                   {category.category}
                 </a>
@@ -204,16 +212,26 @@ export default function FAQPage() {
               id={category.category.toLowerCase().replace(/\s+/g, '-')}
               className="mb-8"
             >
-              <h2 className="text-2xl font-bold text-[#2B3A4A] font-serif mb-6">
+              <h2 
+                className="text-2xl font-bold text-white mb-6"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
                 {category.category}
               </h2>
               <div className="space-y-4">
                 {category.questions.map((faq, faqIndex) => (
-                  <div key={faqIndex} className="bg-white rounded-xl p-6 shadow-sm">
-                    <h3 className="font-semibold text-[#2B3A4A] mb-3 text-lg">
+                  <div 
+                    key={faqIndex} 
+                    className="p-6 rounded-xl"
+                    style={{ 
+                      background: 'linear-gradient(165deg, rgba(26,26,46,0.8) 0%, rgba(22,33,62,0.8) 100%)',
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}
+                  >
+                    <h3 className="font-semibold text-white mb-3 text-lg">
                       {faq.q}
                     </h3>
-                    <p className="text-gray-600 leading-relaxed">
+                    <p className="text-gray-400 leading-relaxed">
                       {faq.a}
                     </p>
                   </div>
@@ -223,21 +241,40 @@ export default function FAQPage() {
           ))}
 
           {/* Still Have Questions */}
-          <div className="bg-[#2B3A4A] rounded-xl p-8 text-center text-white mt-12">
-            <h2 className="text-2xl font-bold mb-4">Still Have Questions?</h2>
+          <div 
+            className="p-8 text-center rounded-2xl mt-12"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(42,59,73,0.2) 100%)',
+              border: '1px solid rgba(212,175,55,0.2)'
+            }}
+          >
+            <h2 
+              className="text-2xl font-bold text-white mb-4"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
+              Still Have Questions?
+            </h2>
             <p className="text-gray-300 mb-6">
               Our team is here to help you find the perfect incense for your needs
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <a
                 href="mailto:contact.us@centraders.com"
-                className="bg-[#D4AF37] text-[#2B3A4A] px-6 py-3 rounded-lg font-semibold hover:bg-[#c9a432] transition-colors"
+                className="px-6 py-3 rounded-lg font-semibold transition-all"
+                style={{ 
+                  background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+                  color: '#1a1a2e'
+                }}
               >
                 Email Us
               </a>
               <a
                 href="tel:+919667269711"
-                className="border border-white/30 text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors"
+                className="px-6 py-3 rounded-lg font-semibold transition-all"
+                style={{ 
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: 'white'
+                }}
               >
                 Call: +91 9667-269-711
               </a>
@@ -246,37 +283,55 @@ export default function FAQPage() {
 
           {/* Related Content - Internal Linking */}
           <div className="mt-12">
-            <h2 className="text-2xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
+            <h2 
+              className="text-2xl font-bold text-white text-center mb-8"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               Learn More
             </h2>
             <div className="grid sm:grid-cols-3 gap-6">
-              <Link href="/ingredients" className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
+              <Link 
+                href="/ingredients" 
+                className="p-6 rounded-xl transition-all hover:-translate-y-1 group"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              >
                 <Leaf className="w-10 h-10 text-[#D4AF37] mb-4" />
-                <h3 className="font-semibold text-[#2B3A4A] mb-2 group-hover:text-[#D4AF37] transition-colors">Our Ingredients</h3>
-                <p className="text-sm text-gray-600">Complete guide to what goes into Addrika incense</p>
+                <h3 className="font-semibold text-white mb-2 group-hover:text-[#D4AF37] transition-colors">Our Ingredients</h3>
+                <p className="text-sm text-gray-400">Complete guide to what goes into Addrika incense</p>
               </Link>
-              <Link href="/why-zero-charcoal" className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
+              <Link 
+                href="/why-zero-charcoal" 
+                className="p-6 rounded-xl transition-all hover:-translate-y-1 group"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              >
                 <Wind className="w-10 h-10 text-[#D4AF37] mb-4" />
-                <h3 className="font-semibold text-[#2B3A4A] mb-2 group-hover:text-[#D4AF37] transition-colors">Why Zero Charcoal?</h3>
-                <p className="text-sm text-gray-600">The benefits of charcoal-free incense explained</p>
+                <h3 className="font-semibold text-white mb-2 group-hover:text-[#D4AF37] transition-colors">Why Zero Charcoal?</h3>
+                <p className="text-sm text-gray-400">The benefits of charcoal-free incense explained</p>
               </Link>
-              <Link href="/our-quality" className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
+              <Link 
+                href="/our-quality" 
+                className="p-6 rounded-xl transition-all hover:-translate-y-1 group"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              >
                 <FlaskConical className="w-10 h-10 text-[#D4AF37] mb-4" />
-                <h3 className="font-semibold text-[#2B3A4A] mb-2 group-hover:text-[#D4AF37] transition-colors">Quality Standards</h3>
-                <p className="text-sm text-gray-600">Our commitment to premium craftsmanship</p>
+                <h3 className="font-semibold text-white mb-2 group-hover:text-[#D4AF37] transition-colors">Quality Standards</h3>
+                <p className="text-sm text-gray-400">Our commitment to premium craftsmanship</p>
               </Link>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#1a252f] text-white py-12 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika Fragrances</p>
-          <p className="text-sm text-gray-400">© 2026 Centsibl Traders Private Limited</p>
-        </div>
-      </footer>
-    </>
+      <Footer />
+    </div>
   );
 }

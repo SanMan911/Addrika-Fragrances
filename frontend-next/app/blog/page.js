@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { Calendar, Eye, Tag, Search } from 'lucide-react';
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ecommerce-nextjs-2.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fragrance-next-1.preview.emergentagent.com';
 
 export const metadata = {
   title: 'Blog | Addrika - Fragrance Tips, Aromatherapy & Incense Guides',
@@ -34,27 +36,33 @@ export default async function BlogPage() {
   const tags = ['fragrance', 'agarbatti', 'incense', 'aroma', 'aromatherapy', 'wellness', 'spirituality'];
 
   return (
-    <>
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/#fragrances" className="hover:text-[#D4AF37] transition-colors">Fragrances</Link>
-            <Link href="/our-story" className="hover:text-[#D4AF37] transition-colors">Our Story</Link>
-            <Link href="/about-us" className="hover:text-[#D4AF37] transition-colors">About Us</Link>
-            <Link href="/blog" className="text-[#D4AF37]">Blog</Link>
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
+      <Header />
 
-      <main className="pt-16 min-h-screen bg-[#F5F0E8]">
+      <main className="pt-24">
         {/* Hero */}
-        <section className="py-16 px-4 bg-gradient-to-br from-[#2B3A4A] to-[#1a252f]">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl sm:text-5xl font-bold text-white font-serif mb-4">
+        <section className="py-16 px-4">
+          <div 
+            className="absolute inset-0 overflow-hidden pointer-events-none"
+            style={{ 
+              background: 'radial-gradient(ellipse at center top, rgba(212,175,55,0.1) 0%, transparent 50%)'
+            }}
+          />
+          <div className="max-w-4xl mx-auto text-center relative">
+            <span 
+              className="inline-block px-5 py-2 rounded-full text-sm font-medium tracking-wider mb-6"
+              style={{ 
+                background: 'rgba(212,175,55,0.1)', 
+                color: '#D4AF37',
+                border: '1px solid rgba(212,175,55,0.2)'
+              }}
+            >
+              THE JOURNAL
+            </span>
+            <h1 
+              className="text-4xl sm:text-5xl font-bold text-white mb-6"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               The Addrika Journal
             </h1>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
@@ -64,13 +72,18 @@ export default async function BlogPage() {
         </section>
 
         {/* Tags */}
-        <section className="py-6 px-4 bg-white border-b">
+        <section className="py-6 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-wrap gap-2 justify-center">
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-4 py-2 rounded-full text-sm font-medium bg-[#F5F0E8] text-[#2B3A4A] hover:bg-[#D4AF37]/20 cursor-pointer transition-colors"
+                  className="px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer"
+                  style={{ 
+                    background: 'rgba(255,255,255,0.05)',
+                    color: '#e8e6e3',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
                 >
                   #{tag}
                 </span>
@@ -80,15 +93,21 @@ export default async function BlogPage() {
         </section>
 
         {/* Blog Posts */}
-        <section className="py-12 px-4">
+        <section className="py-12 px-4 pb-20">
           <div className="max-w-6xl mx-auto">
             {posts.length === 0 ? (
-              <div className="text-center py-16">
-                <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h2 className="text-2xl font-semibold text-[#2B3A4A] mb-2">
+              <div 
+                className="text-center py-16 rounded-2xl"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              >
+                <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h2 className="text-2xl font-semibold text-white mb-2">
                   No Posts Yet
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-gray-400">
                   We&apos;re working on creating valuable content for you. Check back soon!
                 </p>
               </div>
@@ -98,7 +117,11 @@ export default async function BlogPage() {
                   <Link
                     key={post.slug}
                     href={`/blog/${post.slug}`}
-                    className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all"
+                    className="group rounded-xl overflow-hidden transition-all hover:-translate-y-1"
+                    style={{ 
+                      background: 'linear-gradient(165deg, rgba(26,26,46,0.8) 0%, rgba(22,33,62,0.8) 100%)',
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}
                   >
                     {post.featuredImage && (
                       <div className="aspect-[16/9] overflow-hidden">
@@ -110,7 +133,7 @@ export default async function BlogPage() {
                       </div>
                     )}
                     <div className="p-6">
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                      <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
                           {new Date(post.createdAt).toLocaleDateString('en-IN', {
@@ -124,10 +147,10 @@ export default async function BlogPage() {
                           {post.views || 0} views
                         </span>
                       </div>
-                      <h2 className="text-xl font-semibold text-[#2B3A4A] mb-2 group-hover:text-[#D4AF37] transition-colors">
+                      <h2 className="text-xl font-semibold text-white mb-2 group-hover:text-[#D4AF37] transition-colors">
                         {post.title}
                       </h2>
-                      <p className="text-gray-600 text-sm line-clamp-3">
+                      <p className="text-gray-400 text-sm line-clamp-3">
                         {post.excerpt}
                       </p>
                       {post.tags && post.tags.length > 0 && (
@@ -135,7 +158,11 @@ export default async function BlogPage() {
                           {post.tags.slice(0, 3).map((tag) => (
                             <span
                               key={tag}
-                              className="px-2 py-1 text-xs rounded bg-[#F5F0E8] text-[#2B3A4A]"
+                              className="px-2 py-1 text-xs rounded"
+                              style={{ 
+                                background: 'rgba(212,175,55,0.1)',
+                                color: '#D4AF37'
+                              }}
                             >
                               #{tag}
                             </span>
@@ -151,13 +178,7 @@ export default async function BlogPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#2B3A4A] text-white py-12 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika</p>
-          <p className="text-sm text-gray-400">© 2026 Centsibl Traders Private Limited. All rights reserved.</p>
-        </div>
-      </footer>
-    </>
+      <Footer />
+    </div>
   );
 }
