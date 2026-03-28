@@ -36,8 +36,8 @@ const uspItems = [
   },
   {
     icon: Heart,
-    title: 'Eco-Friendly',
-    description: 'Sustainable sourcing and biodegradable packaging for a greener tomorrow.',
+    title: 'Quality Packaging',
+    description: 'Premium glass jars for Bakhoor, durable plastic & paper packs for agarbattis and incense.',
     color: '#14B8A6'
   }
 ];

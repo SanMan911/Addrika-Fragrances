@@ -1,14 +1,14 @@
 'use client';
 
 import { useTheme } from '../context/ThemeContext';
-import { Gift, Recycle, Shield, Leaf } from 'lucide-react';
+import { Gift, Package, Shield, Sparkles } from 'lucide-react';
 
 export default function PackagingSection() {
   const { isDarkMode } = useTheme();
 
   const features = [
-    { icon: Recycle, title: 'Recyclable Materials', desc: '100% recyclable packaging' },
-    { icon: Leaf, title: 'Eco-Friendly', desc: 'Biodegradable components' },
+    { icon: Sparkles, title: 'Premium Glass Jars', desc: 'Elegant amber glass for Bakhoor' },
+    { icon: Package, title: 'Quality Materials', desc: 'Durable plastic & paper packs' },
     { icon: Shield, title: 'Secure Packaging', desc: 'Protected during transit' },
     { icon: Gift, title: 'Gift Ready', desc: 'Premium presentation' }
   ];
@@ -61,7 +61,7 @@ export default function PackagingSection() {
                 border: '1px solid rgba(212,175,55,0.2)'
               }}
             >
-              SUSTAINABLE PACKAGING
+              THOUGHTFUL PACKAGING
             </span>
             <h2 
               className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6"
@@ -70,15 +70,16 @@ export default function PackagingSection() {
                 color: isDarkMode ? '#ffffff' : 'var(--japanese-indigo)'
               }}
             >
-              Premium & Eco-Conscious
+              Premium & Purposeful
             </h2>
             <p 
               className="text-lg mb-8 leading-relaxed"
               style={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'var(--text-subtle)' }}
             >
-              Our commitment to sustainability extends beyond our products. Each Addrika package 
-              is designed with the environment in mind, using recyclable materials without 
-              compromising on the luxurious unboxing experience you deserve.
+              Every Addrika product is thoughtfully packaged to preserve its essence. Our Bakhoor 
+              comes in elegant amber glass jars that protect the fragrance and add a touch of luxury, 
+              while our agarbattis and incense sticks are securely packed in quality plastic and 
+              paper packaging for durability and freshness.
             </p>
 
             {/* Features Grid */}
