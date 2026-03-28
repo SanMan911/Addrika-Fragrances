@@ -8,7 +8,7 @@ export default function Hero({ onBuyClick }) {
   
   return (
     <section 
-      className="relative min-h-screen flex items-center justify-center overflow-hidden transition-colors duration-500"
+      className="relative min-h-[100vh] lg:min-h-[110vh] flex items-center justify-center overflow-hidden transition-colors duration-500 pt-20"
       style={{ 
         background: isDarkMode 
           ? `linear-gradient(180deg, #0f1419 0%, #1a2332 50%, #0f1419 100%)`
@@ -55,9 +55,9 @@ export default function Hero({ onBuyClick }) {
         />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-32 text-center overflow-hidden">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-40 text-center overflow-hidden">
         {/* Logo/Brand */}
-        <div className="mb-4 sm:mb-6 animate-fade-in-up">
+        <div className="mb-6 sm:mb-10 animate-fade-in-up">
           <img 
             src="/images/logos/addrika-brand-name-gold-transparent.png"
             alt="Addrika - Elegance in Every Scent" 
@@ -66,16 +66,27 @@ export default function Hero({ onBuyClick }) {
               filter: isDarkMode 
                 ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
                 : 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
-              height: 'clamp(100px, 20vw, 180px)',
+              height: 'clamp(140px, 28vw, 260px)',
               width: 'auto'
             }}
           />
         </div>
 
+        {/* Tagline */}
+        <h1 
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in-up delay-100"
+          style={{ 
+            fontFamily: "'Playfair Display', serif",
+            color: isDarkMode ? '#e8e6e3' : 'var(--japanese-indigo)'
+          }}
+        >
+          Elegance in Every Scent
+        </h1>
+
         {/* Subtitle */}
         <div className="animate-fade-in-up delay-200">
           <p 
-            className="text-[13px] sm:text-base md:text-lg max-w-md sm:max-w-2xl mx-auto mb-4 sm:mb-8 leading-relaxed text-center"
+            className="text-base sm:text-lg md:text-xl max-w-lg sm:max-w-2xl lg:max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed text-center"
             style={{ color: 'var(--text-subtle)' }}
           >
             Discover our curated collections of premium fragrances and home care essentials. 
@@ -84,54 +95,54 @@ export default function Hero({ onBuyClick }) {
         </div>
 
         {/* Feature badges */}
-        <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 mb-5 sm:mb-8 px-4">
+        <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-6 mb-8 sm:mb-12 px-4">
           <div 
-            className="animate-fade-in-up delay-300 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm shadow-sm hover-lift"
+            className="animate-fade-in-up delay-300 flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full backdrop-blur-sm shadow-sm hover-lift"
             style={{ backgroundColor: isDarkMode ? 'rgba(26, 35, 50, 0.9)' : 'rgba(255, 255, 255, 0.8)' }}
           >
-            <Sparkles size={14} className="sm:w-4 sm:h-4 flex-shrink-0" style={{ color: 'var(--metallic-gold)' }} />
-            <span className="font-medium text-[11px] sm:text-xs whitespace-nowrap" style={{ color: 'var(--text-dark)' }}>
+            <Sparkles size={18} className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--metallic-gold)' }} />
+            <span className="font-medium text-sm sm:text-base whitespace-nowrap" style={{ color: isDarkMode ? '#e8e6e3' : 'var(--text-dark)' }}>
               Premium Fragrances
             </span>
           </div>
           <div 
-            className="animate-fade-in-up delay-400 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm shadow-sm hover-lift"
+            className="animate-fade-in-up delay-400 flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full backdrop-blur-sm shadow-sm hover-lift"
             style={{ backgroundColor: isDarkMode ? 'rgba(26, 35, 50, 0.9)' : 'rgba(255, 255, 255, 0.8)' }}
           >
-            <Award size={14} className="sm:w-4 sm:h-4 flex-shrink-0" style={{ color: 'var(--metallic-gold)' }} />
-            <span className="font-medium text-[11px] sm:text-xs whitespace-nowrap" style={{ color: 'var(--text-dark)' }}>
-              Home & Personal Care
+            <Award size={18} className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--metallic-gold)' }} />
+            <span className="font-medium text-sm sm:text-base whitespace-nowrap" style={{ color: isDarkMode ? '#e8e6e3' : 'var(--text-dark)' }}>
+              Zero Charcoal
             </span>
           </div>
           <div 
-            className="animate-fade-in-up delay-500 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm shadow-sm hover-lift"
+            className="animate-fade-in-up delay-500 flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full backdrop-blur-sm shadow-sm hover-lift"
             style={{ backgroundColor: isDarkMode ? 'rgba(26, 35, 50, 0.9)' : 'rgba(255, 255, 255, 0.8)' }}
           >
-            <Heart size={14} className="sm:w-4 sm:h-4 flex-shrink-0" style={{ color: 'var(--metallic-gold)' }} />
-            <span className="font-medium text-[11px] sm:text-xs whitespace-nowrap" style={{ color: 'var(--text-dark)' }}>
-              Voluntary CSR
+            <Heart size={18} className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--metallic-gold)' }} />
+            <span className="font-medium text-sm sm:text-base whitespace-nowrap" style={{ color: isDarkMode ? '#e8e6e3' : 'var(--text-dark)' }}>
+              100% Natural
             </span>
           </div>
         </div>
 
         {/* CTA Buttons */}
-        <div className="animate-fade-in-up delay-500 flex flex-col sm:flex-row items-center justify-center gap-3 px-6 sm:px-4 max-w-md sm:max-w-none mx-auto">
+        <div className="animate-fade-in-up delay-500 flex flex-col sm:flex-row items-center justify-center gap-4 px-6 sm:px-4 max-w-lg sm:max-w-none mx-auto">
           <button
             onClick={() => document.getElementById('fragrances')?.scrollIntoView({ behavior: 'smooth' })}
-            className="text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base shadow-lg hover-lift w-full sm:w-auto rounded-md transition-all"
+            className="text-white font-semibold px-8 sm:px-10 py-4 sm:py-5 text-base sm:text-lg shadow-lg hover-lift w-full sm:w-auto rounded-lg transition-all"
             style={{ 
               backgroundColor: 'var(--japanese-indigo)',
-              maxWidth: '280px'
+              maxWidth: '320px'
             }}
           >
             Explore Collections
           </button>
           <button
-            className="font-semibold px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base border-2 w-full sm:w-auto rounded-md transition-all hover:bg-[var(--japanese-indigo)] hover:text-white"
+            className="font-semibold px-8 sm:px-10 py-4 sm:py-5 text-base sm:text-lg border-2 w-full sm:w-auto rounded-lg transition-all hover:bg-[var(--japanese-indigo)] hover:text-white"
             style={{ 
               borderColor: 'var(--japanese-indigo)',
-              color: 'var(--japanese-indigo)',
-              maxWidth: '280px'
+              color: isDarkMode ? '#e8e6e3' : 'var(--japanese-indigo)',
+              maxWidth: '320px'
             }}
             onClick={() => document.getElementById('csr')?.scrollIntoView({ behavior: 'smooth' })}
           >

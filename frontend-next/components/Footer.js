@@ -5,7 +5,7 @@ import { Mail, Phone, MapPin, Facebook, Instagram, Twitter } from 'lucide-react'
 
 const companyInfo = {
   brandName: 'Addrika',
-  companyName: 'C E N Traders Private Limited',
+  companyName: 'Centraders Private Limited',
   email: 'care@centraders.com',
   phone: '+91 98765 43210',
   address: 'New Delhi, India'
