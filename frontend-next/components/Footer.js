@@ -150,7 +150,7 @@ export default function Footer() {
                 <Facebook size={18} className="text-white" />
               </a>
               <a 
-                href="https://instagram.com" 
+                href="https://instagram.com/addrika.fragrances" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110"

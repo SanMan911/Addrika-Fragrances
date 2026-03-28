@@ -75,7 +75,7 @@ export default function RootLayout({ children }) {
                 "@type": "PostalAddress",
                 "addressCountry": "IN"
               },
-              "sameAs": ["https://www.instagram.com/addrika.in"]
+              "sameAs": ["https://www.instagram.com/addrika.fragrances"]
             })
           }}
         />
