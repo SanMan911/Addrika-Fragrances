@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Package, Search, RefreshCw, Eye, Clock, CheckCircle, Truck, XCircle } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -14,7 +12,6 @@ const formatCurrency = (amount) => {
     maximumFractionDigits: 0
   }).format(amount);
 };
-
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
   confirmed: 'bg-blue-100 text-blue-800',
@@ -23,7 +20,6 @@ const statusColors = {
   delivered: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800'
 };
-
 const statusIcons = {
   pending: Clock,
   confirmed: CheckCircle,
@@ -32,7 +28,6 @@ const statusIcons = {
   delivered: CheckCircle,
   cancelled: XCircle
 };
-
 export default function RetailerOrdersPage() {
   const { fetchWithAuth } = useRetailerAuth();
   const [orders, setOrders] = useState([]);
@@ -40,7 +35,6 @@ export default function RetailerOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
-
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
@@ -56,11 +50,9 @@ export default function RetailerOrdersPage() {
       setLoading(false);
     }
   }, [fetchWithAuth]);
-
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
-
   const filteredOrders = orders.filter(order => {
     const matchesStatus = !statusFilter || order.order_status === statusFilter;
     const matchesSearch = !searchQuery || 
@@ -68,7 +60,6 @@ export default function RetailerOrdersPage() {
       (order.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -76,7 +67,6 @@ export default function RetailerOrdersPage() {
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -94,7 +84,6 @@ export default function RetailerOrdersPage() {
           Refresh
         </button>
       </div>
-
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -122,7 +111,6 @@ export default function RetailerOrdersPage() {
           </select>
         </div>
       </div>
-
       {/* Orders List */}
       <div className="space-y-4">
         {filteredOrders.map((order) => {
@@ -189,13 +177,11 @@ export default function RetailerOrdersPage() {
           );
         })}
       </div>
-
       {filteredOrders.length === 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
           No orders found
         </div>
       )}
-
       {/* Order Details Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

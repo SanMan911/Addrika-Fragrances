@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Store, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
-
 export default function RetailerLoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, isLoading } = useRetailerAuth();
@@ -15,13 +14,11 @@ export default function RetailerLoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       router.push('/retailer/dashboard');
     }
   }, [isAuthenticated, isLoading, router]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -29,11 +26,9 @@ export default function RetailerLoginPage() {
       toast.error('Please enter email/username and password');
       return;
     }
-
     setLoading(true);
     const result = await login(identifier, password);
     setLoading(false);
-
     if (result.success) {
       toast.success('Login successful!');
       router.push('/retailer/dashboard');
@@ -41,7 +36,6 @@ export default function RetailerLoginPage() {
       toast.error(result.error || 'Login failed');
     }
   };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#2B3A4A]">
@@ -49,7 +43,6 @@ export default function RetailerLoginPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#2B3A4A]">
       <div className="w-full max-w-md p-8 rounded-xl shadow-2xl bg-[#F5F0E8]">
@@ -61,7 +54,6 @@ export default function RetailerLoginPage() {
           <h1 className="text-2xl font-bold text-[#2B3A4A]">Retailer Portal</h1>
           <p className="text-gray-500">Sign in to manage your store</p>
         </div>
-
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
@@ -81,7 +73,6 @@ export default function RetailerLoginPage() {
               />
             </div>
           </div>
-
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Password
@@ -106,7 +97,6 @@ export default function RetailerLoginPage() {
               </button>
             </div>
           </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -116,7 +106,6 @@ export default function RetailerLoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
         {/* Help Text */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
@@ -129,7 +118,6 @@ export default function RetailerLoginPage() {
             </a>
           </p>
         </div>
-
         {/* Footer */}
         <div className="mt-8 pt-6 border-t text-center">
           <p className="text-xs text-gray-500">Addrika Retailer Portal</p>

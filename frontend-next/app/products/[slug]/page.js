@@ -4,7 +4,7 @@ import { Star, ChevronLeft, ArrowRight } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import ProductActions from './ProductActions';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://forgot-pass-4.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ecommerce-nextjs-2.preview.emergentagent.com';
 
 // Generate static params for all products (SSG)
 export async function generateStaticParams() {

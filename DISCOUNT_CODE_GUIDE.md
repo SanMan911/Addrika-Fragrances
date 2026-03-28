@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://forgot-pass-4.preview.emergentagent.com/api
+https://ecommerce-nextjs-2.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 
