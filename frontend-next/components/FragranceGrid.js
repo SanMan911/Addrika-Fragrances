@@ -321,7 +321,7 @@ export default function FragranceGrid() {
               border: '1px solid rgba(212,175,55,0.2)'
             }}
           >
-            HANDCRAFTED IN INDIA
+            MANUFACTURED IN INDIA
           </span>
           <h2 
             className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-[#2B3A4A] dark:text-white"
