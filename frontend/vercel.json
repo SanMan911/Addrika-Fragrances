@@ -2,10 +2,13 @@
   "version": 2,
   "framework": "create-react-app",
   "regions": ["bom1"],
+  "buildCommand": "yarn build",
+  "outputDirectory": "build",
   "build": {
     "env": {
       "CI": "false",
-      "DISABLE_ESLINT_PLUGIN": "true"
+      "DISABLE_ESLINT_PLUGIN": "true",
+      "REACT_APP_BACKEND_URL": "https://ecommerce-nextjs-2.preview.emergentagent.com"
     }
   },
   "rewrites": [
