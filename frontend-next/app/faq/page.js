@@ -98,11 +98,11 @@ const faqs = [
     questions: [
       {
         q: "Where are Addrika incense sticks made?",
-        a: "Addrika incense sticks are proudly made in India. They are crafted by skilled Indian artisans using traditional techniques perfected over generations. Centsible Traders Private Limited, the company behind Addrika, is a purpose-driven Indian enterprise committed to ethical trade and supporting local communities."
+        a: "Addrika incense sticks are proudly made in India. They are crafted by skilled Indian artisans using traditional techniques perfected over generations. Centsibl Traders Private Limited, the company behind Addrika, is a purpose-driven Indian enterprise committed to ethical trade and supporting local communities."
       },
       {
         q: "Who makes Addrika incense?",
-        a: "Addrika is the flagship brand of Centsible Traders Private Limited, a purpose-driven Indian enterprise committed to ethical trade and sustainable practices. We work with skilled artisans who craft each incense stick using time-honored methods perfected in India."
+        a: "Addrika is the flagship brand of Centsibl Traders Private Limited, a purpose-driven Indian enterprise committed to ethical trade and sustainable practices. We work with skilled artisans who craft each incense stick using time-honored methods perfected in India."
       },
       {
         q: "Where can I buy Addrika incense in India?",

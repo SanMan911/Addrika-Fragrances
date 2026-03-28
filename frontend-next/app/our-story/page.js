@@ -19,7 +19,7 @@ export default function OurStoryPage() {
     {
       year: '2022',
       title: 'The Beginning',
-      description: 'Centsible Traders was founded with a vision to create premium, ethical products.'
+      description: 'Centsibl Traders was founded with a vision to create premium, ethical products.'
     },
     {
       year: '2023',

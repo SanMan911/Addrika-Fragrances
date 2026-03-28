@@ -122,7 +122,7 @@ function ProductStructuredData({ product }) {
       "availability": "https://schema.org/InStock",
       "seller": {
         "@type": "Organization",
-        "name": "Centsible Traders Private Limited"
+        "name": "Centsibl Traders Private Limited"
       }
     },
     "aggregateRating": {

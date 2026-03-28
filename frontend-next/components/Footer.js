@@ -5,9 +5,9 @@ import { Mail, Phone, MapPin, Facebook, Instagram, Twitter } from 'lucide-react'
 
 const companyInfo = {
   brandName: 'Addrika',
-  companyName: 'Centsible Traders Private Limited',
-  email: 'care@centraders.com',
-  phone: '+91 98765 43210',
+  companyName: 'Centsibl Traders Private Limited',
+  email: 'contact.us@centraders.com',
+  phone: '+91 9667-269-711',
   address: 'New Delhi, India'
 };
 
