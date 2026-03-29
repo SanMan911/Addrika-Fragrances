@@ -65,6 +65,10 @@ export default function AdminLayout({ children }) {
   // Dark mode - default to true
   const [darkMode, setDarkMode] = useState(true);
 
+  // Pages that don't require admin auth
+  const publicAdminPages = ['/admin/login', '/admin/forgot-password'];
+  const isPublicPage = publicAdminPages.includes(pathname);
+
   // Initialize dark mode from localStorage on client
   useEffect(() => {
     const saved = localStorage.getItem('admin_dark_mode');
@@ -83,13 +87,13 @@ export default function AdminLayout({ children }) {
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
-  // Check admin access
+  // Check admin access - skip for public pages
   useEffect(() => {
-    if (!isLoading && !isAdmin) {
+    if (!isLoading && !isAdmin && !isPublicPage) {
       toast.error('Admin access required');
       router.push('/admin/login');
     }
-  }, [isAdmin, isLoading, router]);
+  }, [isAdmin, isLoading, router, isPublicPage]);
 
   // Fetch stats for badge counts
   const fetchStats = useCallback(async () => {
@@ -126,6 +130,11 @@ export default function AdminLayout({ children }) {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-slate-800" />
       </div>
     );
+  }
+
+  // For public pages (login, forgot-password), render children directly without sidebar
+  if (isPublicPage) {
+    return <>{children}</>;
   }
 
   if (!isAdmin) {
