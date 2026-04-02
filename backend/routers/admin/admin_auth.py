@@ -455,15 +455,15 @@ async def admin_forgot_pin_reset(request: Request):
         await db[ADMIN_RECOVERY_COLLECTION].delete_one({"recovery_token": recovery_token})
         raise HTTPException(status_code=400, detail="Recovery session has expired. Please try again.")
     
-    # Update admin PIN
+    # Update admin PIN in admin_settings collection (same collection used by verify_admin_pin)
     from services.auth_service import hash_password
     hashed_pin = hash_password(new_pin)
     
-    await db.admin_credentials.update_one(
-        {"email": recovery["email"]},
+    await db.admin_settings.update_one(
+        {"admin_email": recovery["email"].lower()},
         {"$set": {
             "pin_hash": hashed_pin,
-            "updated_at": datetime.now(timezone.utc).isoformat()
+            "updated_at": datetime.now(timezone.utc)
         }},
         upsert=True
     )
