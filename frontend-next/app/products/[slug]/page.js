@@ -31,20 +31,26 @@ export async function generateMetadata({ params }) {
     };
   }
   
+  const lowestPrice = Math.min(...product.sizes.map(s => s.price));
+  
   return {
-    title: `${product.name} - ${product.tagline}`,
-    description: product.description,
-    keywords: [product.name, ...product.notes, 'premium incense', 'agarbatti', 'addrika'].join(', '),
+    title: `${product.name} - ${product.tagline} | Buy Online`,
+    description: `${product.description} Available in multiple sizes starting from ₹${lowestPrice}. Zero charcoal, low smoke, 100% natural. Free shipping above ₹499.`,
+    keywords: [product.name, ...product.notes, 'premium incense', 'agarbatti', 'addrika', 'buy online', 'zero charcoal', 'low smoke'].join(', '),
+    alternates: {
+      canonical: `https://centraders.com/products/${params.slug}`,
+    },
     openGraph: {
-      title: `${product.name} | Addrika Premium Incense`,
-      description: product.description,
-      images: [{ url: product.image, width: 1200, height: 630, alt: product.name }],
+      title: `${product.name} | Addrika Premium Incense - Buy Online`,
+      description: `${product.description} Starting from ₹${lowestPrice}.`,
+      images: [{ url: product.image, width: 1200, height: 630, alt: `${product.name} - Addrika Premium Incense` }],
       type: 'website',
+      url: `https://centraders.com/products/${params.slug}`,
     },
     twitter: {
       card: 'summary_large_image',
-      title: product.name,
-      description: product.description,
+      title: `${product.name} | Addrika`,
+      description: `${product.tagline}. Starting ₹${lowestPrice}. Zero charcoal, low smoke.`,
       images: [product.image],
     },
   };
@@ -85,12 +91,13 @@ function ProductStructuredData({ product }) {
     "image": product.sizes?.map(s => s.images?.[0]).filter(Boolean) || [product.image],
     "description": product.description,
     "sku": product.id,
+    "url": `https://centraders.com/products/${product.id}`,
     "brand": {
       "@type": "Brand",
       "name": "Addrika"
     },
-    "category": "Incense > Premium Agarbatti",
-    "material": "Natural herbs, Essential oils, Bamboo core",
+    "category": product.category === 'dhoop' ? "Incense > Premium Dhoop" : "Incense > Premium Agarbatti",
+    "material": product.category === 'dhoop' ? "Natural herbs, Essential oils, Bambooless" : "Natural herbs, Essential oils, Bamboo core",
     "additionalProperty": [
       {
         "@type": "PropertyValue",
@@ -122,7 +129,8 @@ function ProductStructuredData({ product }) {
       "availability": "https://schema.org/InStock",
       "seller": {
         "@type": "Organization",
-        "name": "Centsibl Traders Private Limited"
+        "name": "Centsibl Traders Private Limited",
+        "url": "https://centraders.com"
       }
     },
     "aggregateRating": {
@@ -134,11 +142,43 @@ function ProductStructuredData({ product }) {
     }
   };
 
+  // Breadcrumb structured data
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://centraders.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Fragrances",
+        "item": "https://centraders.com/#fragrances"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": product.name,
+        "item": `https://centraders.com/products/${product.id}`
+      }
+    ]
+  };
+
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
+      />
+    </>
   );
 }
 
