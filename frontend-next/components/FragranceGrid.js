@@ -91,17 +91,21 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
           }}
         />
         
-        {/* Zero Charcoal Badge */}
+        {/* Product Badge */}
         <div 
           className="absolute top-5 left-5 px-4 py-2 rounded-full text-xs font-bold tracking-wide"
           style={{ 
-            background: 'linear-gradient(135deg, rgba(16,185,129,0.95) 0%, rgba(5,150,105,0.95) 100%)',
-            color: 'white',
-            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.4)',
+            background: product.category === 'dhoop' 
+              ? 'linear-gradient(135deg, rgba(212,175,55,0.95) 0%, rgba(180,140,40,0.95) 100%)'
+              : 'linear-gradient(135deg, rgba(16,185,129,0.95) 0%, rgba(5,150,105,0.95) 100%)',
+            color: product.category === 'dhoop' ? '#1a1a2e' : 'white',
+            boxShadow: product.category === 'dhoop' 
+              ? '0 4px 20px rgba(212, 175, 55, 0.4)'
+              : '0 4px 20px rgba(16, 185, 129, 0.4)',
             backdropFilter: 'blur(8px)'
           }}
         >
-          Zero Charcoal
+          {product.category === 'dhoop' ? 'Premium Dhoop' : 'Zero Charcoal'}
         </div>
         
         {/* Wishlist Button */}
@@ -362,7 +366,7 @@ export default function FragranceGrid() {
             Premium Incense Collection
           </h2>
           <p className="text-lg sm:text-xl max-w-3xl mx-auto mb-10 text-[#666] dark:text-gray-300">
-            Four exquisite zero-charcoal fragrances, each offering 40-50 minutes of pure, 
+            Exquisite zero-charcoal fragrances and premium dhoop, each offering 30-50 minutes of pure, 
             low-smoke aromatherapy crafted with 100% natural ingredients
           </p>
         </div>
