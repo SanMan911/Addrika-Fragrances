@@ -93,8 +93,8 @@ export default function CTASection() {
         {/* Trust indicators */}
         <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 mt-12 pt-10 border-t border-white/10">
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">10,000+</div>
-            <div className="text-xs text-white/50 uppercase tracking-wider">Happy Customers</div>
+            <div className="text-2xl font-bold text-white">1000+</div>
+            <div className="text-xs text-white/50 uppercase tracking-wider">Happy Customers & Counting</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-white">4.8★</div>
