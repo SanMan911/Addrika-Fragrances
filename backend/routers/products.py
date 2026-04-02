@@ -126,6 +126,31 @@ PRODUCTS = [
         ],
         "rating": 4.6,
         "reviews": 87
+    },
+    {
+        "id": "mystical-meharishi",
+        "name": "Mystical Meharishi",
+        "tagline": "Premium Dhoop Sticks",
+        "category": "dhoop",
+        "description": "Experience the divine essence of Mystical Meharishi Premium Dhoop. Each jar contains 100g of handcrafted dhoop sticks with an extra 25% FREE. Includes a complimentary ceramic stand and safety matchbox (20 matches) for the complete aromatic experience.",
+        "notes": ["Sacred Herbs", "Natural Resins", "Traditional Blend"],
+        "image": "https://customer-assets.emergentagent.com/job_b8dea517-acc0-4dd1-9653-6404f629d64f/artifacts/4g68akgd_1000343235.jpg",
+        "burnTime": "30+ minutes per stick",
+        "sizes": [
+            {
+                "size": "125g", 
+                "sizeLabel": "100g + 25% Extra FREE",
+                "mrp": 149, 
+                "price": 149,
+                "weight": 175,
+                "includes": ["Ceramic Stand", "Safety Matchbox (20 matches)"],
+                "images": [
+                    "https://customer-assets.emergentagent.com/job_b8dea517-acc0-4dd1-9653-6404f629d64f/artifacts/4g68akgd_1000343235.jpg"
+                ]
+            }
+        ],
+        "rating": 4.9,
+        "reviews": 42
     }
 ]
 
@@ -165,7 +190,15 @@ def calculate_pricing(items: list, city: str = None, pincode: str = None):
                 # Weight calculation:
                 # 50g packet = 55g gross + 15g packaging = 70g
                 # 200g jar = 240g gross + 30g packaging = 270g
-                item_weight = 70 if item.get("size") == "50g" else 270
+                # Custom weight from size_info if available (for Dhoop etc.)
+                if "weight" in size_info:
+                    item_weight = size_info["weight"]
+                elif item.get("size") == "50g":
+                    item_weight = 70
+                elif item.get("size") == "125g":
+                    item_weight = 175  # Dhoop jar
+                else:
+                    item_weight = 270
                 total_weight += item_weight * quantity
     
     # Calculate bulk discount
