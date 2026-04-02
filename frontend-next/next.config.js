@@ -16,6 +16,10 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'www.centraders.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'images.unsplash.com',
       },
       {
@@ -25,14 +29,10 @@ const nextConfig = {
     ],
   },
   
-  // Environment variables exposed to browser
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-  },
-  
   // Rewrites to proxy API requests to backend
+  // NEXT_PUBLIC_BACKEND_URL should point to your actual backend server
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8001';
     return [
       {
         source: '/api/:path*',
