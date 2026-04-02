@@ -140,7 +140,7 @@ PRODUCTS = [
         "description": "Experience the calming essence of Mystical Meharishi—a bambooless premium dhoop with a uniquely light and soothing fragrance that gently fills your space. This artisanal blend creates a serene atmosphere perfect for meditation, relaxation, or unwinding after a long day. Each jar contains 100g of handcrafted dhoop sticks with an extra 25% FREE, plus a complimentary ceramic stand and safety matchbox (20 matches).",
         "notes": ["Light & Soothing", "Calming Essence", "Artisanal Blend"],
         "image": "https://customer-assets.emergentagent.com/job_b8dea517-acc0-4dd1-9653-6404f629d64f/artifacts/4g68akgd_1000343235.jpg",
-        "burnTime": "30+ minutes per stick",
+        "burnTime": "25+ minutes (standard room temperature)",
         "sizes": [
             {
                 "size": "125g", 
