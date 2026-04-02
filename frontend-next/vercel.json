@@ -1,13 +1,5 @@
 {
   "version": 2,
   "framework": "nextjs",
-  "regions": ["bom1"],
-  "build": {
-    "env": {
-      "NEXT_PUBLIC_API_URL": "https://auth-preview-23.preview.emergentagent.com"
-    }
-  },
-  "env": {
-    "NEXT_PUBLIC_API_URL": "https://auth-preview-23.preview.emergentagent.com"
-  }
+  "regions": ["bom1"]
 }
