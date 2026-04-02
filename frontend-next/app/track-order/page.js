@@ -6,7 +6,7 @@ import { Search, Package, Truck, CheckCircle, Clock, Loader2, ArrowRight } from 
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://elegance-scent-1.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://auth-preview-23.preview.emergentagent.com';
 
 export default function TrackOrderPage() {
   const [orderNumber, setOrderNumber] = useState('');

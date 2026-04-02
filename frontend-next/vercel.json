@@ -4,10 +4,10 @@
   "regions": ["bom1"],
   "build": {
     "env": {
-      "NEXT_PUBLIC_API_URL": "https://elegance-scent-1.preview.emergentagent.com"
+      "NEXT_PUBLIC_API_URL": "https://auth-preview-23.preview.emergentagent.com"
     }
   },
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://elegance-scent-1.preview.emergentagent.com"
+    "NEXT_PUBLIC_API_URL": "https://auth-preview-23.preview.emergentagent.com"
   }
 }
