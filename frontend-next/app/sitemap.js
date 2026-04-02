@@ -17,7 +17,6 @@ const staticPages = [
   { path: '/faq', changeFreq: 'weekly', priority: 0.7 },
   { path: '/blog', changeFreq: 'weekly', priority: 0.6 },
   { path: '/find-retailers', changeFreq: 'weekly', priority: 0.7 },
-  { path: '/contact', changeFreq: 'monthly', priority: 0.5 },
   { path: '/privacy-policy', changeFreq: 'yearly', priority: 0.3 },
   { path: '/terms-of-service', changeFreq: 'yearly', priority: 0.3 },
   { path: '/shipping-returns', changeFreq: 'monthly', priority: 0.5 },
@@ -25,11 +24,13 @@ const staticPages = [
 ];
 
 // Product pages - high priority for e-commerce
+// Includes all product categories: Agarbatti and Dhoop
 const products = [
   { slug: 'kesar-chandan', name: 'Kesar Chandan Premium Incense' },
   { slug: 'regal-rose', name: 'Regal Rose Premium Incense' },
   { slug: 'oriental-oudh', name: 'Oriental Oudh Premium Incense' },
   { slug: 'bold-bakhoor', name: 'Bold Bakhoor Premium Incense' },
+  { slug: 'mystical-meharishi', name: 'Mystical Meharishi Premium Dhoop' },
 ];
 
 export default async function sitemap() {
