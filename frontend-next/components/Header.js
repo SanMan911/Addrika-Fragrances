@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useTheme } from '../context/ThemeContext';
 
-export default function Header({ onInquiryClick }) {
+export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { getCartCount, setIsCartOpen } = useCart();
@@ -157,17 +157,6 @@ export default function Header({ onInquiryClick }) {
                 </span>
               )}
             </button>
-
-            <button
-              onClick={onInquiryClick}
-              className="px-4 py-2 rounded-md font-medium transition-all hover:opacity-90"
-              style={{ 
-                background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
-                color: '#1a1a2e'
-              }}
-            >
-              Wholesale Inquiry
-            </button>
           </nav>
 
           {/* Mobile Right Side */}
@@ -227,17 +216,6 @@ export default function Header({ onInquiryClick }) {
                   </a>
                 )
               ))}
-              
-              <button
-                onClick={() => { onInquiryClick?.(); setIsMobileMenuOpen(false); }}
-                className="w-full py-2 rounded-md font-medium"
-                style={{ 
-                  background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
-                  color: '#1a1a2e'
-                }}
-              >
-                Wholesale Inquiry
-              </button>
             </nav>
           </div>
         )}
