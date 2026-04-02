@@ -40,8 +40,8 @@ export default function PackagingSection() {
               }}
             >
               <img 
-                src="https://static.prod-images.emergentagent.com/jobs/b8dea517-acc0-4dd1-9653-6404f629d64f/images/055906d28686bf662b4408d1b22ed7b5820fd26dd57615a11cc156b8a1acd6dd.png"
-                alt="Addrika Premium Bakhoor Packaging - Amber Glass Jar"
+                src="https://customer-assets.emergentagent.com/job_b8dea517-acc0-4dd1-9653-6404f629d64f/artifacts/ta9e3e56_1000343227.jpg"
+                alt="Addrika Premium Bakhoor Packaging"
                 className="w-full h-auto rounded-xl"
                 style={{ 
                   maxHeight: '500px',
