@@ -3,7 +3,7 @@ import { Store, MapPin, Phone, Mail, Search } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://auth-preview-23.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 export const metadata = {
   title: 'Find Addrika Retailers Near You | Store Locator India',
