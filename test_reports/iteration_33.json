@@ -89,15 +89,15 @@
   "context_for_next_testing_agent": "Admin panel refactored to modular structure. Test session created: sess_285453942e11456aba12d9a277c7751a. To test admin UI, set this token in localStorage (addrika_session_token) and cookies (session_token). All 9 admin pages under /admin route: Overview, Orders, Analytics, Users, Marketing, Content, Inventory, Inquiries, Settings.",
 
   "tested_urls": [
-    "https://product-size-sync.preview.emergentagent.com/admin",
-    "https://product-size-sync.preview.emergentagent.com/admin/login",
-    "https://product-size-sync.preview.emergentagent.com/admin/orders",
-    "https://product-size-sync.preview.emergentagent.com/admin/analytics",
-    "https://product-size-sync.preview.emergentagent.com/admin/users",
-    "https://product-size-sync.preview.emergentagent.com/admin/marketing",
-    "https://product-size-sync.preview.emergentagent.com/admin/content",
-    "https://product-size-sync.preview.emergentagent.com/admin/inventory",
-    "https://product-size-sync.preview.emergentagent.com/admin/inquiries",
-    "https://product-size-sync.preview.emergentagent.com/admin/settings"
+    "https://csr-metrics-update.preview.emergentagent.com/admin",
+    "https://csr-metrics-update.preview.emergentagent.com/admin/login",
+    "https://csr-metrics-update.preview.emergentagent.com/admin/orders",
+    "https://csr-metrics-update.preview.emergentagent.com/admin/analytics",
+    "https://csr-metrics-update.preview.emergentagent.com/admin/users",
+    "https://csr-metrics-update.preview.emergentagent.com/admin/marketing",
+    "https://csr-metrics-update.preview.emergentagent.com/admin/content",
+    "https://csr-metrics-update.preview.emergentagent.com/admin/inventory",
+    "https://csr-metrics-update.preview.emergentagent.com/admin/inquiries",
+    "https://csr-metrics-update.preview.emergentagent.com/admin/settings"
   ]
 }

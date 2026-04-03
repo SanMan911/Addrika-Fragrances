@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useAdmin, authFetch } from './layout';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const StatCard = ({ title, value, icon: Icon, color, link, subValue }) => (
   <Link

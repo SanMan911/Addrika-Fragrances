@@ -8,16 +8,17 @@ import InstagramFeed from '../components/InstagramFeed';
 import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
 
-// Production backend URL - hardcoded as fallback for Vercel
-const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
-
 // Fetch products server-side for reliable initial load
+// IMPORTANT: Set NEXT_PUBLIC_BACKEND_URL in Vercel Environment Variables
 async function getProducts() {
-  // Try multiple backend URLs in order of preference
-  const backendUrls = [
-    process.env.NEXT_PUBLIC_BACKEND_URL,
-    PRODUCTION_BACKEND,
-  ].filter(Boolean);
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  
+  if (!backendUrl) {
+    console.warn('NEXT_PUBLIC_BACKEND_URL not set. Products will not load.');
+    return [];
+  }
+  
+  const backendUrls = [backendUrl].filter(Boolean);
 
   for (const backendUrl of backendUrls) {
     try {

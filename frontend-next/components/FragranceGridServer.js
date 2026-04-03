@@ -225,9 +225,6 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
   );
 }
 
-// Production backend URL for client-side fallback
-const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
-
 // Main FragranceGrid Component - Accepts pre-fetched products with client-side fallback
 export default function FragranceGridServer({ initialProducts = [] }) {
   const { addToWishlist, isInWishlist, removeFromWishlist } = useWishlist();
@@ -248,7 +245,7 @@ export default function FragranceGridServer({ initialProducts = [] }) {
       return;
     }
     
-    // Client-side fetch as fallback
+    // Client-side fetch as fallback using relative path
     let isMounted = true;
     
     const fetchProducts = async (retries = 3) => {
@@ -259,8 +256,8 @@ export default function FragranceGridServer({ initialProducts = [] }) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
         
-        // Try the production backend directly
-        const response = await fetch(`${PRODUCTION_BACKEND}/api/products`, {
+        // Use relative path - Next.js rewrites will proxy to backend
+        const response = await fetch('/api/products', {
           method: 'GET',
           signal: controller.signal,
           headers: { 'Accept': 'application/json' },

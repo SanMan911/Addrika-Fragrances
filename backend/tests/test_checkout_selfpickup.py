@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://product-size-sync.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://csr-metrics-update.preview.emergentagent.com')
 
 class TestRetailersAPI:
     """Test retailer endpoints and email configuration"""

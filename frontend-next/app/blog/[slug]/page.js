@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Calendar, Eye, ArrowLeft, Share2 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function getBlogPost(slug) {
   try {

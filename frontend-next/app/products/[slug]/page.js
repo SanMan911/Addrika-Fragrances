@@ -7,12 +7,14 @@ import ProductGallery from './ProductGallery';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 
-// Production backend URL - hardcoded as fallback for Vercel
-const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
-
 // For server-side fetches, we need an absolute URL
+// IMPORTANT: Set NEXT_PUBLIC_BACKEND_URL in Vercel Environment Variables
 const getServerApiUrl = () => {
-  return process.env.NEXT_PUBLIC_BACKEND_URL || PRODUCTION_BACKEND;
+  const url = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!url) {
+    console.warn('NEXT_PUBLIC_BACKEND_URL not set. SSR fetches will fail.');
+  }
+  return url || '';
 };
 
 // Generate static params for all products (SSG)
@@ -67,23 +69,24 @@ export async function generateMetadata({ params }) {
 }
 
 // Fetch single product with fallback
+// IMPORTANT: Set NEXT_PUBLIC_BACKEND_URL in Vercel Environment Variables
 async function getProduct(slug) {
-  const backendUrls = [
-    process.env.NEXT_PUBLIC_BACKEND_URL,
-    PRODUCTION_BACKEND,
-  ].filter(Boolean);
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  
+  if (!backendUrl) {
+    console.warn('NEXT_PUBLIC_BACKEND_URL not set.');
+    return null;
+  }
 
-  for (const apiUrl of backendUrls) {
-    try {
-      const res = await fetch(`${apiUrl}/api/products/${slug}`, {
-        next: { revalidate: 60 }
-      });
-      if (res.ok) {
-        return res.json();
-      }
-    } catch (error) {
-      console.error(`Failed to fetch from ${apiUrl}:`, error.message);
+  try {
+    const res = await fetch(`${backendUrl}/api/products/${slug}`, {
+      next: { revalidate: 60 }
+    });
+    if (res.ok) {
+      return res.json();
     }
+  } catch (error) {
+    console.error(`Failed to fetch product:`, error.message);
   }
   return null;
 }
