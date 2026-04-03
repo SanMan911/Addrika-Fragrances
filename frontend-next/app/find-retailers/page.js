@@ -62,7 +62,7 @@ async function getRetailers() {
   for (const apiUrl of backendUrls) {
     try {
       const res = await fetch(`${apiUrl}/api/retailers`, {
-        next: { revalidate: 3600 }
+        next: { revalidate: 300 } // Revalidate every 5 minutes for faster updates
       });
       if (res.ok) {
         const data = await res.json();
