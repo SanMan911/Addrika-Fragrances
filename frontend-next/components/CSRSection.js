@@ -7,15 +7,15 @@ const csrInitiatives = [
   {
     icon: TreePine,
     title: 'Environmental Conservation',
-    description: 'We plant a tree for every 100 orders, contributing to reforestation efforts across India.',
-    impact: '5,000+ trees planted',
+    description: 'We plant a tree for every 25 orders, contributing to reforestation efforts across India.',
+    impact: '50+ trees planted',
     color: '#10B981'
   },
   {
     icon: Users,
     title: 'Artisan Communities',
     description: 'Supporting traditional artisan families by providing fair wages and sustainable livelihoods.',
-    impact: '200+ families supported',
+    impact: '36 families supported',
     color: '#3B82F6'
   },
   {
