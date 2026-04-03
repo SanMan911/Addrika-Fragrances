@@ -11,35 +11,13 @@ export default function RetailerMap({ retailers, onSelectRetailer }) {
     setIsMounted(true);
   }, []);
 
-  // Calculate center and zoom for India map with markers
+  // India bounding box - shows entire India map
+  // bbox format: west,south,east,north (minLng,minLat,maxLng,maxLat)
+  const INDIA_BBOX = '68.1766,6.7471,97.4026,35.5087';
+  
   const getMapUrl = () => {
-    if (!retailers || retailers.length === 0) {
-      // Default India view
-      return `https://www.openstreetmap.org/export/embed.html?bbox=68.1766%2C6.7471%2C97.4026%2C35.5087&layer=mapnik`;
-    }
-
-    // If we have retailers with coordinates, create a map URL with markers
-    const validRetailers = retailers.filter(r => r.coordinates?.lat && r.coordinates?.lng);
-    
-    if (validRetailers.length === 0) {
-      return `https://www.openstreetmap.org/export/embed.html?bbox=68.1766%2C6.7471%2C97.4026%2C35.5087&layer=mapnik`;
-    }
-
-    // For single retailer, center on it
-    if (validRetailers.length === 1) {
-      const r = validRetailers[0];
-      return `https://www.openstreetmap.org/export/embed.html?bbox=${r.coordinates.lng - 1}%2C${r.coordinates.lat - 1}%2C${r.coordinates.lng + 1}%2C${r.coordinates.lat + 1}&layer=mapnik&marker=${r.coordinates.lat}%2C${r.coordinates.lng}`;
-    }
-
-    // For multiple retailers, calculate bounding box
-    const lats = validRetailers.map(r => r.coordinates.lat);
-    const lngs = validRetailers.map(r => r.coordinates.lng);
-    const minLat = Math.min(...lats) - 2;
-    const maxLat = Math.max(...lats) + 2;
-    const minLng = Math.min(...lngs) - 2;
-    const maxLng = Math.max(...lngs) + 2;
-
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik`;
+    // Always show India map with proper zoom
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${INDIA_BBOX}&layer=mapnik`;
   };
 
   const handleRetailerClick = (retailer) => {
