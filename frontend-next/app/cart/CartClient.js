@@ -11,7 +11,9 @@ import { toast } from 'sonner';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+// Production backend URL - hardcoded as fallback for Vercel
+const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || PRODUCTION_BACKEND;
 
 export default function CartClient() {
   const router = useRouter();
@@ -58,14 +60,16 @@ export default function CartClient() {
     
     setCouponLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/coupons/validate`, {
+      const cartTotal = getCartTotal();
+      const params = new URLSearchParams({
+        code: couponCode.toUpperCase(),
+        subtotal: cartTotal.toString(),
+        mrp_total: cartTotal.toString()
+      });
+      
+      const res = await fetch(`${API_URL}/api/discount-codes/validate?${params}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ 
-          code: couponCode.toUpperCase(),
-          cart_total: getCartTotal()
-        })
       });
       
       const data = await res.json();
@@ -75,7 +79,7 @@ export default function CartClient() {
       }
       
       setAppliedCoupon(data);
-      toast.success(`Coupon applied! You save Rs. ${data.discount}`);
+      toast.success(`Coupon applied! You save ₹${data.discount}`);
     } catch (error) {
       toast.error(error.message);
     } finally {

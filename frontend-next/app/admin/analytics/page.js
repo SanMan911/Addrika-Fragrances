@@ -5,7 +5,7 @@ import { TrendingUp, DollarSign, Package, Users, Calendar, RefreshCw } from 'luc
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {

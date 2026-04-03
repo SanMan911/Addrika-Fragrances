@@ -5,7 +5,7 @@ import { MessageSquare, Search, RefreshCw, Mail, Phone, Check, Trash2, Eye } fro
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 export default function AdminInquiriesPage() {
   const [inquiries, setInquiries] = useState([]);

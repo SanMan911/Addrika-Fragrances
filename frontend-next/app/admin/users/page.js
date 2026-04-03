@@ -5,7 +5,7 @@ import { Users, Search, RefreshCw, Mail, Phone, Calendar, ShoppingBag } from 'lu
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('en-IN', {

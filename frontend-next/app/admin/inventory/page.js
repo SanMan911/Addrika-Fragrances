@@ -5,7 +5,7 @@ import { Boxes, RefreshCw, AlertTriangle, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState([]);
