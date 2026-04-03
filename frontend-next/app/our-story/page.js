@@ -47,7 +47,7 @@ export default function OurStoryPage() {
     {
       icon: Leaf,
       title: 'Ethical Sourcing',
-      description: 'We use only ethically sourced, premium ingredients - no synthetic fragrances or harmful chemicals.'
+      description: 'We use only ethically sourced, premium ingredients — prioritizing transparency and responsible supply chains.'
     },
     {
       icon: Users,
