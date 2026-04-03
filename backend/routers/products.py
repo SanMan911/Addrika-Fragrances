@@ -41,7 +41,7 @@ PRODUCTS = [
                 ]
             }
         ],
-        "rating": 4.8,
+        "rating": 4.4,
         "reviews": 124
     },
     {
@@ -76,7 +76,7 @@ PRODUCTS = [
                 ]
             }
         ],
-        "rating": 4.7,
+        "rating": 4.2,
         "reviews": 98
     },
     {
@@ -100,7 +100,7 @@ PRODUCTS = [
                 ]
             }
         ],
-        "rating": 4.9,
+        "rating": 4.5,
         "reviews": 156
     },
     {
@@ -132,7 +132,7 @@ PRODUCTS = [
                 ]
             }
         ],
-        "rating": 4.6,
+        "rating": 4.1,
         "reviews": 87
     },
     {
@@ -159,7 +159,7 @@ PRODUCTS = [
                 ]
             }
         ],
-        "rating": 4.9,
+        "rating": 4.3,
         "reviews": 42
     }
 ]
