@@ -67,7 +67,11 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - Product descriptions updated throughout
 - ✅ Fixed Find Retailers page - was calling wrong API endpoint
   - Changed from `/api/retailers/public` to `/api/retailers`
-  - Now shows all 4 verified retailers (Delhi, Mumbai, Bengaluru)
+- ✅ Replaced dummy retailers with correct 2 stores:
+  - M.G. Shoppie (Dwarka, Delhi) - Phone: 6202311736, Email: amitkumar.911@proton.me
+  - Mela Stores (Bhagalpur, Bihar) - Phone: 7061483566, Email: mr.amitbgp@gmail.com
+- ✅ Added interactive map to Find Retailers page (OpenStreetMap)
+- ✅ Enhanced SEO with LocalBusiness schema, StoreLocator structured data
 
 ## Prioritized Backlog
 
