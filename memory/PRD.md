@@ -66,8 +66,18 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - USP card: "CSR Commitment" - supports local artisans
   - Product descriptions updated throughout
 - ✅ Fixed Find Retailers page - API endpoint and map added
-- ✅ Replaced dummy retailers with correct 2 stores
+- ✅ Replaced dummy retailers with correct 2 stores (M.G. Shoppie, Mela Stores)
 - ✅ Removed GST display from retailer cards
+- ✅ Fixed Mystical Meharishi product type: "dhoop" (was showing "Agarbatti")
+- ✅ Updated CSR stats: 50+ trees, 36 families, 12 student years
+- ✅ Updated product ratings to average 4.3★ (more realistic)
+- ✅ Updated footer stats: "Ethical Sourcing" instead of "Natural Ingredients"
+- ✅ Increased Hero logo size
+- ✅ **Fixed ALL pages with hardcoded production backend URL fallback**
+  - Cart, Checkout, Wishlist, Account, Admin, Retailer pages all fixed
+  - Context files (AuthContext, RetailerAuthContext) fixed
+  - Components (FragranceGrid) fixed
+- ✅ Fixed coupon validation API endpoint and request format
 
 ## Prioritized Backlog
 

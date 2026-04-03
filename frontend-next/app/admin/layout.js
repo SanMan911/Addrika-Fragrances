@@ -11,7 +11,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 // Admin Context for sharing data across admin pages
 const AdminContext = createContext();

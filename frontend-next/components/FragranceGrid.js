@@ -6,7 +6,7 @@ import { Star, Heart, Loader2, AlertCircle, Eye } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
 import QuickViewModal from './QuickViewModal';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 // Product Card Component - Premium Dark Theme
 function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading, onQuickView }) {

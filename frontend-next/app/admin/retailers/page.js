@@ -5,7 +5,7 @@ import { Store, Search, RefreshCw, MapPin, Phone, Mail, CheckCircle, XCircle, Ed
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 const statusColors = {
   active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',

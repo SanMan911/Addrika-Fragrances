@@ -5,7 +5,7 @@ import { FileEdit, RefreshCw, Check, X, Eye, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',

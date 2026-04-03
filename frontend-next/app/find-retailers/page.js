@@ -4,7 +4,7 @@ import { Store, MapPin, Phone, Mail, Navigation, Building2 } from 'lucide-react'
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 
 // Production backend URL - hardcoded as fallback for Vercel
 const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';

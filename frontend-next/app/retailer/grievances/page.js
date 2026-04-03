@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Plus, Clock, CheckCircle, X } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
 const categories = [
   { value: 'order_issue', label: 'Order Issue' },
   { value: 'payment', label: 'Payment Problem' },
