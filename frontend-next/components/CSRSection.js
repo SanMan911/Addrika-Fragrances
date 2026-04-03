@@ -15,7 +15,7 @@ const csrInitiatives = [
     icon: Users,
     title: 'Artisan Communities',
     description: 'Supporting traditional artisan families by providing fair wages and sustainable livelihoods.',
-    impact: '36 families supported',
+    impact: '7 families supported',
     color: '#3B82F6'
   },
   {
