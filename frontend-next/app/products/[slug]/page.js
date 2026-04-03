@@ -7,11 +7,12 @@ import ProductGallery from './ProductGallery';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 
+// Production backend URL - hardcoded as fallback for Vercel
+const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
+
 // For server-side fetches, we need an absolute URL
-// NEXT_PUBLIC_BACKEND_URL is the actual backend server
-// NEXT_PUBLIC_API_URL can be empty for client-side relative URLs with rewrites
 const getServerApiUrl = () => {
-  return process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
+  return process.env.NEXT_PUBLIC_BACKEND_URL || PRODUCTION_BACKEND;
 };
 
 // Generate static params for all products (SSG)
@@ -44,7 +45,7 @@ export async function generateMetadata({ params }) {
   
   return {
     title: `${product.name} - ${product.tagline} | Buy Online`,
-    description: `${product.description} Available in multiple sizes starting from ₹${lowestPrice}. Zero charcoal, low smoke, 100% natural. Free shipping above ₹499.`,
+    description: `${product.description} Available in multiple sizes starting from ₹${lowestPrice}. Zero charcoal, low smoke. Free shipping above ₹499.`,
     keywords: [product.name, ...product.notes, 'premium incense', 'agarbatti', 'addrika', 'buy online', 'zero charcoal', 'low smoke'].join(', '),
     alternates: {
       canonical: `https://centraders.com/products/${params.slug}`,
@@ -65,19 +66,26 @@ export async function generateMetadata({ params }) {
   };
 }
 
-// Fetch single product
+// Fetch single product with fallback
 async function getProduct(slug) {
-  try {
-    const apiUrl = getServerApiUrl();
-    const res = await fetch(`${apiUrl}/api/products/${slug}`, {
-      next: { revalidate: 3600 }
-    });
-    if (!res.ok) return null;
-    return res.json();
-  } catch (error) {
-    console.error('Failed to fetch product:', error);
-    return null;
+  const backendUrls = [
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    PRODUCTION_BACKEND,
+  ].filter(Boolean);
+
+  for (const apiUrl of backendUrls) {
+    try {
+      const res = await fetch(`${apiUrl}/api/products/${slug}`, {
+        next: { revalidate: 60 }
+      });
+      if (res.ok) {
+        return res.json();
+      }
+    } catch (error) {
+      console.error(`Failed to fetch from ${apiUrl}:`, error.message);
+    }
   }
+  return null;
 }
 
 // Fetch all products for related section
