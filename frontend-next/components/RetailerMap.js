@@ -1,81 +1,46 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Navigation, Phone, ExternalLink } from 'lucide-react';
+import { MapPin, ExternalLink } from 'lucide-react';
 
-export default function RetailerMap({ retailers, onSelectRetailer }) {
-  const [selectedRetailer, setSelectedRetailer] = useState(null);
+export default function RetailerMap({ retailers }) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const handleRetailerClick = (retailer) => {
-    setSelectedRetailer(retailer);
-    if (onSelectRetailer) onSelectRetailer(retailer);
-  };
-
-  // Generate Google Maps URL with markers for all retailers
-  const getGoogleMapWithMarkers = () => {
-    if (!retailers || retailers.length === 0) {
-      // Default India view
-      return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7340000!2d78.9629!3d22.5!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30635ff06b92b791%3A0xd78c4fa1854213a6!2sIndia!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin`;
-    }
-
-    const validRetailers = retailers.filter(r => r.coordinates?.lat && r.coordinates?.lng);
-    
-    if (validRetailers.length === 0) {
-      return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7340000!2d78.9629!3d22.5!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30635ff06b92b791%3A0xd78c4fa1854213a6!2sIndia!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin`;
-    }
-
-    // For multiple retailers, create a directions/places URL that shows all locations
-    // Using the "dir" mode with waypoints to show multiple markers
-    if (validRetailers.length === 1) {
-      const r = validRetailers[0];
-      return `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${r.coordinates.lat},${r.coordinates.lng}&zoom=14`;
-    }
-
-    // For multiple retailers, show a view that encompasses all of them
-    // Calculate center point
-    const lats = validRetailers.map(r => r.coordinates.lat);
-    const lngs = validRetailers.map(r => r.coordinates.lng);
-    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-    
-    // Create a search query that shows India with focus on retailer regions
+  // Generate Google Maps URL
+  const getGoogleMapUrl = () => {
     return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7340000!2d78.9629!3d22.5!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30635ff06b92b791%3A0xd78c4fa1854213a6!2sIndia!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin`;
   };
 
-  // Open Google Maps with all retailer locations as waypoints
+  // Open Google Maps with all retailer locations
   const openFullMap = () => {
     if (!retailers || retailers.length === 0) return;
     
     const validRetailers = retailers.filter(r => r.coordinates?.lat && r.coordinates?.lng);
     if (validRetailers.length === 0) return;
 
-    // Create a Google Maps URL with all locations
     if (validRetailers.length === 1) {
       const r = validRetailers[0];
       window.open(`https://www.google.com/maps/search/?api=1&query=${r.coordinates.lat},${r.coordinates.lng}`, '_blank');
     } else {
-      // For multiple locations, use the first as origin, last as destination, rest as waypoints
       const origin = validRetailers[0];
       const destination = validRetailers[validRetailers.length - 1];
-      const waypoints = validRetailers.slice(1, -1).map(r => `${r.coordinates.lat},${r.coordinates.lng}`).join('|');
-      
-      let url = `https://www.google.com/maps/dir/?api=1&origin=${origin.coordinates.lat},${origin.coordinates.lng}&destination=${destination.coordinates.lat},${destination.coordinates.lng}`;
-      if (waypoints) {
-        url += `&waypoints=${waypoints}`;
-      }
-      window.open(url, '_blank');
+      window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin.coordinates.lat},${origin.coordinates.lng}&destination=${destination.coordinates.lat},${destination.coordinates.lng}`, '_blank');
     }
+  };
+
+  // Scroll to retailers section
+  const scrollToRetailers = () => {
+    document.getElementById('authorized-retailers')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   if (!isMounted) {
     return (
       <div 
-        className="w-full h-[400px] md:h-[500px] rounded-2xl overflow-hidden flex items-center justify-center"
+        className="w-full h-[350px] md:h-[400px] rounded-2xl overflow-hidden flex items-center justify-center"
         style={{ 
           background: 'linear-gradient(135deg, rgba(26,26,46,0.9) 0%, rgba(22,33,62,0.9) 100%)',
           border: '1px solid rgba(255,255,255,0.1)'
@@ -92,169 +57,65 @@ export default function RetailerMap({ retailers, onSelectRetailer }) {
   const validRetailers = retailers?.filter(r => r.coordinates?.lat && r.coordinates?.lng) || [];
 
   return (
-    <div className="space-y-4">
-      {/* Map Container with Retailer Markers Overlay */}
-      <div 
-        className="w-full rounded-2xl overflow-hidden relative"
-        style={{ border: '1px solid rgba(212,175,55,0.3)' }}
-      >
-        {/* Google Maps Embed */}
-        <div className="h-[350px] md:h-[400px] relative">
-          <iframe
-            src={getGoogleMapWithMarkers()}
-            className="w-full h-full"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title="Addrika Retailers - India Map"
-          />
-          
-          {/* Overlay with retailer markers legend */}
-          <div 
-            className="absolute top-4 right-4 p-3 rounded-xl max-w-[200px]"
-            style={{ 
-              background: 'rgba(26,26,46,0.95)',
-              border: '1px solid rgba(212,175,55,0.3)',
-              backdropFilter: 'blur(8px)'
-            }}
-          >
-            <p className="text-xs font-semibold text-[#D4AF37] mb-2">
-              {validRetailers.length} Store{validRetailers.length !== 1 ? 's' : ''} in India
-            </p>
-            <div className="space-y-1">
-              {validRetailers.slice(0, 3).map((retailer, idx) => (
-                <div key={retailer.id || idx} className="flex items-center gap-2 text-xs text-gray-300">
-                  <div 
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ background: '#D4AF37' }}
-                  />
-                  <span className="truncate">{retailer.district}, {retailer.state}</span>
-                </div>
-              ))}
-              {validRetailers.length > 3 && (
-                <p className="text-xs text-gray-500">+{validRetailers.length - 3} more</p>
-              )}
-            </div>
-          </div>
+    <div 
+      className="w-full rounded-2xl overflow-hidden relative"
+      style={{ border: '1px solid rgba(212,175,55,0.3)' }}
+    >
+      {/* Google Maps Embed */}
+      <div className="h-[350px] md:h-[400px] relative">
+        <iframe
+          src={getGoogleMapUrl()}
+          className="w-full h-full"
+          style={{ border: 0 }}
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Addrika Retailers - India Map"
+        />
+        
+        {/* Store count overlay */}
+        <div 
+          className="absolute top-4 right-4 p-3 rounded-xl cursor-pointer hover:scale-105 transition-transform"
+          style={{ 
+            background: 'rgba(26,26,46,0.95)',
+            border: '1px solid rgba(212,175,55,0.3)',
+            backdropFilter: 'blur(8px)'
+          }}
+          onClick={scrollToRetailers}
+        >
+          <p className="text-sm font-semibold text-[#D4AF37] mb-1">
+            {validRetailers.length} Store{validRetailers.length !== 1 ? 's' : ''} in India
+          </p>
+          <p className="text-xs text-gray-400">Click to view details ↓</p>
+        </div>
 
-          {/* View All on Map button */}
-          {validRetailers.length > 0 && (
-            <button
-              onClick={openFullMap}
-              className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
-              style={{ 
-                background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
-                color: '#1a1a2e'
-              }}
-            >
-              <ExternalLink size={14} />
-              View All on Google Maps
-            </button>
-          )}
-          
-          {/* Attribution */}
-          <div 
-            className="absolute bottom-4 left-4 px-3 py-1.5 rounded-lg text-xs"
+        {/* View All on Map button */}
+        {validRetailers.length > 0 && (
+          <button
+            onClick={openFullMap}
+            className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
             style={{ 
-              background: 'rgba(26,26,46,0.95)',
-              border: '1px solid rgba(212,175,55,0.3)'
+              background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+              color: '#1a1a2e'
             }}
           >
-            <span className="text-gray-400">Map © </span>
-            <span className="text-[#D4AF37]">Google</span>
-          </div>
+            <ExternalLink size={14} />
+            Open in Google Maps
+          </button>
+        )}
+        
+        {/* Attribution */}
+        <div 
+          className="absolute bottom-4 left-4 px-3 py-1.5 rounded-lg text-xs"
+          style={{ 
+            background: 'rgba(26,26,46,0.95)',
+            border: '1px solid rgba(212,175,55,0.3)'
+          }}
+        >
+          <span className="text-gray-400">Map © </span>
+          <span className="text-[#D4AF37]">Google</span>
         </div>
       </div>
-
-      {/* Retailer Cards with Map Links */}
-      {retailers && retailers.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {retailers.map((retailer, index) => (
-            <div
-              key={retailer.id || index}
-              className="p-5 rounded-xl transition-all hover:scale-[1.02] hover:shadow-lg"
-              style={{ 
-                background: 'linear-gradient(165deg, rgba(26,26,46,0.95) 0%, rgba(22,33,62,0.95) 100%)',
-                border: selectedRetailer?.id === retailer.id 
-                  ? '2px solid #D4AF37' 
-                  : '1px solid rgba(212,175,55,0.2)'
-              }}
-              onClick={() => handleRetailerClick(retailer)}
-            >
-              <div className="flex items-start gap-4">
-                {/* Store Icon with Marker Number */}
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 relative"
-                  style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.3) 0%, rgba(212,175,55,0.1) 100%)' }}
-                >
-                  <MapPin size={24} className="text-[#D4AF37]" />
-                  <span 
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{ background: '#D4AF37', color: '#1a1a2e' }}
-                  >
-                    {index + 1}
-                  </span>
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-white">{retailer.business_name}</h4>
-                  <p className="text-sm text-gray-400 mt-1">
-                    {retailer.address}
-                  </p>
-                  <p className="text-xs text-[#D4AF37] mt-1">
-                    {retailer.district}, {retailer.state} - {retailer.pincode}
-                  </p>
-                  
-                  {/* Contact & Actions */}
-                  <div className="flex flex-wrap items-center gap-2 mt-4">
-                    {retailer.phone && (
-                      <a
-                        href={`https://wa.me/91${retailer.phone}?text=${encodeURIComponent("Hi, I'm interested in Addrika Fragrances")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
-                        style={{ 
-                          background: 'rgba(37, 211, 102, 0.15)',
-                          color: '#25D366',
-                          border: '1px solid rgba(37, 211, 102, 0.3)'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                        </svg>
-                        WhatsApp
-                      </a>
-                    )}
-                    {retailer.coordinates?.lat && retailer.coordinates?.lng && (
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${retailer.coordinates.lat},${retailer.coordinates.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105"
-                        style={{ 
-                          background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
-                          color: '#1a1a2e'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Navigation size={12} />
-                        View on Map
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Info text */}
-      <p className="text-center text-xs text-gray-500">
-        Click on any store card to view its location on Google Maps. New authorized retailers are automatically added here.
-      </p>
     </div>
   );
 }
