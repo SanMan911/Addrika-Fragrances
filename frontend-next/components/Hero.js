@@ -120,7 +120,7 @@ export default function Hero({ onBuyClick }) {
           >
             <Heart size={18} className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--metallic-gold)' }} />
             <span className="font-medium text-sm sm:text-base whitespace-nowrap" style={{ color: isDarkMode ? '#e8e6e3' : 'var(--text-dark)' }}>
-              100% Natural
+              CSR Driven
             </span>
           </div>
         </div>
