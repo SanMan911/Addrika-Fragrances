@@ -225,23 +225,75 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
   );
 }
 
-// Main FragranceGrid Component - Accepts pre-fetched products
+// Production backend URL for client-side fallback
+const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
+
+// Main FragranceGrid Component - Accepts pre-fetched products with client-side fallback
 export default function FragranceGridServer({ initialProducts = [] }) {
   const { addToWishlist, isInWishlist, removeFromWishlist } = useWishlist();
   const [fragrances, setFragrances] = useState(initialProducts);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!initialProducts || initialProducts.length === 0);
   const [error, setError] = useState(null);
   const [wishlistLoading, setWishlistLoading] = useState({});
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   
-  // Update fragrances if initialProducts changes
+  // Client-side fallback fetch if server-side didn't provide products
   useEffect(() => {
+    // If we already have products from SSR, don't fetch again
     if (initialProducts && initialProducts.length > 0) {
       setFragrances(initialProducts);
       setLoading(false);
       setError(null);
+      return;
     }
+    
+    // Client-side fetch as fallback
+    let isMounted = true;
+    
+    const fetchProducts = async (retries = 3) => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        
+        // Try the production backend directly
+        const response = await fetch(`${PRODUCTION_BACKEND}/api/products`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json' },
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const products = await response.json();
+        
+        if (isMounted && Array.isArray(products)) {
+          setFragrances(products);
+          setLoading(false);
+          setError(null);
+        }
+      } catch (err) {
+        console.error('Client fetch failed:', err.message);
+        
+        if (retries > 0 && isMounted) {
+          setTimeout(() => fetchProducts(retries - 1), 1000 * (4 - retries));
+        } else if (isMounted) {
+          setError('Failed to load products. Please refresh the page.');
+          setLoading(false);
+        }
+      }
+    };
+    
+    fetchProducts();
+    
+    return () => { isMounted = false; };
   }, [initialProducts]);
 
   const handleWishlistToggle = async (product) => {
