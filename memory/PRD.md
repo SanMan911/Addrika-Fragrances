@@ -54,6 +54,14 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - ✅ Enhanced structured data (Organization, Store, WebSite)
 - ✅ Fixed admin PIN reset collection mismatch bug
 
+### April 3, 2026 - Product Loading & Size Image Fixes
+- ✅ Fixed homepage product section random loading failures
+  - Added robust retry logic with exponential backoff (500ms, 1s, 2s)
+  - Added AbortController with 15s timeout for slow networks
+  - Added `redirect: 'follow'` to handle 307 redirects properly
+  - Fixed race condition where loading=false was set before retry completed
+- ✅ Fixed product size image switching (50g → 200g updates gallery)
+
 ## Prioritized Backlog
 
 ### P0 (Critical)

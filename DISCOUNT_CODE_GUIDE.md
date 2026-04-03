@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://auth-preview-23.preview.emergentagent.com/api
+https://product-size-sync.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

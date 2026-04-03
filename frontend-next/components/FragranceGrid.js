@@ -278,31 +278,62 @@ export default function FragranceGrid() {
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   
-  // Fetch products with retry logic
+  // Fetch products with robust retry logic
   useEffect(() => {
+    let isMounted = true;
+    
     const loadProducts = async (retries = 3) => {
       try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch(`${API_URL}/api/products`, {
-          cache: 'no-store', // Avoid stale cache issues
-        });
-        if (!response.ok) throw new Error('Failed to fetch products');
-        const products = await response.json();
-        setFragrances(products);
-      } catch (err) {
-        console.error('Failed to load products:', err);
-        if (retries > 0) {
-          // Retry after a short delay
-          setTimeout(() => loadProducts(retries - 1), 1000);
-        } else {
-          setError('Failed to load products. Please refresh the page.');
+        if (isMounted) {
+          setLoading(true);
+          setError(null);
         }
-      } finally {
-        setLoading(false);
+        
+        // Use AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
+        const response = await fetch(`${API_URL}/api/products`, {
+          method: 'GET',
+          redirect: 'follow', // Explicitly follow redirects
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const products = await response.json();
+        
+        if (isMounted) {
+          setFragrances(products);
+          setLoading(false);
+          setError(null);
+        }
+      } catch (err) {
+        console.error('Failed to load products (attempt ' + (4 - retries) + '):', err.message);
+        
+        if (retries > 0 && isMounted) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, 3 - retries) * 500;
+          setTimeout(() => loadProducts(retries - 1), delay);
+        } else if (isMounted) {
+          setError('Failed to load products. Please refresh the page.');
+          setLoading(false);
+        }
       }
     };
+    
     loadProducts();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleWishlistToggle = async (product) => {
