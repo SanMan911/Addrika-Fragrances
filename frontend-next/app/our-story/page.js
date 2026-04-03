@@ -46,8 +46,8 @@ export default function OurStoryPage() {
     },
     {
       icon: Leaf,
-      title: 'Natural Ingredients',
-      description: 'We use only pure, natural ingredients - no synthetic fragrances or harmful chemicals.'
+      title: 'Ethical Sourcing',
+      description: 'We use only ethically sourced, premium ingredients - no synthetic fragrances or harmful chemicals.'
     },
     {
       icon: Users,
@@ -122,7 +122,7 @@ export default function OurStoryPage() {
                 <p>
                   This question led us on a journey across India, meeting master artisans who 
                   have perfected their craft over generations. We learned about traditional 
-                  methods, natural ingredients, and the art of creating fragrances that touch the soul.
+                  methods, ethically sourced ingredients, and the art of creating fragrances that touch the soul.
                 </p>
               </div>
             </div>

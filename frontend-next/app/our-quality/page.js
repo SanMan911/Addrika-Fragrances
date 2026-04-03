@@ -2,16 +2,16 @@ import Link from 'next/link';
 import { Award, Leaf, Shield, CheckCircle, Star, Users, Factory, Heart, Droplets, Wind, FlaskConical, Eye } from 'lucide-react';
 
 export const metadata = {
-  title: 'Our Quality Standards | Premium Natural Incense Craftsmanship | Addrika',
-  description: 'Discover Addrika\'s uncompromising quality standards. Learn about our 100% natural ingredients, artisan craftsmanship, rigorous testing, and the traditional techniques behind our premium zero-charcoal incense sticks.',
+  title: 'Our Quality Standards | Premium Incense Craftsmanship | Addrika',
+  description: 'Discover Addrika\'s uncompromising quality standards. Learn about our ethically sourced ingredients, artisan craftsmanship, rigorous testing, and the traditional techniques behind our premium zero-charcoal incense sticks.',
   keywords: [
-    'addrika quality', 'premium incense quality', 'natural incense ingredients', 'artisan incense',
+    'addrika quality', 'premium incense quality', 'ethical incense ingredients', 'artisan incense',
     'handcrafted agarbatti', 'incense quality standards', 'pure essential oils incense',
     'chemical-free incense', 'traditional incense making', 'incense craftsmanship'
   ],
   openGraph: {
     title: 'Our Quality Standards | Addrika Premium Incense',
-    description: 'Uncompromising quality in every stick. 100% natural ingredients, artisan crafted.',
+    description: 'Uncompromising quality in every stick. Ethically sourced ingredients, artisan crafted.',
     url: 'https://centraders.com/our-quality',
     type: 'website',
   },
@@ -26,8 +26,8 @@ function ArticleSchema() {
         __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Article",
-          "headline": "Addrika Quality Standards: The Art of Premium Natural Incense",
-          "description": "Comprehensive guide to Addrika's quality standards, natural ingredients, and traditional craftsmanship",
+          "headline": "Addrika Quality Standards: The Art of Premium Incense",
+          "description": "Comprehensive guide to Addrika's quality standards, ethically sourced ingredients, and traditional craftsmanship",
           "author": {
             "@type": "Organization",
             "name": "Addrika Fragrances",
@@ -54,11 +54,11 @@ export default function OurQualityPage() {
   const qualityPillars = [
     {
       icon: Leaf,
-      title: "100% Natural Ingredients",
-      description: "Every component in Addrika incense is sourced from nature. Pure essential oils, flower dust, natural resins, and aromatic herbs - never synthetic fragrances or harmful chemicals.",
+      title: "Ethically Sourced Ingredients",
+      description: "Every component in Addrika incense is ethically sourced. Pure essential oils, flower dust, resins, and aromatic herbs - never synthetic fragrances or harmful chemicals.",
       details: [
         "Pure sandalwood, rose, oudh, and bakhoor essential oils",
-        "Natural flower dust as the base material",
+        "Flower dust as the base material",
         "Plant-based resins for clean binding",
         "Aromatic herbs for authentic fragrance profiles"
       ]
@@ -161,7 +161,7 @@ export default function OurQualityPage() {
   const qualityMetrics = [
     { metric: "Burn Time", value: "40-50 Min", description: "Long-lasting fragrance per stick" },
     { metric: "Smoke Reduction", value: "80%", description: "Less smoke than traditional agarbatti" },
-    { metric: "Natural Content", value: "100%", description: "Only natural ingredients used" },
+    { metric: "Ethical Sourcing", value: "100%", description: "Only ethically sourced ingredients used" },
     { metric: "Artisan Made", value: "100%", description: "Crafted by skilled Indian artisans" }
   ];
 
@@ -259,7 +259,7 @@ export default function OurQualityPage() {
               Where Our Ingredients Come From
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              We source the finest natural ingredients from trusted suppliers across India and beyond
+              We source the finest ingredients from trusted suppliers across India and beyond
             </p>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -342,12 +342,12 @@ export default function OurQualityPage() {
                 {
                   step: 1,
                   title: "Ingredient Selection",
-                  description: "We source only the finest natural ingredients from trusted suppliers, testing each batch for purity and fragrance quality."
+                  description: "We source only the finest ingredients from trusted suppliers, testing each batch for purity and fragrance quality."
                 },
                 {
                   step: 2,
                   title: "Traditional Preparation",
-                  description: "Essential oils and natural materials are blended using traditional recipes refined over generations."
+                  description: "Essential oils and quality materials are blended using traditional recipes refined over generations."
                 },
                 {
                   step: 3,
@@ -356,7 +356,7 @@ export default function OurQualityPage() {
                 },
                 {
                   step: 4,
-                  title: "Natural Drying",
+                  title: "Air Drying",
                   description: "Sticks are dried naturally to preserve fragrance integrity—no artificial heat that degrades essential oils."
                 },
                 {
@@ -394,7 +394,7 @@ export default function OurQualityPage() {
               <Link href="/ingredients" className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
                 <Leaf className="w-10 h-10 text-[#D4AF37] mb-4" />
                 <h3 className="font-semibold text-[#2B3A4A] mb-2 group-hover:text-[#D4AF37] transition-colors">Our Ingredients</h3>
-                <p className="text-sm text-gray-600">Discover the 100% natural ingredients in every Addrika incense stick</p>
+                <p className="text-sm text-gray-600">Discover the ethically sourced ingredients in every Addrika incense stick</p>
               </Link>
               <Link href="/why-zero-charcoal" className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
                 <Wind className="w-10 h-10 text-[#D4AF37] mb-4" />
@@ -417,7 +417,7 @@ export default function OurQualityPage() {
               Experience Addrika Quality
             </h2>
             <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-              Try our premium natural incense and feel the difference that uncompromising quality makes
+              Try our premium incense and feel the difference that uncompromising quality makes
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
