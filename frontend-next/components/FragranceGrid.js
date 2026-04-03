@@ -278,19 +278,26 @@ export default function FragranceGrid() {
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   
-  // Fetch products
+  // Fetch products with retry logic
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadProducts = async (retries = 3) => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${API_URL}/api/products`);
+        const response = await fetch(`${API_URL}/api/products`, {
+          cache: 'no-store', // Avoid stale cache issues
+        });
         if (!response.ok) throw new Error('Failed to fetch products');
         const products = await response.json();
         setFragrances(products);
       } catch (err) {
         console.error('Failed to load products:', err);
-        setError('Failed to load products. Please try again.');
+        if (retries > 0) {
+          // Retry after a short delay
+          setTimeout(() => loadProducts(retries - 1), 1000);
+        } else {
+          setError('Failed to load products. Please refresh the page.');
+        }
       } finally {
         setLoading(false);
       }

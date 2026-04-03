@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Star, ArrowRight } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import ProductActions from './ProductActions';
+import ProductGallery from './ProductGallery';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 
@@ -274,25 +275,8 @@ export default async function ProductPage({ params }) {
           </nav>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Image Gallery */}
-            <div className="space-y-4">
-              <div 
-                className="relative aspect-square rounded-2xl overflow-hidden"
-                style={{ 
-                  background: 'linear-gradient(165deg, #1a1a2e 0%, #16213e 100%)',
-                  boxShadow: '0 20px 60px rgba(0,0,0,0.4)'
-                }}
-              >
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-contain p-8"
-                />
-              </div>
-            </div>
+            {/* Image Gallery - Dynamic based on selected size */}
+            <ProductGallery product={product} />
             
             {/* Product Info */}
             <div className="space-y-6">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShoppingCart, Heart, Plus, Minus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '../../../context/CartContext';
@@ -16,6 +16,17 @@ export default function ProductActions({ product }) {
   
   const inWishlist = isInWishlist(product.id, selectedSize?.size);
 
+  // Emit size change event for ProductGallery to listen
+  const handleSizeChange = (size) => {
+    setSelectedSize(size);
+    // Dispatch custom event for gallery to switch images
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('product-size-change', { 
+        detail: { size: size.size, productId: product.id } 
+      }));
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!selectedSize) {
       toast.error('Please select a size');
@@ -25,11 +36,15 @@ export default function ProductActions({ product }) {
     setAddingToCart(true);
     
     try {
+      // Get the correct image for the selected size
+      const sizeImage = selectedSize.images?.[0] || product.image;
+      
       // Pass full product object with sizes so CartContext can look up price
+      // Also pass the size-specific image
       addToCart({
         id: product.id,
         name: product.name,
-        image: product.image,
+        image: sizeImage, // Use size-specific image
         tagline: product.tagline,
         sizes: product.sizes,
       }, selectedSize.size, quantity);
@@ -48,7 +63,12 @@ export default function ProductActions({ product }) {
         await removeFromWishlist(product.id, selectedSize?.size);
         toast.success('Removed from wishlist');
       } else {
-        await addToWishlist(product, selectedSize?.size);
+        // Pass size-specific image to wishlist too
+        const productWithSizeImage = {
+          ...product,
+          image: selectedSize.images?.[0] || product.image
+        };
+        await addToWishlist(productWithSizeImage, selectedSize?.size);
         toast.success('Added to wishlist');
       }
     } catch (error) {
@@ -67,7 +87,7 @@ export default function ProductActions({ product }) {
           {product.sizes.map((size) => (
             <button
               key={size.size}
-              onClick={() => setSelectedSize(size)}
+              onClick={() => handleSizeChange(size)}
               className={`px-6 py-3 rounded-lg border-2 transition-all ${
                 selectedSize?.size === size.size
                   ? 'border-[#D4AF37] bg-[#D4AF37]/20'
