@@ -202,7 +202,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
               
               {/* Description */}
               <p className="text-gray-400 text-sm mb-6 line-clamp-3">
-                {product.tagline || product.description || 'A premium blend crafted with 100% natural ingredients for a pure, low-smoke experience.'}
+                {product.tagline || product.description || 'A premium blend crafted with ethically sourced ingredients for a pure, low-smoke experience.'}
               </p>
               
               {/* Fragrance Notes */}

@@ -97,12 +97,12 @@ export default function CTASection() {
             <div className="text-xs text-white/50 uppercase tracking-wider">Happy Customers & Counting</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">4.8★</div>
+            <div className="text-2xl font-bold text-white">4.3★</div>
             <div className="text-xs text-white/50 uppercase tracking-wider">Average Rating</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-white">100%</div>
-            <div className="text-xs text-white/50 uppercase tracking-wider">Natural Ingredients</div>
+            <div className="text-xs text-white/50 uppercase tracking-wider">Ethical Sourcing</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold" style={{ color: '#D4AF37' }}>Zero</div>
