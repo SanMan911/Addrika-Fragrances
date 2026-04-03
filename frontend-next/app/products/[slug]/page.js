@@ -6,17 +6,25 @@ import ProductActions from './ProductActions';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://auth-preview-23.preview.emergentagent.com';
+// For server-side fetches, we need an absolute URL
+// NEXT_PUBLIC_BACKEND_URL is the actual backend server
+// NEXT_PUBLIC_API_URL can be empty for client-side relative URLs with rewrites
+const getServerApiUrl = () => {
+  return process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
+};
 
 // Generate static params for all products (SSG)
 export async function generateStaticParams() {
   try {
-    const res = await fetch(`${API_URL}/api/products`);
+    const apiUrl = getServerApiUrl();
+    const res = await fetch(`${apiUrl}/api/products`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
     const products = await res.json();
     return products.map((product) => ({
       slug: product.id,
     }));
   } catch (error) {
+    console.error('Failed to generate static params:', error);
     return [];
   }
 }
@@ -59,12 +67,14 @@ export async function generateMetadata({ params }) {
 // Fetch single product
 async function getProduct(slug) {
   try {
-    const res = await fetch(`${API_URL}/api/products/${slug}`, {
+    const apiUrl = getServerApiUrl();
+    const res = await fetch(`${apiUrl}/api/products/${slug}`, {
       next: { revalidate: 3600 }
     });
     if (!res.ok) return null;
     return res.json();
   } catch (error) {
+    console.error('Failed to fetch product:', error);
     return null;
   }
 }
@@ -72,7 +82,8 @@ async function getProduct(slug) {
 // Fetch all products for related section
 async function getAllProducts() {
   try {
-    const res = await fetch(`${API_URL}/api/products`, {
+    const apiUrl = getServerApiUrl();
+    const res = await fetch(`${apiUrl}/api/products`, {
       next: { revalidate: 3600 }
     });
     if (!res.ok) return [];
@@ -107,7 +118,7 @@ function ProductStructuredData({ product }) {
       {
         "@type": "PropertyValue",
         "name": "Burn Time",
-        "value": product.burnTime || "40-50 minutes"
+        "value": product.burnTime || (product.category === 'dhoop' ? "20-30 minutes" : "40-50 minutes")
       },
       {
         "@type": "PropertyValue",
