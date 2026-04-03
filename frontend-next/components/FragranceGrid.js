@@ -177,7 +177,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
         )}
         
         <p className="text-xs tracking-wider mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Low Smoke • 100% Natural • 40-50 Min Burn
+          Low Smoke • Zero Charcoal • 40-50 Min Burn
         </p>
         
         {/* Rating */}
@@ -405,7 +405,7 @@ export default function FragranceGrid() {
           </h2>
           <p className="text-lg sm:text-xl max-w-3xl mx-auto mb-10 text-[#666] dark:text-gray-300">
             Premium zero-charcoal agarbattis and bambooless dhoop, each offering 30-50 minutes of pure, 
-            low-smoke aromatherapy crafted with 100% natural ingredients
+            low-smoke aromatherapy — supporting artisan communities across India
           </p>
         </div>
         
@@ -460,7 +460,7 @@ export default function FragranceGrid() {
         {!loading && !error && fragrances.length > 0 && (
           <div className="text-center mt-16">
             <p className="text-sm text-[#999] dark:text-gray-500">
-              All products are 100% natural, charcoal-free, and produce 80% less smoke than traditional agarbatti
+              All products are charcoal-free, produce 80% less smoke, and support local artisan communities
             </p>
           </div>
         )}

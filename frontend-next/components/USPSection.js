@@ -24,8 +24,8 @@ const uspItems = [
   },
   {
     icon: Shield,
-    title: '100% Natural',
-    description: 'Made with premium natural ingredients - no synthetic fragrances or harmful chemicals.',
+    title: 'CSR Commitment',
+    description: 'Every purchase supports local artisans and community welfare initiatives across India.',
     color: '#8B5CF6'
   },
   {

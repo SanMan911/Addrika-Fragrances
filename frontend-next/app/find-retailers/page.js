@@ -18,24 +18,31 @@ export const metadata = {
 
 async function getRetailers() {
   try {
-    const res = await fetch(`${API_URL}/api/retailers/public`, {
+    // Use NEXT_PUBLIC_BACKEND_URL for SSR fetching (Vercel rewrites don't work server-side)
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || API_URL;
+    const res = await fetch(`${apiUrl}/api/retailers`, {
       next: { revalidate: 3600 }
     });
     if (!res.ok) return [];
-    return res.json();
+    const data = await res.json();
+    return data.retailers || [];
   } catch (error) {
+    console.error('Failed to fetch retailers:', error);
     return [];
   }
 }
 
 async function getStates() {
   try {
-    const res = await fetch(`${API_URL}/api/retailers/states`, {
+    // Use NEXT_PUBLIC_BACKEND_URL for SSR fetching
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || API_URL;
+    const res = await fetch(`${apiUrl}/api/retailers/states-districts`, {
       next: { revalidate: 86400 }
     });
     if (!res.ok) return [];
     return res.json();
   } catch (error) {
+    console.error('Failed to fetch states:', error);
     return [];
   }
 }

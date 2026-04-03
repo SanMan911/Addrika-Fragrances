@@ -61,6 +61,13 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - Added `redirect: 'follow'` to handle 307 redirects properly
   - Fixed race condition where loading=false was set before retry completed
 - ✅ Fixed product size image switching (50g → 200g updates gallery)
+- ✅ Removed "100% Natural" messaging (replaced with CSR focus)
+  - Hero badge: "CSR Driven"
+  - USP card: "CSR Commitment" - supports local artisans
+  - Product descriptions updated throughout
+- ✅ Fixed Find Retailers page - was calling wrong API endpoint
+  - Changed from `/api/retailers/public` to `/api/retailers`
+  - Now shows all 4 verified retailers (Delhi, Mumbai, Bengaluru)
 
 ## Prioritized Backlog
 
