@@ -6,6 +6,9 @@ import Footer from '../../components/Footer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+// Production backend URL - hardcoded as fallback for Vercel
+const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
+
 // Dynamically import map component (client-side only) to preserve SSR/SEO
 const RetailerMap = dynamic(() => import('../../components/RetailerMap'), {
   ssr: false,
@@ -51,18 +54,27 @@ export const metadata = {
 };
 
 async function getRetailers() {
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || API_URL;
-    const res = await fetch(`${apiUrl}/api/retailers`, {
-      next: { revalidate: 3600 }
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.retailers || [];
-  } catch (error) {
-    console.error('Failed to fetch retailers:', error);
-    return [];
+  const backendUrls = [
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    PRODUCTION_BACKEND,
+  ].filter(Boolean);
+
+  for (const apiUrl of backendUrls) {
+    try {
+      const res = await fetch(`${apiUrl}/api/retailers`, {
+        next: { revalidate: 3600 }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.retailers && data.retailers.length > 0) {
+          return data.retailers;
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to fetch from ${apiUrl}:`, error.message);
+    }
   }
+  return [];
 }
 
 // Structured data for SEO - LocalBusiness schema for each retailer
