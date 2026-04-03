@@ -302,13 +302,6 @@ export default async function FindRetailersPage() {
                             )}
                           </div>
                           
-                          {/* GST Badge - for B2B trust */}
-                          {retailer.gst_number && (
-                            <div className="text-xs text-gray-500 mb-4">
-                              GST: <span className="text-gray-400">{retailer.gst_number}</span>
-                            </div>
-                          )}
-                          
                           {/* Action Button */}
                           {retailer.coordinates && (
                             <a
