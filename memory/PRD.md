@@ -78,6 +78,11 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - Context files (AuthContext, RetailerAuthContext) fixed
   - Components (FragranceGrid) fixed
 - ✅ Fixed coupon validation API endpoint and request format
+- ✅ Replaced OpenStreetMap with Google Maps (correct Indian borders)
+- ✅ Added WhatsApp button to retailer cards
+- ✅ Cleaned up Find Retailers page (map section + retailer details section)
+- ✅ Removed all default coupon codes from database
+- ✅ Updated all SEO metadata to remove "100% natural" claims (replaced with "ethically sourced")
 
 ## Prioritized Backlog
 

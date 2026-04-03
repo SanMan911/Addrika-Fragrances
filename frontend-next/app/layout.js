@@ -8,11 +8,11 @@ import CartSidebar from '../components/CartSidebar';
 
 export const metadata = {
   title: {
-    default: 'Addrika - Premium Natural Incense | Sacred Luxury in Every Scent',
+    default: 'Addrika - Premium Incense | Sacred Luxury in Every Scent',
     template: '%s | Addrika Premium Incense'
   },
-  description: 'Discover Addrika premium natural incense sticks. Experience authentic Arabian fragrances - Kesar Chandan, Regal Rose, Oriental Oudh & Bold Bakhoor. Zero charcoal, low smoke, 100% natural ingredients. Sacred luxury for mindful spaces.',
-  keywords: ['addrika', 'premium incense', 'natural incense', 'agarbatti', 'kesar chandan', 'regal rose', 'oriental oudh', 'bold bakhoor', 'arabian incense', 'zero charcoal incense', 'low smoke agarbatti', 'dhoop', 'bambooless incense'],
+  description: 'Discover Addrika premium incense sticks. Experience authentic Arabian fragrances - Kesar Chandan, Regal Rose, Oriental Oudh & Bold Bakhoor. Zero charcoal, low smoke, ethically sourced ingredients. Sacred luxury for mindful spaces.',
+  keywords: ['addrika', 'premium incense', 'incense sticks', 'agarbatti', 'kesar chandan', 'regal rose', 'oriental oudh', 'bold bakhoor', 'arabian incense', 'zero charcoal incense', 'low smoke agarbatti', 'dhoop', 'bambooless incense', 'ethical incense'],
   authors: [{ name: 'Centsibl Traders Private Limited', url: 'https://centraders.com' }],
   creator: 'Centsibl Traders',
   publisher: 'Centsibl Traders Private Limited',
@@ -21,30 +21,26 @@ export const metadata = {
     canonical: '/',
   },
   manifest: '/manifest.json',
-  // Google Search Console verification - Replace YOUR_CODE with actual verification code
-  // verification: {
-  //   google: 'YOUR_GOOGLE_VERIFICATION_CODE',
-  // },
   openGraph: {
     type: 'website',
     locale: 'en_IN',
     url: 'https://centraders.com',
     siteName: 'Addrika',
-    title: 'Addrika - Premium Natural Incense | Zero Charcoal, Low Smoke',
-    description: 'Sacred luxury in every scent. Premium natural incense from Centsibl Traders. Zero charcoal, 80% less smoke, 100% natural ingredients.',
+    title: 'Addrika - Premium Incense | Zero Charcoal, Low Smoke',
+    description: 'Sacred luxury in every scent. Premium incense from Centsibl Traders. Zero charcoal, 80% less smoke, ethically sourced.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Addrika Premium Natural Incense - Zero Charcoal, Low Smoke',
+        alt: 'Addrika Premium Incense - Zero Charcoal, Low Smoke',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Addrika - Premium Natural Incense',
-    description: 'Sacred luxury in every scent. Zero charcoal, low smoke, 100% natural.',
+    title: 'Addrika - Premium Incense',
+    description: 'Sacred luxury in every scent. Zero charcoal, low smoke, ethically sourced.',
     images: ['/og-image.png'],
     creator: '@addrika_incense',
   },
@@ -99,7 +95,7 @@ export default function RootLayout({ children }) {
               "alternateName": "Addrika",
               "url": "https://centraders.com",
               "logo": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png",
-              "description": "Premium natural incense manufacturer offering authentic arabian fragrances. Zero charcoal, low smoke, 100% natural ingredients.",
+              "description": "Premium incense manufacturer offering authentic arabian fragrances. Zero charcoal, low smoke, ethically sourced ingredients.",
               "foundingDate": "2022",
               "address": {
                 "@type": "PostalAddress",
