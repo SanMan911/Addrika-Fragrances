@@ -9,7 +9,7 @@ export const metadata = {
   keywords: ['centsible traders', 'addrika manufacturer', 'incense company india', 'ethical incense brand', 'premium agarbatti company'],
   openGraph: {
     title: 'About Us | Centsibl Traders',
-    description: 'A purpose-driven Indian enterprise creating premium natural incense.',
+    description: 'A purpose-driven Indian enterprise creating premium ethically sourced incense.',
     url: 'https://centraders.com/about-us',
   },
 };
@@ -125,7 +125,7 @@ export default function AboutUsPage() {
                   </div>
                   <div className="text-center">
                     <p className="text-3xl font-bold text-white">100%</p>
-                    <p className="text-sm text-gray-400">Natural Ingredients</p>
+                    <p className="text-sm text-gray-400">Ethical Sourcing</p>
                   </div>
                 </div>
               </div>
@@ -192,7 +192,7 @@ export default function AboutUsPage() {
                 Experience the Addrika Difference
               </h2>
               <p className="text-gray-300 mb-8">
-                Discover our collection of premium natural incense, crafted with care and tradition.
+                Discover our collection of premium incense, crafted with care and tradition.
               </p>
               <Link
                 href="/#fragrances"
