@@ -22,7 +22,7 @@ const csrInitiatives = [
     icon: GraduationCap,
     title: 'Education Initiative',
     description: 'A portion of proceeds funds education for children in underprivileged communities.',
-    impact: '50+ scholarships given',
+    impact: '12 student years funded',
     color: '#8B5CF6'
   }
 ];
