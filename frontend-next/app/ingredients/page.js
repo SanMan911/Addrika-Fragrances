@@ -2,17 +2,17 @@ import Link from 'next/link';
 import { Leaf, Droplets, Flower2, TreeDeciduous, Sparkles, Wind, CheckCircle, ArrowRight, FlaskConical } from 'lucide-react';
 
 export const metadata = {
-  title: 'Natural Ingredients in Addrika Incense | 100% Pure Essential Oils & Herbs',
-  description: 'Discover the 100% natural ingredients in Addrika incense sticks: pure sandalwood oil, rose essence, oudh/agarwood, bakhoor blend, flower dust, and natural resins. No charcoal, no synthetics, no chemicals.',
+  title: 'Premium Ingredients in Addrika Incense | Pure Essential Oils & Natural Herbs',
+  description: 'Discover the ethically sourced ingredients in Addrika incense sticks: pure sandalwood oil, rose essence, oudh/agarwood, bakhoor blend, flower dust, and natural resins. No charcoal, no synthetics.',
   keywords: [
-    'natural incense ingredients', 'pure essential oil incense', 'sandalwood incense',
+    'premium incense ingredients', 'pure essential oil incense', 'sandalwood incense',
     'rose incense ingredients', 'oudh agarwood incense', 'bakhoor incense',
     'flower dust agarbatti', 'natural resin incense', 'chemical-free incense ingredients',
-    'what is in natural incense', 'addrika ingredients'
+    'what is in premium incense', 'addrika ingredients', 'ethical incense'
   ],
   openGraph: {
-    title: 'Natural Ingredients | Addrika Premium Incense',
-    description: '100% natural ingredients: pure essential oils, flower dust, natural resins.',
+    title: 'Premium Ingredients | Addrika Incense',
+    description: 'Ethically sourced ingredients: pure essential oils, flower dust, natural resins.',
     url: 'https://centraders.com/ingredients',
     type: 'website',
   },
@@ -27,8 +27,8 @@ function ArticleSchema() {
         __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Article",
-          "headline": "Natural Ingredients in Addrika Incense: A Complete Guide",
-          "description": "Comprehensive guide to all natural ingredients used in Addrika premium incense sticks",
+          "headline": "Premium Ingredients in Addrika Incense: A Complete Guide",
+          "description": "Comprehensive guide to ethically sourced ingredients used in Addrika premium incense sticks",
           "author": {
             "@type": "Organization",
             "name": "Addrika Fragrances",
