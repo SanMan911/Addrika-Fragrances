@@ -55,23 +55,19 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - ✅ Fixed admin PIN reset collection mismatch bug
 
 ### April 3, 2026 - Product Loading & Size Image Fixes
-- ✅ Fixed homepage product section random loading failures
-  - Added robust retry logic with exponential backoff (500ms, 1s, 2s)
-  - Added AbortController with 15s timeout for slow networks
-  - Added `redirect: 'follow'` to handle 307 redirects properly
-  - Fixed race condition where loading=false was set before retry completed
+- ✅ **CRITICAL FIX: Products now load via Server-Side Rendering (SSR)**
+  - Homepage converted from client component to server component
+  - Products fetched server-side using `NEXT_PUBLIC_BACKEND_URL`
+  - Created `FragranceGridServer.js` that accepts pre-fetched products
+  - Eliminates random loading failures on production (Vercel)
 - ✅ Fixed product size image switching (50g → 200g updates gallery)
 - ✅ Removed "100% Natural" messaging (replaced with CSR focus)
   - Hero badge: "CSR Driven"
   - USP card: "CSR Commitment" - supports local artisans
   - Product descriptions updated throughout
-- ✅ Fixed Find Retailers page - was calling wrong API endpoint
-  - Changed from `/api/retailers/public` to `/api/retailers`
-- ✅ Replaced dummy retailers with correct 2 stores:
-  - M.G. Shoppie (Dwarka, Delhi) - Phone: 6202311736, Email: amitkumar.911@proton.me
-  - Mela Stores (Bhagalpur, Bihar) - Phone: 7061483566, Email: mr.amitbgp@gmail.com
-- ✅ Added interactive map to Find Retailers page (OpenStreetMap)
-- ✅ Enhanced SEO with LocalBusiness schema, StoreLocator structured data
+- ✅ Fixed Find Retailers page - API endpoint and map added
+- ✅ Replaced dummy retailers with correct 2 stores
+- ✅ Removed GST display from retailer cards
 
 ## Prioritized Backlog
 
