@@ -8,32 +8,42 @@ import InstagramFeed from '../components/InstagramFeed';
 import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+// Production backend URL - hardcoded as fallback for Vercel
+const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
 
 // Fetch products server-side for reliable initial load
 async function getProducts() {
-  try {
-    // Use NEXT_PUBLIC_BACKEND_URL for server-side fetching (required for Vercel)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || API_URL;
-    
-    const response = await fetch(`${backendUrl}/api/products`, {
-      next: { revalidate: 300 }, // Revalidate every 5 minutes
-    });
-    
-    if (!response.ok) {
-      console.error('Failed to fetch products:', response.status);
-      return [];
+  // Try multiple backend URLs in order of preference
+  const backendUrls = [
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    PRODUCTION_BACKEND,
+  ].filter(Boolean);
+
+  for (const backendUrl of backendUrls) {
+    try {
+      const response = await fetch(`${backendUrl}/api/products`, {
+        next: { revalidate: 60 }, // Revalidate every minute
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const products = await response.json();
+        if (Array.isArray(products) && products.length > 0) {
+          return products;
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to fetch from ${backendUrl}:`, error.message);
     }
-    
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return [];
   }
+  
+  return [];
 }
 
 export default async function HomePage() {
-  // Fetch products server-side - always works reliably
+  // Fetch products server-side
   const products = await getProducts();
   
   return (
