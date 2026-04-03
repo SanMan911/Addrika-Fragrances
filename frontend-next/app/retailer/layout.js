@@ -11,7 +11,7 @@ import {
 import { RetailerAuthProvider, useRetailerAuth } from '../../context/RetailerAuthContext';
 import { toast } from 'sonner';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 // Navigation items
 const navItems = [

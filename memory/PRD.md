@@ -69,7 +69,7 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - ✅ Replaced dummy retailers with correct 2 stores (M.G. Shoppie, Mela Stores)
 - ✅ Removed GST display from retailer cards
 - ✅ Fixed Mystical Meharishi product type: "dhoop" (was showing "Agarbatti")
-- ✅ Updated CSR stats: 50+ trees, 36 families, 12 student years
+- ✅ Updated CSR stats: 50+ trees, 7 families, 12 student years
 - ✅ Updated product ratings to average 4.3★ (more realistic)
 - ✅ Updated footer stats: "Ethical Sourcing" instead of "Natural Ingredients"
 - ✅ Increased Hero logo size
@@ -83,11 +83,22 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - ✅ Cleaned up Find Retailers page (map section + retailer details section)
 - ✅ Removed all default coupon codes from database
 - ✅ Updated all SEO metadata to remove "100% natural" claims (replaced with "ethically sourced")
+- ✅ Updated "Our Story" > Ethical Sourcing section - removed "synthetic fragrances" claims, now focuses on transparency
+
+### April 3, 2026 - URL Cleanup (CRITICAL)
+- ✅ **REMOVED ALL HARDCODED PREVIEW URLs** from 42+ frontend files
+  - Cleaned `csr-metrics-update.preview.emergentagent.com` references
+  - Cleaned `product-size-sync.preview.emergentagent.com` references
+  - Updated `/app/frontend-next/lib/config.js` to use env vars only
+  - Client-side API calls use empty string (relative paths via Next.js rewrites)
+  - Server-side SSR calls require `NEXT_PUBLIC_BACKEND_URL` env var
+  - Updated `.env.local` to not have hardcoded URLs
 
 ## Prioritized Backlog
 
 ### P0 (Critical)
-- [ ] Vercel deployment with correct environment variables
+- [x] Remove hardcoded preview URLs from codebase (DONE)
+- [ ] **DEPLOY TO VERCEL** - See deployment instructions below
 
 ### P1 (High)
 - [ ] Add Bakhoor category products (awaiting images/prices)
@@ -120,3 +131,36 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 
 ## Known Issues
 - GST Verification API occasionally times out (external API issue)
+
+---
+
+## 🚀 VERCEL DEPLOYMENT INSTRUCTIONS
+
+**CRITICAL**: Before pushing to GitHub, you MUST configure your Vercel Environment Variables.
+
+### Step 1: Go to Vercel Dashboard
+1. Log in to [vercel.com](https://vercel.com)
+2. Select your project (the one connected to centraders.com)
+3. Go to **Settings** → **Environment Variables**
+
+### Step 2: Add Required Environment Variable
+Add the following environment variable:
+
+| Name | Value | Environment |
+|------|-------|-------------|
+| `NEXT_PUBLIC_BACKEND_URL` | `https://your-backend-url.com` | Production, Preview, Development |
+
+**Replace `https://your-backend-url.com`** with your actual backend server URL. This is where your FastAPI backend is hosted.
+
+### Step 3: Save and Push to GitHub
+1. Click "Save" in Vercel
+2. Come back to Emergent
+3. Click **"Save to Github"** in the chat input
+4. Vercel will automatically redeploy with the new environment variable
+
+### Why This Matters
+- The Next.js frontend uses **Server-Side Rendering (SSR)** to load products
+- SSR runs on Vercel's servers, which need the backend URL to fetch data
+- Without `NEXT_PUBLIC_BACKEND_URL`, product loading will fail
+- Client-side API calls use relative paths (`/api/*`) which Next.js rewrites handle
+

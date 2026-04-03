@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Package, Search, RefreshCw, Eye, Clock, CheckCircle, Truck, XCircle } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',

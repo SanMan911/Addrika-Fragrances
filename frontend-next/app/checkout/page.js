@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function CheckoutPage() {
   const router = useRouter();

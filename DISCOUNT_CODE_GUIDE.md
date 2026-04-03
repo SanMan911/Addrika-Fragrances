@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://product-size-sync.preview.emergentagent.com/api
+https://csr-metrics-update.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

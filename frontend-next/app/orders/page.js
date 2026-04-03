@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Package, ArrowLeft, ChevronRight, Truck, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { Suspense } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 function OrdersContent() {
   const router = useRouter();

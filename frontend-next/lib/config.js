@@ -1,12 +1,20 @@
 // API Configuration for Addrika Frontend
-// Production backend URL - hardcoded as fallback for Vercel deployment
+// 
+// IMPORTANT FOR VERCEL DEPLOYMENT:
+// Set NEXT_PUBLIC_BACKEND_URL in your Vercel Environment Variables
+// to point to your actual backend server URL (e.g., https://api.centraders.com)
 
-export const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
+// Client-side API calls should use empty string (relative paths)
+// Next.js rewrites in next.config.js will proxy /api/* to the backend
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
-// Use this for client-side API calls
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || PRODUCTION_BACKEND;
-
-// Use this for server-side API calls (SSR/SSG)
+// Server-side API calls (SSR/SSG) MUST have the full backend URL
+// This env var MUST be set in Vercel for SSR to work
 export const getServerApiUrl = () => {
-  return process.env.NEXT_PUBLIC_BACKEND_URL || PRODUCTION_BACKEND;
+  const url = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!url) {
+    console.warn('NEXT_PUBLIC_BACKEND_URL is not set. SSR API calls will fail.');
+    return '';
+  }
+  return url;
 };

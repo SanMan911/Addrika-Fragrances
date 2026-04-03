@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Trophy, Medal, Crown, Star, RefreshCw } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const getRankIcon = (rank) => {
   if (rank === 1) return <Crown className="w-6 h-6 text-yellow-500" />;
   if (rank === 2) return <Medal className="w-6 h-6 text-gray-400" />;

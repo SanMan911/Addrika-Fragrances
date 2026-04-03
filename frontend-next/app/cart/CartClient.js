@@ -11,9 +11,8 @@ import { toast } from 'sonner';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-// Production backend URL - hardcoded as fallback for Vercel
-const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || PRODUCTION_BACKEND;
+// Use empty string for relative path (Next.js rewrites handle the proxy)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function CartClient() {
   const router = useRouter();

@@ -4,10 +4,10 @@ import { Store, MapPin, Mail, Navigation, Building2 } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 // Production backend URL - hardcoded as fallback for Vercel
-const PRODUCTION_BACKEND = 'https://product-size-sync.preview.emergentagent.com';
+// Production backend URL - set NEXT_PUBLIC_BACKEND_URL in Vercel Environment Variables
 
 // Dynamically import map component (client-side only) to preserve SSR/SEO
 const RetailerMap = dynamic(() => import('../../components/RetailerMap'), {
@@ -53,26 +53,28 @@ export const metadata = {
   },
 };
 
+// Fetch retailers from backend
+// IMPORTANT: Set NEXT_PUBLIC_BACKEND_URL in Vercel Environment Variables
 async function getRetailers() {
-  const backendUrls = [
-    process.env.NEXT_PUBLIC_BACKEND_URL,
-    PRODUCTION_BACKEND,
-  ].filter(Boolean);
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  
+  if (!backendUrl) {
+    console.warn('NEXT_PUBLIC_BACKEND_URL not set.');
+    return [];
+  }
 
-  for (const apiUrl of backendUrls) {
-    try {
-      const res = await fetch(`${apiUrl}/api/retailers`, {
-        next: { revalidate: 300 } // Revalidate every 5 minutes for faster updates
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.retailers && data.retailers.length > 0) {
-          return data.retailers;
-        }
+  try {
+    const res = await fetch(`${backendUrl}/api/retailers`, {
+      next: { revalidate: 300 } // Revalidate every 5 minutes for faster updates
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.retailers && data.retailers.length > 0) {
+        return data.retailers;
       }
-    } catch (error) {
-      console.error(`Failed to fetch from ${apiUrl}:`, error.message);
     }
+  } catch (error) {
+    console.error(`Failed to fetch retailers:`, error.message);
   }
   return [];
 }

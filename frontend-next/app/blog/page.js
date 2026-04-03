@@ -3,7 +3,7 @@ import { Calendar, Eye, Tag, Search } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export const metadata = {
   title: 'Blog | Addrika - Fragrance Tips, Aromatherapy & Incense Guides',

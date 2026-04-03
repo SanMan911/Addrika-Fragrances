@@ -5,7 +5,7 @@ import { Settings, Save, RefreshCw, Mail, Store, Truck, CreditCard } from 'lucid
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://product-size-sync.preview.emergentagent.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
