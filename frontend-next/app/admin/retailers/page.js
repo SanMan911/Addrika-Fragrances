@@ -7,6 +7,12 @@ import { authFetch } from '../layout';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+// Title case helper - capitalize first letter of every word
+const capitalizeWords = (str) => {
+  if (!str) return str;
+  return str.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+};
+
 const statusColors = {
   active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
@@ -346,7 +352,7 @@ export default function AdminRetailersPage() {
                     type="text"
                     required
                     value={formData.business_name}
-                    onChange={(e) => setFormData({...formData, business_name: e.target.value})}
+                    onChange={(e) => setFormData({...formData, business_name: capitalizeWords(e.target.value)})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
@@ -355,7 +361,7 @@ export default function AdminRetailersPage() {
                   <input
                     type="text"
                     value={formData.trade_name}
-                    onChange={(e) => setFormData({...formData, trade_name: e.target.value})}
+                    onChange={(e) => setFormData({...formData, trade_name: capitalizeWords(e.target.value)})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
@@ -364,7 +370,7 @@ export default function AdminRetailersPage() {
                   <input
                     type="text"
                     value={formData.owner_name}
-                    onChange={(e) => setFormData({...formData, owner_name: e.target.value})}
+                    onChange={(e) => setFormData({...formData, owner_name: capitalizeWords(e.target.value)})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
@@ -384,7 +390,7 @@ export default function AdminRetailersPage() {
                     type="email"
                     required
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({...formData, email: e.target.value.toLowerCase()})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
@@ -394,7 +400,7 @@ export default function AdminRetailersPage() {
                     type="tel"
                     required
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/[^0-9]/g, '')})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
@@ -406,7 +412,7 @@ export default function AdminRetailersPage() {
                   type="text"
                   required
                   value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  onChange={(e) => setFormData({...formData, address: capitalizeWords(e.target.value)})}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                 />
               </div>
@@ -418,7 +424,7 @@ export default function AdminRetailersPage() {
                     type="text"
                     required
                     value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                    onChange={(e) => setFormData({...formData, city: capitalizeWords(e.target.value)})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
@@ -427,7 +433,7 @@ export default function AdminRetailersPage() {
                   <input
                     type="text"
                     value={formData.district}
-                    onChange={(e) => setFormData({...formData, district: e.target.value})}
+                    onChange={(e) => setFormData({...formData, district: capitalizeWords(e.target.value)})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
@@ -437,7 +443,7 @@ export default function AdminRetailersPage() {
                     type="text"
                     required
                     value={formData.state}
-                    onChange={(e) => setFormData({...formData, state: e.target.value})}
+                    onChange={(e) => setFormData({...formData, state: capitalizeWords(e.target.value)})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
@@ -447,7 +453,7 @@ export default function AdminRetailersPage() {
                     type="text"
                     required
                     value={formData.pincode}
-                    onChange={(e) => setFormData({...formData, pincode: e.target.value})}
+                    onChange={(e) => setFormData({...formData, pincode: e.target.value.replace(/[^0-9]/g, '')})}
                     maxLength={6}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
