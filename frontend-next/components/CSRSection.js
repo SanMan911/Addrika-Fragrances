@@ -1,7 +1,7 @@
 'use client';
 
 import { useTheme } from '../context/ThemeContext';
-import { Heart, Users, TreePine, GraduationCap, HandHeart, Globe } from 'lucide-react';
+import { Heart, Users, TreePine, GraduationCap, HandHeart, Globe, Leaf } from 'lucide-react';
 
 const csrInitiatives = [
   {
@@ -10,6 +10,13 @@ const csrInitiatives = [
     description: 'We plant a tree for every 25 orders, contributing to reforestation efforts across India.',
     impact: '50+ trees planted',
     color: '#10B981'
+  },
+  {
+    icon: Leaf,
+    title: 'Low Carbon Footprint',
+    description: 'Our zero-charcoal formula produces 40% less smoke and significantly fewer carbon emissions than traditional incense.',
+    impact: 'Cleaner burning',
+    color: '#059669'
   },
   {
     icon: Users,
@@ -85,7 +92,7 @@ export default function CSRSection() {
         </div>
 
         {/* CSR Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {csrInitiatives.map((item, index) => {
             const Icon = item.icon;
             return (
