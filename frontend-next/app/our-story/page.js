@@ -46,6 +46,11 @@ export default function OurStoryPage() {
     },
     {
       icon: Leaf,
+      title: 'Low Carbon Footprint',
+      description: 'Our zero-charcoal formula burns cleaner, producing 40% less smoke and fewer carbon emissions.'
+    },
+    {
+      icon: Sparkles,
       title: 'Ethical Sourcing',
       description: 'We use only ethically sourced, premium ingredients — prioritizing transparency and responsible supply chains.'
     },
@@ -200,7 +205,7 @@ export default function OurStoryPage() {
             </div>
 
             {/* Values */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
               {values.map((value, index) => {
                 const Icon = value.icon;
                 return (

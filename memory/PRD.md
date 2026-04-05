@@ -116,6 +116,9 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - ✅ **Mission & Vision Statements** added to Our Story page:
   - Mission: Elevate everyday rituals with premium zero-charcoal incense supporting artisan communities
   - Vision: Become India's most trusted name in ethical, premium incense
+- ✅ **Low Carbon Footprint messaging** added across the site:
+  - CSR Section: New "Low Carbon Footprint" card - "40% less smoke and fewer carbon emissions"
+  - Our Story Values: New "Low Carbon Footprint" value highlighting cleaner burning formula
 
 ## Prioritized Backlog
 
