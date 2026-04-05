@@ -103,8 +103,17 @@ export default function RegisterClient() {
     const { name, value } = e.target;
     let filteredValue = value;
     
-    if (name === 'name') {
-      filteredValue = capitalizeWords(value.replace(/[^a-zA-Z\s.'-]/g, ''));
+    // Fields that should be Title Cased (first letter of every word capitalized)
+    const titleCaseFields = ['name', 'address', 'landmark', 'city', 'state'];
+    
+    if (titleCaseFields.includes(name)) {
+      // Allow letters, spaces, and common address characters, then title case
+      if (name === 'name') {
+        filteredValue = capitalizeWords(value.replace(/[^a-zA-Z\s.'-]/g, ''));
+      } else {
+        // For address fields, allow numbers and special chars like commas, slashes
+        filteredValue = capitalizeWords(value.replace(/[^a-zA-Z0-9\s.,\-/'#]/g, ''));
+      }
     } else if (name === 'username') {
       // Allow alphanumeric and underscores, preserve case
       filteredValue = value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 30);

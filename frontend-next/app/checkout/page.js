@@ -13,6 +13,12 @@ import Footer from '../../components/Footer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+// Title case helper - capitalize first letter of every word
+const capitalizeWords = (str) => {
+  if (!str) return str;
+  return str.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, getCartTotal, clearCart, isLoaded } = useCart();
@@ -129,6 +135,9 @@ export default function CheckoutPage() {
     const { name, value } = e.target;
     let filteredValue = value;
     
+    // Fields that should be Title Cased
+    const titleCaseFields = ['name', 'address', 'landmark'];
+    
     if (name === 'pincode') {
       filteredValue = value.replace(/\D/g, '').slice(0, 6);
       if (filteredValue.length === 6) {
@@ -136,6 +145,8 @@ export default function CheckoutPage() {
       }
     } else if (name === 'phone') {
       filteredValue = value.replace(/\D/g, '').slice(0, 10);
+    } else if (titleCaseFields.includes(name)) {
+      filteredValue = capitalizeWords(value);
     }
     
     setAddress(prev => ({ ...prev, [name]: filteredValue }));
