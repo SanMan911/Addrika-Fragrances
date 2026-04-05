@@ -77,11 +77,11 @@ export default function OurQualityPage() {
     {
       icon: Shield,
       title: "Zero Charcoal Formula",
-      description: "Our proprietary charcoal-free formula sets us apart. No charcoal means 80% less smoke, cleaner air, and purer fragrance experience.",
+      description: "Our proprietary charcoal-free formula sets us apart. No charcoal means 60%+ less smoke, cleaner air, and purer fragrance experience.",
       details: [
         "Charcoal-free burning agent",
         "Bambooless design",
-        "80% less smoke than traditional agarbatti",
+        "60%+ less smoke than traditional agarbatti",
         "No harmful combustion byproducts"
       ]
     },
@@ -160,7 +160,7 @@ export default function OurQualityPage() {
 
   const qualityMetrics = [
     { metric: "Burn Time", value: "40-50 Min", description: "Long-lasting fragrance per stick" },
-    { metric: "Smoke Reduction", value: "80%", description: "Less smoke than traditional agarbatti" },
+    { metric: "Smoke Reduction", value: "60%+", description: "Less smoke than traditional agarbatti" },
     { metric: "Ethical Sourcing", value: "100%", description: "Only ethically sourced ingredients used" },
     { metric: "Artisan Made", value: "100%", description: "Crafted by skilled Indian artisans" }
   ];

@@ -88,7 +88,7 @@ export default function WhyZeroCharcoalPage() {
   ];
 
   const comparisonTable = [
-    { aspect: "Smoke Production", traditional: "Heavy, dense smoke", addrika: "80% less smoke - minimal and light" },
+    { aspect: "Smoke Production", traditional: "Heavy, dense smoke", addrika: "60%+ less smoke - minimal and light" },
     { aspect: "Air Quality", traditional: "Releases PM2.5 particles", addrika: "Cleaner air, fewer particles" },
     { aspect: "Health Impact", traditional: "Can irritate respiratory system", addrika: "Gentler on breathing" },
     { aspect: "Residue", traditional: "Black soot and heavy ash", addrika: "Light, minimal ash" },

@@ -27,7 +27,7 @@ export const metadata = {
     url: 'https://centraders.com',
     siteName: 'Addrika',
     title: 'Addrika - Premium Incense | Zero Charcoal, Low Smoke',
-    description: 'Sacred luxury in every scent. Premium incense from Centsibl Traders. Zero charcoal, 80% less smoke, ethically sourced.',
+    description: 'Sacred luxury in every scent. Premium incense from Centsibl Traders. Charcoal-free, 60%+ less smoke, ethically sourced.',
     images: [
       {
         url: '/og-image.png',

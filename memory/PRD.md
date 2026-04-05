@@ -117,8 +117,23 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - Mission: Elevate everyday rituals with premium zero-charcoal incense supporting artisan communities
   - Vision: Become India's most trusted name in ethical, premium incense
 - ✅ **Low Carbon Footprint messaging** added across the site:
-  - CSR Section: New "Low Carbon Footprint" card - "40% less smoke and fewer carbon emissions"
+  - CSR Section: New "Low Carbon Footprint" card - "over 60% less smoke"
   - Our Story Values: New "Low Carbon Footprint" value highlighting cleaner burning formula
+
+### April 5, 2026 - Website Consistency & Sustainability Page
+- ✅ **Standardized smoke reduction to "60%+" across entire website**
+  - Updated: FAQ, Low Smoke Incense, Why Choose Addrika, Why Zero Charcoal, Our Quality, CSR Section, USP Section, Layout meta description
+- ✅ **Replaced "100% Natural" with "Ethical Sourcing"** across all pages
+- ✅ **Clarified bamboo vs bambooless products**:
+  - Agarbatti: Uses bamboo sticks with charcoal-free coating
+  - Dhoop: Completely bambooless
+- ✅ **NEW: Sustainability Page** (/sustainability) with:
+  - Animated impact counters (50+ trees, 7 families, 12 student years, 60%+ less smoke)
+  - Low Carbon Footprint section
+  - Packaging info: PET Bottles (Reusable), Paper Packets (Recyclable)
+  - Roadmap: 2025 current → 2026 (100 trees) → 2027 (Carbon-neutral, 100% recyclable)
+  - "Your Impact" section with optional ₹10 tree donation at checkout
+- ✅ **Updated Navigation**: Added "Sustainability" link to header
 
 ## Prioritized Backlog
 

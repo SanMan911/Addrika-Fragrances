@@ -3,7 +3,7 @@ import { Award, CheckCircle, XCircle, Star, Shield, Leaf, Wind, Heart, MapPin, E
 
 export const metadata = {
   title: 'Why Choose Addrika? | Premium Indian Incense vs Competitors | Phool, Nirmalaya Comparison',
-  description: 'Discover why Addrika Fragrances is India\'s premium choice for luxury incense. Compare Addrika vs Phool, Nirmalaya, Temple of Incense. Zero charcoal, 40-50 min burn time, 100% natural ingredients, made in India.',
+  description: 'Discover why Addrika Fragrances is India\'s premium choice for luxury incense. Compare Addrika vs Phool, Nirmalaya, Temple of Incense. Charcoal-free, 40-50 min burn time, ethically sourced ingredients, made in India.',
   keywords: [
     'why choose addrika', 'addrika vs phool', 'addrika vs nirmalaya', 'best premium incense india',
     'luxury agarbatti brands india', 'premium incense comparison', 'zero charcoal incense brands',
