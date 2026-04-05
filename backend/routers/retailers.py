@@ -1143,3 +1143,73 @@ async def admin_gst_lookup(
     return result
 
 
+
+
+# ===================== Seed Retailers (One-time setup) =====================
+
+@router.post("/seed-default")
+async def seed_default_retailers():
+    """Seed default retailers - for initial setup"""
+    from datetime import datetime, timezone
+    
+    default_retailers = [
+        {
+            "id": "delhi_primary",
+            "retailer_id": "RTL_DELHI001",
+            "business_name": "M.G. Shoppie",
+            "name": "M.G. Shoppie",
+            "trade_name": "M.G. Shoppie",
+            "email": "amitkumar.911@proton.me",
+            "phone": "6202311736",
+            "gst_number": "07AADCM1234A1Z5",
+            "address": "745, Sector 17 Pocket A Phase II, Dwarka",
+            "city": "Dwarka",
+            "district": "South West Delhi",
+            "state": "Delhi",
+            "pincode": "110078",
+            "coordinates": {
+                "lat": 28.5921,
+                "lng": 77.0460
+            },
+            "status": "active",
+            "is_verified": True,
+            "is_addrika_verified_partner": True,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        },
+        {
+            "id": "bhagalpur_mela",
+            "retailer_id": "RTL_BHAG001",
+            "business_name": "Mela Stores",
+            "name": "Mela Stores",
+            "trade_name": "Mela Stores",
+            "email": "mr.amitbgp@gmail.com",
+            "phone": "7061483566",
+            "gst_number": "10AABCM5678B1Z3",
+            "address": "D.N. Singh Road, Variety Chowk",
+            "city": "Bhagalpur",
+            "district": "Bhagalpur",
+            "state": "Bihar",
+            "pincode": "812002",
+            "coordinates": {
+                "lat": 25.2425,
+                "lng": 86.9842
+            },
+            "status": "active",
+            "is_verified": True,
+            "is_addrika_verified_partner": True,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+    ]
+    
+    seeded = []
+    for retailer in default_retailers:
+        result = await db.retailers.update_one(
+            {"id": retailer["id"]},
+            {"$set": retailer},
+            upsert=True
+        )
+        seeded.append(retailer["business_name"])
+    
+    return {"message": "Default retailers seeded", "retailers": seeded}

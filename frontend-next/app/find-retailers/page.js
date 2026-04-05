@@ -179,7 +179,7 @@ export default async function FindRetailersPage() {
             </h1>
             <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
               Visit our authorized retailers to experience premium zero-charcoal incense in person. 
-              Available in <strong className="text-[#D4AF37]">Delhi</strong> and <strong className="text-[#D4AF37]">Bihar</strong>.
+              Available in <strong className="text-[#D4AF37]">select stores across India</strong>.
             </p>
           </div>
         </section>
