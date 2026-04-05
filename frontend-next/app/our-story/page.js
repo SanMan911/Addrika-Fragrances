@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { Heart, Leaf, Users, ArrowLeft } from 'lucide-react';
+import { Heart, Leaf, Users, Target, Eye, Sparkles } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
 export const metadata = {
   title: 'Our Story | Addrika - The Journey Behind Premium Incense',
-  description: 'Discover the story behind Addrika - born from a belief that everyday rituals deserve care and intention. Learn about our journey into mindful creation and ethical fragrance crafting.',
-  keywords: ['addrika story', 'incense brand story', 'premium agarbatti brand', 'ethical incense', 'mindful fragrance', 'centsible traders story'],
+  description: 'Discover the story behind Addrika - born from a belief that everyday rituals deserve care and intention. Learn about our mission, vision, and journey into mindful creation and ethical fragrance crafting.',
+  keywords: ['addrika story', 'incense brand story', 'premium agarbatti brand', 'ethical incense', 'mindful fragrance', 'centsible traders story', 'addrika mission', 'addrika vision'],
   openGraph: {
     title: 'Our Story | Addrika',
     description: 'Born from a belief that everyday rituals deserve care and intention.',
@@ -123,6 +123,78 @@ export default function OurStoryPage() {
                   This question led us on a journey across India, meeting master artisans who 
                   have perfected their craft over generations. We learned about traditional 
                   methods, ethically sourced ingredients, and the art of creating fragrances that touch the soul.
+                </p>
+              </div>
+            </div>
+
+            {/* Mission & Vision Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+              {/* Mission */}
+              <div 
+                className="p-8 rounded-2xl relative overflow-hidden"
+                style={{ 
+                  background: 'linear-gradient(165deg, rgba(26,26,46,0.9) 0%, rgba(22,33,62,0.9) 100%)',
+                  border: '1px solid rgba(212,175,55,0.3)'
+                }}
+              >
+                <div 
+                  className="absolute top-0 right-0 w-32 h-32 opacity-10"
+                  style={{ 
+                    background: 'radial-gradient(circle, #D4AF37 0%, transparent 70%)'
+                  }}
+                />
+                <div 
+                  className="w-14 h-14 mb-5 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(212,175,55,0.15)' }}
+                >
+                  <Target size={28} className="text-[#D4AF37]" />
+                </div>
+                <h3 
+                  className="text-xl font-bold mb-4 text-[#D4AF37]"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                >
+                  Our Mission
+                </h3>
+                <p className="text-gray-300 leading-relaxed">
+                  To elevate everyday rituals by crafting premium, zero-charcoal incense that 
+                  is as pure as the intentions behind lighting it. We are committed to delivering 
+                  fragrances that enrich spiritual moments while supporting the artisan communities 
+                  who bring them to life — one stick at a time.
+                </p>
+              </div>
+
+              {/* Vision */}
+              <div 
+                className="p-8 rounded-2xl relative overflow-hidden"
+                style={{ 
+                  background: 'linear-gradient(165deg, rgba(26,26,46,0.9) 0%, rgba(22,33,62,0.9) 100%)',
+                  border: '1px solid rgba(212,175,55,0.3)'
+                }}
+              >
+                <div 
+                  className="absolute top-0 right-0 w-32 h-32 opacity-10"
+                  style={{ 
+                    background: 'radial-gradient(circle, #D4AF37 0%, transparent 70%)'
+                  }}
+                />
+                <div 
+                  className="w-14 h-14 mb-5 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(212,175,55,0.15)' }}
+                >
+                  <Eye size={28} className="text-[#D4AF37]" />
+                </div>
+                <h3 
+                  className="text-xl font-bold mb-4 text-[#D4AF37]"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                >
+                  Our Vision
+                </h3>
+                <p className="text-gray-300 leading-relaxed">
+                  To become India's most trusted name in ethical, premium incense — known not 
+                  just for our exceptional fragrances, but for our unwavering commitment to 
+                  transparency, sustainability, and the well-being of every hand that crafts 
+                  our products. We envision a world where mindful consumption uplifts both 
+                  the consumer and the creator.
                 </p>
               </div>
             </div>
