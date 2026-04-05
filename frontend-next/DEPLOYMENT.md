@@ -37,11 +37,11 @@ git push -u origin main
 
 | Variable Name | Value |
 |---------------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://csr-metrics-update.preview.emergentagent.com` |
+| `NEXT_PUBLIC_API_URL` | `https://title-case-forms.preview.emergentagent.com` |
 
 **How to add:**
 1. In Vercel project settings, go to **Settings → Environment Variables**
-2. Add: `NEXT_PUBLIC_API_URL` = `https://csr-metrics-update.preview.emergentagent.com`
+2. Add: `NEXT_PUBLIC_API_URL` = `https://title-case-forms.preview.emergentagent.com`
 3. Select all environments (Production, Preview, Development)
 4. Click **Save**
 
@@ -77,7 +77,7 @@ git push -u origin main
 
 ### Backend API
 Your backend is currently running on Emergent's preview environment:
-- URL: `https://csr-metrics-update.preview.emergentagent.com`
+- URL: `https://title-case-forms.preview.emergentagent.com`
 - This handles: Products, Orders, Auth, etc.
 
 **For production**, you may want to deploy backend separately to:

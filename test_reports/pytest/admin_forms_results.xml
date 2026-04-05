@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="3" tests="11" time="6.260" timestamp="2026-04-05T11:43:30.386761+00:00" hostname="agent-env-b7e1384e-26e5-4921-ae21-cbaf0e8567f3"><testcase classname="backend.tests.test_admin_forms.TestAdminLogin" name="test_admin_login_initiate_success" time="1.268" /><testcase classname="backend.tests.test_admin_forms.TestAdminLogin" name="test_admin_login_invalid_email" time="0.151" /><testcase classname="backend.tests.test_admin_forms.TestAdminLogin" name="test_admin_login_invalid_pin" time="0.389" /><testcase classname="backend.tests.test_admin_forms.TestAdminLogin" name="test_admin_login_missing_fields" time="0.141" /><testcase classname="backend.tests.test_admin_forms.TestAdminRetailersEndpoint" name="test_add_retailer_endpoint_exists" time="1.107"><skipped type="pytest.skip" message="Could not verify admin OTP: {&quot;detail&quot;:&quot;Invalid OTP. 2 attempts remaining.&quot;}">/app/backend/tests/test_admin_forms.py:121: Could not verify admin OTP: {"detail":"Invalid OTP. 2 attempts remaining."}</skipped></testcase><testcase classname="backend.tests.test_admin_forms.TestAdminRetailersEndpoint" name="test_add_retailer_without_auth" time="0.135" /><testcase classname="backend.tests.test_admin_forms.TestAdminDiscountCodesEndpoint" name="test_create_coupon_endpoint_exists" time="1.089"><skipped type="pytest.skip" message="Could not verify admin OTP: {&quot;detail&quot;:&quot;Invalid OTP. 2 attempts remaining.&quot;}">/app/backend/tests/test_admin_forms.py:213: Could not verify admin OTP: {"detail":"Invalid OTP. 2 attempts remaining."}</skipped></testcase><testcase classname="backend.tests.test_admin_forms.TestAdminDiscountCodesEndpoint" name="test_create_coupon_without_auth" time="0.113" /><testcase classname="backend.tests.test_admin_forms.TestAdminDiscountCodesEndpoint" name="test_list_discount_codes" time="1.094"><skipped type="pytest.skip" message="Could not verify admin OTP: {&quot;detail&quot;:&quot;Invalid OTP. 2 attempts remaining.&quot;}">/app/backend/tests/test_admin_forms.py:272: Could not verify admin OTP: {"detail":"Invalid OTP. 2 attempts remaining."}</skipped></testcase><testcase classname="backend.tests.test_admin_forms.TestTitleCaseFormatting" name="test_registration_endpoint_exists" time="0.131" /><testcase classname="backend.tests.test_admin_forms.TestTitleCaseFormatting" name="test_pincode_lookup_api" time="0.333"><failure message="requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))">/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:787: in urlopen
+    response = self._make_request(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:534: in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:571: in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:1415: in getresponse
+    response.begin()
+/usr/local/lib/python3.11/http/client.py:330: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:299: in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+E   http.client.RemoteDisconnected: Remote end closed connection without response
+
+During handling of the above exception, another exception occurred:
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:644: in send
+    resp = conn.urlopen(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:841: in urlopen
+    retries = retries.increment(
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:474: in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/util/util.py:38: in reraise
+    raise value.with_traceback(tb)
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:787: in urlopen
+    response = self._make_request(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:534: in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:571: in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:1415: in getresponse
+    response.begin()
+/usr/local/lib/python3.11/http/client.py:330: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:299: in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+E   urllib3.exceptions.ProtocolError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_admin_forms.py:305: in test_pincode_lookup_api
+    response = requests.get("https://api.postalpincode.in/pincode/110078")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:73: in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:589: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:703: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:659: in send
+    raise ConnectionError(err, request=request)
+E   requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))</failure></testcase></testsuite></testsuites>

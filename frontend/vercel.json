@@ -8,11 +8,11 @@
     "env": {
       "CI": "false",
       "DISABLE_ESLINT_PLUGIN": "true",
-      "REACT_APP_BACKEND_URL": "https://csr-metrics-update.preview.emergentagent.com"
+      "REACT_APP_BACKEND_URL": "https://title-case-forms.preview.emergentagent.com"
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://csr-metrics-update.preview.emergentagent.com/api/:path*" }
+    { "source": "/api/:path*", "destination": "https://title-case-forms.preview.emergentagent.com/api/:path*" }
   ],
   "routes": [
     { "handle": "filesystem" },

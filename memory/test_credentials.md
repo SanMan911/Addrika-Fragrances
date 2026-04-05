@@ -2,8 +2,9 @@
 
 ## Admin Account
 - **Email**: contact.us@centraders.com
-- **PIN**: 110078
-- **Master Password** (for OTP bypass): addrika_admin_override
+- **PIN**: 050499 (Note: 110078 in .env is the default, but actual PIN in DB is 050499)
+- **Master Password** (for PIN recovery OTP bypass only): addrika_admin_override
+- **Note**: Master password only works for PIN recovery flow, NOT for regular 2FA login
 
 ## Test User
 - **Email**: test.user@example.com
