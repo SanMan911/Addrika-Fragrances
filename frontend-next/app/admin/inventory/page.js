@@ -17,11 +17,15 @@ export default function AdminInventoryPage() {
       const res = await authFetch(`${API_URL}/api/admin/inventory`);
       if (res.ok) {
         const data = await res.json();
-        setProducts(data.products || data || []);
+        // API returns { inventory: [...] } structure
+        setProducts(data.inventory || data.products || data || []);
+      } else {
+        // If no inventory exists yet, show empty state
+        setProducts([]);
       }
     } catch (error) {
       console.error('Failed to fetch inventory:', error);
-      toast.error('Failed to load inventory');
+      setProducts([]);
     } finally {
       setLoading(false);
     }
