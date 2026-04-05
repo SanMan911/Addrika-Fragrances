@@ -1213,3 +1213,46 @@ async def seed_default_retailers():
         seeded.append(retailer["business_name"])
     
     return {"message": "Default retailers seeded", "retailers": seeded}
+
+
+
+@router.post("/admin/add")
+async def admin_add_retailer(request: Request, session_token: Optional[str] = Cookie(None)):
+    """Add a new retailer from admin panel"""
+    from datetime import datetime, timezone
+    import uuid
+    
+    await require_admin(request, session_token)
+    
+    body = await request.json()
+    
+    # Generate unique IDs
+    retailer_id = f"RTL_{body.get('city', 'IND')[:3].upper()}{str(uuid.uuid4())[:4].upper()}"
+    unique_id = f"{body.get('city', 'store').lower().replace(' ', '_')}_{str(uuid.uuid4())[:8]}"
+    
+    retailer = {
+        "id": unique_id,
+        "retailer_id": retailer_id,
+        "business_name": body.get("business_name"),
+        "name": body.get("business_name"),
+        "trade_name": body.get("trade_name") or body.get("business_name"),
+        "owner_name": body.get("owner_name"),
+        "email": body.get("email"),
+        "phone": body.get("phone"),
+        "gst_number": body.get("gst_number"),
+        "address": body.get("address"),
+        "city": body.get("city"),
+        "district": body.get("district"),
+        "state": body.get("state"),
+        "pincode": body.get("pincode"),
+        "coordinates": body.get("coordinates"),
+        "status": "active",
+        "is_verified": True,
+        "is_addrika_verified_partner": True,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
+    }
+    
+    result = await db.retailers.insert_one(retailer)
+    
+    return {"message": "Retailer added successfully", "retailer": body.get("business_name"), "id": unique_id}
