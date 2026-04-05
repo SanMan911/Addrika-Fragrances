@@ -5,8 +5,8 @@ import Footer from '../../components/Footer';
 
 export const metadata = {
   title: 'Shipping & Returns Policy | Addrika Premium Incense',
-  description: 'Free shipping on orders above Rs. 499. Easy 7-day returns for unused products. Fast delivery across India with real-time tracking for all Addrika incense orders.',
-  keywords: ['addrika shipping', 'incense delivery india', 'agarbatti returns policy', 'free shipping incense'],
+  description: 'Free shipping on orders above Rs. 499. Fast delivery across India with real-time tracking for all Addrika incense orders. No returns on incense products due to hygiene reasons.',
+  keywords: ['addrika shipping', 'incense delivery india', 'agarbatti shipping policy', 'free shipping incense'],
 };
 
 export default function ShippingReturnsPage() {
@@ -34,10 +34,10 @@ export default function ShippingReturnsPage() {
               className="text-4xl sm:text-5xl font-bold text-white mb-4"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-              Shipping & Returns
+              Shipping & Policy
             </h1>
             <p className="text-lg text-gray-300">
-              Fast delivery across India with hassle-free returns
+              Fast delivery across India
             </p>
           </div>
         </section>
@@ -90,8 +90,8 @@ export default function ShippingReturnsPage() {
               >
                 <RefreshCcw className="w-7 h-7 text-[#D4AF37]" />
               </div>
-              <h3 className="font-semibold text-white mb-2">Easy Returns</h3>
-              <p className="text-gray-400 text-sm">7-day return policy</p>
+              <h3 className="font-semibold text-white mb-2">No Returns</h3>
+              <p className="text-gray-400 text-sm">Due to hygiene reasons</p>
             </div>
           </div>
         </section>
@@ -142,7 +142,7 @@ export default function ShippingReturnsPage() {
               </div>
             </div>
 
-            {/* Returns Policy */}
+            {/* Returns & Exchange Policy */}
             <div 
               className="p-8 rounded-2xl mb-8"
               style={{ 
@@ -154,48 +154,45 @@ export default function ShippingReturnsPage() {
                 className="text-2xl font-bold text-white mb-6"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                Returns Policy
+                Returns & Exchange Policy
               </h2>
               
               <div className="space-y-6 text-gray-300">
-                <div>
-                  <h3 className="font-semibold text-white mb-2">Return Window</h3>
-                  <p className="text-gray-400">
-                    You may return unused, unopened products within <span className="text-[#D4AF37] font-semibold">7 days</span> of delivery.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold text-white mb-2">Return Conditions</h3>
-                  <ul className="list-disc list-inside space-y-1 text-gray-400">
-                    <li>Product must be unused and in original packaging</li>
-                    <li>All tags and seals must be intact</li>
-                    <li>Original invoice must be included</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold text-white mb-2">Refund Process</h3>
-                  <p className="text-gray-400">
-                    Refunds are processed within 5-7 business days after we receive and inspect 
-                    the returned item. The amount will be credited to your original payment method.
-                  </p>
-                </div>
-                
                 <div 
                   className="p-4 rounded-lg flex gap-3"
                   style={{ 
-                    background: 'rgba(234,179,8,0.1)',
-                    border: '1px solid rgba(234,179,8,0.3)'
+                    background: 'rgba(239,68,68,0.1)',
+                    border: '1px solid rgba(239,68,68,0.3)'
                   }}
                 >
-                  <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-semibold text-yellow-400">Non-Returnable Items</h4>
-                    <p className="text-sm text-yellow-300/80">
-                      Opened or used incense products cannot be returned due to hygiene reasons.
+                    <h4 className="font-semibold text-red-400">No Returns or Exchanges</h4>
+                    <p className="text-sm text-red-300/80">
+                      Due to the nature of our products (incense sticks, dhoop, bakhoor), we cannot accept returns or exchanges for hygiene and olfactory reasons. These aromatic items are designed to be burned and cannot be resold once opened or used.
                     </p>
                   </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold text-white mb-2">Damaged or Defective Products</h3>
+                  <p className="text-gray-400">
+                    If you receive a damaged or defective product, please contact us within <span className="text-[#D4AF37] font-semibold">48 hours</span> of delivery with photos of the damage. We will arrange for a replacement at no additional cost.
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold text-white mb-2">Wrong Product Delivered</h3>
+                  <p className="text-gray-400">
+                    In the rare case of receiving a wrong product, contact us within <span className="text-[#D4AF37] font-semibold">48 hours</span> and we will arrange for the correct product to be delivered.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-white mb-2">Contact for Issues</h3>
+                  <p className="text-gray-400">
+                    Email us at <span className="text-[#D4AF37]">contact.us@centraders.com</span> with your order number and photos for any product-related issues.
+                  </p>
                 </div>
               </div>
             </div>
@@ -210,7 +207,7 @@ export default function ShippingReturnsPage() {
             >
               <h3 className="font-semibold text-white mb-2">Need Help?</h3>
               <p className="text-gray-400 mb-4">
-                Contact our support team for any shipping or return queries.
+                Contact our support team for any shipping or product queries.
               </p>
               <div className="text-gray-300">
                 <p><span className="text-[#D4AF37]">Email:</span> contact.us@centraders.com</p>
