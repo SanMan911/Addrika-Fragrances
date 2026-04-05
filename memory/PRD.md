@@ -113,6 +113,9 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - Coupon Performance Table: Code, Uses, Customers, Cart Value, Discount Given, Net Revenue, Avg Cart, Status
   - Recent Usage/Invoice Details: User email, Order ID, cart value, discount amount, timestamp
 - ✅ **Per-Coupon Usage History** - Click Eye icon on any coupon to see its usage breakdown
+- ✅ **Mission & Vision Statements** added to Our Story page:
+  - Mission: Elevate everyday rituals with premium zero-charcoal incense supporting artisan communities
+  - Vision: Become India's most trusted name in ethical, premium incense
 
 ## Prioritized Backlog
 
