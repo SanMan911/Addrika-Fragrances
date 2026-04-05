@@ -169,29 +169,15 @@ export default function ShippingReturnsPage() {
                   <div>
                     <h4 className="font-semibold text-red-400">No Returns or Exchanges</h4>
                     <p className="text-sm text-red-300/80">
-                      Due to the nature of our products (incense sticks, dhoop, bakhoor), we cannot accept returns or exchanges for hygiene and olfactory reasons. These aromatic items are designed to be burned and cannot be resold once opened or used.
+                      Due to the nature of our products (incense sticks, dhoop, bakhoor), we cannot accept returns or exchanges for hygiene and olfactory reasons. These aromatic items are designed to be burned and cannot be resold once dispatched.
                     </p>
                   </div>
                 </div>
                 
                 <div>
-                  <h3 className="font-semibold text-white mb-2">Damaged or Defective Products</h3>
+                  <h3 className="font-semibold text-white mb-2">Questions or Concerns?</h3>
                   <p className="text-gray-400">
-                    If you receive a damaged or defective product, please contact us within <span className="text-[#D4AF37] font-semibold">48 hours</span> of delivery with photos of the damage. We will arrange for a replacement at no additional cost.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold text-white mb-2">Wrong Product Delivered</h3>
-                  <p className="text-gray-400">
-                    In the rare case of receiving a wrong product, contact us within <span className="text-[#D4AF37] font-semibold">48 hours</span> and we will arrange for the correct product to be delivered.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-white mb-2">Contact for Issues</h3>
-                  <p className="text-gray-400">
-                    Email us at <span className="text-[#D4AF37]">contact.us@centraders.com</span> with your order number and photos for any product-related issues.
+                    For any product-related queries, email us at <span className="text-[#D4AF37]">contact.us@centraders.com</span> with your order number.
                   </p>
                 </div>
               </div>
