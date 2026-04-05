@@ -364,7 +364,7 @@ export default function FragranceGridServer({ initialProducts = [] }) {
             Premium Incense Collection
           </h2>
           <p className="text-lg sm:text-xl max-w-3xl mx-auto mb-10 text-[#666] dark:text-gray-300">
-            Premium zero-charcoal agarbattis and bambooless dhoop, each offering 30-50 minutes of pure, 
+            Premium charcoal-free agarbattis and bambooless dhoop, each offering 30-50 minutes of pure, 
             low-smoke aromatherapy — supporting artisan communities across India
           </p>
         </div>
@@ -431,7 +431,7 @@ export default function FragranceGridServer({ initialProducts = [] }) {
               Low Smoke • Zero Charcoal • 40-50 Min Burn
             </p>
             <p className="text-sm text-[#999] dark:text-gray-500">
-              All products are charcoal-free, produce 80% less smoke, and support local artisan communities
+              All agarbattis are charcoal-free, dhoop is bambooless, producing over 60% less smoke while supporting local artisan communities
             </p>
           </div>
         )}

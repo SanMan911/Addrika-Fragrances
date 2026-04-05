@@ -63,7 +63,7 @@ export default function WhyChooseAddrikaPage() {
     {
       icon: Wind,
       title: "Zero Charcoal Formula",
-      description: "Unlike many competitors, Addrika uses absolutely no charcoal. Our proprietary formula uses natural flower dust as the base, resulting in 80% less smoke.",
+      description: "Unlike many competitors, Addrika uses absolutely no charcoal. Our proprietary formula uses natural flower dust as the base, resulting in over 60% less smoke.",
       highlight: "0% Charcoal"
     },
     {
@@ -74,9 +74,9 @@ export default function WhyChooseAddrikaPage() {
     },
     {
       icon: Leaf,
-      title: "100% Natural Ingredients",
-      description: "Pure essential oils, natural flower dust, plant-based resins, and aromatic herbs. No synthetic fragrances, no DEP, no harmful chemicals.",
-      highlight: "100% Natural"
+      title: "Ethically Sourced Ingredients",
+      description: "Pure essential oils, natural flower dust, plant-based resins, and aromatic herbs from responsible suppliers. No harmful chemicals.",
+      highlight: "Ethical Sourcing"
     },
     {
       icon: Shield,
@@ -113,13 +113,13 @@ export default function WhyChooseAddrikaPage() {
     },
     { 
       feature: "Smoke Level", 
-      addrika: "80% less smoke (Low smoke)", 
+      addrika: "60%+ less smoke (Low smoke)", 
       addrikaGood: true,
       others: "Varies - often moderate to high"
     },
     { 
       feature: "Ingredients", 
-      addrika: "100% Natural - Pure essential oils", 
+      addrika: "Ethically Sourced - Pure essential oils", 
       addrikaGood: true,
       others: "Mix of natural and synthetic"
     },
@@ -168,7 +168,7 @@ export default function WhyChooseAddrikaPage() {
     },
     {
       useCase: "Small Apartments & Bedrooms",
-      description: "80% less smoke is perfect for compact spaces. Won't stain walls or leave heavy residue.",
+      description: "60%+ less smoke is perfect for compact spaces. Won't stain walls or leave heavy residue.",
       products: ["Regal Rose", "Kesar Chandan"]
     },
     {

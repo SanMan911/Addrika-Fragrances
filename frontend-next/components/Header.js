@@ -34,7 +34,7 @@ export default function Header() {
   const navItems = [
     { label: 'Fragrances', href: '#fragrances', type: 'scroll' },
     { label: 'Our Story', href: '/our-story', type: 'route' },
-    { label: 'CSR', href: '#csr', type: 'scroll' },
+    { label: 'Sustainability', href: '/sustainability', type: 'route' },
     { label: 'Find Retailers', href: '/find-retailers', type: 'route' },
     { label: 'Track Order', href: '/track-order', type: 'route' },
     { label: 'Contact', href: '#contact', type: 'scroll' }

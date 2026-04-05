@@ -14,7 +14,7 @@ const csrInitiatives = [
   {
     icon: Leaf,
     title: 'Low Carbon Footprint',
-    description: 'Our zero-charcoal formula produces 40% less smoke and significantly fewer carbon emissions than traditional incense.',
+    description: 'Our zero-charcoal formula produces over 60% less smoke and significantly fewer carbon emissions than traditional incense.',
     impact: 'Cleaner burning',
     color: '#059669'
   },

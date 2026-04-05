@@ -47,7 +47,7 @@ export default function OurStoryPage() {
     {
       icon: Leaf,
       title: 'Low Carbon Footprint',
-      description: 'Our zero-charcoal formula burns cleaner, producing 40% less smoke and fewer carbon emissions.'
+      description: 'Our charcoal-free formula burns cleaner, producing over 60% less smoke and fewer carbon emissions.'
     },
     {
       icon: Sparkles,

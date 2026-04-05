@@ -183,7 +183,7 @@ export default function IngredientsPage() {
         <section className="py-20 px-4 bg-gradient-to-br from-[#2B3A4A] to-[#1a252f] text-white">
           <div className="max-w-4xl mx-auto text-center">
             <span className="inline-block px-4 py-2 bg-[#D4AF37]/20 text-[#D4AF37] rounded-full text-sm font-medium mb-6">
-              100% Natural • Zero Charcoal • Pure Essential Oils
+              Charcoal-Free • Ethically Sourced • Pure Essential Oils
             </span>
             <h1 className="text-4xl sm:text-5xl font-bold font-serif mb-6">
               What&apos;s Inside Addrika Incense?
@@ -208,7 +208,7 @@ export default function IngredientsPage() {
                 <div>
                   <p className="text-gray-600"><strong className="text-[#2B3A4A]">Supporting Ingredients:</strong> Aromatic herbs & spices</p>
                   <p className="text-gray-600"><strong className="text-[#2B3A4A]">Charcoal Content:</strong> Zero (charcoal-free)</p>
-                  <p className="text-gray-600"><strong className="text-[#2B3A4A]">Synthetic Content:</strong> Zero (100% natural)</p>
+                  <p className="text-gray-600"><strong className="text-[#2B3A4A]">Sourcing:</strong> Ethically sourced</p>
                 </div>
               </div>
             </div>
@@ -352,12 +352,12 @@ export default function IngredientsPage() {
           <div className="max-w-4xl mx-auto text-center">
             <Wind className="w-16 h-16 text-[#D4AF37] mx-auto mb-6" />
             <h2 className="text-3xl font-bold font-serif mb-4">
-              Why 100% Natural Matters
+              Why Ethical Sourcing Matters
             </h2>
             <p className="text-gray-300 max-w-2xl mx-auto mb-8">
               When you burn incense, you&apos;re releasing its components into your breathing space. 
-              That&apos;s why we believe only natural, carefully sourced ingredients belong in your home. 
-              No shortcuts, no synthetics—just pure fragrance the way nature intended.
+              That&apos;s why we believe only ethically sourced, carefully selected ingredients belong in your home. 
+              No shortcuts—just pure fragrance the way nature intended.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
@@ -408,7 +408,7 @@ export default function IngredientsPage() {
       <footer className="bg-[#1a252f] text-white py-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika Fragrances</p>
-          <p className="text-sm text-gray-400">100% Natural Ingredients • Zero Charcoal</p>
+          <p className="text-sm text-gray-400">Ethically Sourced Ingredients • Charcoal-Free</p>
           <p className="text-sm text-gray-400 mt-2">© 2026 Centsibl Traders Private Limited</p>
         </div>
       </footer>

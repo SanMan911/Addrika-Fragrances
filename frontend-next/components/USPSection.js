@@ -12,8 +12,8 @@ const uspItems = [
   },
   {
     icon: Wind,
-    title: '80% Less Smoke',
-    description: 'Revolutionary formula produces significantly less smoke while delivering the same rich aroma.',
+    title: '60%+ Less Smoke',
+    description: 'Our charcoal-free formula produces significantly less smoke while delivering the same rich aroma.',
     color: '#3B82F6'
   },
   {

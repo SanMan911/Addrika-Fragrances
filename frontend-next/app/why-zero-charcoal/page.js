@@ -67,7 +67,7 @@ export default function WhyZeroCharcoalPage() {
   const zeroCharcoalBenefits = [
     {
       icon: Wind,
-      title: "80% Less Smoke",
+      title: "60%+ Less Smoke",
       description: "Our charcoal-free formula produces minimal smoke, perfect for indoor spaces and small apartments"
     },
     {
@@ -182,7 +182,7 @@ export default function WhyZeroCharcoalPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              How Addrika Achieves 80% Less Smoke
+              How Addrika Achieves 60%+ Less Smoke
             </h2>
             <div className="bg-[#F5F0E8] rounded-xl p-8">
               <div className="space-y-6">

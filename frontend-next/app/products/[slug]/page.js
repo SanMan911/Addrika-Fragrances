@@ -135,7 +135,7 @@ function ProductStructuredData({ product }) {
       {
         "@type": "PropertyValue",
         "name": "Smoke Level",
-        "value": "Low Smoke (80% less than traditional)"
+        "value": "Low Smoke (60%+ less than traditional)"
       },
       {
         "@type": "PropertyValue",
