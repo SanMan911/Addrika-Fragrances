@@ -1,0 +1,93 @@
+{
+  "summary": "Tested coupon deletion with confirmation modal, toggle active/inactive status, and comprehensive analytics features. All backend APIs and frontend UI features working correctly.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "Delete Coupon Confirmation Modal": {
+      "status": "PASSED",
+      "endpoint": "DELETE /api/admin/discount-codes/{id}",
+      "ui_location": "/admin/marketing",
+      "details": "Modal shows coupon code, warning message, requires typing exact coupon code to confirm. Delete button is disabled until code matches. Cancel button works correctly."
+    },
+    "Toggle Coupon Active/Inactive Status": {
+      "status": "PASSED",
+      "endpoint": "PATCH /api/admin/discount-codes/{id}/toggle",
+      "ui_location": "/admin/marketing",
+      "details": "Clicking status badge (Active/Inactive) toggles the coupon status. Toast notification confirms the action. UI updates immediately."
+    },
+    "Analytics Tab - Summary Cards": {
+      "status": "PASSED",
+      "endpoint": "GET /api/admin/discount-code-performance",
+      "ui_location": "/admin/marketing > Analytics tab",
+      "details": "Shows 4 summary cards: Total Uses, Total Cart Value, Total Discount Given, Unique Customers. Empty state handled gracefully with 0 values."
+    },
+    "Analytics Tab - Coupon Performance Table": {
+      "status": "PASSED",
+      "endpoint": "GET /api/admin/discount-code-performance",
+      "ui_location": "/admin/marketing > Analytics tab",
+      "details": "Table shows each coupon with columns: Code, Uses, Customers, Cart Value, Discount Given, Net Revenue, Avg Cart, Status. Empty state message shown when no usage data."
+    },
+    "Analytics Tab - Recent Usage/Invoice Details": {
+      "status": "PASSED",
+      "endpoint": "GET /api/admin/discount-code-usage",
+      "ui_location": "/admin/marketing > Analytics tab",
+      "details": "Shows list of orders that used coupons with user email, order ID, cart value, discount amount, timestamp. Empty state message shown when no usage logs."
+    },
+    "Per-Coupon Usage History (Eye Icon)": {
+      "status": "PASSED",
+      "endpoint": "GET /api/admin/discount-code-usage?code={code}",
+      "ui_location": "/admin/marketing > Coupons tab > Eye icon",
+      "details": "Clicking Eye icon expands coupon card to show Usage History section. Shows individual usage entries or 'No usage history found' message."
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_discount_analytics.py",
+    "/app/test_reports/pytest/discount_analytics_results.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "✓ Delete confirmation modal properly requires typing exact coupon code",
+    "✓ Toggle endpoint correctly flips is_active status and returns new state",
+    "✓ Performance endpoint aggregates usage data with proper summary statistics",
+    "✓ Usage endpoint supports filtering by coupon code",
+    "✓ Frontend handles empty states gracefully for all analytics sections",
+    "✓ All data-testid attributes present for key interactive elements"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_discount_analytics.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (all UI features verified via Playwright)"
+  },
+
+  "test_credentials": {
+    "admin_email": "contact.us@centraders.com",
+    "admin_pin": "050499",
+    "note": "Admin 2FA login requires OTP from email or database"
+  },
+
+  "seed_data_creation": "Created and cleaned up test coupons (TEST* prefix) during testing",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Coupon analytics and management features fully functional. Delete confirmation requires typing exact coupon code. Toggle status works via clicking Active/Inactive badge. Analytics tab shows summary cards and performance table (empty state when no usage data). Per-coupon usage history accessible via Eye icon on each coupon card.",
+
+  "rca_of_the_issue": "N/A - All features working as expected."
+}
