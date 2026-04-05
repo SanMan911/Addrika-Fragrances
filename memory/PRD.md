@@ -105,6 +105,15 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - ✅ **VERIFIED: Return Policy text cleanup** - No mention of "damaged/defective/wrong deliveries"
 - ✅ **FIXED: test_credentials.md** - Corrected Admin PIN from 110078 to 050499
 
+### April 5, 2026 - Coupon Analytics & Delete Confirmation
+- ✅ **Enhanced Delete Coupon** - Confirmation modal requires typing exact coupon code
+- ✅ **Toggle Coupon Status** - Click Active/Inactive badge to toggle coupon on/off
+- ✅ **NEW: Analytics Tab** in Marketing page with:
+  - Summary Cards: Total Uses, Total Cart Value, Total Discount Given, Unique Customers
+  - Coupon Performance Table: Code, Uses, Customers, Cart Value, Discount Given, Net Revenue, Avg Cart, Status
+  - Recent Usage/Invoice Details: User email, Order ID, cart value, discount amount, timestamp
+- ✅ **Per-Coupon Usage History** - Click Eye icon on any coupon to see its usage breakdown
+
 ## Prioritized Backlog
 
 ### P0 (Critical)
