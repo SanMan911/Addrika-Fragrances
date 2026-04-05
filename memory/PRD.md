@@ -94,6 +94,17 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - Server-side SSR calls require `NEXT_PUBLIC_BACKEND_URL` env var
   - Updated `.env.local` to not have hardcoded URLs
 
+### April 5, 2026 - Admin Panel Forms & Title Case
+- ✅ **VERIFIED: Title Case auto-capitalization working**
+  - Registration form: name, address, landmark, city, state fields
+  - Checkout form: name, address, landmark fields
+  - Admin Retailers form: business_name, trade_name, owner_name, address, city, district, state
+  - All inputs auto-capitalize first letter of every word
+- ✅ **VERIFIED: Admin Add Retailer form** - works end-to-end with backend
+- ✅ **VERIFIED: Admin Create Coupon form** - works end-to-end with backend
+- ✅ **VERIFIED: Return Policy text cleanup** - No mention of "damaged/defective/wrong deliveries"
+- ✅ **FIXED: test_credentials.md** - Corrected Admin PIN from 110078 to 050499
+
 ## Prioritized Backlog
 
 ### P0 (Critical)
