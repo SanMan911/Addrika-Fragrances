@@ -107,6 +107,7 @@ class OrderCreate(BaseModel):
     token_amount: Optional[float] = None
     pickup_time_slot: Optional[str] = None
     coin_redemption: Optional[dict] = None
+    tree_donation: Optional[float] = 0  # Customer's tree donation amount (₹5)
 
 
 class OrderItem(BaseModel):
