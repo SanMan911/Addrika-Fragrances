@@ -235,3 +235,151 @@ async def cancel_scheduled_review(order_number: str, request: Request, session_t
     except Exception as e:
         logger.error(f"Failed to cancel review: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/tree-donations")
+async def get_tree_donation_metrics(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    days: int = 30
+):
+    """
+    Get tree donation metrics with date range filtering.
+    
+    Args:
+        start_date: Start date in ISO format (optional)
+        end_date: End date in ISO format (optional)
+        days: Number of days to look back if dates not provided (default 30)
+    
+    Returns:
+        Tree donation statistics, daily breakdown, and order details
+    """
+    await require_admin(request, session_token)
+    
+    # Build date filter
+    if start_date and end_date:
+        date_filter = {
+            "$gte": start_date,
+            "$lte": end_date
+        }
+    else:
+        days = min(days, 365)
+        start = datetime.now(timezone.utc) - timedelta(days=days)
+        date_filter = {"$gte": start.isoformat()}
+    
+    # Aggregate tree donations
+    pipeline = [
+        # Match orders with tree donations
+        {"$match": {
+            "created_at": date_filter,
+            "payment_status": {"$in": ["paid", "completed"]},
+            "pricing.tree_donation": {"$gt": 0}
+        }},
+        {"$group": {
+            "_id": None,
+            "total_customer_donations": {"$sum": "$pricing.tree_donation"},
+            "total_orders_with_donation": {"$sum": 1},
+            "donation_amounts": {"$push": "$pricing.tree_donation"}
+        }}
+    ]
+    
+    results = await db.orders.aggregate(pipeline).to_list(1)
+    
+    summary = {
+        "total_customer_donations": 0,
+        "total_addrika_match": 0,
+        "total_combined": 0,
+        "total_trees_funded": 0,
+        "total_orders_with_donation": 0,
+        "average_donation": 0,
+        "tree_cost": 10  # ₹5 customer + ₹5 Addrika = ₹10 per tree
+    }
+    
+    if results and results[0]:
+        data = results[0]
+        customer_total = data.get("total_customer_donations", 0)
+        summary["total_customer_donations"] = customer_total
+        summary["total_addrika_match"] = customer_total  # Addrika matches 1:1
+        summary["total_combined"] = customer_total * 2
+        summary["total_trees_funded"] = int(summary["total_combined"] / 10)  # ₹10 per tree
+        summary["total_orders_with_donation"] = data.get("total_orders_with_donation", 0)
+        if summary["total_orders_with_donation"] > 0:
+            summary["average_donation"] = round(customer_total / summary["total_orders_with_donation"], 2)
+    
+    # Daily breakdown
+    daily_pipeline = [
+        {"$match": {
+            "created_at": date_filter,
+            "payment_status": {"$in": ["paid", "completed"]},
+            "pricing.tree_donation": {"$gt": 0}
+        }},
+        {"$group": {
+            "_id": {
+                "year": {"$year": {"$dateFromString": {"dateString": "$created_at"}}},
+                "month": {"$month": {"$dateFromString": {"dateString": "$created_at"}}},
+                "day": {"$dayOfMonth": {"$dateFromString": {"dateString": "$created_at"}}}
+            },
+            "donations": {"$sum": "$pricing.tree_donation"},
+            "order_count": {"$sum": 1}
+        }},
+        {"$sort": {"_id.year": 1, "_id.month": 1, "_id.day": 1}}
+    ]
+    
+    daily_results = await db.orders.aggregate(daily_pipeline).to_list(365)
+    
+    daily_breakdown = []
+    for item in daily_results:
+        _id = item["_id"]
+        date_str = f"{_id['year']}-{str(_id['month']).zfill(2)}-{str(_id['day']).zfill(2)}"
+        display_date = datetime(_id['year'], _id['month'], _id['day']).strftime("%d %b %Y")
+        
+        daily_breakdown.append({
+            "date": date_str,
+            "display_date": display_date,
+            "customer_donations": item["donations"],
+            "addrika_match": item["donations"],
+            "total": item["donations"] * 2,
+            "trees": int(item["donations"] * 2 / 10),
+            "orders": item["order_count"]
+        })
+    
+    # Get recent orders with donations (for invoice details)
+    recent_orders = await db.orders.find(
+        {
+            "created_at": date_filter,
+            "payment_status": {"$in": ["paid", "completed"]},
+            "pricing.tree_donation": {"$gt": 0}
+        },
+        {
+            "_id": 0,
+            "order_number": 1,
+            "created_at": 1,
+            "billing.name": 1,
+            "billing.email": 1,
+            "pricing.tree_donation": 1,
+            "pricing.final_total": 1
+        }
+    ).sort("created_at", -1).limit(100).to_list(100)
+    
+    order_details = []
+    for order in recent_orders:
+        order_details.append({
+            "order_number": order.get("order_number"),
+            "date": order.get("created_at"),
+            "customer_name": order.get("billing", {}).get("name", "N/A"),
+            "customer_email": order.get("billing", {}).get("email", "N/A"),
+            "donation_amount": order.get("pricing", {}).get("tree_donation", 0),
+            "order_total": order.get("pricing", {}).get("final_total", 0)
+        })
+    
+    return {
+        "summary": summary,
+        "daily_breakdown": daily_breakdown,
+        "order_details": order_details,
+        "date_range": {
+            "start": start_date or (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),
+            "end": end_date or datetime.now(timezone.utc).isoformat()
+        }
+    }
