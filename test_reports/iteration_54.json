@@ -1,0 +1,100 @@
+{
+  "summary": "Tested ₹5 tree donation feature integration in checkout flow. All 6 features passed verification. The tree donation toggle appears in Order Summary, shows ₹5 amount, adds line item when enabled, correctly updates total by ₹5, and is included in order data. Sustainability page also updated with ₹5 messaging and shop link.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "features_tested": {
+    "Checkout - Tree Donation Toggle": {
+      "status": "PASSED",
+      "details": [
+        "✓ Toggle exists in Order Summary section with data-testid='tree-donation-toggle'",
+        "✓ Shows 'Plant a Tree' with '+Rs. 5' amount",
+        "✓ Toggle has TreePine icon and checkbox UI",
+        "✓ Description: 'Add Rs. 5 and we'll match it to plant a tree together'"
+      ]
+    },
+    "Checkout - Tree Donation Line Item": {
+      "status": "PASSED",
+      "details": [
+        "✓ When toggled ON, 'Tree Donation Rs. 5' line item appears in price breakdown",
+        "✓ Line item shows in emerald/green color for visual distinction",
+        "✓ Line item disappears when toggled OFF"
+      ]
+    },
+    "Checkout - Total Calculation": {
+      "status": "PASSED",
+      "details": [
+        "✓ Initial total: Rs. 159 (Rs. 110 subtotal + Rs. 49 shipping)",
+        "✓ With tree donation: Rs. 164 (+Rs. 5)",
+        "✓ After disabling: Rs. 159 (back to original)",
+        "✓ Pay button updates correctly with new total"
+      ]
+    },
+    "Checkout - Order Data": {
+      "status": "PASSED",
+      "details": [
+        "✓ Code includes tree_donation in orderData (line 197)",
+        "✓ Sends tree_donation: 5 when enabled, tree_donation: 0 when disabled",
+        "✓ TREE_DONATION_AMOUNT constant defined as 5 (line 50)"
+      ]
+    },
+    "Sustainability Page - ₹5 Messaging": {
+      "status": "PASSED",
+      "details": [
+        "✓ 'Plant a Tree Together' section present",
+        "✓ Shows '₹5' amount in messaging",
+        "✓ Text: 'Add just ₹5 at checkout and we'll match it — together we plant a tree!'"
+      ]
+    },
+    "Sustainability Page - Shop Link": {
+      "status": "PASSED",
+      "details": [
+        "✓ 'Shop & Add Tree Donation' button with data-testid='shop-and-donate-btn'",
+        "✓ Button links to /#fragrances",
+        "✓ 'Option available at checkout' text present"
+      ]
+    }
+  },
+
+  "test_report_links": [],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "✓ Tree donation feature well-implemented with proper state management (useState for treeDonation)",
+    "✓ TREE_DONATION_AMOUNT constant (5) used consistently for amount",
+    "✓ Total calculation correctly includes treeDonationAmount in line 267",
+    "✓ Toggle UI has proper visual feedback (green border/background when enabled)",
+    "✓ data-testid attributes present for testing (tree-donation-toggle, pay-btn, shop-and-donate-btn)",
+    "✓ Order payload correctly includes tree_donation field for backend processing"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A - Frontend only testing",
+    "frontend": "100% (all 6 features verified)"
+  },
+
+  "test_credentials": {
+    "test_user": "test.user@example.com / Test@123"
+  },
+
+  "seed_data_creation": "",
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Tree donation feature (₹5) is fully functional in checkout. Toggle in Order Summary adds Rs. 5 to total when enabled. Sustainability page updated to show ₹5 messaging and directs users to shop. Backend integration sends tree_donation value in order payload.",
+
+  "rca_of_the_issue": "N/A - All features working correctly as specified."
+}
