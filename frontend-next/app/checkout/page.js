@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { MapPin, CreditCard, Truck, Store, ArrowLeft, CheckCircle, Loader2, ShoppingBag } from 'lucide-react';
+import { MapPin, CreditCard, Truck, Store, ArrowLeft, CheckCircle, Loader2, ShoppingBag, TreePine } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -44,6 +44,10 @@ export default function CheckoutPage() {
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  
+  // Tree donation state
+  const [treeDonation, setTreeDonation] = useState(false);
+  const TREE_DONATION_AMOUNT = 5; // Customer pays ₹5, Addrika matches ₹5
   
   // Retailers for pickup
   const [retailers, setRetailers] = useState([]);
@@ -189,7 +193,8 @@ export default function CheckoutPage() {
         delivery_mode: deliveryMode,
         shipping_address: deliveryMode === 'delivery' ? address : null,
         retailer_id: deliveryMode === 'pickup' ? selectedRetailer.id : null,
-        coupon_code: appliedCoupon?.code || null
+        coupon_code: appliedCoupon?.code || null,
+        tree_donation: treeDonation ? TREE_DONATION_AMOUNT : 0
       };
       
       const res = await fetch(`${API_URL}/api/orders/create`, {
@@ -258,7 +263,8 @@ export default function CheckoutPage() {
   const subtotal = getCartTotal();
   const discount = appliedCoupon?.discount || 0;
   const shipping = deliveryMode === 'pickup' ? 0 : (subtotal >= 499 ? 0 : 49);
-  const total = subtotal - discount + shipping;
+  const treeDonationAmount = treeDonation ? TREE_DONATION_AMOUNT : 0;
+  const total = subtotal - discount + shipping + treeDonationAmount;
 
   if (authLoading || !isLoaded) {
     return (
@@ -527,6 +533,50 @@ export default function CheckoutPage() {
                   })}
                 </div>
                 
+                {/* Tree Donation Option */}
+                <div 
+                  className="mb-4 p-4 rounded-xl cursor-pointer transition-all"
+                  onClick={() => setTreeDonation(!treeDonation)}
+                  style={{ 
+                    background: treeDonation ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.03)',
+                    border: treeDonation ? '2px solid rgba(16,185,129,0.5)' : '1px solid rgba(255,255,255,0.1)'
+                  }}
+                  data-testid="tree-donation-toggle"
+                >
+                  <div className="flex items-start gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: treeDonation ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)' }}
+                    >
+                      <TreePine size={20} className={treeDonation ? 'text-emerald-400' : 'text-gray-400'} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className={`text-sm font-semibold ${treeDonation ? 'text-emerald-400' : 'text-white'}`}>
+                          Plant a Tree
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-bold ${treeDonation ? 'text-emerald-400' : 'text-gray-400'}`}>
+                            +Rs. 5
+                          </span>
+                          <div 
+                            className="w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
+                            style={{ 
+                              borderColor: treeDonation ? '#10B981' : 'rgba(255,255,255,0.3)',
+                              background: treeDonation ? '#10B981' : 'transparent'
+                            }}
+                          >
+                            {treeDonation && <CheckCircle size={14} className="text-white" />}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Add Rs. 5 and we'll match it to plant a tree together
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
                 {/* Price Breakdown */}
                 <div className="space-y-2 text-sm border-t pt-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                   <div className="flex justify-between">
@@ -545,6 +595,15 @@ export default function CheckoutPage() {
                       {shipping === 0 ? 'FREE' : `Rs. ${shipping}`}
                     </span>
                   </div>
+                  {treeDonation && (
+                    <div className="flex justify-between text-emerald-400">
+                      <span className="flex items-center gap-1">
+                        <TreePine size={14} />
+                        Tree Donation
+                      </span>
+                      <span>Rs. {TREE_DONATION_AMOUNT}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between font-bold text-lg border-t pt-2" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                     <span className="text-white">Total</span>
                     <span className="text-[#D4AF37]">Rs. {total}</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Leaf, TreePine, Users, GraduationCap, Recycle, Target, Package, TrendingUp, Heart, ChevronRight, Check, Plus } from 'lucide-react';
 import Header from '../../components/Header';
@@ -130,15 +130,6 @@ const roadmapGoals = [
 ];
 
 export default function SustainabilityPage() {
-  const [showTreeDonation, setShowTreeDonation] = useState(false);
-  const [treeDonationAdded, setTreeDonationAdded] = useState(false);
-
-  const handleAddTreeDonation = () => {
-    // This would integrate with cart functionality
-    setTreeDonationAdded(true);
-    setTimeout(() => setShowTreeDonation(false), 1500);
-  };
-
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0f1419 0%, #1a2332 100%)' }}>
       <Header />
@@ -444,21 +435,21 @@ export default function SustainabilityPage() {
               >
                 <div className="flex items-center justify-center gap-3 mb-3">
                   <TreePine className="text-emerald-500" size={24} />
-                  <h3 className="text-white font-semibold">Plant an Extra Tree</h3>
+                  <h3 className="text-white font-semibold">Plant a Tree Together</h3>
                 </div>
                 <p className="text-gray-400 text-sm mb-4">
-                  Add ₹10 to your order at checkout to plant an additional tree directly
+                  Add just ₹5 at checkout and we'll match it — together we plant a tree!
                 </p>
-                <button
-                  onClick={() => setShowTreeDonation(true)}
+                <Link
+                  href="/#fragrances"
                   className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                  data-testid="add-tree-donation-btn"
+                  data-testid="shop-and-donate-btn"
                 >
                   <Plus size={18} />
-                  Add ₹10 Tree Donation
-                </button>
+                  Shop & Add Tree Donation
+                </Link>
                 <p className="text-gray-500 text-xs mt-3">
-                  Optional donation added at checkout
+                  Option available at checkout
                 </p>
               </div>
             </div>
@@ -574,53 +565,6 @@ export default function SustainabilityPage() {
       </main>
 
       <Footer />
-
-      {/* Tree Donation Modal */}
-      {showTreeDonation && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div 
-            className="max-w-md w-full p-8 rounded-2xl text-center"
-            style={{ 
-              background: 'linear-gradient(165deg, #1a1a2e 0%, #16213e 100%)',
-              border: '1px solid rgba(16,185,129,0.4)'
-            }}
-          >
-            {!treeDonationAdded ? (
-              <>
-                <TreePine className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">Plant an Extra Tree</h3>
-                <p className="text-gray-400 mb-6">
-                  Add ₹10 to your next order to plant an additional tree. This donation will be 
-                  added to your cart at checkout.
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <button
-                    onClick={() => setShowTreeDonation(false)}
-                    className="px-6 py-3 rounded-lg font-semibold border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
-                  >
-                    Maybe Later
-                  </button>
-                  <button
-                    onClick={handleAddTreeDonation}
-                    className="px-6 py-3 rounded-lg font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
-                    data-testid="confirm-tree-donation-btn"
-                  >
-                    Add ₹10 Donation
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <Check className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">Thank You!</h3>
-                <p className="text-gray-400">
-                  Tree donation will be added to your next checkout.
-                </p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
