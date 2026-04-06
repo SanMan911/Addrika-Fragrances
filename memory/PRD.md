@@ -135,6 +135,17 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - "Your Impact" section with optional ₹10 tree donation at checkout
 - ✅ **Updated Navigation**: Added "Sustainability" link to header
 
+### April 6, 2026 - Tree Donation Checkout Integration
+- ✅ **₹5 Tree Donation in Checkout**: 
+  - Toggle option in Order Summary: "Plant a Tree"
+  - Customer pays ₹5, Addrika matches ₹5 (50/50 cost share)
+  - Shows as separate line item in price breakdown (emerald green)
+  - Included in order payload for backend processing
+- ✅ **Updated Sustainability Page**:
+  - Changed from ₹10 modal to ₹5 messaging
+  - "Shop & Add Tree Donation" button links to products
+  - Clear messaging: "Add just ₹5 at checkout and we'll match it"
+
 ## Prioritized Backlog
 
 ### P0 (Critical)
