@@ -5,6 +5,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { WishlistProvider } from '../context/WishlistContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import CartSidebar from '../components/CartSidebar';
+import WhatsAppButton from '../components/WhatsAppButton';
 
 export const metadata = {
   title: {
@@ -196,6 +197,7 @@ export default function RootLayout({ children }) {
               <WishlistProvider>
                 {children}
                 <CartSidebar />
+                <WhatsAppButton />
               </WishlistProvider>
             </CartProvider>
           </AuthProvider>

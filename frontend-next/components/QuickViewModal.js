@@ -196,12 +196,12 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                     <Star
                       key={star}
                       size={16}
-                      className={star <= Math.round(product.rating || 4.5) ? 'fill-[#D4AF37] text-[#D4AF37]' : 'text-gray-600'}
+                      className={star <= Math.round(product.rating) ? 'fill-[#D4AF37] text-[#D4AF37]' : 'text-gray-600'}
                     />
                   ))}
                 </div>
                 <span className="text-sm text-gray-400">
-                  {product.rating || 4.5} ({product.reviewCount || product.reviews || 0} reviews)
+                  {product.rating} ({product.reviews || 0} reviews)
                 </span>
               </div>
               

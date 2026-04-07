@@ -181,7 +181,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
             <Star
               key={i}
               size={12}
-              fill={i < Math.floor(product.rating || 4.5) ? '#D4AF37' : 'transparent'}
+              fill={i < Math.floor(product.rating) ? '#D4AF37' : 'transparent'}
               color="#D4AF37"
             />
           ))}

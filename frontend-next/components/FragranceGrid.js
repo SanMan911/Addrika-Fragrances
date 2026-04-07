@@ -199,14 +199,14 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
                 key={star}
                 size={14}
                 style={{ 
-                  color: star <= Math.round(product.rating || 4.5) ? '#D4AF37' : 'rgba(255,255,255,0.2)',
-                  fill: star <= Math.round(product.rating || 4.5) ? '#D4AF37' : 'transparent'
+                  color: star <= Math.round(product.rating) ? '#D4AF37' : 'rgba(255,255,255,0.2)',
+                  fill: star <= Math.round(product.rating) ? '#D4AF37' : 'transparent'
                 }}
               />
             ))}
           </div>
           <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            {product.rating || 4.5} ({product.reviewCount || product.reviews || 0})
+            {product.rating} ({product.reviews || 0})
           </span>
         </div>
         )}

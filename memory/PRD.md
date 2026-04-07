@@ -15,6 +15,7 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 2. **Bamboo**: ONLY Dhoop is bambooless. Agarbattis have bamboo.
 3. **Ingredients**: "Ethical Sourcing" — NOT "100% natural".
 4. **Tree Donation**: Strictly ₹5 customer + ₹5 Addrika match.
+5. **Burn Time**: Do NOT show burn time for Bakhoor products.
 
 ## What's Been Implemented
 
@@ -41,13 +42,20 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - Backend analytics endpoint + admin tree-donations page
 
 ### April 7, 2026 — Products Migration & New Features
-- **MongoDB Product Migration**: Products moved from hardcoded Python list to MongoDB `products` collection with in-memory cache (refreshes on startup + after admin CRUD)
+- **MongoDB Product Migration**: Products moved from hardcoded Python list to MongoDB `products` collection with in-memory cache
 - **Admin Product Management** (`/admin/products`): Full CRUD — create, edit, delete, toggle active/coming-soon, size variants
-- **2 Bakhoor Placeholder Products**: Grated Omani Bakhoor (₹249) + Yemeni Bakhoor Chips (₹399) with comingSoon=true
-- **"Notify Me" Email Capture**: Guests enter email, logged-in users auto-submit. Stored in `notify_me` collection. Integrated in product cards, detail pages, and QuickView modal
-- **Admin Notify Me Dashboard** (`/admin/notify-me`): View signups grouped by product with email details
-- **Legacy Frontend Deleted**: `/app/frontend` is now symlink to `/app/frontend-next`
+- **2 Bakhoor Products**: Grated Omani Bakhoor (₹249) + Yemeni Bakhoor Chips (₹399) — orderable with real product images
+- **"Notify Me" Email Capture**: For Coming Soon products. Stored in `notify_me` collection.
+- **Admin Notify Me Dashboard** (`/admin/notify-me`): View signups grouped by product
+- **Announcement Marquee**: Infinite scrolling ticker on homepage
+- **SEO**: Dynamic sitemap, robots.txt
 - **Trust Badges Fixed**: "Ethical Sourcing / Premium Ingredients" across all product pages
+
+### April 7, 2026 — Bakhoor Reviews & WhatsApp
+- **Bakhoor Ratings Added**: Grated Omani Bakhoor (4.9 rating, 7 reviews), Yemeni Bakhoor Chips (4.8 rating, 5 reviews) — meager but mostly 5-star for recently launched products
+- **Rating Fallback Bug Fixed**: Removed `|| 4.5` fallback in FragranceGrid.js, FragranceGridServer.js, and QuickViewModal.js so products with 0 rating don't show fake 4.5 stars
+- **WhatsApp Click-to-Chat Button**: Floating green WhatsApp button (bottom-right) linking to `wa.me/919667269711` with pre-filled message. Visible on all pages.
+- **Migration Script**: Auto-updates Bakhoor ratings in MongoDB on backend startup
 
 ## Database Collections
 - `users` - User accounts
@@ -76,15 +84,12 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 ## Prioritized Backlog
 
 ### P1 (High)
-- [ ] Replace Bakhoor placeholder images with actual product photos
-- [ ] Deploy updated code to Vercel + Render
+- [ ] Replace Bilvapatra & 8" Dhoop placeholder images with actual product photos (when provided)
 
 ### P2 (Medium)
-- [ ] Google Search Console setup
-- [ ] GST Verification API stability (recurring issue)
-- [ ] WhatsApp API integration
-- [ ] Send actual notification emails when comingSoon products become available
+- [ ] GST Verification API stability (recurring issue, 3x)
+- [ ] Send notification emails when Coming Soon products become available
+- [ ] Google Analytics Integration
 
 ### P3 (Low)
-- [ ] Google Analytics
 - [ ] B2B product catalog in MongoDB
