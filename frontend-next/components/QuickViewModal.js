@@ -6,6 +6,7 @@ import { X, Minus, Plus, Star, ShoppingCart, Heart, ExternalLink, Loader2 } from
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { toast } from 'sonner';
+import NotifyMeButton from './NotifyMeButton';
 
 export default function QuickViewModal({ product, isOpen, onClose }) {
   const { addToCart } = useCart();
@@ -292,6 +293,10 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
               
               {/* Actions */}
               <div className="flex gap-3 mt-auto">
+                {isComingSoon ? (
+                  <NotifyMeButton productId={product.id} />
+                ) : (
+                <>
                 <button
                   onClick={handleAddToCart}
                   disabled={addingToCart || !selectedSize}
@@ -326,6 +331,8 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                     className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-white'}
                   />
                 </button>
+                </>
+                )}
               </div>
               
               {/* View Full Details Link */}
