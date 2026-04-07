@@ -119,8 +119,8 @@ function ProductStructuredData({ product }) {
       "@type": "Brand",
       "name": "Addrika"
     },
-    "category": product.category === 'dhoop' ? "Incense > Premium Dhoop" : "Incense > Premium Agarbatti",
-    "material": product.category === 'dhoop' ? "Natural herbs, Essential oils, Bambooless" : "Natural herbs, Essential oils, Bamboo core",
+    "category": product.category === 'dhoop' ? "Incense > Premium Dhoop" : product.category === 'bakhoor' ? "Incense > Premium Bakhoor" : "Incense > Premium Agarbatti",
+    "material": product.category === 'dhoop' ? "Natural herbs, Essential oils, Bambooless" : product.category === 'bakhoor' ? "Aged oud, Natural resins, Essential oils" : "Natural herbs, Essential oils, Bamboo core",
     "additionalProperty": [
       {
         "@type": "PropertyValue",
@@ -363,8 +363,8 @@ export default async function ProductPage({ params }) {
                   <p className="text-xs text-gray-500">Orders above ₹499</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold text-sm text-white">Natural Ingredients</p>
-                  <p className="text-xs text-gray-500">100% Pure</p>
+                  <p className="font-semibold text-sm text-white">Ethical Sourcing</p>
+                  <p className="text-xs text-gray-500">Premium Ingredients</p>
                 </div>
                 <div className="text-center">
                   <p className="font-semibold text-sm text-white">Easy Returns</p>

@@ -161,6 +161,54 @@ PRODUCTS = [
         ],
         "rating": 4.3,
         "reviews": 42
+    },
+    {
+        "id": "grated-omani-bakhoor",
+        "name": "Grated Omani Bakhoor",
+        "tagline": "Traditional Arabian Luxury",
+        "type": "bakhoor",
+        "category": "bakhoor",
+        "comingSoon": True,
+        "description": "Immerse yourself in the rich, warm aroma of authentic Omani Bakhoor—finely grated for a smooth, even burn. This premium bakhoor blend features aged oud chips infused with natural resins, musk, and floral extracts sourced from Oman's finest perfumers. Perfect for scenting your home, welcoming guests, or enhancing special occasions with an opulent, long-lasting fragrance that embodies Arabian hospitality.",
+        "notes": ["Aged Oud", "Natural Resins", "Musk & Florals"],
+        "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/c15a934686343e84b679d1e8995844176bb7ed9247cdbcec7c33c8d52d441274.png",
+        "burnTime": "30+ minutes on charcoal",
+        "sizes": [
+            {
+                "size": "50g",
+                "mrp": 249,
+                "price": 249,
+                "images": [
+                    "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/c15a934686343e84b679d1e8995844176bb7ed9247cdbcec7c33c8d52d441274.png"
+                ]
+            }
+        ],
+        "rating": 0,
+        "reviews": 0
+    },
+    {
+        "id": "yemeni-bakhoor-chips",
+        "name": "Yemeni Bakhoor Chips",
+        "tagline": "Exotic Handcrafted Fragrance",
+        "type": "bakhoor",
+        "category": "bakhoor",
+        "comingSoon": True,
+        "description": "Discover the exotic depth of Yemeni Bakhoor Chips—hand-selected oud wood chips blended with rare Yemeni honey, saffron, and sandalwood oils. Each chip is carefully aged and infused using traditional methods passed down through generations. When heated, these chips release a rich, complex fragrance that lingers for hours, transforming any space into a haven of tranquility and sophistication.",
+        "notes": ["Yemeni Oud", "Saffron & Honey", "Sandalwood"],
+        "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/dd9a7d855b4899a289beae6632de447a07a9612b171fe2d3fc85ff02e10b9713.png",
+        "burnTime": "45+ minutes on charcoal",
+        "sizes": [
+            {
+                "size": "40g",
+                "mrp": 399,
+                "price": 399,
+                "images": [
+                    "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/dd9a7d855b4899a289beae6632de447a07a9612b171fe2d3fc85ff02e10b9713.png"
+                ]
+            }
+        ],
+        "rating": 0,
+        "reviews": 0
     }
 ]
 
@@ -285,6 +333,10 @@ async def add_to_cart(session_id: str, item: CartItem):
     product = next((p for p in PRODUCTS if p["id"] == item.productId), None)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Block adding coming soon products to cart
+    if product.get("comingSoon"):
+        raise HTTPException(status_code=400, detail="This product is coming soon and cannot be added to cart yet")
     
     # Get size info
     size_info = next((s for s in product["sizes"] if s["size"] == item.size), None)
