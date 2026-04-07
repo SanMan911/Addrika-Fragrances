@@ -89,15 +89,15 @@
   "context_for_next_testing_agent": "Admin panel refactored to modular structure. Test session created: sess_285453942e11456aba12d9a277c7751a. To test admin UI, set this token in localStorage (addrika_session_token) and cookies (session_token). All 9 admin pages under /admin route: Overview, Orders, Analytics, Users, Marketing, Content, Inventory, Inquiries, Settings.",
 
   "tested_urls": [
-    "https://title-case-forms.preview.emergentagent.com/admin",
-    "https://title-case-forms.preview.emergentagent.com/admin/login",
-    "https://title-case-forms.preview.emergentagent.com/admin/orders",
-    "https://title-case-forms.preview.emergentagent.com/admin/analytics",
-    "https://title-case-forms.preview.emergentagent.com/admin/users",
-    "https://title-case-forms.preview.emergentagent.com/admin/marketing",
-    "https://title-case-forms.preview.emergentagent.com/admin/content",
-    "https://title-case-forms.preview.emergentagent.com/admin/inventory",
-    "https://title-case-forms.preview.emergentagent.com/admin/inquiries",
-    "https://title-case-forms.preview.emergentagent.com/admin/settings"
+    "https://ethical-sourcing.preview.emergentagent.com/admin",
+    "https://ethical-sourcing.preview.emergentagent.com/admin/login",
+    "https://ethical-sourcing.preview.emergentagent.com/admin/orders",
+    "https://ethical-sourcing.preview.emergentagent.com/admin/analytics",
+    "https://ethical-sourcing.preview.emergentagent.com/admin/users",
+    "https://ethical-sourcing.preview.emergentagent.com/admin/marketing",
+    "https://ethical-sourcing.preview.emergentagent.com/admin/content",
+    "https://ethical-sourcing.preview.emergentagent.com/admin/inventory",
+    "https://ethical-sourcing.preview.emergentagent.com/admin/inquiries",
+    "https://ethical-sourcing.preview.emergentagent.com/admin/settings"
   ]
 }

@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://title-case-forms.preview.emergentagent.com/api
+https://ethical-sourcing.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 
