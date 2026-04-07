@@ -478,7 +478,7 @@ export default function FragranceGrid() {
         {!loading && !error && fragrances.length > 0 && (
           <div className="text-center mt-16">
             <p className="text-sm text-[#999] dark:text-gray-500">
-              All agarbattis are charcoal-free, dhoop is bambooless, producing over 60% less smoke while supporting local artisan communities. Bakhoor range coming soon!
+              All agarbattis are charcoal-free, dhoop is bambooless, producing over 60% less smoke while supporting local artisan communities
             </p>
           </div>
         )}

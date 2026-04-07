@@ -4,8 +4,10 @@ import { useTheme } from '../context/ThemeContext';
 
 const MARQUEE_ITEMS = [
   { text: 'New Launch', highlight: 'Mystical Meharishi — Bambooless Premium Dhoop', icon: '✦', type: 'launch' },
-  { text: 'Coming Soon', highlight: 'Grated Omani Bakhoor', icon: '✦', type: 'soon' },
-  { text: 'Coming Soon', highlight: 'Yemeni Bakhoor Chips', icon: '✦', type: 'soon' },
+  { text: 'New Launch', highlight: 'Grated Omani Bakhoor — Now Available!', icon: '✦', type: 'launch' },
+  { text: 'New Launch', highlight: 'Yemeni Bakhoor Chips — Order Now!', icon: '✦', type: 'launch' },
+  { text: 'Coming Soon', highlight: 'Bilvapatra Fragrance Agarbatti', icon: '✦', type: 'soon' },
+  { text: 'Coming Soon', highlight: '8" Bambooless Dhoop — Extended Burn', icon: '✦', type: 'soon' },
   { text: 'Free Delivery', highlight: 'on orders above ₹499', icon: '✦', type: 'promo' },
   { text: '60%+ Less Smoke', highlight: 'Zero Charcoal Formula', icon: '✦', type: 'usp' },
   { text: 'Plant a Tree', highlight: '₹5 donation at checkout', icon: '✦', type: 'csr' },
