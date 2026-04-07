@@ -249,21 +249,37 @@ async def _migrate_products():
             logger.info(f"Added new product: {np['id']}")
 
     for m in migrations + img_migrations + launch_migrations:
-        result = await db.products.update_one(m["filter"], m["update"])
-        if result.modified_count > 0:
-            logger.info(f"Migrated product matching {m['filter']}")
+        try:
+            result = await db.products.update_one(m["filter"], m["update"])
+            if result.modified_count > 0:
+                logger.info(f"Migrated product matching {m['filter']}")
+        except Exception as e:
+            logger.error(f"Migration failed for {m['filter']}: {e}")
 
 
 async def refresh_products_cache():
     """Reload products from MongoDB into the module-level cache.
-    Auto-seeds the collection if empty (first deploy / fresh database).
+    Auto-seeds if empty, runs migrations on existing data.
     """
+    import logging
+    logger = logging.getLogger(__name__)
     global PRODUCTS
-    count = await db.products.count_documents({})
-    if count == 0:
-        await _seed_default_products()
-    cursor = db.products.find({}, {"_id": 0})
-    PRODUCTS[:] = await cursor.to_list(length=500)
+    try:
+        count = await db.products.count_documents({})
+        logger.info(f"Products in DB: {count}")
+        if count == 0:
+            await _seed_default_products()
+        else:
+            await _migrate_products()
+        cursor = db.products.find({}, {"_id": 0})
+        PRODUCTS[:] = await cursor.to_list(length=500)
+        logger.info(f"Products cache loaded: {len(PRODUCTS)} items")
+    except Exception as e:
+        logger.error(f"refresh_products_cache failed: {e}")
+        # Fallback: use defaults if DB is unreachable
+        if not PRODUCTS:
+            PRODUCTS[:] = [{k: v for k, v in p.items()} for p in _DEFAULT_PRODUCTS]
+            logger.warning(f"Using {len(PRODUCTS)} default products as fallback")
 
 
 async def ensure_products_loaded():
