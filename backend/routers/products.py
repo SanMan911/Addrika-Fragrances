@@ -102,7 +102,7 @@ _DEFAULT_PRODUCTS = [
     },
     {
         "id": "grated-omani-bakhoor", "name": "Grated Omani Bakhoor", "tagline": "Traditional Arabian Luxury",
-        "type": "bakhoor", "category": "bakhoor", "comingSoon": True, "isActive": True,
+        "type": "bakhoor", "category": "bakhoor", "comingSoon": False, "isActive": True,
         "description": "Immerse yourself in the rich, warm aroma of authentic Omani Bakhoor\u2014finely grated for a smooth, even burn. This premium bakhoor blend features aged oud chips infused with natural resins, musk, and floral extracts sourced from Oman\u2019s finest perfumers. Perfect for scenting your home, welcoming guests, or enhancing special occasions with an opulent, long-lasting fragrance that embodies Arabian hospitality.",
         "notes": ["Aged Oud", "Natural Resins", "Musk & Florals"],
         "image": "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/eqgfgt6l_1775558274726~2.png",
@@ -118,14 +118,44 @@ _DEFAULT_PRODUCTS = [
     },
     {
         "id": "yemeni-bakhoor-chips", "name": "Yemeni Bakhoor Chips", "tagline": "Exotic Handcrafted Fragrance",
-        "type": "bakhoor", "category": "bakhoor", "comingSoon": True, "isActive": True,
+        "type": "bakhoor", "category": "bakhoor", "comingSoon": False, "isActive": True,
         "description": "Discover the exotic depth of Yemeni Bakhoor Chips\u2014hand-selected oud wood chips blended with rare Yemeni honey, saffron, and sandalwood oils. Each chip is carefully aged and infused using traditional methods passed down through generations. When heated, these chips release a rich, complex fragrance that lingers for hours, transforming any space into a haven of tranquility and sophistication.",
         "notes": ["Yemeni Oud", "Saffron & Honey", "Sandalwood"],
-        "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/dd9a7d855b4899a289beae6632de447a07a9612b171fe2d3fc85ff02e10b9713.png",
+        "image": "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/qhiw57tk_1775558078557~2.png",
         "burnTime": "",
         "sizes": [
             {"size": "20g", "mrp": 399, "price": 399, "weight": 60, "images": [
-                "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/dd9a7d855b4899a289beae6632de447a07a9612b171fe2d3fc85ff02e10b9713.png"
+                "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/qhiw57tk_1775558078557~2.png",
+                "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/7h7la1j0_1775558838323~2.png",
+                "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/2vfe27zm_1775558604718~2.png"
+            ]}
+        ],
+        "rating": 0, "reviews": 0,
+    },
+    {
+        "id": "bilvapatra-fragrance", "name": "Bilvapatra Fragrance", "tagline": "Sacred Bael Leaf Essence",
+        "type": "agarbatti", "category": "agarbatti", "comingSoon": True, "isActive": True,
+        "description": "Experience the divine fragrance of Bilvapatra\u2014a sacred blend inspired by the revered bael leaf, offered in traditional worship to Lord Shiva. This premium agarbatti captures the essence of spiritual devotion with earthy, herbal notes blended with subtle floral undertones. Each stick creates a purifying atmosphere that elevates your daily rituals and meditation practices.",
+        "notes": ["Bael Leaf", "Sacred Herbs", "Subtle Florals"],
+        "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/82eb095d8e73cc34f8daa37d10cebfc02578fa81cd77d69238cc06a2fa3c22c6.png",
+        "burnTime": "40+ minutes",
+        "sizes": [
+            {"size": "50g", "mrp": 110, "price": 110, "images": [
+                "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/82eb095d8e73cc34f8daa37d10cebfc02578fa81cd77d69238cc06a2fa3c22c6.png"
+            ]}
+        ],
+        "rating": 0, "reviews": 0,
+    },
+    {
+        "id": "bambooless-dhoop-8inch", "name": "8\" Bambooless Dhoop", "tagline": "Extended Burn Premium Dhoop",
+        "type": "dhoop", "category": "dhoop", "bambooless": True, "comingSoon": True, "isActive": True,
+        "description": "Introducing our longest-burning bambooless dhoop\u2014a full 8 inches of pure, handcrafted fragrance. This premium dhoop stick is designed for extended rituals, larger spaces, and those who seek a deeper, longer-lasting aromatic experience. With over 60% less smoke and zero bamboo core, it delivers a clean, intense fragrance that fills your entire home.",
+        "notes": ["Extended Burn", "Pure Fragrance", "Zero Bamboo"],
+        "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/8a975139fd07d611a2c31b1f39f6bcaf5610bdda6ed86caba8423c3ddae46b20.png",
+        "burnTime": "45+ minutes",
+        "sizes": [
+            {"size": "100g", "mrp": 179, "price": 179, "weight": 150, "images": [
+                "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/8a975139fd07d611a2c31b1f39f6bcaf5610bdda6ed86caba8423c3ddae46b20.png"
             ]}
         ],
         "rating": 0, "reviews": 0,
@@ -189,7 +219,36 @@ async def _migrate_products():
         },
     ]
 
-    for m in migrations + img_migrations:
+    # Migration: Make both Bakhoor variants available (remove comingSoon)
+    launch_migrations = [
+        {
+            "filter": {"id": "grated-omani-bakhoor", "comingSoon": True},
+            "update": {"$set": {"comingSoon": False, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        },
+        {
+            "filter": {"id": "yemeni-bakhoor-chips", "comingSoon": True},
+            "update": {"$set": {
+                "comingSoon": False,
+                "image": _DEFAULT_PRODUCTS[6]["image"],
+                "sizes": _DEFAULT_PRODUCTS[6]["sizes"],
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        },
+    ]
+
+    # Migration: Add new Coming Soon products if they don't exist
+    new_products = [
+        {"id": "bilvapatra-fragrance", "data": _DEFAULT_PRODUCTS[7]},
+        {"id": "bambooless-dhoop-8inch", "data": _DEFAULT_PRODUCTS[8]},
+    ]
+    for np in new_products:
+        exists = await db.products.find_one({"id": np["id"]})
+        if not exists:
+            doc = {**np["data"], "created_at": datetime.now(timezone.utc).isoformat(), "updated_at": datetime.now(timezone.utc).isoformat()}
+            await db.products.insert_one(doc)
+            logger.info(f"Added new product: {np['id']}")
+
+    for m in migrations + img_migrations + launch_migrations:
         result = await db.products.update_one(m["filter"], m["update"])
         if result.modified_count > 0:
             logger.info(f"Migrated product matching {m['filter']}")
