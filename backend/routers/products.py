@@ -105,11 +105,13 @@ _DEFAULT_PRODUCTS = [
         "type": "bakhoor", "category": "bakhoor", "comingSoon": True, "isActive": True,
         "description": "Immerse yourself in the rich, warm aroma of authentic Omani Bakhoor\u2014finely grated for a smooth, even burn. This premium bakhoor blend features aged oud chips infused with natural resins, musk, and floral extracts sourced from Oman\u2019s finest perfumers. Perfect for scenting your home, welcoming guests, or enhancing special occasions with an opulent, long-lasting fragrance that embodies Arabian hospitality.",
         "notes": ["Aged Oud", "Natural Resins", "Musk & Florals"],
-        "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/c15a934686343e84b679d1e8995844176bb7ed9247cdbcec7c33c8d52d441274.png",
+        "image": "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/eqgfgt6l_1775558274726~2.png",
         "burnTime": "",
         "sizes": [
             {"size": "20g", "mrp": 249, "price": 249, "weight": 60, "images": [
-                "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/c15a934686343e84b679d1e8995844176bb7ed9247cdbcec7c33c8d52d441274.png"
+                "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/eqgfgt6l_1775558274726~2.png",
+                "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/qhr0ez3q_1775558450373~2.png",
+                "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/ti83mjpn_Subtle%20Gold%20Gradient.png"
             ]}
         ],
         "rating": 0, "reviews": 0,
@@ -158,7 +160,8 @@ async def _migrate_products():
         {
             "filter": {"id": "grated-omani-bakhoor", "sizes.size": {"$ne": "20g"}},
             "update": {"$set": {
-                "sizes": [{"size": "20g", "mrp": 249, "price": 249, "weight": 60, "images": _DEFAULT_PRODUCTS[5]["sizes"][0]["images"]}],
+                "sizes": _DEFAULT_PRODUCTS[5]["sizes"],
+                "image": _DEFAULT_PRODUCTS[5]["image"],
                 "burnTime": "",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }},
@@ -166,14 +169,27 @@ async def _migrate_products():
         {
             "filter": {"id": "yemeni-bakhoor-chips", "sizes.size": {"$ne": "20g"}},
             "update": {"$set": {
-                "sizes": [{"size": "20g", "mrp": 399, "price": 399, "weight": 60, "images": _DEFAULT_PRODUCTS[6]["sizes"][0]["images"]}],
+                "sizes": _DEFAULT_PRODUCTS[6]["sizes"],
+                "image": _DEFAULT_PRODUCTS[6]["image"],
                 "burnTime": "",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }},
         },
     ]
 
-    for m in migrations:
+    # Migration: Update Grated Omani images from placeholder to real product photos
+    img_migrations = [
+        {
+            "filter": {"id": "grated-omani-bakhoor", "image": {"$regex": "static.prod-images"}},
+            "update": {"$set": {
+                "image": _DEFAULT_PRODUCTS[5]["image"],
+                "sizes": _DEFAULT_PRODUCTS[5]["sizes"],
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        },
+    ]
+
+    for m in migrations + img_migrations:
         result = await db.products.update_one(m["filter"], m["update"])
         if result.modified_count > 0:
             logger.info(f"Migrated product matching {m['filter']}")
