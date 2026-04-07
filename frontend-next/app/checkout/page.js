@@ -235,7 +235,8 @@ export default function CheckoutPage() {
             if (verifyRes.ok) {
               clearCart();
               toast.success('Payment successful!');
-              router.push(`/orders/success?id=${data.order_id}`);
+              const treeParam = treeDonation ? '&tree=true' : '';
+              router.push(`/orders/success?id=${data.order_id}${treeParam}`);
             } else {
               toast.error('Payment verification failed');
             }

@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle, Package, ArrowRight } from 'lucide-react';
+import { CheckCircle, Package, ArrowRight, TreePine } from 'lucide-react';
 import { Suspense } from 'react';
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
+  const treeDonation = searchParams.get('tree') === 'true';
   const [showConfetti, setShowConfetti] = useState(true);
 
   useEffect(() => {
@@ -28,7 +29,7 @@ function SuccessContent() {
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `-10%`,
-                backgroundColor: ['#D4AF37', '#2B3A4A', '#ffffff'][i % 3],
+                backgroundColor: ['#D4AF37', '#2B3A4A', '#10B981', '#ffffff'][i % 4],
                 animationDelay: `${Math.random() * 2}s`,
                 animationDuration: `${2 + Math.random() * 2}s`
               }}
@@ -54,6 +55,27 @@ function SuccessContent() {
               <p className="text-sm text-gray-500 mb-1">Order ID</p>
               <p className="font-mono font-bold text-[#2B3A4A]">
                 #{orderId.slice(-8).toUpperCase()}
+              </p>
+            </div>
+          )}
+          
+          {/* Tree Donation Thank You */}
+          {treeDonation && (
+            <div 
+              className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 mb-6"
+              data-testid="tree-donation-thanks"
+            >
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <TreePine size={24} className="text-emerald-600" />
+                </div>
+              </div>
+              <h3 className="font-bold text-emerald-800 text-lg mb-2">
+                Thank You for Planting a Tree!
+              </h3>
+              <p className="text-emerald-700 text-sm">
+                Your Rs. 5 donation + our Rs. 5 match = 1 tree planted together. 
+                You&apos;re making a real difference for our planet!
               </p>
             </div>
           )}
@@ -93,6 +115,14 @@ function SuccessContent() {
               <div className="w-6 h-6 bg-[#D4AF37] rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold">3</div>
               <p className="text-gray-600">Track your shipment from the Orders page</p>
             </div>
+            {treeDonation && (
+              <div className="flex items-start gap-3 pt-2 border-t border-gray-100">
+                <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <TreePine size={12} className="text-white" />
+                </div>
+                <p className="text-emerald-700">Your tree will be planted as part of our reforestation initiative</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

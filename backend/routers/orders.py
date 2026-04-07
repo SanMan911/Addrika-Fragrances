@@ -349,6 +349,11 @@ async def create_order(order_data: OrderCreate, background_tasks: BackgroundTask
     # Ensure final total is not negative
     final_total = max(0, final_total)
     
+    # Add tree donation to final total
+    tree_donation_amount = order_data.tree_donation or 0
+    if tree_donation_amount > 0:
+        final_total += tree_donation_amount
+    
     # Get shipping threshold info (for reference)
     delivery_pincode = shipping_address.pincode if shipping_address else ""
     threshold_info = get_free_shipping_threshold(delivery_pincode)
@@ -466,6 +471,7 @@ async def create_order(order_data: OrderCreate, background_tasks: BackgroundTask
             "has_coins_applied": has_coins_applied,
             "free_shipping_threshold": threshold_info["threshold"],
             "zone_name": threshold_info.get("zone_name", ""),
+            "tree_donation": round(order_data.tree_donation or 0, 2),
             "final_total": round(final_total, 2)
         },
         "coin_redemption": coin_redemption_info,
