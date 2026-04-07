@@ -42,6 +42,7 @@ from routers.retailer_auth import router as retailer_auth_router
 from routers.retailer_dashboard import router as retailer_dashboard_router
 from routers.b2b_orders import router as b2b_orders_router
 from routers.admin.admin_b2b import router as admin_b2b_router
+from routers.notify_me import router as notify_me_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -94,6 +95,7 @@ app.include_router(retailer_auth_router, prefix="/api")
 app.include_router(retailer_dashboard_router, prefix="/api")
 app.include_router(b2b_orders_router, prefix="/api")
 app.include_router(admin_b2b_router, prefix="/api")
+app.include_router(notify_me_router, prefix="/api")
 
 
 # Startup event
@@ -123,6 +125,11 @@ async def startup_db_client():
     # Start background scheduler for coin expiry and reminders
     asyncio.create_task(coin_expiry_scheduler_loop())
     print("Coin expiry scheduler started")
+    
+    # Populate products cache from MongoDB
+    from routers.products import refresh_products_cache
+    await refresh_products_cache()
+    print("Products cache loaded from MongoDB")
 
 
 # Shutdown event

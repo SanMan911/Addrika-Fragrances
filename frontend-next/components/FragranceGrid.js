@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, Heart, Loader2, AlertCircle, Eye } from 'lucide-react';
+import { Star, Heart, Loader2, AlertCircle, Eye, Bell } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
 import QuickViewModal from './QuickViewModal';
+import NotifyMeButton from './NotifyMeButton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -244,17 +245,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
         {/* View Details Button */}
         <div className="flex gap-3">
           {isComingSoon ? (
-            <button
-              className="flex-1 py-3.5 rounded-xl font-semibold text-sm tracking-wide cursor-default"
-              style={{ 
-                background: 'linear-gradient(135deg, rgba(168,85,247,0.3) 0%, rgba(139,92,246,0.2) 100%)',
-                color: 'rgba(168,85,247,0.9)',
-                border: '1px solid rgba(168,85,247,0.3)'
-              }}
-              data-testid={`coming-soon-btn-${product.id}`}
-            >
-              Coming Soon — Notify Me
-            </button>
+            <NotifyMeButton productId={product.id} />
           ) : (
           <>
           <button

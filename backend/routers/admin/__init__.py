@@ -9,6 +9,7 @@ from .admin_shiprocket import router as shiprocket_router
 from .admin_retailers import router as retailers_router
 from .admin_maintenance import router as maintenance_router
 from .admin_rto_vouchers import router as rto_vouchers_router
+from .admin_products import router as products_router
 
 # Create main admin router
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -23,3 +24,4 @@ router.include_router(shiprocket_router)
 router.include_router(retailers_router)
 router.include_router(maintenance_router)
 router.include_router(rto_vouchers_router)
+router.include_router(products_router)
