@@ -91,7 +91,7 @@ export default function AnnouncementMarquee() {
           100% { transform: translateX(-50%); }
         }
         .animate-marquee-scroll {
-          animation: marquee-scroll 35s linear infinite;
+          animation: marquee-scroll 22s linear infinite;
           will-change: transform;
         }
         .animate-marquee-scroll:hover {
