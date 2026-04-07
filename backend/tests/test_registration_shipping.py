@@ -15,7 +15,7 @@ from datetime import datetime
 # Get the backend URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://title-case-forms.preview.emergentagent.com"
+    BASE_URL = "https://ethical-sourcing.preview.emergentagent.com"
 
 # Admin credentials for testing
 ADMIN_EMAIL = "contact.us@centraders.com"

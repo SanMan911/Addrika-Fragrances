@@ -13,7 +13,7 @@ import time
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://title-case-forms.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ethical-sourcing.preview.emergentagent.com')
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 DB_NAME = os.environ.get('DB_NAME', 'addrika_db')
 

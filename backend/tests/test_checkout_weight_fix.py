@@ -20,7 +20,7 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL')
 if not BASE_URL:
-    BASE_URL = "https://title-case-forms.preview.emergentagent.com"
+    BASE_URL = "https://ethical-sourcing.preview.emergentagent.com"
 BASE_URL = BASE_URL.rstrip('/')
 
 class TestCheckoutWeightFix:
