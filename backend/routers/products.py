@@ -108,7 +108,7 @@ _DEFAULT_PRODUCTS = [
         "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/c15a934686343e84b679d1e8995844176bb7ed9247cdbcec7c33c8d52d441274.png",
         "burnTime": "30+ minutes on charcoal",
         "sizes": [
-            {"size": "50g", "mrp": 249, "price": 249, "images": [
+            {"size": "20g", "mrp": 249, "price": 249, "weight": 60, "images": [
                 "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/c15a934686343e84b679d1e8995844176bb7ed9247cdbcec7c33c8d52d441274.png"
             ]}
         ],
@@ -122,7 +122,7 @@ _DEFAULT_PRODUCTS = [
         "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/dd9a7d855b4899a289beae6632de447a07a9612b171fe2d3fc85ff02e10b9713.png",
         "burnTime": "45+ minutes on charcoal",
         "sizes": [
-            {"size": "40g", "mrp": 399, "price": 399, "images": [
+            {"size": "20g", "mrp": 399, "price": 399, "weight": 60, "images": [
                 "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/dd9a7d855b4899a289beae6632de447a07a9612b171fe2d3fc85ff02e10b9713.png"
             ]}
         ],
@@ -203,6 +203,8 @@ def calculate_pricing(items: list, city: str = None, pincode: str = None):
                 # Weight calculation
                 if "weight" in size_info:
                     item_weight = size_info["weight"]
+                elif item.get("size") == "20g":
+                    item_weight = 60
                 elif item.get("size") == "50g":
                     item_weight = 70
                 elif item.get("size") == "125g":
