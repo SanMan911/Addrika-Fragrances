@@ -59,6 +59,9 @@ export const metadata = {
   },
   category: 'ecommerce',
   classification: 'Shopping > Home & Garden > Home Fragrance > Incense',
+  verification: {
+    google: process.env.NEXT_PUBLIC_GSC_VERIFICATION || '',
+  },
 };
 
 // Viewport configuration (separated from metadata in Next.js 14+)

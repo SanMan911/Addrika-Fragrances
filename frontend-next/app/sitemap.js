@@ -1,14 +1,13 @@
-// Dynamic sitemap generation for Next.js
-// This automatically generates sitemap.xml at build time and can be regenerated on demand
-
+// Dynamic sitemap — fetches live products from the API so new products auto-appear
 const BASE_URL = 'https://centraders.com';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://addrika-fragrances-backend.onrender.com';
 
-// Static pages with their update frequency and priority
 const staticPages = [
   { path: '/', changeFreq: 'daily', priority: 1.0 },
   { path: '/about-us', changeFreq: 'monthly', priority: 0.8 },
   { path: '/our-story', changeFreq: 'monthly', priority: 0.8 },
   { path: '/our-quality', changeFreq: 'monthly', priority: 0.8 },
+  { path: '/sustainability', changeFreq: 'monthly', priority: 0.8 },
   { path: '/ingredients', changeFreq: 'monthly', priority: 0.7 },
   { path: '/why-choose-addrika', changeFreq: 'monthly', priority: 0.8 },
   { path: '/why-zero-charcoal', changeFreq: 'monthly', priority: 0.7 },
@@ -23,16 +22,6 @@ const staticPages = [
   { path: '/track-order', changeFreq: 'monthly', priority: 0.5 },
 ];
 
-// Product pages - high priority for e-commerce
-// Includes all product categories: Agarbatti and Dhoop
-const products = [
-  { slug: 'kesar-chandan', name: 'Kesar Chandan Premium Incense' },
-  { slug: 'regal-rose', name: 'Regal Rose Premium Incense' },
-  { slug: 'oriental-oudh', name: 'Oriental Oudh Premium Incense' },
-  { slug: 'bold-bakhoor', name: 'Bold Bakhoor Premium Incense' },
-  { slug: 'mystical-meharishi', name: 'Mystical Meharishi Premium Dhoop' },
-];
-
 export default async function sitemap() {
   const currentDate = new Date().toISOString();
 
@@ -44,15 +33,34 @@ export default async function sitemap() {
     priority: page.priority,
   }));
 
-  // Product pages - high priority
-  const productRoutes = products.map((product) => ({
-    url: `${BASE_URL}/products/${product.slug}`,
-    lastModified: currentDate,
-    changeFrequency: 'weekly',
-    priority: 0.9,
-  }));
+  // Dynamic product pages — fetched live from the API
+  let productRoutes = [];
+  try {
+    const res = await fetch(`${API_URL}/api/products`, { next: { revalidate: 3600 } });
+    if (res.ok) {
+      const products = await res.json();
+      productRoutes = products.map((p) => ({
+        url: `${BASE_URL}/products/${p.id}`,
+        lastModified: p.updated_at || currentDate,
+        changeFrequency: p.comingSoon ? 'weekly' : 'weekly',
+        priority: p.comingSoon ? 0.7 : 0.9,
+      }));
+    }
+  } catch {
+    // Fallback to known products if API is unreachable during build
+    const fallbackSlugs = [
+      'kesar-chandan', 'regal-rose', 'oriental-oudh', 'bold-bakhoor',
+      'mystical-meharishi', 'grated-omani-bakhoor', 'yemeni-bakhoor-chips',
+    ];
+    productRoutes = fallbackSlugs.map((slug) => ({
+      url: `${BASE_URL}/products/${slug}`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    }));
+  }
 
-  // Auth pages (lower priority, but included for completeness)
+  // Auth pages (lower priority)
   const authRoutes = [
     { url: `${BASE_URL}/login`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${BASE_URL}/register`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.4 },

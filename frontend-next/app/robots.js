@@ -1,8 +1,7 @@
-// Dynamic robots.txt generation for Next.js
-
+// Dynamic robots.txt
 export default function robots() {
   const baseUrl = 'https://centraders.com';
-  
+
   return {
     rules: [
       {
@@ -18,7 +17,6 @@ export default function robots() {
           '/auth/',
         ],
       },
-      // Specific rules for AI crawlers (Googlebot, GPTBot, etc.)
       {
         userAgent: 'GPTBot',
         allow: [
@@ -27,6 +25,7 @@ export default function robots() {
           '/about-us',
           '/our-story',
           '/our-quality',
+          '/sustainability',
           '/ingredients',
           '/why-choose-addrika',
           '/faq',
@@ -47,6 +46,7 @@ export default function robots() {
           '/about-us',
           '/our-story',
           '/our-quality',
+          '/sustainability',
           '/ingredients',
           '/why-choose-addrika',
           '/faq',
