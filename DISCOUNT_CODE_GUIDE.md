@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://ethical-sourcing.preview.emergentagent.com/api
+https://natural-dhoop-store.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 
