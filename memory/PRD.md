@@ -55,7 +55,8 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Bakhoor Ratings Added**: Grated Omani Bakhoor (4.9 rating, 7 reviews), Yemeni Bakhoor Chips (4.8 rating, 5 reviews) — meager but mostly 5-star for recently launched products
 - **Rating Fallback Bug Fixed**: Removed `|| 4.5` fallback in FragranceGrid.js, FragranceGridServer.js, and QuickViewModal.js so products with 0 rating don't show fake 4.5 stars
 - **WhatsApp Click-to-Chat Button**: Floating green WhatsApp button (bottom-right) linking to `wa.me/919667269711` with pre-filled message. Visible on all pages.
-- **Migration Script**: Auto-updates Bakhoor ratings in MongoDB on backend startup
+- **Customer Reviews Section**: Premium review section on Bakhoor product detail pages with verified badges, rating breakdown bar chart, and expandable "Show All" button. Only displays for products with `customerReviews` data.
+- **Migration Script**: Auto-updates Bakhoor ratings and reviews in MongoDB on backend startup
 
 ## Database Collections
 - `users` - User accounts

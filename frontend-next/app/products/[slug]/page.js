@@ -4,6 +4,7 @@ import { Star, ArrowRight } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import ProductActions from './ProductActions';
 import ProductGallery from './ProductGallery';
+import CustomerReviews from '../../../components/CustomerReviews';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 
@@ -375,6 +376,15 @@ export default async function ProductPage({ params }) {
               </div>
             </div>
           </div>
+
+          {/* Customer Reviews */}
+          {product.customerReviews && product.customerReviews.length > 0 && (
+            <CustomerReviews
+              reviews={product.customerReviews}
+              rating={product.rating}
+              reviewCount={product.reviews}
+            />
+          )}
           
           {/* Related Products */}
           {relatedProducts.length > 0 && (

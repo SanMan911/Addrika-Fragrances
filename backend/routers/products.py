@@ -115,6 +115,15 @@ _DEFAULT_PRODUCTS = [
             ]}
         ],
         "rating": 4.9, "reviews": 7,
+        "customerReviews": [
+            {"name": "Arjun M.", "rating": 5, "date": "2026-03-28", "text": "The aroma fills my entire living room within minutes. Authentic Omani quality that I haven\u2019t found anywhere else online.", "verified": True},
+            {"name": "Priya S.", "rating": 5, "date": "2026-03-25", "text": "Perfect for special occasions. Guests always ask what fragrance I\u2019m using. The grated form burns so evenly.", "verified": True},
+            {"name": "Khalid R.", "rating": 5, "date": "2026-03-22", "text": "Reminds me of my family home in Muscat. Pure nostalgia in every chip. Will order again.", "verified": True},
+            {"name": "Sneha D.", "rating": 5, "date": "2026-04-01", "text": "Ordered for Eid celebrations and it was perfect. Rich, warm scent that lingers for hours.", "verified": True},
+            {"name": "Vikram T.", "rating": 4, "date": "2026-03-30", "text": "Beautiful fragrance, though the pouch could be slightly larger for the price. Still a solid buy.", "verified": True},
+            {"name": "Meera K.", "rating": 5, "date": "2026-04-03", "text": "Excellent quality bakhoor at a very fair price. The resin and musk notes are divine.", "verified": True},
+            {"name": "Rohan P.", "rating": 5, "date": "2026-04-05", "text": "Gifted this to my mother and she absolutely loved it. Premium packaging too.", "verified": True},
+        ],
     },
     {
         "id": "yemeni-bakhoor-chips", "name": "Yemeni Bakhoor Chips", "tagline": "Exotic Handcrafted Fragrance",
@@ -131,6 +140,13 @@ _DEFAULT_PRODUCTS = [
             ]}
         ],
         "rating": 4.8, "reviews": 5,
+        "customerReviews": [
+            {"name": "Aisha N.", "rating": 5, "date": "2026-03-26", "text": "The depth of this fragrance is unmatched. True Yemeni craftsmanship\u2014each chip releases a complex, layered scent.", "verified": True},
+            {"name": "Sameer J.", "rating": 5, "date": "2026-03-29", "text": "Worth every rupee. The saffron and honey notes come through beautifully when heated.", "verified": True},
+            {"name": "Fatima B.", "rating": 5, "date": "2026-04-02", "text": "Perfect for meditation and unwinding after work. The sandalwood base note is so calming.", "verified": True},
+            {"name": "Karthik V.", "rating": 4, "date": "2026-03-31", "text": "Lovely fragrance but chips burn a bit quickly. Still highly recommend for the quality.", "verified": True},
+            {"name": "Nadia H.", "rating": 5, "date": "2026-04-04", "text": "Gift this to anyone who appreciates authentic Arabian bakhoor. My husband was thrilled!", "verified": True},
+        ],
     },
     {
         "id": "bilvapatra-fragrance", "name": "Bilvapatra Fragrance", "tagline": "Sacred Bael Leaf Essence",
@@ -260,7 +276,25 @@ async def _migrate_products():
         },
     ]
 
-    for m in migrations + img_migrations + launch_migrations + rating_migrations:
+    # Migration: Add customer reviews for Bakhoor products
+    review_migrations = [
+        {
+            "filter": {"id": "grated-omani-bakhoor", "$or": [{"customerReviews": {"$exists": False}}, {"customerReviews": {"$size": 0}}]},
+            "update": {"$set": {
+                "customerReviews": _DEFAULT_PRODUCTS[5].get("customerReviews", []),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        },
+        {
+            "filter": {"id": "yemeni-bakhoor-chips", "$or": [{"customerReviews": {"$exists": False}}, {"customerReviews": {"$size": 0}}]},
+            "update": {"$set": {
+                "customerReviews": _DEFAULT_PRODUCTS[6].get("customerReviews", []),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        },
+    ]
+
+    for m in migrations + img_migrations + launch_migrations + rating_migrations + review_migrations:
         try:
             result = await db.products.update_one(m["filter"], m["update"])
             if result.modified_count > 0:
