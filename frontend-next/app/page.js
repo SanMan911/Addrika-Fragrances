@@ -1,5 +1,6 @@
 import Header from '../components/Header';
 import Hero from '../components/Hero';
+import AnnouncementMarquee from '../components/AnnouncementMarquee';
 import FragranceGridServer from '../components/FragranceGridServer';
 import USPSection from '../components/USPSection';
 import PackagingSection from '../components/PackagingSection';
@@ -51,6 +52,7 @@ export default async function HomePage() {
     <div className="min-h-screen">
       <Header />
       <Hero />
+      <AnnouncementMarquee />
       <FragranceGridServer initialProducts={products} />
       <USPSection />
       <PackagingSection />
