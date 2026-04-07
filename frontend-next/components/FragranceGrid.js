@@ -13,6 +13,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const isComingSoon = product.comingSoon === true;
   
   // Get all images from all sizes
   const allImages = useMemo(() => {
@@ -95,17 +96,25 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
         <div 
           className="absolute top-5 left-5 px-4 py-2 rounded-full text-xs font-bold tracking-wide"
           style={{ 
-            background: product.category === 'dhoop' 
-              ? 'linear-gradient(135deg, rgba(212,175,55,0.95) 0%, rgba(180,140,40,0.95) 100%)'
-              : 'linear-gradient(135deg, rgba(16,185,129,0.95) 0%, rgba(5,150,105,0.95) 100%)',
-            color: product.category === 'dhoop' ? '#1a1a2e' : 'white',
-            boxShadow: product.category === 'dhoop' 
-              ? '0 4px 20px rgba(212, 175, 55, 0.4)'
-              : '0 4px 20px rgba(16, 185, 129, 0.4)',
+            background: isComingSoon
+              ? 'linear-gradient(135deg, rgba(168,85,247,0.95) 0%, rgba(139,92,246,0.95) 100%)'
+              : product.category === 'dhoop' 
+                ? 'linear-gradient(135deg, rgba(212,175,55,0.95) 0%, rgba(180,140,40,0.95) 100%)'
+                : product.category === 'bakhoor'
+                  ? 'linear-gradient(135deg, rgba(217,119,6,0.95) 0%, rgba(180,83,9,0.95) 100%)'
+                  : 'linear-gradient(135deg, rgba(16,185,129,0.95) 0%, rgba(5,150,105,0.95) 100%)',
+            color: (product.category === 'dhoop' && !isComingSoon) ? '#1a1a2e' : 'white',
+            boxShadow: isComingSoon
+              ? '0 4px 20px rgba(168,85,247,0.4)'
+              : product.category === 'dhoop' 
+                ? '0 4px 20px rgba(212, 175, 55, 0.4)'
+                : product.category === 'bakhoor'
+                  ? '0 4px 20px rgba(217,119,6,0.4)'
+                  : '0 4px 20px rgba(16, 185, 129, 0.4)',
             backdropFilter: 'blur(8px)'
           }}
         >
-          {product.category === 'dhoop' ? 'Bambooless Dhoop' : 'Zero Charcoal'}
+          {isComingSoon ? 'Coming Soon' : product.category === 'dhoop' ? 'Bambooless Dhoop' : product.category === 'bakhoor' ? 'Bakhoor' : 'Zero Charcoal'}
         </div>
         
         {/* Wishlist Button */}
@@ -177,10 +186,11 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
         )}
         
         <p className="text-xs tracking-wider mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Low Smoke • Zero Charcoal • 40-50 Min Burn
+          {isComingSoon ? 'Premium Bakhoor • Authentic Arabian Fragrance' : 'Low Smoke • Zero Charcoal • 40-50 Min Burn'}
         </p>
         
         {/* Rating */}
+        {!isComingSoon && (
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center gap-0.5">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -198,6 +208,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
             {product.rating || 4.5} ({product.reviewCount || product.reviews || 0})
           </span>
         </div>
+        )}
         
         {/* Price */}
         <div className="flex items-end justify-between mb-5">
@@ -232,6 +243,20 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
         
         {/* View Details Button */}
         <div className="flex gap-3">
+          {isComingSoon ? (
+            <button
+              className="flex-1 py-3.5 rounded-xl font-semibold text-sm tracking-wide cursor-default"
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(168,85,247,0.3) 0%, rgba(139,92,246,0.2) 100%)',
+                color: 'rgba(168,85,247,0.9)',
+                border: '1px solid rgba(168,85,247,0.3)'
+              }}
+              data-testid={`coming-soon-btn-${product.id}`}
+            >
+              Coming Soon — Notify Me
+            </button>
+          ) : (
+          <>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -263,6 +288,8 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
           >
             View Details
           </button>
+          </>
+          )}
         </div>
       </div>
     </div>
@@ -460,7 +487,7 @@ export default function FragranceGrid() {
         {!loading && !error && fragrances.length > 0 && (
           <div className="text-center mt-16">
             <p className="text-sm text-[#999] dark:text-gray-500">
-              All agarbattis are charcoal-free, dhoop is bambooless, producing over 60% less smoke while supporting local artisan communities
+              All agarbattis are charcoal-free, dhoop is bambooless, producing over 60% less smoke while supporting local artisan communities. Bakhoor range coming soon!
             </p>
           </div>
         )}

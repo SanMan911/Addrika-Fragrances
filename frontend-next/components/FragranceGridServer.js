@@ -11,6 +11,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const isComingSoon = product.comingSoon === true;
   
   // Get all images from all sizes
   const allImages = useMemo(() => {
@@ -104,15 +105,16 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
         <div 
           className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm"
           style={{ 
-            background: 'rgba(26,26,46,0.8)',
-            color: '#D4AF37',
-            border: '1px solid rgba(212,175,55,0.3)'
+            background: isComingSoon ? 'rgba(168,85,247,0.8)' : 'rgba(26,26,46,0.8)',
+            color: isComingSoon ? 'white' : '#D4AF37',
+            border: isComingSoon ? '1px solid rgba(168,85,247,0.5)' : '1px solid rgba(212,175,55,0.3)'
           }}
         >
-          {product.type === 'dhoop' ? 'Dhoop' : 'Agarbatti'}
+          {isComingSoon ? 'Coming Soon' : product.type === 'dhoop' ? 'Dhoop' : product.type === 'bakhoor' ? 'Bakhoor' : 'Agarbatti'}
         </div>
 
         {/* Action Buttons */}
+        {!isComingSoon && (
         <div className="absolute bottom-20 right-4 flex flex-col gap-2 transform translate-x-16 group-hover:translate-x-0 transition-all duration-300">
           {/* Wishlist Button */}
           <button
@@ -151,6 +153,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
             <Eye size={18} color="#D4AF37" />
           </button>
         </div>
+        )}
 
         {/* Image Indicators */}
         {allImages.length > 1 && (
@@ -172,6 +175,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
       {/* Product Info */}
       <div className="p-5 relative">
         {/* Rating */}
+        {!isComingSoon && (
         <div className="flex items-center gap-1 mb-2">
           {[...Array(5)].map((_, i) => (
             <Star
@@ -185,6 +189,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
             ({product.reviews || 0})
           </span>
         </div>
+        )}
 
         {/* Name */}
         <h3 
@@ -196,7 +201,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
 
         {/* Tagline */}
         <p className="text-xs text-gray-400 mb-3 line-clamp-1">
-          {product.tagline}
+          {isComingSoon ? 'Premium Bakhoor • Authentic Arabian Fragrance' : product.tagline}
         </p>
 
         {/* Price */}
@@ -207,18 +212,18 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
           >
             ₹{lowestPrice}
           </span>
-          {hasDiscount && (
+          {hasDiscount && !isComingSoon && (
             <span className="text-sm text-gray-500 line-through">
               ₹{lowestMRP}
             </span>
           )}
-          <span className="text-xs text-gray-500">onwards</span>
+          <span className="text-xs text-gray-500">{isComingSoon ? 'MRP' : 'onwards'}</span>
         </div>
 
         {/* Hover accent line */}
         <div 
           className="absolute bottom-0 left-0 h-0.5 w-0 group-hover:w-full transition-all duration-500"
-          style={{ background: 'linear-gradient(90deg, #D4AF37 0%, transparent 100%)' }}
+          style={{ background: isComingSoon ? 'linear-gradient(90deg, #a855f7 0%, transparent 100%)' : 'linear-gradient(90deg, #D4AF37 0%, transparent 100%)' }}
         />
       </div>
     </div>
@@ -364,8 +369,8 @@ export default function FragranceGridServer({ initialProducts = [] }) {
             Premium Incense Collection
           </h2>
           <p className="text-lg sm:text-xl max-w-3xl mx-auto mb-10 text-[#666] dark:text-gray-300">
-            Premium charcoal-free agarbattis and bambooless dhoop, each offering 30-50 minutes of pure, 
-            low-smoke aromatherapy — supporting artisan communities across India
+            Premium charcoal-free agarbattis, bambooless dhoop, and authentic bakhoor — each offering a pure, 
+            low-smoke aromatherapy experience supporting artisan communities across India
           </p>
         </div>
         

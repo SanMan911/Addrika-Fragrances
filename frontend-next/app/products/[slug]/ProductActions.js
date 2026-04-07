@@ -10,6 +10,7 @@ export default function ProductActions({ product }) {
   const [selectedSize, setSelectedSize] = useState(product.sizes[0]);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
+  const isComingSoon = product.comingSoon === true;
   
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -148,6 +149,19 @@ export default function ProductActions({ product }) {
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-4 pt-4">
+        {isComingSoon ? (
+          <div className="flex-1 py-4 px-6 text-lg font-semibold rounded-xl text-center"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(139,92,246,0.15) 100%)',
+              color: 'rgba(168,85,247,0.9)',
+              border: '1px solid rgba(168,85,247,0.3)'
+            }}
+            data-testid="coming-soon-notice"
+          >
+            Coming Soon — Stay Tuned!
+          </div>
+        ) : (
+        <>
         <button
           onClick={handleAddToCart}
           disabled={addingToCart || !selectedSize}
@@ -183,6 +197,8 @@ export default function ProductActions({ product }) {
           />
           <span className="hidden sm:inline">{inWishlist ? 'In Wishlist' : 'Add to Wishlist'}</span>
         </button>
+        </>
+        )}
       </div>
       
       {/* Pickup/Delivery Options */}

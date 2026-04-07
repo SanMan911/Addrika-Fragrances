@@ -42,6 +42,8 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
 
   if (!isOpen || !product) return null;
 
+  const isComingSoon = product.comingSoon === true;
+
   // Get all images
   const allImages = [];
   product.sizes?.forEach(size => {
@@ -161,11 +163,13 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
               <div 
                 className="absolute top-8 left-8 px-3 py-1.5 rounded-full text-xs font-bold"
                 style={{ 
-                  background: 'linear-gradient(135deg, rgba(16,185,129,0.95) 0%, rgba(5,150,105,0.95) 100%)',
+                  background: isComingSoon
+                    ? 'linear-gradient(135deg, rgba(168,85,247,0.95) 0%, rgba(139,92,246,0.95) 100%)'
+                    : 'linear-gradient(135deg, rgba(16,185,129,0.95) 0%, rgba(5,150,105,0.95) 100%)',
                   color: 'white'
                 }}
               >
-                Zero Charcoal
+                {isComingSoon ? 'Coming Soon' : 'Zero Charcoal'}
               </div>
             </div>
 
