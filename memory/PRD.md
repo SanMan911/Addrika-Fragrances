@@ -146,6 +146,25 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - "Shop & Add Tree Donation" button links to products
   - Clear messaging: "Add just ₹5 at checkout and we'll match it"
 
+### April 6, 2026 - Tree Donation Backend & Admin Metrics
+- ✅ **Order Success Thank You Message**:
+  - Shows "Thank You for Planting a Tree!" when ?tree=true param present
+  - Displays "Rs. 5 donation + Rs. 5 match = 1 tree planted together"
+  - TreePine icon and green-themed styling
+  - Also shows in "What's Next" section
+- ✅ **Backend Tree Donation Tracking**:
+  - OrderCreate model: tree_donation field (Optional[float] = 0)
+  - Pricing object stores tree_donation amount
+  - Final total calculation includes tree_donation
+- ✅ **Admin Tree Donations Dashboard** (/admin/tree-donations):
+  - Summary Cards: Trees Funded, Donors, Customer Donations, Addrika Match, Total Impact
+  - Date Range Filters: 7/30/90/365 days + custom date range
+  - Daily Breakdown Table: Date, Orders, Customer/Addrika amounts, Trees planted
+  - Invoice Details: Order number, date, customer name/email, donation, order total
+  - Export CSV functionality
+  - Empty state handling with informative message
+- ✅ **Admin Sidebar**: Added "Tree Donations" nav link with TreePine icon
+
 ## Prioritized Backlog
 
 ### P0 (Critical)
