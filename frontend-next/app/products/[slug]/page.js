@@ -344,11 +344,13 @@ export default async function ProductPage({ params }) {
                 </div>
               </div>
               
-              {/* Burn Time */}
+              {/* Burn Time — hidden for bakhoor (different burn method) */}
+              {product.category !== 'bakhoor' && product.burnTime && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Burn Time:</span>
                 <span className="font-semibold text-[#D4AF37]">{product.burnTime}</span>
               </div>
+              )}
               
               {/* Client-side Actions (Add to Cart, etc.) */}
               <ProductActions product={product} />

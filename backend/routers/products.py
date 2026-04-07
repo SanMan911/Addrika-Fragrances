@@ -106,7 +106,7 @@ _DEFAULT_PRODUCTS = [
         "description": "Immerse yourself in the rich, warm aroma of authentic Omani Bakhoor\u2014finely grated for a smooth, even burn. This premium bakhoor blend features aged oud chips infused with natural resins, musk, and floral extracts sourced from Oman\u2019s finest perfumers. Perfect for scenting your home, welcoming guests, or enhancing special occasions with an opulent, long-lasting fragrance that embodies Arabian hospitality.",
         "notes": ["Aged Oud", "Natural Resins", "Musk & Florals"],
         "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/c15a934686343e84b679d1e8995844176bb7ed9247cdbcec7c33c8d52d441274.png",
-        "burnTime": "30+ minutes on charcoal",
+        "burnTime": "",
         "sizes": [
             {"size": "20g", "mrp": 249, "price": 249, "weight": 60, "images": [
                 "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/c15a934686343e84b679d1e8995844176bb7ed9247cdbcec7c33c8d52d441274.png"
@@ -120,7 +120,7 @@ _DEFAULT_PRODUCTS = [
         "description": "Discover the exotic depth of Yemeni Bakhoor Chips\u2014hand-selected oud wood chips blended with rare Yemeni honey, saffron, and sandalwood oils. Each chip is carefully aged and infused using traditional methods passed down through generations. When heated, these chips release a rich, complex fragrance that lingers for hours, transforming any space into a haven of tranquility and sophistication.",
         "notes": ["Yemeni Oud", "Saffron & Honey", "Sandalwood"],
         "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/dd9a7d855b4899a289beae6632de447a07a9612b171fe2d3fc85ff02e10b9713.png",
-        "burnTime": "45+ minutes on charcoal",
+        "burnTime": "",
         "sizes": [
             {"size": "20g", "mrp": 399, "price": 399, "weight": 60, "images": [
                 "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/dd9a7d855b4899a289beae6632de447a07a9612b171fe2d3fc85ff02e10b9713.png"
@@ -146,6 +146,37 @@ async def _seed_default_products():
         logger.info(f"Auto-seeded {len(docs)} products into MongoDB")
     except Exception as e:
         logger.error(f"Auto-seed failed: {e}")
+
+
+async def _migrate_products():
+    """Apply any pending data migrations to existing products."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Migration: Bakhoor sizes 50g/40g → 20g with weight=60, remove burnTime
+    migrations = [
+        {
+            "filter": {"id": "grated-omani-bakhoor", "sizes.size": {"$ne": "20g"}},
+            "update": {"$set": {
+                "sizes": [{"size": "20g", "mrp": 249, "price": 249, "weight": 60, "images": _DEFAULT_PRODUCTS[5]["sizes"][0]["images"]}],
+                "burnTime": "",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        },
+        {
+            "filter": {"id": "yemeni-bakhoor-chips", "sizes.size": {"$ne": "20g"}},
+            "update": {"$set": {
+                "sizes": [{"size": "20g", "mrp": 399, "price": 399, "weight": 60, "images": _DEFAULT_PRODUCTS[6]["sizes"][0]["images"]}],
+                "burnTime": "",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        },
+    ]
+
+    for m in migrations:
+        result = await db.products.update_one(m["filter"], m["update"])
+        if result.modified_count > 0:
+            logger.info(f"Migrated product matching {m['filter']}")
 
 
 async def refresh_products_cache():
