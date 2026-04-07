@@ -4,7 +4,7 @@
 Build a premium e-commerce platform for Addrika natural incense brand by Centsibl Traders. Features include:
 - Username-based authentication with case-sensitive registration
 - Admin portal with 2FA login
-- Product catalog with Agarbatti and Dhoop categories
+- Product catalog with Agarbatti, Dhoop, and Bakhoor categories
 - Retailer dashboard and B2B features
 - SEO optimization for organic search visibility
 
@@ -32,138 +32,49 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 ## What's Been Implemented
 
 ### December 2025 - April 2026
-- ✅ Full e-commerce flow (cart, checkout, orders)
-- ✅ Username-based authentication with case-sensitivity
-- ✅ Forgot Username feature via mobile number
-- ✅ Reserved usernames blocking
-- ✅ Admin 2FA login with email OTP
-- ✅ Admin PIN forgot/reset flow (fixed collection mismatch bug)
-- ✅ Admin notifications for new registrations
-- ✅ "Mystical Meharishi" Dhoop product added
-- ✅ Dynamic product badges (Zero Charcoal vs Bambooless Dhoop)
-- ✅ Text updates (1000+ Customers, packaging copy)
-- ✅ Admin dark-theme login/forgot-password pages
+- Full e-commerce flow (cart, checkout, orders)
+- Username-based authentication with case-sensitivity
+- Forgot Username feature via mobile number
+- Reserved usernames blocking
+- Admin 2FA login with email OTP
+- Admin PIN forgot/reset flow (fixed collection mismatch bug)
+- Admin notifications for new registrations
+- "Mystical Meharishi" Dhoop product added
+- Dynamic product badges (Zero Charcoal vs Bambooless Dhoop)
+- Text updates (1000+ Customers, packaging copy)
+- Admin dark-theme login/forgot-password pages
+- SEO Audit & Fixes (metadata, canonical URLs, structured data, sitemap, PWA manifest)
+- Product Loading & Size Image Fixes (SSR conversion)
+- URL Cleanup (removed all hardcoded preview URLs from 42+ files)
+- Title Case auto-capitalization on all forms
+- Coupon Analytics & Delete Confirmation with enhanced admin marketing page
+- Mission & Vision Statements on Our Story page
+- Low Carbon Footprint messaging across the site
+- Website Consistency (60%+ smoke reduction standardized, bamboo/bambooless clarification)
+- Sustainability Page (/sustainability) with interactive impact dashboard
+- Tree Donation Checkout Integration (₹5 toggle, backend tracking, admin metrics)
 
-### April 2, 2026 - SEO Audit & Fixes
-- ✅ Added page-level metadata to auth/account pages
-- ✅ Enhanced homepage meta with additional keywords
-- ✅ Added canonical URLs to product pages
-- ✅ Added BreadcrumbList schema to products
-- ✅ Updated sitemap with Dhoop product
-- ✅ Added manifest.json for PWA
-- ✅ Enhanced structured data (Organization, Store, WebSite)
-- ✅ Fixed admin PIN reset collection mismatch bug
+### April 7, 2026 - Bakhoor Products & Refactoring
+- **NEW: 2 Bakhoor Placeholder Products** added:
+  - Grated Omani Bakhoor (₹249, 50g) - "Traditional Arabian Luxury"
+  - Yemeni Bakhoor Chips (₹399, 40g) - "Exotic Handcrafted Fragrance"
+  - Both marked `comingSoon: true` — display in catalog but cannot be added to cart
+  - AI-generated placeholder product images
+  - Rich descriptions about each bakhoor variant
+  - "Coming Soon" purple badge on product cards
+  - "Coming Soon — Stay Tuned!" replaces Add to Cart button
+  - No rating stars displayed for 0-review coming soon products
+  - Backend cart guard rejects add-to-cart attempts (400 error)
+- **FIXED: Trust badges** on product detail pages changed from "Natural Ingredients / 100% Pure" to "Ethical Sourcing / Premium Ingredients"
+- **REFACTORED: Legacy frontend deleted** — `/app/frontend` is now a symlink to `/app/frontend-next` (Next.js)
+- **UPDATED: next.config.js** — Added `static.prod-images.emergentagent.com` to image remotePatterns
+- **UPDATED: Structured data** — Bakhoor category recognized in SEO schema
 
-### April 3, 2026 - Product Loading & Size Image Fixes
-- ✅ **CRITICAL FIX: Products now load via Server-Side Rendering (SSR)**
-  - Homepage converted from client component to server component
-  - Products fetched server-side using `NEXT_PUBLIC_BACKEND_URL`
-  - Created `FragranceGridServer.js` that accepts pre-fetched products
-  - Eliminates random loading failures on production (Vercel)
-- ✅ Fixed product size image switching (50g → 200g updates gallery)
-- ✅ Removed "100% Natural" messaging (replaced with CSR focus)
-  - Hero badge: "CSR Driven"
-  - USP card: "CSR Commitment" - supports local artisans
-  - Product descriptions updated throughout
-- ✅ Fixed Find Retailers page - API endpoint and map added
-- ✅ Replaced dummy retailers with correct 2 stores (M.G. Shoppie, Mela Stores)
-- ✅ Removed GST display from retailer cards
-- ✅ Fixed Mystical Meharishi product type: "dhoop" (was showing "Agarbatti")
-- ✅ Updated CSR stats: 50+ trees, 7 families, 12 student years
-- ✅ Updated product ratings to average 4.3★ (more realistic)
-- ✅ Updated footer stats: "Ethical Sourcing" instead of "Natural Ingredients"
-- ✅ Increased Hero logo size
-- ✅ **Fixed ALL pages with hardcoded production backend URL fallback**
-  - Cart, Checkout, Wishlist, Account, Admin, Retailer pages all fixed
-  - Context files (AuthContext, RetailerAuthContext) fixed
-  - Components (FragranceGrid) fixed
-- ✅ Fixed coupon validation API endpoint and request format
-- ✅ Replaced OpenStreetMap with Google Maps (correct Indian borders)
-- ✅ Added WhatsApp button to retailer cards
-- ✅ Cleaned up Find Retailers page (map section + retailer details section)
-- ✅ Removed all default coupon codes from database
-- ✅ Updated all SEO metadata to remove "100% natural" claims (replaced with "ethically sourced")
-- ✅ Updated "Our Story" > Ethical Sourcing section - removed "synthetic fragrances" claims, now focuses on transparency
-
-### April 3, 2026 - URL Cleanup (CRITICAL)
-- ✅ **REMOVED ALL HARDCODED PREVIEW URLs** from 42+ frontend files
-  - Cleaned `csr-metrics-update.preview.emergentagent.com` references
-  - Cleaned `product-size-sync.preview.emergentagent.com` references
-  - Updated `/app/frontend-next/lib/config.js` to use env vars only
-  - Client-side API calls use empty string (relative paths via Next.js rewrites)
-  - Server-side SSR calls require `NEXT_PUBLIC_BACKEND_URL` env var
-  - Updated `.env.local` to not have hardcoded URLs
-
-### April 5, 2026 - Admin Panel Forms & Title Case
-- ✅ **VERIFIED: Title Case auto-capitalization working**
-  - Registration form: name, address, landmark, city, state fields
-  - Checkout form: name, address, landmark fields
-  - Admin Retailers form: business_name, trade_name, owner_name, address, city, district, state
-  - All inputs auto-capitalize first letter of every word
-- ✅ **VERIFIED: Admin Add Retailer form** - works end-to-end with backend
-- ✅ **VERIFIED: Admin Create Coupon form** - works end-to-end with backend
-- ✅ **VERIFIED: Return Policy text cleanup** - No mention of "damaged/defective/wrong deliveries"
-- ✅ **FIXED: test_credentials.md** - Corrected Admin PIN from 110078 to 050499
-
-### April 5, 2026 - Coupon Analytics & Delete Confirmation
-- ✅ **Enhanced Delete Coupon** - Confirmation modal requires typing exact coupon code
-- ✅ **Toggle Coupon Status** - Click Active/Inactive badge to toggle coupon on/off
-- ✅ **NEW: Analytics Tab** in Marketing page with:
-  - Summary Cards: Total Uses, Total Cart Value, Total Discount Given, Unique Customers
-  - Coupon Performance Table: Code, Uses, Customers, Cart Value, Discount Given, Net Revenue, Avg Cart, Status
-  - Recent Usage/Invoice Details: User email, Order ID, cart value, discount amount, timestamp
-- ✅ **Per-Coupon Usage History** - Click Eye icon on any coupon to see its usage breakdown
-- ✅ **Mission & Vision Statements** added to Our Story page:
-  - Mission: Elevate everyday rituals with premium zero-charcoal incense supporting artisan communities
-  - Vision: Become India's most trusted name in ethical, premium incense
-- ✅ **Low Carbon Footprint messaging** added across the site:
-  - CSR Section: New "Low Carbon Footprint" card - "over 60% less smoke"
-  - Our Story Values: New "Low Carbon Footprint" value highlighting cleaner burning formula
-
-### April 5, 2026 - Website Consistency & Sustainability Page
-- ✅ **Standardized smoke reduction to "60%+" across entire website**
-  - Updated: FAQ, Low Smoke Incense, Why Choose Addrika, Why Zero Charcoal, Our Quality, CSR Section, USP Section, Layout meta description
-- ✅ **Replaced "100% Natural" with "Ethical Sourcing"** across all pages
-- ✅ **Clarified bamboo vs bambooless products**:
-  - Agarbatti: Uses bamboo sticks with charcoal-free coating
-  - Dhoop: Completely bambooless
-- ✅ **NEW: Sustainability Page** (/sustainability) with:
-  - Animated impact counters (50+ trees, 7 families, 12 student years, 60%+ less smoke)
-  - Low Carbon Footprint section
-  - Packaging info: PET Bottles (Reusable), Paper Packets (Recyclable)
-  - Roadmap: 2025 current → 2026 (100 trees) → 2027 (Carbon-neutral, 100% recyclable)
-  - "Your Impact" section with optional ₹10 tree donation at checkout
-- ✅ **Updated Navigation**: Added "Sustainability" link to header
-
-### April 6, 2026 - Tree Donation Checkout Integration
-- ✅ **₹5 Tree Donation in Checkout**: 
-  - Toggle option in Order Summary: "Plant a Tree"
-  - Customer pays ₹5, Addrika matches ₹5 (50/50 cost share)
-  - Shows as separate line item in price breakdown (emerald green)
-  - Included in order payload for backend processing
-- ✅ **Updated Sustainability Page**:
-  - Changed from ₹10 modal to ₹5 messaging
-  - "Shop & Add Tree Donation" button links to products
-  - Clear messaging: "Add just ₹5 at checkout and we'll match it"
-
-### April 6, 2026 - Tree Donation Backend & Admin Metrics
-- ✅ **Order Success Thank You Message**:
-  - Shows "Thank You for Planting a Tree!" when ?tree=true param present
-  - Displays "Rs. 5 donation + Rs. 5 match = 1 tree planted together"
-  - TreePine icon and green-themed styling
-  - Also shows in "What's Next" section
-- ✅ **Backend Tree Donation Tracking**:
-  - OrderCreate model: tree_donation field (Optional[float] = 0)
-  - Pricing object stores tree_donation amount
-  - Final total calculation includes tree_donation
-- ✅ **Admin Tree Donations Dashboard** (/admin/tree-donations):
-  - Summary Cards: Trees Funded, Donors, Customer Donations, Addrika Match, Total Impact
-  - Date Range Filters: 7/30/90/365 days + custom date range
-  - Daily Breakdown Table: Date, Orders, Customer/Addrika amounts, Trees planted
-  - Invoice Details: Order number, date, customer name/email, donation, order total
-  - Export CSV functionality
-  - Empty state handling with informative message
-- ✅ **Admin Sidebar**: Added "Tree Donations" nav link with TreePine icon
+## Messaging Consistency Rules (CRITICAL)
+1. **Smoke Reduction**: MUST say "60%+" or "over 60% less smoke". Never 40%, 80%, etc.
+2. **Bamboo**: ONLY Dhoop is bambooless. Agarbattis contain bamboo sticks.
+3. **Ingredients**: Do NOT use "100% natural". Use "Ethical Sourcing" instead.
+4. **Tree Donation**: Strictly ₹5 customer contribution, Addrika matches ₹5.
 
 ## Prioritized Backlog
 
@@ -172,32 +83,34 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - [ ] **DEPLOY TO VERCEL** - See deployment instructions below
 
 ### P1 (High)
-- [ ] Add Bakhoor category products (awaiting images/prices)
+- [x] Add Bakhoor category products (DONE - placeholders with Coming Soon)
 - [ ] Additional Dhoop product images
+- [ ] Replace Bakhoor placeholder images with actual product photos (when user provides)
 
 ### P2 (Medium)
-- [ ] Google Search Console setup
-- [ ] GST Verification API stability
+- [ ] Google Search Console setup (submit dynamically generated sitemap.xml)
+- [ ] GST Verification API stability (recurring issue)
 - [ ] WhatsApp API integration
 
 ### P3 (Low)
-- [ ] Delete legacy /app/frontend folder
+- [x] Delete legacy /app/frontend folder (DONE - symlinked to frontend-next)
 - [ ] Google Analytics integration
+- [ ] Migrate hardcoded products to MongoDB for dynamic catalog
 
 ## API Endpoints (Key)
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
-- `POST /api/auth/forgot-username` - Username recovery
-- `POST /api/admin/login/initiate` - Admin 2FA step 1
-- `POST /api/admin/login/verify-otp` - Admin 2FA step 2
-- `POST /api/admin/forgot-pin/reset` - Admin PIN reset
-- `GET /api/products` - Product list
+- `GET /api/products` - Product list (returns 7 products)
 - `GET /api/products/:slug` - Product details
+- `POST /api/cart/{session_id}/add` - Add to cart (blocks comingSoon products)
+- `POST /api/orders/create` - Create order (accepts pricing.tree_donation)
+- `GET /api/admin/analytics/tree-donations` - Tree donation metrics (admin auth required)
 
 ## Database Collections
 - `users` - User accounts (email, username, username_lower)
 - `admin_settings` - Admin credentials (pin_hash)
-- `orders` - Customer orders
+- `orders` - Customer orders (includes pricing.tree_donation)
+- `discount_codes` - Coupon codes
 - `products` - (served from routers/products.py as static data)
 
 ## Known Issues
@@ -205,33 +118,24 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 
 ---
 
-## 🚀 VERCEL DEPLOYMENT INSTRUCTIONS
+## VERCEL DEPLOYMENT INSTRUCTIONS
 
-**CRITICAL**: Before pushing to GitHub, you MUST configure your Vercel Environment Variables.
+**CRITICAL**: Before pushing to GitHub, configure Vercel Environment Variables.
 
 ### Step 1: Go to Vercel Dashboard
 1. Log in to [vercel.com](https://vercel.com)
-2. Select your project (the one connected to centraders.com)
+2. Select your project
 3. Go to **Settings** → **Environment Variables**
 
 ### Step 2: Add Required Environment Variable
-Add the following environment variable:
-
 | Name | Value | Environment |
 |------|-------|-------------|
 | `NEXT_PUBLIC_BACKEND_URL` | `https://your-backend-url.com` | Production, Preview, Development |
 
-**Replace `https://your-backend-url.com`** with your actual backend server URL. This is where your FastAPI backend is hosted.
-
 ### Step 3: Save and Push to GitHub
 1. Click "Save" in Vercel
-2. Come back to Emergent
-3. Click **"Save to Github"** in the chat input
-4. Vercel will automatically redeploy with the new environment variable
+2. Come back to Emergent → Click "Save to Github"
+3. Vercel will auto-redeploy
 
-### Why This Matters
-- The Next.js frontend uses **Server-Side Rendering (SSR)** to load products
-- SSR runs on Vercel's servers, which need the backend URL to fetch data
-- Without `NEXT_PUBLIC_BACKEND_URL`, product loading will fail
-- Client-side API calls use relative paths (`/api/*`) which Next.js rewrites handle
-
+### Step 4: Add image domain to Vercel
+Ensure `static.prod-images.emergentagent.com` is allowed in Next.js image config (already configured in next.config.js).
