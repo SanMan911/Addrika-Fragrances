@@ -5,7 +5,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ethical-sourcing.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://natural-dhoop-store.preview.emergentagent.com').rstrip('/')
 
 
 class TestAdminEndpoints:
