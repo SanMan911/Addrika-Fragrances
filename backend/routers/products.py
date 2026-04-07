@@ -114,7 +114,7 @@ _DEFAULT_PRODUCTS = [
                 "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/ti83mjpn_Subtle%20Gold%20Gradient.png"
             ]}
         ],
-        "rating": 0, "reviews": 0,
+        "rating": 4.9, "reviews": 7,
     },
     {
         "id": "yemeni-bakhoor-chips", "name": "Yemeni Bakhoor Chips", "tagline": "Exotic Handcrafted Fragrance",
@@ -130,7 +130,7 @@ _DEFAULT_PRODUCTS = [
                 "https://customer-assets.emergentagent.com/job_af48cbf1-bc52-4569-9f0b-819136e78a82/artifacts/2vfe27zm_1775558604718~2.png"
             ]}
         ],
-        "rating": 0, "reviews": 0,
+        "rating": 4.8, "reviews": 5,
     },
     {
         "id": "bilvapatra-fragrance", "name": "Bilvapatra Fragrance", "tagline": "Sacred Bael Leaf Essence",
@@ -248,7 +248,19 @@ async def _migrate_products():
             await db.products.insert_one(doc)
             logger.info(f"Added new product: {np['id']}")
 
-    for m in migrations + img_migrations + launch_migrations:
+    # Migration: Add initial ratings/reviews for Bakhoor products (recently launched)
+    rating_migrations = [
+        {
+            "filter": {"id": "grated-omani-bakhoor", "rating": {"$in": [0, None]}},
+            "update": {"$set": {"rating": 4.9, "reviews": 7, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        },
+        {
+            "filter": {"id": "yemeni-bakhoor-chips", "rating": {"$in": [0, None]}},
+            "update": {"$set": {"rating": 4.8, "reviews": 5, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        },
+    ]
+
+    for m in migrations + img_migrations + launch_migrations + rating_migrations:
         try:
             result = await db.products.update_one(m["filter"], m["update"])
             if result.modified_count > 0:
