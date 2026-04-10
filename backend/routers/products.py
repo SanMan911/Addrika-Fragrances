@@ -175,6 +175,21 @@ _DEFAULT_PRODUCTS = [
             ]}
         ],
         "rating": 0, "reviews": 0,
+    },
+    {
+        "id": "royal-kewda", "name": "Royal Kewda", "tagline": "Exotic Floral Paradise",
+        "type": "agarbatti", "category": "agarbatti", "comingSoon": False, "isActive": True,
+        "description": "Indulge in the captivating aroma of Royal Kewda\u2014a premium agarbatti inspired by the rare and intoxicating pandanus flower, treasured for centuries in Indian perfumery. This exotic blend weaves together sweet floral kewda with delicate hints of jasmine and white musk, creating a lush, long-lasting fragrance that transforms any space into a floral sanctuary. Perfect for daily rituals, evening relaxation, or gifting to someone who appreciates rare botanical scents.",
+        "notes": ["Kewda", "Jasmine", "White Musk"],
+        "image": "https://images.unsplash.com/photo-1627769916425-74c2344a3439?w=800&q=80",
+        "burnTime": "40+ minutes",
+        "sizes": [
+            {"size": "50g", "mrp": 110, "price": 110, "images": [
+                "https://images.unsplash.com/photo-1627769916425-74c2344a3439?w=800&q=80",
+                "https://images.unsplash.com/photo-1613750255797-7d4f877615df?w=800&q=80"
+            ]}
+        ],
+        "rating": 0, "reviews": 0,
     }
 ]
 
@@ -256,6 +271,7 @@ async def _migrate_products():
     new_products = [
         {"id": "bilvapatra-fragrance", "data": _DEFAULT_PRODUCTS[7]},
         {"id": "bambooless-dhoop-8inch", "data": _DEFAULT_PRODUCTS[8]},
+        {"id": "royal-kewda", "data": _DEFAULT_PRODUCTS[9]},
     ]
     for np in new_products:
         exists = await db.products.find_one({"id": np["id"]})
