@@ -58,6 +58,11 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Customer Reviews Section**: Premium review section on Bakhoor product detail pages with verified badges, rating breakdown bar chart, and expandable "Show All" button. Only displays for products with `customerReviews` data.
 - **Migration Script**: Auto-updates Bakhoor ratings and reviews in MongoDB on backend startup
 
+### April 10, 2026 — Royal Kewda Product
+- **Royal Kewda Added**: New agarbatti product (50g @ ₹110 MRP), available for purchase. Placeholder stock images from Unsplash — to be replaced with actual product photos.
+- Fragrance notes: Kewda, Jasmine, White Musk. Burn time: 40+ minutes.
+- Auto-migrates into MongoDB on backend startup.
+
 ## Database Collections
 - `users` - User accounts
 - `admin_settings` - Admin credentials
@@ -86,6 +91,8 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 
 ### P1 (High)
 - [ ] Replace Bilvapatra & 8" Dhoop placeholder images with actual product photos (when provided)
+- [ ] Replace Royal Kewda placeholder images with actual product photos (when provided)
+- [ ] B2B Product Catalogue: Same products with MRP pricing, 1.5% online cash discount (admin-editable), orders routed to email (no ShipRocket). Retailer access NOT enabled yet.
 
 ### P2 (Medium)
 - [ ] GST Verification API stability (recurring issue, 3x)
