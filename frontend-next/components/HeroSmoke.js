@@ -22,6 +22,7 @@ export default function HeroSmoke({ tint = 'rgba(212, 175, 55, 0.18)', density =
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden hero-smoke-root"
+      style={{ zIndex: 0 }}
     >
       {wisps.map((i) => (
         <span

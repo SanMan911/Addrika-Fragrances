@@ -48,8 +48,8 @@ def _resolve_range(period: str, from_date: Optional[str], to_date: Optional[str]
                 status_code=400, detail="from and to required for custom period"
             )
         try:
-            s = datetime.fromisoformat(from_date).replace(tzinfo=timezone.utc)
-            e = datetime.fromisoformat(to_date).replace(tzinfo=timezone.utc)
+            s = datetime.fromisoformat(from_date.replace("Z", "+00:00")).replace(tzinfo=timezone.utc)
+            e = datetime.fromisoformat(to_date.replace("Z", "+00:00")).replace(tzinfo=timezone.utc)
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid ISO date")
         return s.isoformat(), e.isoformat(), f"{from_date} → {to_date}"
