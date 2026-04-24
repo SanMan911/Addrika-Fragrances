@@ -42,6 +42,7 @@ from routers.retailer_auth import router as retailer_auth_router
 from routers.retailer_dashboard import router as retailer_dashboard_router
 from routers.b2b_orders import router as b2b_orders_router
 from routers.admin.admin_b2b import router as admin_b2b_router
+from routers.admin.admin_b2b_settings import router as admin_b2b_settings_router
 from routers.notify_me import router as notify_me_router
 
 # MongoDB connection
@@ -95,6 +96,7 @@ app.include_router(retailer_auth_router, prefix="/api")
 app.include_router(retailer_dashboard_router, prefix="/api")
 app.include_router(b2b_orders_router, prefix="/api")
 app.include_router(admin_b2b_router, prefix="/api")
+app.include_router(admin_b2b_settings_router, prefix="/api")
 app.include_router(notify_me_router, prefix="/api")
 
 
@@ -109,6 +111,11 @@ async def startup_db_client():
     
     await init_admin_settings(db)
     print("Admin settings initialized")
+
+    # Initialize B2B feature settings (kill-switch + discount)
+    from services.b2b_settings import init_b2b_settings
+    await init_b2b_settings(db)
+    print("B2B settings initialized")
     
     # Start background scheduler for review emails
     asyncio.create_task(review_email_scheduler_loop())
@@ -152,7 +159,7 @@ extra_origins = [o.strip() for o in env_cors.split(',') if o.strip() and o.strip
 
 CORS_ORIGINS = [
     "http://localhost:3000",
-    "https://natural-dhoop-store.preview.emergentagent.com",
+    "https://incense-retailer-hub.preview.emergentagent.com",
     "https://fragrant-incense.emergent.host",
     "https://centraders.com",
     "https://www.centraders.com",

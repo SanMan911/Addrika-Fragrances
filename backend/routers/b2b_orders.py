@@ -10,10 +10,26 @@ from decimal import Decimal, ROUND_HALF_UP
 import uuid
 import logging
 
-from dependencies import db
+from dependencies import db, NOTIFICATION_EMAIL
+from services.b2b_settings import (
+    get_b2b_enabled,
+    get_cash_discount_percent,
+    get_pricing_tiers,
+    get_all_pricing_tiers,
+    applicable_tier_discount,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/retailer-dashboard/b2b", tags=["B2B Orders"])
+
+
+async def require_b2b_enabled():
+    """Raise 403 if B2B portal is disabled."""
+    if not await get_b2b_enabled(db):
+        raise HTTPException(
+            status_code=403,
+            detail="B2B portal is currently unavailable. Please contact Addrika for access.",
+        )
 
 # ============================================================================
 # B2B Product Catalog with Wholesale Pricing
@@ -177,8 +193,8 @@ B2B_PRODUCTS = [
     }
 ]
 
-# Cash discount percentage for online payment
-CASH_DISCOUNT_PERCENT = 2
+# Cash discount percentage for online payment (default; actual value loaded from DB)
+CASH_DISCOUNT_PERCENT = 1.5
 
 # ============================================================================
 # Helper Functions
@@ -224,13 +240,24 @@ async def get_b2b_catalog(
     retailer_session: Optional[str] = Cookie(None)
 ):
     """Get B2B product catalog with wholesale pricing"""
+    await require_b2b_enabled()
     retailer = await get_current_retailer(request, retailer_session)
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
+    # Attach quantity-tier pricing (if configured per product)
+    tiers_map = await get_all_pricing_tiers(db)
+    products_with_tiers = []
+    for p in B2B_PRODUCTS:
+        p_copy = dict(p)
+        p_copy["pricing_tiers"] = tiers_map.get(p["id"], [])
+        products_with_tiers.append(p_copy)
+
+    cash_discount_percent = await get_cash_discount_percent(db)
+
     return {
-        "products": B2B_PRODUCTS,
-        "cash_discount_percent": CASH_DISCOUNT_PERCENT,
+        "products": products_with_tiers,
+        "cash_discount_percent": cash_discount_percent,
         "retailer_gst": retailer.get("gst_number"),
         "retailer_address": {
             "business_name": retailer.get("business_name") or retailer.get("trade_name"),
@@ -332,6 +359,7 @@ async def calculate_b2b_order(
     retailer_session: Optional[str] = Cookie(None)
 ):
     """Calculate B2B order totals without placing the order"""
+    await require_b2b_enabled()
     retailer = await get_current_retailer(request, retailer_session)
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -343,6 +371,7 @@ async def calculate_b2b_order(
     order_items = []
     subtotal = 0
     total_gst = 0
+    total_tier_discount = 0
     
     for item in order_data.items:
         if item.quantity_boxes <= 0:
@@ -361,13 +390,19 @@ async def calculate_b2b_order(
             raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
         
         # Calculate line total
-        line_total = calculate_line_total(
+        line_total_base = calculate_line_total(
             item.quantity_boxes,
             product["price_per_box"],
             product["price_per_half_box"]
         )
-        
-        # Calculate GST for this line
+
+        # Apply quantity-tier discount (if any configured)
+        tiers = await get_pricing_tiers(db, product["id"])
+        tier_pct = applicable_tier_discount(tiers, item.quantity_boxes)
+        tier_discount_amount = round(line_total_base * tier_pct / 100, 2) if tier_pct else 0
+        line_total = round(line_total_base - tier_discount_amount, 2)
+
+        # Calculate GST on the discounted line total
         gst_rate = product.get("gst_rate", 18)
         line_gst = round(line_total * gst_rate / 100, 2)
         
@@ -379,18 +414,25 @@ async def calculate_b2b_order(
             "quantity_boxes": item.quantity_boxes,
             "price_per_box": product["price_per_box"],
             "price_per_half_box": product["price_per_half_box"],
+            "line_total_base": line_total_base,
+            "tier_discount_percent": tier_pct,
+            "tier_discount_amount": tier_discount_amount,
             "line_total": line_total,
             "gst_rate": gst_rate,
             "gst_amount": line_gst,
             "hsn_code": product.get("hsn_code")
         })
-        
+
         subtotal += line_total
         total_gst += line_gst
+        total_tier_discount += tier_discount_amount
     
     if not order_items:
         raise HTTPException(status_code=400, detail="No valid items in order")
-    
+
+    # Live cash discount percent from admin settings
+    cash_discount_percent_setting = await get_cash_discount_percent(db)
+
     # Voucher and Cash discount are mutually exclusive
     voucher_discount = 0
     voucher_info = None
@@ -408,7 +450,7 @@ async def calculate_b2b_order(
         voucher_discount = voucher_info["discount_amount"]
     elif order_data.apply_cash_discount:
         # Only apply cash discount if no voucher
-        cash_discount = round(subtotal * CASH_DISCOUNT_PERCENT / 100, 2)
+        cash_discount = round(subtotal * cash_discount_percent_setting / 100, 2)
     
     # Credit note
     cn_discount = 0
@@ -432,10 +474,11 @@ async def calculate_b2b_order(
         "items": order_items,
         "subtotal": subtotal,
         "gst_total": total_gst,
+        "tier_discount_total": round(total_tier_discount, 2),
         "voucher_discount": voucher_discount,
         "voucher_code": order_data.voucher_code if voucher_info else None,
         "cash_discount": cash_discount,
-        "cash_discount_percent": CASH_DISCOUNT_PERCENT if cash_discount > 0 else 0,
+        "cash_discount_percent": cash_discount_percent_setting if cash_discount > 0 else 0,
         "credit_note_discount": cn_discount,
         "credit_note_code": order_data.credit_note_code if cn_info else None,
         "total_discount": total_discount,
@@ -458,6 +501,7 @@ async def create_b2b_order(
     retailer_session: Optional[str] = Cookie(None)
 ):
     """Place a B2B wholesale order"""
+    await require_b2b_enabled()
     retailer = await get_current_retailer(request, retailer_session)
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -529,7 +573,13 @@ async def create_b2b_order(
             # Continue without online payment
     
     await db.b2b_orders.insert_one(order)
-    
+
+    # Send admin notification email for every B2B order placed
+    try:
+        await send_b2b_admin_notification_email(order, retailer)
+    except Exception as e:
+        logger.error(f"Failed to send B2B admin notification email: {str(e)}")
+
     # Mark voucher as used if applicable
     if order_data.voucher_code:
         await db.retailer_vouchers.update_one(
@@ -567,6 +617,94 @@ async def create_b2b_order(
     return response
 
 
+async def send_b2b_admin_notification_email(order: dict, retailer: dict):
+    """Email the Addrika admin inbox when a B2B order is placed (no ShipRocket)."""
+    from services.email_service import send_email
+
+    items_html = ""
+    for item in order.get("items", []):
+        items_html += f"""
+        <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">{item['name']} ({item['net_weight']})</td>
+            <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">{item['quantity_boxes']} boxes</td>
+            <td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">₹{item['line_total']:,.2f}</td>
+        </tr>
+        """
+
+    business_name = retailer.get("business_name") or retailer.get("trade_name") or "Retailer"
+    payment_method = order.get("payment_method", "credit").upper()
+    online_line = ""
+    if order.get("cash_discount", 0) > 0:
+        online_line = (
+            f"<p style='margin:5px 0;'><strong>Online Payment Discount:</strong> "
+            f"{order.get('cash_discount_percent', 0)}% (₹{order['cash_discount']:,.2f})</p>"
+        )
+
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
+            <tr><td style="background:#1e3a52;padding:24px;text-align:center;">
+                <h1 style="color:#d4af37;margin:0;">ADDRIKA</h1>
+                <p style="color:#fff;margin:4px 0 0;">New B2B Order Received</p>
+            </td></tr>
+            <tr><td style="padding:24px;">
+                <div style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:12px 14px;border-radius:6px;margin-bottom:18px;">
+                    <strong style="color:#92400E;">Action required:</strong>
+                    <span style="color:#78350F;"> Contact retailer to confirm and arrange delivery (B2B orders bypass ShipRocket).</span>
+                </div>
+
+                <h3 style="margin:0 0 8px 0;color:#1e3a52;">Retailer</h3>
+                <p style="margin:4px 0;"><strong>{business_name}</strong></p>
+                <p style="margin:4px 0;">GST: {retailer.get('gst_number') or 'N/A'}</p>
+                <p style="margin:4px 0;">Email: {retailer.get('email', 'N/A')}</p>
+                <p style="margin:4px 0;">Phone: {retailer.get('phone', 'N/A')}</p>
+
+                <h3 style="margin:18px 0 8px 0;color:#1e3a52;">Order {order['order_id']}</h3>
+                <p style="margin:4px 0;"><strong>Payment Method:</strong> {payment_method}</p>
+                <p style="margin:4px 0;"><strong>Payment Status:</strong> {order.get('payment_status', 'pending').upper()}</p>
+                {online_line}
+
+                <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;margin-top:12px;">
+                    <thead>
+                        <tr style="background:#f9f7f4;">
+                            <th style="padding:10px;text-align:left;">Product</th>
+                            <th style="padding:10px;text-align:center;">Qty</th>
+                            <th style="padding:10px;text-align:right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>{items_html}</tbody>
+                </table>
+
+                <div style="margin-top:18px;padding:14px;background:#f9f7f4;border-radius:6px;">
+                    <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>₹{order['subtotal']:,.2f}</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>GST:</span><span>₹{order['gst_total']:,.2f}</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Discount:</span><span>-₹{order.get('total_discount', 0):,.2f}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-weight:bold;color:#d4af37;margin-top:8px;border-top:2px solid #d4af37;padding-top:8px;">
+                        <span>Grand Total:</span><span>₹{order['grand_total']:,.2f}</span>
+                    </div>
+                </div>
+            </td></tr>
+            <tr><td style="background:#1e3a52;padding:14px;text-align:center;">
+                <p style="color:#d4af37;margin:0;font-size:12px;">Addrika B2B • contact.us@centraders.com</p>
+            </td></tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    await send_email(
+        to_email=NOTIFICATION_EMAIL,
+        subject=f"[B2B] New Order {order['order_id']} · {business_name} · ₹{order['grand_total']:,.0f}",
+        html_content=html,
+    )
+    logger.info(
+        f"B2B admin notification sent to {NOTIFICATION_EMAIL} for order {order['order_id']}"
+    )
+
+
 @router.post("/order/{order_id}/verify-payment")
 async def verify_b2b_payment(
     order_id: str,
@@ -574,6 +712,7 @@ async def verify_b2b_payment(
     retailer_session: Optional[str] = Cookie(None)
 ):
     """Verify Razorpay payment for B2B order"""
+    await require_b2b_enabled()
     retailer = await get_current_retailer(request, retailer_session)
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -754,6 +893,7 @@ async def get_b2b_orders(
     limit: int = 20
 ):
     """Get retailer's B2B orders"""
+    await require_b2b_enabled()
     retailer = await get_current_retailer(request, retailer_session)
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -789,6 +929,7 @@ async def get_b2b_order_detail(
     retailer_session: Optional[str] = Cookie(None)
 ):
     """Get B2B order details"""
+    await require_b2b_enabled()
     retailer = await get_current_retailer(request, retailer_session)
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")

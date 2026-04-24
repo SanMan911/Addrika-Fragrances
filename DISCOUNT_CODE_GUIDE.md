@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://natural-dhoop-store.preview.emergentagent.com/api
+https://incense-retailer-hub.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 
