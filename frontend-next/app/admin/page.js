@@ -7,6 +7,7 @@ import {
   TrendingUp, ArrowRight, RefreshCw
 } from 'lucide-react';
 import { useAdmin, authFetch } from './layout';
+import TopRetailersWidget from '../../components/TopRetailersWidget';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -181,6 +182,9 @@ export default function AdminOverviewPage() {
           </div>
         </Link>
       </div>
+
+      {/* Top 5 B2B Retailers */}
+      <TopRetailersWidget />
 
       {/* Recent Orders */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">

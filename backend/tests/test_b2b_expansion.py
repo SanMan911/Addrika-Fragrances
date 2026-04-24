@@ -40,6 +40,7 @@ async def test_waitlist_signup_valid():
                 "phone": "9999999999",
                 "city": "Testville",
                 "message": "pytest run",
+                "gst_number": "27AAPFU0939F1ZV",  # iter63: required
             },
         )
         assert r.status_code == 200

@@ -1,0 +1,54 @@
+{
+  "summary": "Iteration 63 test: validated (a) waitlist now requires gst_number with title-case/email-lowercase/country-code default +91; (b) B2B /calculate now computes GST on taxable_value (after tier+loyalty+voucher+cash discounts) — verified gst_total ≈ 179 on a 1-box ₹1010 order with apply_cash_discount=true (not 181.8 which would indicate raw-subtotal GST); (c) GET /api/admin/b2b/reports/top-retailers (quarter & fy) returns correct shape + FY label format 'FY26-27'; (d) GET /api/admin/b2b/reports/sales (period=fy|custom; group_by=retailer|month|quarter) + proper 400s for missing dates / invalid group_by; (e) send_b2b_admin_notification_email moved to services.b2b_emails and is still imported by routers.b2b_orders. Iter-61 waitlist tests updated to include gst_number (was: required after iter 63). Frontend public surface verified: cookie consent [data-testid=cookie-consent] appears on /, sets localStorage addrika_cookie_consent_v1=accepted on Accept, and does NOT render on /admin or /retailer/login; GA tag does NOT load (NEXT_PUBLIC_GA_MEASUREMENT_ID empty); 3 .hero-smoke-wisp elements are present in the hero. Waitlist form on /retailer/login: business_name title-cases live ('acme stores'→'Acme Stores'), email auto-lowercases, country-code select defaults to '+91', GST and WhatsApp fields present. Backend: 55/55 tests pass (15 new iter63 + 13 iter61 + 7 expansion + 20 killswitch). Portal was left DISABLED at end.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/retailer-auth/waitlist (GST regex)", "issue": "GST_PATTERN uses uppercase class in regex and input is uppercased before match — works correctly, but a lowercase 15-char value that otherwise matches the shape will also be accepted (non-issue, behavioural note)."},
+      {"endpoint": "GET /admin/b2b/reports/sales?group_by=month|quarter", "issue": "Grouping uses `{$substr:['$created_at', 0, 7]}` on an ISO string — works only because created_at is stored as an ISO string. If ever migrated to a BSON Date this aggregation will silently return empty rows."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "/retailer/login waitlist", "issue": "GST input has no HTML `required` attribute (backend still enforces it via Pydantic, but UI allows submit without warning — browser-native hint missing).", "selector": "input[placeholder*=\"GST\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Hero", "issues": [".hero-smoke-wisp computed z-index is 'auto'. Review CSS: ensure wisps sit visually BEHIND hero headline (e.g., z-index: 0 and headline container z-index: 2, or wrap wisps in absolutely-positioned layer with pointer-events:none). Currently 3 wisps render but layering is not asserted via z-index."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_b2b_iteration_63.py",
+    "/app/backend/tests/test_b2b_iteration_61.py",
+    "/app/backend/tests/test_b2b_expansion.py",
+    "/app/backend/tests/test_b2b_portal_killswitch.py",
+    "/app/test_reports/pytest/b2b_iteration_63.xml",
+    "/app/test_reports/pytest/b2b_all_iter63.xml"
+  ],
+  "action_items": [
+    "(minor) Add `required` attribute to the GST input on /retailer/login so browsers show native validation tooltip before backend 422.",
+    "(design) Give .hero-smoke-wisp an explicit low z-index (0 or -1) and ensure the hero headline/text container has z-index >= 1, so the 'behind text' contract is enforced.",
+    "(robustness) Consider storing b2b_orders.created_at as a BSON Date; current $substr grouping in admin_b2b_reports.py depends on ISO-string storage — document this invariant or switch to $dateFromString.",
+    "(admin UI) Testing agent was unable to complete automated admin-UI verification of /admin TopRetailersWidget and /admin/b2b/reports page inside the browser because 2FA OTP resolution inside a playwright sandbox hit a 403 from Cloudflare when using urllib. The files exist and backend endpoints feeding them are 100% green. Main agent can self-test by logging in as admin manually once and navigating."
+  ],
+  "critical_code_review_comments": [
+    "b2b_orders.py lines 323-362: GST-after-discount logic correctly recomputes per-line gst_amount proportionally via factor = taxable_value/subtotal. Edge case: if subtotal>0 but taxable_value==0 (e.g., 100% loyalty + voucher), factor becomes 0 — handled (per-line gst_amount forced to 0). Good.",
+    "admin_b2b_reports.py._resolve_range(custom): datetime.fromisoformat strips 'Z' suffix — if user passes '2026-04-01T00:00:00Z' it raises 400. Consider handling with fromisoformat(s.replace('Z','+00:00')) to be Postel-friendly.",
+    "b2b_waitlist.py: GST best-effort verification wraps the entire call in try/except — good. But if services.gst_verification module raises at import time (not just call), it's still caught. Confirmed. Non-blocking behaviour works.",
+    "services/b2b_emails.py: NOTIFICATION_EMAIL imported from dependencies via a module-level 'from ... import NOTIFICATION_EMAIL' — if that constant is ever changed at runtime (e.g., admin-configurable), the module-level cached copy won't update. Consider reading via dependencies.NOTIFICATION_EMAIL at call time.",
+    "b2b_bills_messages.purge_old_bills: runs on backend startup. Safe (doesn't raise), but has no log line on how many rows it deleted — would help operators see retention is working. Recommend logger.info(f'purge_old_bills removed {result.deleted_count} rows').",
+    "/app/frontend-next/components/CookieConsentAndGA.js: pathname-based suppression for /admin and /retailer correctly prevents banner there; localStorage key 'addrika_cookie_consent_v1' versioning is forward-compatible.",
+    "/app/frontend-next/app/retailer/login/page.js: titleCase and lowerEmail helpers work on every keystroke — verified live. Good UX."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_b2b_iteration_63.py (NEW)",
+    "/app/backend/tests/test_b2b_iteration_61.py (updated 2 waitlist tests to include required gst_number)",
+    "/app/backend/tests/test_b2b_expansion.py (updated test_waitlist_signup_valid to include gst_number)"
+  ],
+  "success_rate": {"backend": "100% (55/55: 15 iter63 + 13 iter61 + 7 expansion + 20 killswitch)", "frontend": "public pages verified (cookie/hero/waitlist 100%); admin UI pages not browser-verified, only files confirmed present"},
+  "test_credentials": "Admin: contact.us@centraders.com / PIN 050499 (OTP via db.admin_2fa_tokens). Retailer: test_b2b_retailer@example.com / Test@12345 (RTL_TEST_B2B).",
+  "seed_data_creation": "Inserted pytest_it63_* waitlist rows — cleaned up in session teardown. TEST_IT6* b2b_orders seeded for loyalty test are cleaned inline.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Portal left DISABLED at end. All backend B2B suites green when run with `cd /app/backend && pytest tests/test_b2b_iteration_63.py tests/test_b2b_iteration_61.py tests/test_b2b_expansion.py tests/test_b2b_portal_killswitch.py`. Admin UI browser test was blocked by CF 403 during in-script OTP lookup — main agent can verify manually. New iter-63 test file covers: waitlist (4 tests: 422 missing gst, 400 invalid gst, 200 valid with default cc+title-case, explicit +44 cc), calculate (1 test: gst-on-taxable-value), top-retailers (3 tests: 401 unauth, quarter shape, FY label), sales (5 tests: fy-retailer shape, custom month keys, 400 missing dates, quarter key format, invalid group_by 400), email refactor (2 tests).",
+  "rca_of_the_issue": "N/A — iteration 63 is a feature test, not a bug fix. Only regression: 3 old waitlist tests failed because they did not send gst_number (now required). Fixed by adding gst_number='27AAPFU0939F1ZV' to test payloads."
+}

@@ -2,6 +2,7 @@
 
 import { Sparkles, Heart, Award } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import HeroSmoke from './HeroSmoke';
 
 export default function Hero({ onBuyClick }) {
   const { isDarkMode } = useTheme();
@@ -19,6 +20,11 @@ export default function Hero({ onBuyClick }) {
           `
       }}
     >
+      {/* Subtle smoke wisps — first-fold only, lightweight CSS */}
+      <HeroSmoke
+        tint={isDarkMode ? 'rgba(212, 175, 55, 0.22)' : 'rgba(180, 150, 110, 0.16)'}
+      />
+
       {/* Gold accent line at top */}
       <div 
         className="absolute top-0 left-0 right-0 h-1"
