@@ -111,15 +111,26 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 
 ## Prioritized Backlog
 
+### April 24, 2026 — B2B Portal Infrastructure (Hidden/Disabled by default)
+- **Admin kill-switch**: `admin_settings` key `b2b_enabled` (default `false`). When off, `/api/retailer-auth/login`, `/api/retailer-auth/portal-status`, and all `/api/retailer-dashboard/b2b/*` endpoints return 403 with a "portal unavailable" message.
+- **Public portal-status endpoint** `GET /api/retailer-auth/portal-status` so the retailer login page renders a "Retailer Portal Coming Soon" screen when disabled.
+- **1.5% online-payment discount** (was 2%). Stored in `admin_settings.b2b_cash_discount_percent`, admin-editable. Auto-applied at Razorpay when retailer toggles "Pay Now & Save additional 1.5%" at checkout.
+- **Quantity-tiered wholesale pricing** per B2B product (new collection `b2b_pricing_tiers`). Line-level discount picks highest `min_boxes` tier that applies. Returned as `tier_discount_percent`, `tier_discount_amount` per item and `tier_discount_total` in calculate response.
+- **Admin order-notification email** to `contact.us@centraders.com` fired on every B2B order creation (B2B orders bypass ShipRocket — Addrika team contacts the retailer to arrange delivery).
+- **Admin UI** `/admin/settings/b2b` — toggle portal, edit discount %, manage per-product quantity tiers.
+- **GST gating preserved** — retailer accounts still require `is_verified`/`gst_verified` status; kill-switch is an additional global layer.
+- **Tested** — iteration_60.json, 20/20 backend tests pass.
+
 ### P1 (High)
 - [ ] Replace Bilvapatra & 8" Dhoop placeholder images with actual product photos (when provided)
 - [ ] Replace Royal Kewda placeholder images with actual product photos (when provided)
-- [ ] B2B Product Catalogue: Same products with MRP pricing, 1.5% online cash discount (admin-editable), orders routed to email (no ShipRocket). Retailer access NOT enabled yet.
+- [ ] Integrate Appyflow (GST Verification) + AEPS India (PAN/Aadhaar eKYC) for retailer onboarding
 
 ### P2 (Medium)
-- [ ] GST Verification API stability (recurring issue, 3x)
 - [ ] Send notification emails when Coming Soon products become available
 - [ ] Google Analytics Integration
+- [ ] Split `b2b_orders.py` (~950 lines) into catalog/calculate/order/email submodules
+- [ ] Move `B2B_PRODUCTS` list out of `b2b_orders.py` into a shared catalog module
 
 ### P3 (Low)
 - [ ] B2B product catalog in MongoDB

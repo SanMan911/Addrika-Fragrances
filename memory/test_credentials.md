@@ -12,7 +12,8 @@
 
 ## Test Retailer
 - **Email**: info@addrika.com
-- **Password**: 12345
+- **Password**: 12345 (not currently in DB)
+- **B2B Test Retailer (seeded Apr 24 2026)**: test_b2b_retailer@example.com / Test@12345 (retailer_id=RTL_TEST_B2B)
 
 ## Password Recovery Testing
 - **User Recovery**: Uses mobile number to send OTP to registered email
