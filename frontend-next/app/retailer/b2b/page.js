@@ -42,6 +42,7 @@ export default function RetailerB2BPage() {
   const [orderSummary, setOrderSummary] = useState(null);
   const [retailerInfo, setRetailerInfo] = useState(null);
   const [cashDiscountPercent, setCashDiscountPercent] = useState(1.5);
+  const [loyalty, setLoyalty] = useState(null);
   const [activeTab, setActiveTab] = useState('order');
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -80,9 +81,18 @@ export default function RetailerB2BPage() {
       setOrdersLoading(false);
     }
   }, [fetchWithAuth]);
+  const fetchLoyalty = useCallback(async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/b2b/loyalty`);
+      if (response.ok) setLoyalty(await response.json());
+    } catch {
+      /* non-fatal */
+    }
+  }, [fetchWithAuth]);
   useEffect(() => {
     fetchCatalog();
-  }, [fetchCatalog]);
+    fetchLoyalty();
+  }, [fetchCatalog, fetchLoyalty]);
   useEffect(() => {
     if (activeTab === 'history') {
       fetchOrders();
@@ -231,6 +241,68 @@ export default function RetailerB2BPage() {
                   {retailerInfo.address?.business_name}, {retailerInfo.address?.city}, {retailerInfo.address?.state} - {retailerInfo.address?.pincode}
                 </p>
               </div>
+            </div>
+          )}
+          {/* Loyalty Progress Bar */}
+          {loyalty && loyalty.milestones && loyalty.milestones.length > 0 && (
+            <div
+              className="rounded-xl p-4 bg-gradient-to-r from-amber-50 to-white border border-amber-200"
+              data-testid="loyalty-bar"
+            >
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div>
+                  <p className="text-sm font-semibold text-[#2B3A4A]">
+                    Loyalty Bonus · {loyalty.quarter_label}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Purchases this quarter:{' '}
+                    <strong>{formatCurrency(loyalty.purchases_total || 0)}</strong>
+                  </p>
+                </div>
+                <div className="text-right">
+                  {loyalty.applied_milestone ? (
+                    <span className="inline-block px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-semibold" data-testid="loyalty-applied">
+                      Active: +{loyalty.applied_milestone.discount_percent}% off
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">No bonus yet</span>
+                  )}
+                </div>
+              </div>
+              <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                {loyalty.milestones.map((m) => {
+                  const top = loyalty.milestones[loyalty.milestones.length - 1].min_purchase || 1;
+                  const pct = Math.min(100, (m.min_purchase / top) * 100);
+                  return (
+                    <div
+                      key={m.id}
+                      className="absolute top-0 bottom-0 w-[2px] bg-amber-700/70"
+                      style={{ left: `${pct}%` }}
+                      title={`₹${m.min_purchase.toLocaleString()} → ${m.discount_percent}%`}
+                    />
+                  );
+                })}
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600"
+                  style={{ width: `${loyalty.progress_percent || 0}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 text-[11px] text-gray-500">
+                {loyalty.milestones.map((m) => (
+                  <span key={m.id} title={m.label}>
+                    {formatCurrency(m.min_purchase)} · {m.discount_percent}%
+                  </span>
+                ))}
+              </div>
+              {loyalty.next_milestone && (
+                <p className="text-xs text-amber-700 mt-2" data-testid="loyalty-next">
+                  Purchase{' '}
+                  <strong>{formatCurrency(loyalty.gap_to_next)}</strong> more
+                  this quarter to unlock{' '}
+                  <strong>+{loyalty.next_milestone.discount_percent}%</strong>{' '}
+                  bonus.
+                </p>
+              )}
             </div>
           )}
           {/* Product Table */}
@@ -489,6 +561,16 @@ export default function RetailerB2BPage() {
                     <div className="flex justify-between text-emerald-700">
                       <span>Bulk Tier Savings (applied per line)</span>
                       <span className="font-medium">-{formatCurrency(orderSummary.tier_discount_total)}</span>
+                    </div>
+                  )}
+                  {orderSummary.loyalty_discount > 0 && (
+                    <div className="flex justify-between text-amber-700" data-testid="summary-loyalty">
+                      <span>
+                        Loyalty Bonus ({orderSummary.loyalty_discount_percent}%)
+                      </span>
+                      <span className="font-medium">
+                        -{formatCurrency(orderSummary.loyalty_discount)}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between">

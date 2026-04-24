@@ -18,6 +18,13 @@ from services.b2b_settings import (
     get_all_pricing_tiers,
     applicable_tier_discount,
 )
+from services.b2b_loyalty import (
+    get_retailer_loyalty_state,
+    list_active_milestones,
+    applicable_milestone,
+    get_retailer_quarter_purchases,
+)
+from services.b2b_catalog import B2B_PRODUCTS, find_b2b_product
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/retailer-dashboard/b2b", tags=["B2B Orders"])
@@ -31,170 +38,9 @@ async def require_b2b_enabled():
             detail="B2B portal is currently unavailable. Please contact Addrika for access.",
         )
 
-# ============================================================================
-# B2B Product Catalog with Wholesale Pricing
-# ============================================================================
-
-# B2B Price is 76.52% of MRP
-B2B_DISCOUNT_RATE = 0.7652
-
-# B2B Products with box pricing
-# Each box contains a fixed number of units
-# Prices calculated as: units_per_box * mrp_per_unit * 0.7652
-
-def calculate_box_price(units_per_box: int, mrp_per_unit: float) -> int:
-    """Calculate B2B box price at 76.52% of MRP"""
-    return round(units_per_box * mrp_per_unit * B2B_DISCOUNT_RATE)
-
-def calculate_half_box_price(units_per_box: int, mrp_per_unit: float) -> int:
-    """Calculate B2B half-box price at 76.52% of MRP"""
-    return round((units_per_box / 2) * mrp_per_unit * B2B_DISCOUNT_RATE)
-
-B2B_PRODUCTS = [
-    {
-        "id": "kesar-chandan-b2b",
-        "product_id": "kesar-chandan",
-        "name": "Kesar Chandan",
-        "image": "https://customer-assets.emergentagent.com/job_premium-incense-2/artifacts/kuzvgiue_KC_50%20gms_1.jpg",
-        "net_weight": "50g",
-        "units_per_box": 12,
-        "mrp_per_unit": 110,
-        "price_per_box": calculate_box_price(12, 110),  # 12 * 110 * 0.7652 = 1010
-        "price_per_half_box": calculate_half_box_price(12, 110),  # 6 * 110 * 0.7652 = 505
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    },
-    {
-        "id": "kesar-chandan-200-b2b",
-        "product_id": "kesar-chandan",
-        "name": "Kesar Chandan",
-        "image": "https://customer-assets.emergentagent.com/job_premium-incense-2/artifacts/42b0wrdd_KC_200%20gms_1.jpg",
-        "net_weight": "200g",
-        "units_per_box": 16,
-        "mrp_per_unit": 402,
-        "price_per_box": calculate_box_price(16, 402),  # 16 * 402 * 0.7652 = 4922
-        "price_per_half_box": calculate_half_box_price(16, 402),  # 8 * 402 * 0.7652 = 2461
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    },
-    {
-        "id": "regal-rose-b2b",
-        "product_id": "regal-rose",
-        "name": "Regal Rose",
-        "image": "https://customer-assets.emergentagent.com/job_premium-incense-2/artifacts/0a7ncpnf_KC_50%20gms_2.jpg",
-        "net_weight": "50g",
-        "units_per_box": 12,
-        "mrp_per_unit": 110,
-        "price_per_box": calculate_box_price(12, 110),
-        "price_per_half_box": calculate_half_box_price(12, 110),
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    },
-    {
-        "id": "regal-rose-200-b2b",
-        "product_id": "regal-rose",
-        "name": "Regal Rose",
-        "image": "https://customer-assets.emergentagent.com/job_premium-incense-2/artifacts/0a7ncpnf_KC_50%20gms_2.jpg",
-        "net_weight": "200g",
-        "units_per_box": 16,
-        "mrp_per_unit": 402,
-        "price_per_box": calculate_box_price(16, 402),
-        "price_per_half_box": calculate_half_box_price(16, 402),
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    },
-    {
-        "id": "oriental-oudh-b2b",
-        "product_id": "oriental-oudh",
-        "name": "Oriental Oudh",
-        "image": "https://images.unsplash.com/photo-1600369671738-fa4e8244d49d?w=400",
-        "net_weight": "50g",
-        "units_per_box": 12,
-        "mrp_per_unit": 110,
-        "price_per_box": calculate_box_price(12, 110),
-        "price_per_half_box": calculate_half_box_price(12, 110),
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    },
-    {
-        "id": "oriental-oudh-200-b2b",
-        "product_id": "oriental-oudh",
-        "name": "Oriental Oudh",
-        "image": "https://images.unsplash.com/photo-1600369671738-fa4e8244d49d?w=400",
-        "net_weight": "200g",
-        "units_per_box": 16,
-        "mrp_per_unit": 402,
-        "price_per_box": calculate_box_price(16, 402),
-        "price_per_half_box": calculate_half_box_price(16, 402),
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    },
-    {
-        "id": "bold-bakhoor-b2b",
-        "product_id": "bold-bakhoor",
-        "name": "Bold Bakhoor",
-        "image": "https://customer-assets.emergentagent.com/job_434d883a-a02c-48ab-b964-a5cf2e94edda/artifacts/w49zefo9_Bakhoor%20Packet%20%231.png",
-        "net_weight": "50g",
-        "units_per_box": 12,
-        "mrp_per_unit": 110,
-        "price_per_box": calculate_box_price(12, 110),
-        "price_per_half_box": calculate_half_box_price(12, 110),
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    },
-    {
-        "id": "bold-bakhoor-200-b2b",
-        "product_id": "bold-bakhoor",
-        "name": "Bold Bakhoor",
-        "image": "https://customer-assets.emergentagent.com/job_434d883a-a02c-48ab-b964-a5cf2e94edda/artifacts/w49zefo9_Bakhoor%20Packet%20%231.png",
-        "net_weight": "200g",
-        "units_per_box": 16,
-        "mrp_per_unit": 402,
-        "price_per_box": calculate_box_price(16, 402),
-        "price_per_half_box": calculate_half_box_price(16, 402),
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    },
-    {
-        "id": "mogra-magic-b2b",
-        "product_id": "mogra-magic",
-        "name": "Mogra Magic",
-        "image": "https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?w=400",
-        "net_weight": "50g",
-        "units_per_box": 12,
-        "mrp_per_unit": 110,
-        "price_per_box": calculate_box_price(12, 110),
-        "price_per_half_box": calculate_half_box_price(12, 110),
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    },
-    {
-        "id": "mogra-magic-200-b2b",
-        "product_id": "mogra-magic",
-        "name": "Mogra Magic",
-        "image": "https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?w=400",
-        "net_weight": "200g",
-        "units_per_box": 16,
-        "mrp_per_unit": 402,
-        "price_per_box": calculate_box_price(16, 402),
-        "price_per_half_box": calculate_half_box_price(16, 402),
-        "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900"
-    }
-]
-
 # Cash discount percentage for online payment (default; actual value loaded from DB)
 CASH_DISCOUNT_PERCENT = 1.5
+
 
 # ============================================================================
 # Helper Functions
@@ -433,6 +279,37 @@ async def calculate_b2b_order(
     # Live cash discount percent from admin settings
     cash_discount_percent_setting = await get_cash_discount_percent(db)
 
+    # Loyalty bonus: applies on subtotal, BEFORE cash discount and GST.
+    # Based on retailer's paid purchase total this quarter.
+    loyalty_milestones_active = await list_active_milestones(db)
+    loyalty_state_quarter = await get_retailer_quarter_purchases(
+        db, retailer["retailer_id"]
+    )
+    applied_loyalty = applicable_milestone(
+        loyalty_milestones_active, loyalty_state_quarter["purchases_total"]
+    )
+    loyalty_discount = 0.0
+    loyalty_discount_percent = 0.0
+    if applied_loyalty:
+        loyalty_discount_percent = float(applied_loyalty.get("discount_percent", 0))
+        loyalty_discount = round(
+            subtotal * loyalty_discount_percent / 100, 2
+        )
+
+    # Subtotal after loyalty (used for GST and cash-discount base)
+    subtotal_after_loyalty = round(subtotal - loyalty_discount, 2)
+    total_gst = round(subtotal_after_loyalty * 18 / 100, 2) if order_items else 0
+    # Recompute per-line GST on discounted values
+    if subtotal_after_loyalty > 0 and subtotal > 0:
+        factor = subtotal_after_loyalty / subtotal
+        total_gst = 0
+        for oi in order_items:
+            new_line_after_loyalty = round(oi["line_total"] * factor, 2)
+            oi["line_total_after_loyalty"] = new_line_after_loyalty
+            oi["gst_amount"] = round(new_line_after_loyalty * oi["gst_rate"] / 100, 2)
+            total_gst += oi["gst_amount"]
+        total_gst = round(total_gst, 2)
+
     # Voucher and Cash discount are mutually exclusive
     voucher_discount = 0
     voucher_info = None
@@ -449,8 +326,8 @@ async def calculate_b2b_order(
             raise HTTPException(status_code=400, detail=error)
         voucher_discount = voucher_info["discount_amount"]
     elif order_data.apply_cash_discount:
-        # Only apply cash discount if no voucher
-        cash_discount = round(subtotal * cash_discount_percent_setting / 100, 2)
+        # Cash discount is applied on subtotal AFTER loyalty discount
+        cash_discount = round(subtotal_after_loyalty * cash_discount_percent_setting / 100, 2)
     
     # Credit note
     cn_discount = 0
@@ -463,16 +340,25 @@ async def calculate_b2b_order(
         if error:
             raise HTTPException(status_code=400, detail=error)
         # CN can be partially used
-        cn_discount = min(cn_info["balance"], subtotal + total_gst - voucher_discount - cash_discount)
+        cn_discount = min(
+            cn_info["balance"],
+            subtotal_after_loyalty + total_gst - voucher_discount - cash_discount,
+        )
     
     # Grand total
-    total_discount = voucher_discount + cash_discount + cn_discount
-    grand_total = round(subtotal + total_gst - total_discount, 2)
+    total_discount = loyalty_discount + voucher_discount + cash_discount + cn_discount
+    grand_total = round(subtotal_after_loyalty + total_gst - voucher_discount - cash_discount - cn_discount, 2)
     grand_total = max(0, grand_total)  # Ensure non-negative
     
     return {
         "items": order_items,
         "subtotal": subtotal,
+        "loyalty_discount": loyalty_discount,
+        "loyalty_discount_percent": loyalty_discount_percent,
+        "loyalty_milestone": applied_loyalty,
+        "quarter_purchases_total": loyalty_state_quarter["purchases_total"],
+        "quarter_label": loyalty_state_quarter["quarter_label"],
+        "subtotal_after_loyalty": subtotal_after_loyalty,
         "gst_total": total_gst,
         "tier_discount_total": round(total_tier_discount, 2),
         "voucher_discount": voucher_discount,
@@ -524,6 +410,10 @@ async def create_b2b_order(
         "gst_total": calculation["gst_total"],
         "voucher_code": calculation.get("voucher_code"),
         "voucher_discount": calculation.get("voucher_discount", 0),
+        "loyalty_discount": calculation.get("loyalty_discount", 0),
+        "loyalty_discount_percent": calculation.get("loyalty_discount_percent", 0),
+        "loyalty_milestone": calculation.get("loyalty_milestone"),
+        "quarter_label": calculation.get("quarter_label"),
         "cash_discount": calculation.get("cash_discount", 0),
         "cash_discount_percent": calculation.get("cash_discount_percent", 0),
         "credit_note_code": calculation.get("credit_note_code"),
@@ -946,3 +836,18 @@ async def get_b2b_order_detail(
         raise HTTPException(status_code=404, detail="Order not found")
     
     return {"order": order}
+
+
+
+@router.get("/loyalty")
+async def get_retailer_loyalty(
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Retailer's current quarter loyalty state for the progress bar UI."""
+    await require_b2b_enabled()
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    state = await get_retailer_loyalty_state(db, retailer["retailer_id"])
+    return state

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   Store, Package, MessageSquare, AlertTriangle, ShoppingBag,
-  Trophy, Award, FileEdit, LogOut, Menu, X, ChevronRight
+  Trophy, Award, FileEdit, LogOut, Menu, X, ChevronRight, Receipt, Headset
 } from 'lucide-react';
 import { RetailerAuthProvider, useRetailerAuth } from '../../context/RetailerAuthContext';
 import { toast } from 'sonner';
@@ -18,6 +18,8 @@ const navItems = [
   { icon: Store, label: 'Dashboard', path: '/retailer/dashboard' },
   { icon: Package, label: 'Orders', path: '/retailer/orders', badgeKey: 'pending_orders' },
   { icon: ShoppingBag, label: 'B2B Orders', path: '/retailer/b2b' },
+  { icon: Receipt, label: 'Bills & Invoices', path: '/retailer/bills' },
+  { icon: Headset, label: 'Admin Chat', path: '/retailer/admin-chat' },
   { icon: Trophy, label: 'Leaderboard', path: '/retailer/leaderboard' },
   { icon: Award, label: 'Badges', path: '/retailer/badges' },
   { icon: FileEdit, label: 'Profile Requests', path: '/retailer/profile-requests' },

@@ -3,11 +3,182 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Store, Eye, EyeOff, Lock, User } from 'lucide-react';
+import { Store, Eye, EyeOff, Lock, User, CheckCircle2 } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+function WaitlistComingSoon() {
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    business_name: '',
+    contact_name: '',
+    email: '',
+    phone: '',
+    gst_number: '',
+    city: '',
+    message: '',
+  });
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.business_name || !form.contact_name || !form.email || !form.phone) {
+      toast.error('Please fill business name, contact, email & phone');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const payload = { ...form };
+      if (!payload.gst_number) delete payload.gst_number;
+      if (!payload.city) delete payload.city;
+      if (!payload.message) delete payload.message;
+      const res = await fetch(`${API_URL}/api/retailer-auth/waitlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail?.[0]?.msg || err.detail || 'Submission failed');
+      }
+      setSubmitted(true);
+      toast.success("You're on the list — we'll be in touch!");
+    } catch (e) {
+      toast.error(typeof e.message === 'string' ? e.message : 'Submission failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-4 bg-[#2B3A4A]"
+        data-testid="retailer-waitlist-success"
+      >
+        <div className="w-full max-w-md p-8 rounded-xl shadow-2xl bg-[#F5F0E8] text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 bg-green-600">
+            <CheckCircle2 className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-[#2B3A4A] mb-2">You&apos;re on the list!</h1>
+          <p className="text-gray-600 mb-5">
+            Thank you for your interest in becoming an Addrika retail partner.
+            Our team will review your details and reach out shortly.
+          </p>
+          <Link
+            href="/"
+            className="inline-block px-5 py-2.5 rounded-lg bg-[#2B3A4A] text-white font-medium hover:bg-[#1e3a52]"
+          >
+            Back to Addrika
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center p-4 bg-[#2B3A4A] py-10"
+      data-testid="retailer-portal-disabled"
+    >
+      <div className="w-full max-w-lg p-7 rounded-xl shadow-2xl bg-[#F5F0E8]">
+        <div className="text-center mb-5">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-3 bg-[#D4AF37]">
+            <Store className="w-7 h-7 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-[#2B3A4A]">
+            Retailer Portal Coming Soon
+          </h1>
+          <p className="text-gray-600 text-sm mt-1">
+            Onboarding by invitation. Join our waitlist and our team will
+            reach out to begin your retailer KYC.
+          </p>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-3" data-testid="waitlist-form">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              type="text"
+              placeholder="Business Name*"
+              value={form.business_name}
+              onChange={(e) => setForm({ ...form, business_name: e.target.value })}
+              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
+              data-testid="waitlist-business-name"
+            />
+            <input
+              type="text"
+              placeholder="Contact Name*"
+              value={form.contact_name}
+              onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
+              data-testid="waitlist-contact-name"
+            />
+            <input
+              type="email"
+              placeholder="Email*"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
+              data-testid="waitlist-email"
+            />
+            <input
+              type="tel"
+              placeholder="Phone*"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
+              data-testid="waitlist-phone"
+            />
+            <input
+              type="text"
+              placeholder="GST Number (optional)"
+              value={form.gst_number}
+              onChange={(e) => setForm({ ...form, gst_number: e.target.value.toUpperCase() })}
+              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none uppercase"
+              data-testid="waitlist-gst"
+              maxLength={15}
+            />
+            <input
+              type="text"
+              placeholder="City (optional)"
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
+              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
+              data-testid="waitlist-city"
+            />
+          </div>
+          <textarea
+            placeholder="Tell us about your business (optional)"
+            value={form.message}
+            onChange={(e) => setForm({ ...form, message: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none min-h-[80px]"
+            maxLength={1000}
+            data-testid="waitlist-message"
+          />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full py-3 rounded-lg bg-[#2B3A4A] text-white font-medium hover:bg-[#1e3a52] disabled:opacity-50"
+            data-testid="waitlist-submit"
+          >
+            {submitting ? 'Submitting…' : 'Join the Waitlist'}
+          </button>
+          <p className="text-xs text-center text-gray-500">
+            By submitting you agree to be contacted by the Addrika team at
+            contact.us@centraders.com.
+          </p>
+          <div className="text-center">
+            <Link href="/" className="text-sm text-[#2B3A4A] underline hover:text-[#D4AF37]">
+              Back to Addrika
+            </Link>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default function RetailerLoginPage() {
   const router = useRouter();
@@ -68,41 +239,7 @@ export default function RetailerLoginPage() {
   }
 
   if (!portalEnabled) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center p-4 bg-[#2B3A4A]"
-        data-testid="retailer-portal-disabled"
-      >
-        <div className="w-full max-w-md p-8 rounded-xl shadow-2xl bg-[#F5F0E8] text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 bg-[#D4AF37]">
-            <Store className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-[#2B3A4A] mb-2">
-            Retailer Portal Coming Soon
-          </h1>
-          <p className="text-gray-600 mb-5">
-            Our B2B partner portal is currently onboarding by invitation only.
-            Interested in becoming an Addrika retailer? Please reach out and
-            our team will get in touch.
-          </p>
-          <a
-            href="mailto:contact.us@centraders.com?subject=Addrika%20B2B%20Retailer%20Enquiry"
-            className="inline-block px-5 py-2.5 rounded-lg bg-[#2B3A4A] text-white font-medium hover:bg-[#1e3a52]"
-            data-testid="retailer-portal-contact"
-          >
-            Contact Us
-          </a>
-          <div className="mt-4">
-            <Link
-              href="/"
-              className="text-sm text-[#2B3A4A] underline hover:text-[#D4AF37]"
-            >
-              Back to Addrika
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <WaitlistComingSoon />;
   }
 
   return (

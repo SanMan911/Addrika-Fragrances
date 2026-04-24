@@ -1,0 +1,49 @@
+{
+  "summary": "B2B iteration 61 regression: waitlist (public + admin CRUD), loyalty milestones CRUD, quarterly loyalty dashboard, loyalty-before-cash-discount in calculate, admin bills upload/download (5MB + mime validation), and admin<->retailer messaging w/ attachments. 9/11 new backend tests pass (after fixing a Mongo _id leak in bill upload + message insert). 2 failures pin to a critical ROUTE COLLISION on POST /api/retailer-dashboard/messages — the old retailer-to-retailer message router (retailer_dashboard.py) shadows the new admin<->retailer message router (b2b_bills_messages.py) because it is include_router'd first and both register the same path. Frontend waitlist screen renders with correct data-testids (waitlist-form, waitlist-submit) and transitions to retailer-waitlist-success screen after valid submit; enabling the portal correctly swaps the page to the Sign-In form. Portal left DISABLED at end.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/retailer-dashboard/messages", "issue": "Route collision — old retailer-to-retailer handler (retailer_dashboard.py, registered first) shadows the new admin<->retailer handler (b2b_bills_messages.py). The new retailer->admin POST always fails with 422 requiring `to_retailer_id` & `subject`. GET /api/retailer-dashboard/messages is not shadowed (old has only /messages/inbox|sent) so it works. Fix: either move the new router to a distinct prefix (e.g. `/retailer-dashboard/admin-chat` or `/retailer-dashboard/b2b/messages`) OR register the b2b_bills_messages retailer_router BEFORE retailer_dashboard_router in server.py and rename the old POST.", "priority": "CRITICAL"},
+      {"endpoint": "POST /api/admin/b2b/retailers/{retailer_id}/bills", "issue": "Previously 500'd due to Mongo `_id` ObjectId leaking into JSON response. FIXED by this agent in b2b_bills_messages.py (added `_id` to excluded-keys filter for bill upload response + _insert_message return). Retest green.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/admin/b2b-loyalty/milestones", "issue": "Pydantic validator uses `le=50` so discount_percent>50 returns 422 (spec asked for 422 or 400 — currently 422). Acceptable."},
+      {"endpoint": "b2b_bills_messages.MessageAttachment", "issue": "`_insert_message` still leaks Mongo `_id` into the returned doc if ever called from a context that serialises `doc` directly — defensive hardening: always `doc.pop('_id', None)` after insert_one in this service module."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Retailer protected pages (/retailer/b2b, /retailer/bills, /retailer/admin-chat)", "issue": "Could not complete end-to-end UI verification in this session — login via browser automation did not establish a session (URL stays on /retailer/login) and protected pages bounce back. Backend login with same creds succeeds 200 via requests.Session, so the retailer_session cookie likely isn't getting the right cross-site attributes or the UI uses a different credential flow. Needs manual verification of login + loyalty-bar + bills table + chat composer.", "affected_selectors": ["[data-testid=\"loyalty-bar\"]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_b2b_iteration_61.py",
+    "/app/backend/tests/test_b2b_expansion.py",
+    "/app/test_reports/pytest/b2b_iteration_61.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Resolve POST /api/retailer-dashboard/messages route collision. Recommended: mount the b2b_bills_messages retailer_router under a NEW prefix like `/retailer-dashboard/b2b` (so it becomes POST /retailer-dashboard/b2b/messages) and update the frontend /retailer/admin-chat page to call the new path. This preserves the old retailer-to-retailer feature and avoids breaking existing UI.",
+    "Update frontend /app/frontend-next/app/retailer/admin-chat/page.js to hit the new (renamed) admin-chat endpoints.",
+    "Manually verify end-to-end UI for /retailer/b2b (loyalty-bar), /retailer/bills (download), /retailer/admin-chat (send), /admin/b2b/waitlist, /admin/settings/b2b/loyalty, /admin/b2b/retailers/RTL_TEST_B2B — playwright couldn't complete login leg in this iteration.",
+    "(minor) Harden _insert_message in b2b_bills_messages.py to always pop `_id` from returned dict after insert_one."
+  ],
+  "critical_code_review_comments": [
+    "Route collision bug (POST /retailer-dashboard/messages) — order-sensitive FastAPI routing means the newer feature silently no-ops. Always prefix new feature routers so they can't clash with legacy paths.",
+    "b2b_bills_messages.py _validate_attachment: relies on client-supplied file_type to decide legality — a malicious client can send executable with file_type='image/png'. Consider sniffing the base64 header (PDF magic %PDF, PNG 89 50 4E 47, JPEG FF D8 FF, WEBP RIFF) for defense-in-depth.",
+    "b2b_loyalty.get_retailer_quarter_purchases uses `grand_total` — verify that field always exists on legacy B2B orders (earlier schemas may have `total` or `grand_total_after_tax`).",
+    "server.py wiring: retailer_dashboard_router is included before b2b_bills_messages routers — any other path overlaps (e.g. /messages/attachment) would also silently mis-route.",
+    "admin_b2b_loyalty.admin_update_milestone uses `data.dict(exclude_unset=True)` but then drops keys with `v is not None` — this makes it impossible to explicitly set is_active=False via the PATCH (False is valid), unless Pydantic strips None defaults. Verify toggling is_active works through the UI."
+  ],
+  "updated_files": [
+    "/app/backend/routers/b2b_bills_messages.py",
+    "/app/backend/tests/test_b2b_iteration_61.py"
+  ],
+  "success_rate": {"backend": "90% (9/11 new + 7/7 baseline = 16/18)", "frontend": "waitlist screen verified (2/8 frontend items fully verified via automation; rest require manual or re-run)"},
+  "test_credentials": "Admin: contact.us@centraders.com / 050499 (OTP via db.admin_2fa_tokens). Retailer: test_b2b_retailer@example.com / Test@12345 (RTL_TEST_B2B).",
+  "seed_data_creation": "Inserted 1 TEST_IT61_SEED b2b_order with grand_total=15000 paid-in-current-quarter to trigger loyalty tier, then deleted it in teardown. Waitlist signups (pytest_it61_*, e2e_it61_*, gstbad_*) remain in db.retailer_waitlist with status=new|contacted — safe to leave.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Portal DISABLED at end. To re-test: (1) re-enable via PUT /api/admin/b2b-settings {enabled:true}; (2) run `pytest /app/backend/tests/test_b2b_iteration_61.py`; (3) after main agent fixes the POST /retailer-dashboard/messages route collision, the 2 message tests will turn green — may require updating the URL in the tests too if the path is renamed. Frontend: WhatsApp widget delays networkidle — prefer wait_for_selector over wait_for_load_state('networkidle'). Retailer login in browser automation may need `fetch credentials: 'include'` / cookie domain check — confirm login sets `retailer_session` cookie with correct SameSite attrs.",
+  "rca_of_the_issue": "Bill upload 500: Motor's insert_one mutates the input dict by inserting `_id: ObjectId(...)`. The code then returned `{k:v for k,v in doc.items() if k != 'file_base64'}` which still included `_id`. FastAPI's jsonable_encoder can't serialise ObjectId → 500. Fixed by also excluding `_id` from the response dict. The same pattern exists in _insert_message; also patched.  Message route collision: server.py line 99 `app.include_router(retailer_dashboard_router, prefix='/api')` registers POST /retailer-dashboard/messages FIRST; line 107 includes the new b2b_bills_messages retailer_router with the SAME path. FastAPI's router is first-match-wins, so the new handler is unreachable. Rename one of the paths to fix."
+}

@@ -271,6 +271,13 @@ export default function AdminRetailersPage() {
                 <Edit2 size={14} />
                 View Details
               </button>
+              <a
+                href={`/admin/b2b/retailers/${retailer.retailer_id || retailer.id}`}
+                className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-lg text-sm hover:bg-amber-200"
+                data-testid={`retailer-b2b-detail-${retailer.retailer_id || retailer.id}`}
+              >
+                B2B Orders / Bills / Chat
+              </a>
             </div>
           </div>
         ))}
