@@ -72,7 +72,18 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
   - Product: Added individual `Review` schemas for Bakhoor, `countryOfOrigin`, `shippingDetails`, `Fragrance Notes` property, conditional `aggregateRating` (omitted for 0-review products)
   - WebSite: Added `inLanguage`, richer `description`, `alternateName` array
 - **Metadata enriched**: Richer descriptions with "Addrika Fragrances" brand name, expanded keyword sets covering meditation, yoga, luxury, and purchase intent queries.
-- **Sitemap**: Updated fallback to include all 10 products.
+- **Sitemap**: Updated fallback to include all 10 products + 4 blog posts.
+
+### April 10, 2026 — Blog Articles for AI Discoverability
+- **4 SEO-optimized blog articles** seeded into MongoDB (`blog_posts` collection):
+  1. "Best Charcoal-Free Incense Sticks in India (2026)" — brand comparison, health benefits
+  2. "How to Use Arabian Bakhoor at Home" — beginner's guide, Omani vs Yemeni
+  3. "Best Incense for Meditation and Yoga" — fragrance-brain science, product recommendations
+  4. "Charcoal-Free vs Regular Agarbatti" — side-by-side comparison with HTML table
+- Each article features natural "Addrika Fragrances" brand mentions with internal product links.
+- Article structured data: `Speakable`, `inLanguage`, `keywords`, author, publisher.
+- Blog URLs added to `llms.txt`, sitemap, and full AI documentation.
+- Auto-seeded on backend startup via `scripts/seed_blog.py` (skips if already seeded).
 
 ## Database Collections
 - `users` - User accounts
