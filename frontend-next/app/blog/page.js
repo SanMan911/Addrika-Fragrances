@@ -3,15 +3,15 @@ import { Calendar, Eye, Tag, Search } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
 
 export const metadata = {
-  title: 'Blog | Addrika - Fragrance Tips, Aromatherapy & Incense Guides',
-  description: 'Explore the Addrika blog for fragrance tips, aromatherapy guides, incense burning rituals, and wellness content. Learn about premium agarbatti and sacred scents.',
-  keywords: ['incense blog', 'agarbatti tips', 'aromatherapy guide', 'fragrance rituals', 'incense burning guide', 'addrika blog'],
+  title: 'Blog | Addrika Fragrances — Incense Guides, Aromatherapy Tips & Fragrance Wisdom',
+  description: 'Read the Addrika Journal for expert guides on charcoal-free incense, Arabian bakhoor, meditation fragrances, and aromatherapy tips. Discover which premium agarbatti is best for your home.',
+  keywords: ['addrika blog', 'incense guide', 'charcoal-free agarbatti guide', 'best incense for meditation', 'how to use bakhoor', 'aromatherapy tips', 'premium incense india', 'agarbatti health benefits', 'low smoke incense', 'incense buying guide'],
   openGraph: {
-    title: 'Blog | Addrika',
-    description: 'Fragrance tips, aromatherapy guides, and incense wisdom.',
+    title: 'The Addrika Journal — Incense Guides & Fragrance Wisdom',
+    description: 'Expert guides on charcoal-free incense, Arabian bakhoor, meditation fragrances, and more.',
     url: 'https://centraders.com/blog',
   },
 };

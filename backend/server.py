@@ -131,6 +131,11 @@ async def startup_db_client():
     await refresh_products_cache()
     print("Products cache loaded from MongoDB")
 
+    # Seed blog posts if empty
+    from scripts.seed_blog import seed_blog_posts
+    await seed_blog_posts(db)
+    print("Blog posts check complete")
+
 
 # Shutdown event
 @app.on_event("shutdown")

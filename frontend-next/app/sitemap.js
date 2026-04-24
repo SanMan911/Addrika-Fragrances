@@ -73,9 +73,38 @@ export default async function sitemap() {
     { url: `${BASE_URL}/wishlist`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.5 },
   ];
 
+  // Dynamic blog post pages
+  let blogRoutes = [];
+  try {
+    const blogRes = await fetch(`${API_URL}/api/blog/posts`, { next: { revalidate: 3600 } });
+    if (blogRes.ok) {
+      const blogData = await blogRes.json();
+      blogRoutes = (blogData.posts || []).map((p) => ({
+        url: `${BASE_URL}/blog/${p.slug}`,
+        lastModified: p.updated_at || p.updatedAt || currentDate,
+        changeFrequency: 'monthly',
+        priority: 0.8,
+      }));
+    }
+  } catch {
+    const fallbackBlogSlugs = [
+      'best-charcoal-free-incense-india-2026',
+      'how-to-use-arabian-bakhoor-at-home',
+      'best-incense-for-meditation-yoga',
+      'charcoal-free-vs-regular-agarbatti-difference',
+    ];
+    blogRoutes = fallbackBlogSlugs.map((slug) => ({
+      url: `${BASE_URL}/blog/${slug}`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    }));
+  }
+
   return [
     ...staticRoutes,
     ...productRoutes,
+    ...blogRoutes,
     ...authRoutes,
     ...ecommerceRoutes,
   ];

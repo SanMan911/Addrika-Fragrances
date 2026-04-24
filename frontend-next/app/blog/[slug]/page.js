@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Calendar, Eye, ArrowLeft, Share2 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
 
 async function getBlogPost(slug) {
   try {
@@ -24,22 +24,26 @@ export async function generateMetadata({ params }) {
   }
   
   return {
-    title: `${post.title} | Addrika Blog`,
-    description: post.excerpt || `Read ${post.title} on the Addrika blog.`,
-    keywords: post.tags?.join(', ') || 'incense, aromatherapy, fragrance',
+    title: `${post.title} | Addrika Fragrances Blog`,
+    description: post.excerpt || `Read ${post.title} on the Addrika Fragrances blog.`,
+    keywords: [...(post.tags || []), 'addrika', 'addrika fragrances', 'premium incense', 'incense guide'].join(', '),
     openGraph: {
       title: post.title,
       description: post.excerpt,
       url: `https://centraders.com/blog/${params.slug}`,
       type: 'article',
       images: post.featuredImage ? [{ url: post.featuredImage }] : [],
-      publishedTime: post.createdAt,
+      publishedTime: post.createdAt || post.created_at,
+      modifiedTime: post.updatedAt || post.updated_at,
+      authors: ['Addrika Fragrances'],
+      section: 'Incense & Fragrance',
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description: post.excerpt,
-      images: post.featuredImage ? [post.featuredImage] : [],
+      images: post.featuredImage || post.featured_image ? [post.featuredImage || post.featured_image] : [],
+      creator: '@addrika_incense',
     },
   };
 }
@@ -51,17 +55,19 @@ function ArticleStructuredData({ post }) {
     "@type": "Article",
     "headline": post.title,
     "description": post.excerpt,
-    "image": post.featuredImage,
-    "datePublished": post.createdAt,
-    "dateModified": post.updatedAt || post.createdAt,
+    "image": post.featuredImage || post.featured_image,
+    "datePublished": post.createdAt || post.created_at,
+    "dateModified": post.updatedAt || post.updated_at || post.createdAt || post.created_at,
     "author": {
       "@type": "Organization",
-      "name": "Addrika",
-      "url": "https://centraders.com"
+      "name": "Addrika Fragrances",
+      "url": "https://centraders.com",
+      "logo": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
     },
     "publisher": {
       "@type": "Organization",
       "name": "Centsibl Traders Private Limited",
+      "url": "https://centraders.com",
       "logo": {
         "@type": "ImageObject",
         "url": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
@@ -70,6 +76,13 @@ function ArticleStructuredData({ post }) {
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": `https://centraders.com/blog/${post.slug}`
+    },
+    "keywords": (post.tags || []).join(', '),
+    "articleSection": "Incense & Fragrance",
+    "inLanguage": "en-IN",
+    "speakable": {
+      "@type": "SpeakableSpecification",
+      "cssSelector": ["article h2", "article p"]
     }
   };
 
