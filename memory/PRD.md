@@ -121,6 +121,15 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **GST gating preserved** — retailer accounts still require `is_verified`/`gst_verified` status; kill-switch is an additional global layer.
 - **Tested** — iteration_60.json, 20/20 backend tests pass.
 
+### April 24, 2026 — B2B Phase 2 (Waitlist · Loyalty · Bills · Messaging · Refactor)
+- **Retailer Waitlist** captured on `/retailer/login` while portal is disabled. Public `POST /api/retailer-auth/waitlist` (deduped on email). Admin view at `/admin/b2b/waitlist` with status workflow (new → contacted → onboarded → archived).
+- **Quarterly Loyalty Bonus** — admin-configurable milestones (defaults seeded: ₹10k→0.5%, ₹25k→1%, ₹50k→2%). Highest-matched milestone applied automatically on subtotal **AFTER tier discount** and **BEFORE 1.5% cash discount**. Retailer sees a progress bar + next-milestone hint on `/retailer/b2b`. Admin manages milestones at `/admin/settings/b2b/loyalty`. New endpoint `GET /api/retailer-dashboard/b2b/loyalty`.
+- **Bills & Invoices** — admin uploads PDFs/images per retailer at `/admin/b2b/retailers/{id}` (Bills tab); retailer downloads at `/retailer/bills`. Base64 in Mongo, 5MB cap, allowed: PDF/PNG/JPG/WEBP. List endpoints strip `file_base64` for performance.
+- **Admin↔Retailer Messaging** — threaded chat with safe attachments (5MB, same MIME whitelist). Retailer at `/retailer/admin-chat`, admin at `/admin/b2b/retailers/{id}` (Messages tab). Endpoints: `GET/POST /api/retailer-dashboard/admin-chat`, `GET /api/retailer-dashboard/admin-chat/attachment/{id}/{i}`; admin: `GET /api/admin/b2b/threads`, `GET/POST /api/admin/b2b/retailers/{id}/messages`, `GET /api/admin/b2b/messages/attachment/{id}/{i}`.
+- **Per-retailer admin detail page** at `/admin/b2b/retailers/[id]` with 3 tabs: **Orders** (status + payment_status), **Bills**, **Messages**.
+- **Refactor** — `B2B_PRODUCTS` extracted from `b2b_orders.py` into `services/b2b_catalog.py`; `admin_b2b_settings.py` now imports the shared module (no more cross-router coupling).
+- **Tested** — iteration_61 (initial), iteration_62 (after route-collision fix). 40/40 backend tests green. Pytest regression: `tests/test_b2b_expansion.py`, `tests/test_b2b_iteration_61.py`.
+
 ### P1 (High)
 - [ ] Replace Bilvapatra & 8" Dhoop placeholder images with actual product photos (when provided)
 - [ ] Replace Royal Kewda placeholder images with actual product photos (when provided)
@@ -129,8 +138,9 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 ### P2 (Medium)
 - [ ] Send notification emails when Coming Soon products become available
 - [ ] Google Analytics Integration
-- [ ] Split `b2b_orders.py` (~950 lines) into catalog/calculate/order/email submodules
-- [ ] Move `B2B_PRODUCTS` list out of `b2b_orders.py` into a shared catalog module
+- [ ] Split `b2b_orders.py` (~860 lines) into catalog/calculate/order/email submodules (catalog already extracted ✅)
+- [ ] Magic-number sniffing in bill/message attachment validator (currently trusts client-supplied MIME)
+- [ ] Object-storage upgrade for bills & message attachments (currently base64 in Mongo, capped at 5MB)
 
 ### P3 (Low)
 - [ ] B2B product catalog in MongoDB
