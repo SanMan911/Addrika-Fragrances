@@ -100,6 +100,7 @@ class TestWaitlist:
             "phone": "9999999999",
             "city": "Testville",
             "message": "iteration 61",
+            "gst_number": "27AAPFU0939F1ZV",  # iter63: required
         }
         r = requests.post(f"{API}/retailer-auth/waitlist", json=payload, timeout=30)
         assert r.status_code == 200, r.text
@@ -120,7 +121,7 @@ class TestWaitlist:
                 "contact_name": "Tester",
                 "email": f"gstbad_{uuid.uuid4().hex[:6]}@example.com",
                 "phone": "9999999999",
-                "gst_number": "INVALIDGST",
+                "gst_number": "INVALIDGST12345",  # 15 chars but wrong format -> 400
             },
             timeout=30,
         )

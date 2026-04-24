@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Store, Eye, EyeOff, Lock, User, CheckCircle2 } from 'lucide-react';
+import { Store, Eye, EyeOff, Lock, User, CheckCircle2, ChevronDown } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
+import { titleCase, lowerEmail, COUNTRY_CODES, GST_REGEX } from '../../../lib/formHelpers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -16,6 +17,7 @@ function WaitlistComingSoon() {
     business_name: '',
     contact_name: '',
     email: '',
+    country_code: '+91',
     phone: '',
     gst_number: '',
     city: '',
@@ -25,13 +27,18 @@ function WaitlistComingSoon() {
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!form.business_name || !form.contact_name || !form.email || !form.phone) {
-      toast.error('Please fill business name, contact, email & phone');
+      toast.error('Please fill business name, contact, email & WhatsApp');
+      return;
+    }
+    if (!GST_REGEX.test((form.gst_number || '').toUpperCase())) {
+      toast.error('Please enter a valid 15-digit GST number');
       return;
     }
     setSubmitting(true);
     try {
       const payload = { ...form };
-      if (!payload.gst_number) delete payload.gst_number;
+      payload.email = lowerEmail(payload.email);
+      payload.gst_number = (payload.gst_number || '').toUpperCase();
       if (!payload.city) delete payload.city;
       if (!payload.message) delete payload.message;
       const res = await fetch(`${API_URL}/api/retailer-auth/waitlist`, {
@@ -103,7 +110,7 @@ function WaitlistComingSoon() {
               type="text"
               placeholder="Business Name*"
               value={form.business_name}
-              onChange={(e) => setForm({ ...form, business_name: e.target.value })}
+              onChange={(e) => setForm({ ...form, business_name: titleCase(e.target.value) })}
               className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
               data-testid="waitlist-business-name"
             />
@@ -111,7 +118,7 @@ function WaitlistComingSoon() {
               type="text"
               placeholder="Contact Name*"
               value={form.contact_name}
-              onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+              onChange={(e) => setForm({ ...form, contact_name: titleCase(e.target.value) })}
               className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
               data-testid="waitlist-contact-name"
             />
@@ -119,32 +126,48 @@ function WaitlistComingSoon() {
               type="email"
               placeholder="Email*"
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
+              onChange={(e) => setForm({ ...form, email: lowerEmail(e.target.value) })}
+              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none lowercase"
               data-testid="waitlist-email"
             />
-            <input
-              type="tel"
-              placeholder="Phone*"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
-              data-testid="waitlist-phone"
-            />
+            <div className="flex">
+              <select
+                value={form.country_code}
+                onChange={(e) => setForm({ ...form, country_code: e.target.value })}
+                className="px-2 py-2 rounded-l-lg border border-r-0 border-gray-300 bg-white text-sm focus:outline-none"
+                data-testid="waitlist-country-code"
+              >
+                {COUNTRY_CODES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                placeholder="WhatsApp Number*"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 15) })
+                }
+                className="flex-1 px-3 py-2 rounded-r-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
+                data-testid="waitlist-phone"
+              />
+            </div>
             <input
               type="text"
-              placeholder="GST Number (optional)"
+              placeholder="GST Number*"
               value={form.gst_number}
-              onChange={(e) => setForm({ ...form, gst_number: e.target.value.toUpperCase() })}
-              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none uppercase"
+              onChange={(e) => setForm({ ...form, gst_number: e.target.value.toUpperCase().slice(0, 15) })}
+              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none uppercase font-mono"
               data-testid="waitlist-gst"
               maxLength={15}
             />
             <input
               type="text"
-              placeholder="City (optional)"
+              placeholder="City"
               value={form.city}
-              onChange={(e) => setForm({ ...form, city: e.target.value })}
+              onChange={(e) => setForm({ ...form, city: titleCase(e.target.value) })}
               className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
               data-testid="waitlist-city"
             />

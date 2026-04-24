@@ -167,6 +167,20 @@ async def retailer_download_bill(
     return bill
 
 
+async def purge_old_bills(db) -> int:
+    """Delete retailer_bills older than 15 months. Returns # deleted."""
+    from datetime import datetime, timezone, timedelta
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=458)  # ~15 months
+    cutoff_iso = cutoff.isoformat()
+    result = await db.retailer_bills.delete_many({"created_at": {"$lt": cutoff_iso}})
+    if result.deleted_count:
+        logger.info(
+            f"Auto-purged {result.deleted_count} retailer bills older than {cutoff_iso}"
+        )
+    return result.deleted_count
+
+
 # ============================================================================
 # Messages
 # ============================================================================

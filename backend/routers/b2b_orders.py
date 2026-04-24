@@ -25,6 +25,7 @@ from services.b2b_loyalty import (
     get_retailer_quarter_purchases,
 )
 from services.b2b_catalog import B2B_PRODUCTS, find_b2b_product
+from services.b2b_emails import send_b2b_admin_notification_email
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/retailer-dashboard/b2b", tags=["B2B Orders"])
@@ -296,19 +297,8 @@ async def calculate_b2b_order(
             subtotal * loyalty_discount_percent / 100, 2
         )
 
-    # Subtotal after loyalty (used for GST and cash-discount base)
+    # Subtotal after loyalty (used for downstream discount application)
     subtotal_after_loyalty = round(subtotal - loyalty_discount, 2)
-    total_gst = round(subtotal_after_loyalty * 18 / 100, 2) if order_items else 0
-    # Recompute per-line GST on discounted values
-    if subtotal_after_loyalty > 0 and subtotal > 0:
-        factor = subtotal_after_loyalty / subtotal
-        total_gst = 0
-        for oi in order_items:
-            new_line_after_loyalty = round(oi["line_total"] * factor, 2)
-            oi["line_total_after_loyalty"] = new_line_after_loyalty
-            oi["gst_amount"] = round(new_line_after_loyalty * oi["gst_rate"] / 100, 2)
-            total_gst += oi["gst_amount"]
-        total_gst = round(total_gst, 2)
 
     # Voucher and Cash discount are mutually exclusive
     voucher_discount = 0
@@ -328,8 +318,33 @@ async def calculate_b2b_order(
     elif order_data.apply_cash_discount:
         # Cash discount is applied on subtotal AFTER loyalty discount
         cash_discount = round(subtotal_after_loyalty * cash_discount_percent_setting / 100, 2)
+
+    # ------------------------------------------------------------------------
+    # Per Indian GST law and user requirement: GST is calculated AFTER ALL
+    # known-at-supply-time discounts (tier, loyalty, voucher, cash). Credit
+    # note (post-supply financial credit) is applied AFTER GST.
+    # ------------------------------------------------------------------------
+    taxable_value = round(
+        max(0.0, subtotal_after_loyalty - voucher_discount - cash_discount), 2
+    )
+
+    total_gst = 0
+    if subtotal > 0 and taxable_value > 0:
+        factor = taxable_value / subtotal
+        for oi in order_items:
+            new_line_taxable = round(oi["line_total"] * factor, 2)
+            oi["line_total_after_loyalty"] = new_line_taxable
+            oi["taxable_value"] = new_line_taxable
+            oi["gst_amount"] = round(new_line_taxable * oi["gst_rate"] / 100, 2)
+            total_gst += oi["gst_amount"]
+        total_gst = round(total_gst, 2)
+    else:
+        for oi in order_items:
+            oi["line_total_after_loyalty"] = 0
+            oi["taxable_value"] = 0
+            oi["gst_amount"] = 0
     
-    # Credit note
+    # Credit note (financial credit — applied on taxable + GST)
     cn_discount = 0
     cn_info = None
     if order_data.credit_note_code:
@@ -340,14 +355,11 @@ async def calculate_b2b_order(
         if error:
             raise HTTPException(status_code=400, detail=error)
         # CN can be partially used
-        cn_discount = min(
-            cn_info["balance"],
-            subtotal_after_loyalty + total_gst - voucher_discount - cash_discount,
-        )
+        cn_discount = min(cn_info["balance"], taxable_value + total_gst)
     
     # Grand total
     total_discount = loyalty_discount + voucher_discount + cash_discount + cn_discount
-    grand_total = round(subtotal_after_loyalty + total_gst - voucher_discount - cash_discount - cn_discount, 2)
+    grand_total = round(taxable_value + total_gst - cn_discount, 2)
     grand_total = max(0, grand_total)  # Ensure non-negative
     
     return {
@@ -359,6 +371,7 @@ async def calculate_b2b_order(
         "quarter_purchases_total": loyalty_state_quarter["purchases_total"],
         "quarter_label": loyalty_state_quarter["quarter_label"],
         "subtotal_after_loyalty": subtotal_after_loyalty,
+        "taxable_value": taxable_value,
         "gst_total": total_gst,
         "tier_discount_total": round(total_tier_discount, 2),
         "voucher_discount": voucher_discount,
@@ -507,92 +520,6 @@ async def create_b2b_order(
     return response
 
 
-async def send_b2b_admin_notification_email(order: dict, retailer: dict):
-    """Email the Addrika admin inbox when a B2B order is placed (no ShipRocket)."""
-    from services.email_service import send_email
-
-    items_html = ""
-    for item in order.get("items", []):
-        items_html += f"""
-        <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">{item['name']} ({item['net_weight']})</td>
-            <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">{item['quantity_boxes']} boxes</td>
-            <td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">₹{item['line_total']:,.2f}</td>
-        </tr>
-        """
-
-    business_name = retailer.get("business_name") or retailer.get("trade_name") or "Retailer"
-    payment_method = order.get("payment_method", "credit").upper()
-    online_line = ""
-    if order.get("cash_discount", 0) > 0:
-        online_line = (
-            f"<p style='margin:5px 0;'><strong>Online Payment Discount:</strong> "
-            f"{order.get('cash_discount_percent', 0)}% (₹{order['cash_discount']:,.2f})</p>"
-        )
-
-    html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head><meta charset="utf-8"></head>
-    <body style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
-            <tr><td style="background:#1e3a52;padding:24px;text-align:center;">
-                <h1 style="color:#d4af37;margin:0;">ADDRIKA</h1>
-                <p style="color:#fff;margin:4px 0 0;">New B2B Order Received</p>
-            </td></tr>
-            <tr><td style="padding:24px;">
-                <div style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:12px 14px;border-radius:6px;margin-bottom:18px;">
-                    <strong style="color:#92400E;">Action required:</strong>
-                    <span style="color:#78350F;"> Contact retailer to confirm and arrange delivery (B2B orders bypass ShipRocket).</span>
-                </div>
-
-                <h3 style="margin:0 0 8px 0;color:#1e3a52;">Retailer</h3>
-                <p style="margin:4px 0;"><strong>{business_name}</strong></p>
-                <p style="margin:4px 0;">GST: {retailer.get('gst_number') or 'N/A'}</p>
-                <p style="margin:4px 0;">Email: {retailer.get('email', 'N/A')}</p>
-                <p style="margin:4px 0;">Phone: {retailer.get('phone', 'N/A')}</p>
-
-                <h3 style="margin:18px 0 8px 0;color:#1e3a52;">Order {order['order_id']}</h3>
-                <p style="margin:4px 0;"><strong>Payment Method:</strong> {payment_method}</p>
-                <p style="margin:4px 0;"><strong>Payment Status:</strong> {order.get('payment_status', 'pending').upper()}</p>
-                {online_line}
-
-                <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;margin-top:12px;">
-                    <thead>
-                        <tr style="background:#f9f7f4;">
-                            <th style="padding:10px;text-align:left;">Product</th>
-                            <th style="padding:10px;text-align:center;">Qty</th>
-                            <th style="padding:10px;text-align:right;">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>{items_html}</tbody>
-                </table>
-
-                <div style="margin-top:18px;padding:14px;background:#f9f7f4;border-radius:6px;">
-                    <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>₹{order['subtotal']:,.2f}</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>GST:</span><span>₹{order['gst_total']:,.2f}</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Discount:</span><span>-₹{order.get('total_discount', 0):,.2f}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-weight:bold;color:#d4af37;margin-top:8px;border-top:2px solid #d4af37;padding-top:8px;">
-                        <span>Grand Total:</span><span>₹{order['grand_total']:,.2f}</span>
-                    </div>
-                </div>
-            </td></tr>
-            <tr><td style="background:#1e3a52;padding:14px;text-align:center;">
-                <p style="color:#d4af37;margin:0;font-size:12px;">Addrika B2B • contact.us@centraders.com</p>
-            </td></tr>
-        </table>
-    </body>
-    </html>
-    """
-
-    await send_email(
-        to_email=NOTIFICATION_EMAIL,
-        subject=f"[B2B] New Order {order['order_id']} · {business_name} · ₹{order['grand_total']:,.0f}",
-        html_content=html,
-    )
-    logger.info(
-        f"B2B admin notification sent to {NOTIFICATION_EMAIL} for order {order['order_id']}"
-    )
 
 
 @router.post("/order/{order_id}/verify-payment")
