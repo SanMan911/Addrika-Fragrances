@@ -63,6 +63,17 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - Fragrance notes: Kewda, Jasmine, White Musk. Burn time: 40+ minutes.
 - Auto-migrates into MongoDB on backend startup.
 
+### April 10, 2026 — AI SEO/GEO Optimization
+- **llms.txt & llms-full.txt**: AI manifest files in `/public/` for LLM crawlers (ChatGPT, Perplexity, Claude, Gemini) with brand identity, product catalog, use cases, FAQs, and contact info.
+- **robots.txt expanded**: Added 11 AI crawler user agents (GPTBot, ChatGPT-User, Google-Extended, PerplexityBot, ClaudeBot, anthropic-ai, Bytespider, CCBot, cohere-ai, GoogleOther, Applebot-Extended).
+- **Structured Data enhancements**:
+  - Organization: Added `knowsAbout`, `Brand` entity, WhatsApp contact, `alternateName` array
+  - Store: Full product catalog with nested `OfferCatalog` (Agarbatti, Dhoop, Bakhoor categories)
+  - Product: Added individual `Review` schemas for Bakhoor, `countryOfOrigin`, `shippingDetails`, `Fragrance Notes` property, conditional `aggregateRating` (omitted for 0-review products)
+  - WebSite: Added `inLanguage`, richer `description`, `alternateName` array
+- **Metadata enriched**: Richer descriptions with "Addrika Fragrances" brand name, expanded keyword sets covering meditation, yoga, luxury, and purchase intent queries.
+- **Sitemap**: Updated fallback to include all 10 products.
+
 ## Database Collections
 - `users` - User accounts
 - `admin_settings` - Admin credentials
