@@ -5,10 +5,11 @@ import Footer from '../../components/Footer';
 
 export const metadata = {
   title: 'FAQs | Addrika Fragrances - Charcoal-Free Low Smoke Incense Questions',
-  description: 'Find answers to common questions about Addrika\'s charcoal-free, low smoke incense sticks. Learn about our ethically sourced ingredients, charcoal-free formula, health benefits, and more.',
+  description: 'Find answers to common questions about Addrika Fragrances charcoal-free, low smoke incense sticks, bambooless dhoop, and Arabian bakhoor. Learn about ethically sourced ingredients, health benefits, burn time, indoor safety, meditation use, and more.',
   keywords: [
-    'addrika faq', 'low smoke incense questions', 'charcoal-free agarbatti faq',
-    'charcoal-free incense benefits', 'ethical incense ingredients', 'incense health safety'
+    'addrika faq', 'addrika fragrances questions', 'low smoke incense questions', 'charcoal-free agarbatti faq',
+    'charcoal-free incense benefits', 'ethical incense ingredients', 'incense health safety',
+    'incense safe for meditation', 'best incense for yoga', 'bambooless dhoop faq', 'bakhoor questions'
   ],
 };
 
