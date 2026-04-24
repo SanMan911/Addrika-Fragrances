@@ -1,0 +1,45 @@
+{
+  "summary": "Iteration 62 retest after fixing the CRITICAL route collision flagged in iteration 61. The retailer admin↔admin message endpoints have been moved from /retailer-dashboard/messages to /retailer-dashboard/admin-chat (GET, POST, and GET attachment/{message_id}/{index}). _insert_message now pops Mongo _id before returning. Updated the iteration-61 test URLs to match and added new coverage for: retailer POST returns sender_type='retailer' with no _id, retailer list-and-mark-read, retailer full-base64 attachment download, admin POST response has no _id, and legacy retailer-to-retailer POST /retailer-dashboard/messages still routes to the LEGACY handler (422 for missing to_retailer_id+subject — proves no shadowing). All 13 iteration-61 tests pass AND 7/7 baseline expansion + 20/20 portal killswitch pass = 40/40. Frontend /app/frontend-next/app/retailer/admin-chat/page.js already uses the new /api/retailer-dashboard/admin-chat path for all 3 fetches (list, send, download). Portal left DISABLED at end. Also hardened the iteration-61 test fixture to delete the TEST_IT61_SEED b2b_order immediately after the loyalty-before-cash-discount test so the sibling killswitch test_calculate_applies_cash_discount is not polluted.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/retailer-dashboard/messages", "issue": "After the rename, the legacy retailer-to-retailer router only exposes GET /messages/inbox and /messages/sent. A raw GET /messages now 405s (previously 401 via the shadow new handler). Not a functional regression — old UI never called bare GET /messages — but worth noting for any stale clients."},
+      {"endpoint": "services/b2b_catalog, services/b2b_loyalty imports", "issue": "test_b2b_expansion.py module imports only resolve when pytest rootdir=/app/backend (because services/ lives there and isn't on sys.path from /app). Run backend test suite with `cd /app/backend && pytest tests/` — running from /app causes ModuleNotFoundError for 2 tests (pre-existing, not caused by iteration 62)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_b2b_iteration_61.py",
+    "/app/backend/tests/test_b2b_expansion.py",
+    "/app/backend/tests/test_b2b_portal_killswitch.py",
+    "/app/test_reports/pytest/b2b_iteration_62.xml"
+  ],
+  "action_items": [
+    "(optional) Rename /app/backend/tests/test_b2b_iteration_61.py → test_b2b_iteration_62.py and add this iteration's new tests under a dedicated class for clarity.",
+    "(minor) Add a DELETE/PATCH cleanup fixture in tests/conftest.py for TEST_IT61_ / TEST_IT62_ prefixed seed orders + waitlist signups so cross-suite pollution can't recur.",
+    "Consider sniffing base64 magic-number headers in _validate_attachment (PDF %PDF, PNG 89 50 4E 47, JPEG FF D8 FF, WEBP RIFF) — currently trusts client-supplied file_type only.",
+    "Document the admin-chat endpoint rename in the API contract / frontend changelog so any third-party client still hitting /retailer-dashboard/messages is updated."
+  ],
+  "critical_code_review_comments": [
+    "b2b_bills_messages.py:_insert_message now correctly strips _id via doc.pop('_id', None) before returning — verified with `assert '_id' not in body` on both retailer-POST and admin-POST responses.",
+    "The router collision fix is correct: retailer-admin chat moved to a distinct /retailer-dashboard/admin-chat prefix, so FastAPI first-match-wins can no longer shadow the legacy retailer-to-retailer POST /messages. Regression test test_legacy_retailer_to_retailer_messages_not_shadowed pins this behavior (expects 422 for body missing to_retailer_id+subject).",
+    "retailer_list_messages excludes attachments.file_base64 via projection AND marks messages read in a second update_many — two round-trips, could be combined via findAndModify-style aggregation pipeline for fewer calls at scale.",
+    "admin_list_thread_messages performs the same two-step read — worth factoring into a small helper (_list_and_mark_read) to DRY both handlers.",
+    "Cross-tenant read test is covered only for retailer's own thread — consider adding an explicit 404/403 test where retailer A tries to download retailer B's attachment via /admin-chat/attachment/{other_msg_id}/0 (current implementation filters by retailer_id on find_one — correct but uncovered)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_b2b_iteration_61.py",
+    "/app/backend/tests/test_b2b_expansion.py"
+  ],
+  "success_rate": {"backend": "100% (40/40: 13 iteration-61 + 7 expansion + 20 killswitch)", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Admin: contact.us@centraders.com / PIN 050499 (OTP via db.admin_2fa_tokens). Retailer: test_b2b_retailer@example.com / Test@12345 (RTL_TEST_B2B).",
+  "seed_data_creation": "Session inserted a TEST_IT61_SEED b2b_order (grand_total=15000, payment_status=paid) to trigger loyalty tier — now deleted both in-test (after the cash-discount assertion) and in the session teardown fixture. Waitlist signups with pytest_it61_* emails remain in db.retailer_waitlist — safe to leave (harmless).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Portal left DISABLED at end. All 3 suites are green from `cd /app/backend && pytest tests/test_b2b_iteration_61.py tests/test_b2b_expansion.py tests/test_b2b_portal_killswitch.py`. If running the same suites in the reverse order (killswitch first, iteration_61 last) you can still pass because each suite sets/unsets b2b-settings itself; only watch that the TEST_IT61_SEED order gets deleted between the loyalty test and any killswitch/calculate test in the same session (handled now via inline cleanup). Frontend was NOT tested this iteration — only backend as requested.",
+  "rca_of_the_issue": "Iteration 61 reported POST /api/retailer-dashboard/messages always 422'd because retailer_dashboard_router (legacy retailer-to-retailer) was include_router'd before b2b_bills_messages.retailer_router on the same path — FastAPI first-match-wins, so the new admin-chat handler was unreachable. Fix: main agent renamed the new router's routes to /admin-chat (GET, POST) and /admin-chat/attachment/{message_id}/{index}. Both routers are now disjoint. Also hardened _insert_message to pop Mongo _id before returning (defensive — was already stripped via response-dict comprehension but now also removes from the base doc). Verified via 13 green tests including a specific regression test that legacy POST /retailer-dashboard/messages still 422s for missing to_retailer_id+subject."
+}

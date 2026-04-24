@@ -56,6 +56,13 @@ def admin():
 @pytest.fixture(scope="session", autouse=True)
 def portal_teardown(admin):
     yield
+    # Clean up seeded paid orders so other suites aren't polluted
+    try:
+        client = MongoClient(MONGO_URL)
+        client[DB_NAME]["b2b_orders"].delete_many({"notes": {"$regex": "^TEST_IT61"}})
+        client.close()
+    except Exception:
+        pass
     try:
         admin.put(f"{API}/admin/b2b-settings", json={"enabled": False}, timeout=30)
     except Exception:
@@ -249,6 +256,11 @@ class TestLoyaltyCalculate:
         assert abs(b2["cash_discount"] - expected_cash) < 0.05, \
             f"cash_discount={b2['cash_discount']} expected={expected_cash} (from subtotal_after_loyalty)"
 
+        # Cleanup seeded order immediately so subsequent suites see a clean quarter
+        client = MongoClient(MONGO_URL)
+        client[DB_NAME]["b2b_orders"].delete_many({"notes": {"$regex": "^TEST_IT61"}})
+        client.close()
+
 
 # ---------------------------------------------------------------- Bills
 class TestBills:
@@ -324,13 +336,22 @@ class TestBills:
 # ---------------------------------------------------------------- Messages
 class TestMessages:
     def test_retailer_send_admin_list_thread(self, admin, retailer_session):
-        # Retailer sends a message
+        # Retailer sends a message via NEW admin-chat endpoint
         r = retailer_session.post(
-            f"{API}/retailer-dashboard/messages",
+            f"{API}/retailer-dashboard/admin-chat",
             json={"message": "TEST_IT61 hello from retailer"},
             timeout=30,
         )
         assert r.status_code == 200, r.text
+        body = r.json()
+        assert body.get("sender_type") == "retailer"
+        assert "_id" not in body
+
+        # Retailer lists own messages
+        rlist = retailer_session.get(f"{API}/retailer-dashboard/admin-chat", timeout=30)
+        assert rlist.status_code == 200, rlist.text
+        rmsgs = rlist.json()["messages"]
+        assert any("TEST_IT61 hello from retailer" in m.get("message", "") for m in rmsgs)
 
         # Admin sends back with an attachment
         r2 = admin.post(
@@ -342,6 +363,8 @@ class TestMessages:
             timeout=30,
         )
         assert r2.status_code == 200, r2.text
+        admin_send_body = r2.json()
+        assert "_id" not in admin_send_body
 
         # Admin listing for this retailer returns attachments WITHOUT file_base64
         lst = admin.get(f"{API}/admin/b2b/retailers/{RETAILER_ID}/messages", timeout=30)
@@ -372,7 +395,7 @@ class TestMessages:
 
     def test_invalid_attachment_type_rejected(self, retailer_session):
         r = retailer_session.post(
-            f"{API}/retailer-dashboard/messages",
+            f"{API}/retailer-dashboard/admin-chat",
             json={
                 "message": "bad attach",
                 "attachments": [{"file_base64": TINY_PNG, "file_name": "bad.zip", "file_type": "application/zip"}],
@@ -380,3 +403,44 @@ class TestMessages:
             timeout=30,
         )
         assert r.status_code == 400
+
+    def test_retailer_attachment_download_full_base64(self, admin, retailer_session):
+        # Admin sends message with attachment
+        r = admin.post(
+            f"{API}/admin/b2b/retailers/{RETAILER_ID}/messages",
+            json={
+                "message": "TEST_IT61 attach test",
+                "attachments": [{"file_base64": TINY_PNG, "file_name": "dl.png", "file_type": "image/png"}],
+            },
+            timeout=30,
+        )
+        assert r.status_code == 200, r.text
+
+        # Retailer lists (to get message id without file_base64)
+        lst = retailer_session.get(f"{API}/retailer-dashboard/admin-chat", timeout=30)
+        assert lst.status_code == 200
+        msgs = lst.json()["messages"]
+        target = next((m for m in msgs if m.get("sender_type") == "admin" and "TEST_IT61 attach test" in m.get("message", "")), None)
+        assert target is not None
+        # attachments should be stripped of file_base64 in listing
+        for a in target.get("attachments", []) or []:
+            assert "file_base64" not in a
+
+        # Retailer downloads full attachment
+        dl = retailer_session.get(
+            f"{API}/retailer-dashboard/admin-chat/attachment/{target['id']}/0", timeout=30
+        )
+        assert dl.status_code == 200, dl.text
+        payload = dl.json()
+        assert "file_base64" in payload
+        assert payload["file_base64"] == TINY_PNG
+
+    def test_legacy_retailer_to_retailer_messages_not_shadowed(self, retailer_session):
+        # POST /retailer-dashboard/messages must still go to legacy handler
+        # (expects to_retailer_id + subject). Sending only `message` should 422.
+        r = retailer_session.post(
+            f"{API}/retailer-dashboard/messages",
+            json={"message": "should hit legacy handler"},
+            timeout=30,
+        )
+        assert r.status_code == 422, f"Legacy retailer-to-retailer messages is shadowed! got {r.status_code}: {r.text}"

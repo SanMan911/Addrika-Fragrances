@@ -68,7 +68,7 @@ async def test_retailer_endpoints_require_auth_or_disabled_portal():
         "/api/retailer-dashboard/b2b/catalog",
         "/api/retailer-dashboard/b2b/loyalty",
         "/api/retailer-dashboard/bills",
-        "/api/retailer-dashboard/messages",
+        "/api/retailer-dashboard/admin-chat",
     ]
     async with httpx.AsyncClient() as c:
         for p in paths:

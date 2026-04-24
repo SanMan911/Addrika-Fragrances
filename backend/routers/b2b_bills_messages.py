@@ -220,6 +220,8 @@ async def _insert_message(
         "created_at": now,
     }
     await db.retailer_admin_messages.insert_one(doc)
+    # Strip Mongo-injected _id before returning
+    doc.pop("_id", None)
     # Upsert thread doc (for fast listing in admin)
     await db.retailer_admin_threads.update_one(
         {"thread_id": doc["thread_id"]},
@@ -247,7 +249,7 @@ async def _insert_message(
 
 # ---- Retailer side ----
 
-@retailer_router.get("/messages")
+@retailer_router.get("/admin-chat")
 async def retailer_list_messages(
     request: Request,
     retailer_session: Optional[str] = Cookie(None),
@@ -271,7 +273,7 @@ async def retailer_list_messages(
     return {"messages": msgs, "thread_id": _thread_id(retailer["retailer_id"])}
 
 
-@retailer_router.post("/messages")
+@retailer_router.post("/admin-chat")
 async def retailer_send_message(
     data: MessageCreate,
     request: Request,
@@ -290,7 +292,7 @@ async def retailer_send_message(
     )
 
 
-@retailer_router.get("/messages/attachment/{message_id}/{index}")
+@retailer_router.get("/admin-chat/attachment/{message_id}/{index}")
 async def retailer_download_message_attachment(
     message_id: str,
     index: int,
