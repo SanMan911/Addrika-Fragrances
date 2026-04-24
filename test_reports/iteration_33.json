@@ -89,15 +89,15 @@
   "context_for_next_testing_agent": "Admin panel refactored to modular structure. Test session created: sess_285453942e11456aba12d9a277c7751a. To test admin UI, set this token in localStorage (addrika_session_token) and cookies (session_token). All 9 admin pages under /admin route: Overview, Orders, Analytics, Users, Marketing, Content, Inventory, Inquiries, Settings.",
 
   "tested_urls": [
-    "https://natural-dhoop-store.preview.emergentagent.com/admin",
-    "https://natural-dhoop-store.preview.emergentagent.com/admin/login",
-    "https://natural-dhoop-store.preview.emergentagent.com/admin/orders",
-    "https://natural-dhoop-store.preview.emergentagent.com/admin/analytics",
-    "https://natural-dhoop-store.preview.emergentagent.com/admin/users",
-    "https://natural-dhoop-store.preview.emergentagent.com/admin/marketing",
-    "https://natural-dhoop-store.preview.emergentagent.com/admin/content",
-    "https://natural-dhoop-store.preview.emergentagent.com/admin/inventory",
-    "https://natural-dhoop-store.preview.emergentagent.com/admin/inquiries",
-    "https://natural-dhoop-store.preview.emergentagent.com/admin/settings"
+    "https://incense-retailer-hub.preview.emergentagent.com/admin",
+    "https://incense-retailer-hub.preview.emergentagent.com/admin/login",
+    "https://incense-retailer-hub.preview.emergentagent.com/admin/orders",
+    "https://incense-retailer-hub.preview.emergentagent.com/admin/analytics",
+    "https://incense-retailer-hub.preview.emergentagent.com/admin/users",
+    "https://incense-retailer-hub.preview.emergentagent.com/admin/marketing",
+    "https://incense-retailer-hub.preview.emergentagent.com/admin/content",
+    "https://incense-retailer-hub.preview.emergentagent.com/admin/inventory",
+    "https://incense-retailer-hub.preview.emergentagent.com/admin/inquiries",
+    "https://incense-retailer-hub.preview.emergentagent.com/admin/settings"
   ]
 }

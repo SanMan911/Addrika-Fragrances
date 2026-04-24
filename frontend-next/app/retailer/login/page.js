@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Store, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
 export default function RetailerLoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, isLoading } = useRetailerAuth();
@@ -14,6 +17,26 @@ export default function RetailerLoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [portalEnabled, setPortalEnabled] = useState(null); // null=loading, true/false known
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/retailer-auth/portal-status`, {
+          credentials: 'include',
+        });
+        const data = await res.json();
+        if (!cancelled) setPortalEnabled(Boolean(data.enabled));
+      } catch {
+        if (!cancelled) setPortalEnabled(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       router.push('/retailer/dashboard');
@@ -36,13 +59,52 @@ export default function RetailerLoginPage() {
       toast.error(result.error || 'Login failed');
     }
   };
-  if (isLoading) {
+  if (isLoading || portalEnabled === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#2B3A4A]">
         <div className="w-12 h-12 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
+
+  if (!portalEnabled) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-4 bg-[#2B3A4A]"
+        data-testid="retailer-portal-disabled"
+      >
+        <div className="w-full max-w-md p-8 rounded-xl shadow-2xl bg-[#F5F0E8] text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 bg-[#D4AF37]">
+            <Store className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-[#2B3A4A] mb-2">
+            Retailer Portal Coming Soon
+          </h1>
+          <p className="text-gray-600 mb-5">
+            Our B2B partner portal is currently onboarding by invitation only.
+            Interested in becoming an Addrika retailer? Please reach out and
+            our team will get in touch.
+          </p>
+          <a
+            href="mailto:contact.us@centraders.com?subject=Addrika%20B2B%20Retailer%20Enquiry"
+            className="inline-block px-5 py-2.5 rounded-lg bg-[#2B3A4A] text-white font-medium hover:bg-[#1e3a52]"
+            data-testid="retailer-portal-contact"
+          >
+            Contact Us
+          </a>
+          <div className="mt-4">
+            <Link
+              href="/"
+              className="text-sm text-[#2B3A4A] underline hover:text-[#D4AF37]"
+            >
+              Back to Addrika
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#2B3A4A]">
       <div className="w-full max-w-md p-8 rounded-xl shadow-2xl bg-[#F5F0E8]">

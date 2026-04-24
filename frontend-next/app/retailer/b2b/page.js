@@ -41,7 +41,7 @@ export default function RetailerB2BPage() {
   const [creditNoteCode, setCreditNoteCode] = useState('');
   const [orderSummary, setOrderSummary] = useState(null);
   const [retailerInfo, setRetailerInfo] = useState(null);
-  const [cashDiscountPercent, setCashDiscountPercent] = useState(2);
+  const [cashDiscountPercent, setCashDiscountPercent] = useState(1.5);
   const [activeTab, setActiveTab] = useState('order');
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -57,7 +57,7 @@ export default function RetailerB2BPage() {
           gst: data.retailer_gst,
           address: data.retailer_address
         });
-        setCashDiscountPercent(data.cash_discount_percent || 2);
+        setCashDiscountPercent(data.cash_discount_percent || 1.5);
       }
     } catch (error) {
       console.error('Failed to fetch catalog:', error);
@@ -302,6 +302,14 @@ export default function RetailerB2BPage() {
                       <div className="col-span-3">
                         <p className="font-semibold text-[#2B3A4A]">{product.name}</p>
                         <p className="text-xs text-gray-500">{product.units_per_box} units/box</p>
+                        {product.pricing_tiers?.length > 0 && (
+                          <p className="text-[11px] text-green-700 mt-1 font-medium" data-testid={`tiers-${product.id}`}>
+                            {product.pricing_tiers
+                              .filter((t) => t.discount_percent > 0)
+                              .map((t) => `${t.min_boxes}+ box: -${t.discount_percent}%`)
+                              .join(' • ') || 'Bulk discounts available'}
+                          </p>
+                        )}
                       </div>
                       <div className="col-span-1 text-center">
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-[#F5F0E8] text-[#2B3A4A]">
@@ -345,9 +353,9 @@ export default function RetailerB2BPage() {
                 <Percent size={20} className="text-white" />
               </div>
               <div>
-                <p className="font-semibold text-green-800">Get {cashDiscountPercent}% Cash Discount</p>
+                <p className="font-semibold text-green-800">Pay Now & Save additional {cashDiscountPercent}%</p>
                 <p className="text-sm text-green-600">
-                  {voucherCode ? 'Not available when voucher is applied' : 'Pay online and save extra on your order'}
+                  {voucherCode ? 'Not available when voucher is applied' : 'Auto-applied at payment — saved instantly at checkout'}
                 </p>
               </div>
             </div>
@@ -477,6 +485,12 @@ export default function RetailerB2BPage() {
                     <span className="text-gray-500">Subtotal</span>
                     <span className="font-medium">{formatCurrency(orderSummary.subtotal)}</span>
                   </div>
+                  {orderSummary.tier_discount_total > 0 && (
+                    <div className="flex justify-between text-emerald-700">
+                      <span>Bulk Tier Savings (applied per line)</span>
+                      <span className="font-medium">-{formatCurrency(orderSummary.tier_discount_total)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-500">GST (18%)</span>
                     <span className="font-medium">{formatCurrency(orderSummary.gst_total)}</span>

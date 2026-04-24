@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Settings, Save, RefreshCw, Mail, Store, Truck, CreditCard } from 'lucide-react';
+import { Settings, Save, RefreshCw, Mail, Store, Truck, CreditCard, Briefcase, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
@@ -165,6 +166,30 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* B2B Portal Settings Link */}
+      <Link
+        href="/admin/settings/b2b"
+        className="block bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 hover:border-amber-400 transition-colors"
+        data-testid="link-b2b-settings"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+              <Briefcase size={20} className="text-amber-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
+                B2B Portal Settings
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Toggle retailer portal, online-payment discount, and quantity-tier pricing
+              </p>
+            </div>
+          </div>
+          <ChevronRight size={20} className="text-slate-400" />
+        </div>
+      </Link>
 
       {/* Payment Settings */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">

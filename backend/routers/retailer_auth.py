@@ -12,9 +12,17 @@ import uuid
 
 from dependencies import db
 from services.auth_service import verify_password, hash_password
+from services.b2b_settings import get_b2b_enabled
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/retailer-auth", tags=["Retailer Auth"])
+
+
+@router.get("/portal-status")
+async def get_portal_status():
+    """Public endpoint: whether the B2B retailer portal is currently enabled."""
+    enabled = await get_b2b_enabled(db)
+    return {"enabled": enabled}
 
 
 class RetailerLoginRequest(BaseModel):
@@ -99,6 +107,13 @@ async def get_current_retailer(request: Request, retailer_session: Optional[str]
 @router.post("/login")
 async def retailer_login(login_data: RetailerLoginRequest, response: Response):
     """Retailer login endpoint - supports email or username"""
+    # Kill-switch: block login when B2B portal is disabled
+    if not await get_b2b_enabled(db):
+        raise HTTPException(
+            status_code=403,
+            detail="Retailer portal is currently unavailable. Please contact Addrika for access.",
+        )
+
     identifier = login_data.email or login_data.username
     
     if not identifier:
