@@ -19,7 +19,7 @@ from services.b2b_settings import (
     get_pricing_tiers,
     set_pricing_tiers,
 )
-from routers.b2b_orders import B2B_PRODUCTS
+from services.b2b_catalog import B2B_PRODUCTS
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/b2b-settings", tags=["Admin B2B Settings"])

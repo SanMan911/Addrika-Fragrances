@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Briefcase, Search, RefreshCw, Package, Check, X, Eye, DollarSign } from 'lucide-react';
+import Link from 'next/link';
+import { Briefcase, Search, RefreshCw, Package, Check, X, Eye, DollarSign, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
@@ -100,6 +101,23 @@ export default function AdminB2BPage() {
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           Refresh
         </button>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        <Link
+          href="/admin/b2b/waitlist"
+          className="px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 hover:bg-blue-100 text-sm font-medium flex items-center gap-2"
+          data-testid="link-waitlist"
+        >
+          <UserPlus size={16} /> Retailer Waitlist
+        </Link>
+        <Link
+          href="/admin/settings/b2b"
+          className="px-4 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 hover:bg-amber-100 text-sm font-medium flex items-center gap-2"
+          data-testid="link-b2b-settings-from-orders"
+        >
+          <Briefcase size={16} /> B2B Settings
+        </Link>
       </div>
 
       {/* Filter */}
