@@ -44,7 +44,7 @@ export default function RetailerAdminChatPage() {
   const fetchMessages = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/messages`);
+      const res = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/admin-chat`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setMessages(data.messages || []);
@@ -86,7 +86,7 @@ export default function RetailerAdminChatPage() {
     setSending(true);
     try {
       const res = await fetchWithAuth(
-        `${API_URL}/api/retailer-dashboard/messages`,
+        `${API_URL}/api/retailer-dashboard/admin-chat`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -113,7 +113,7 @@ export default function RetailerAdminChatPage() {
   const downloadAttachment = async (messageId, idx, name, type) => {
     try {
       const res = await fetchWithAuth(
-        `${API_URL}/api/retailer-dashboard/messages/attachment/${messageId}/${idx}`
+        `${API_URL}/api/retailer-dashboard/admin-chat/attachment/${messageId}/${idx}`
       );
       if (!res.ok) throw new Error();
       const data = await res.json();
