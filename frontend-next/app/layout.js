@@ -12,8 +12,8 @@ export const metadata = {
     default: 'Addrika - Premium Incense | Sacred Luxury in Every Scent',
     template: '%s | Addrika Premium Incense'
   },
-  description: 'Discover Addrika premium incense sticks. Experience authentic Arabian fragrances - Kesar Chandan, Regal Rose, Oriental Oudh & Bold Bakhoor. Zero charcoal, low smoke, ethically sourced ingredients. Sacred luxury for mindful spaces.',
-  keywords: ['addrika', 'premium incense', 'incense sticks', 'agarbatti', 'kesar chandan', 'regal rose', 'oriental oudh', 'bold bakhoor', 'arabian incense', 'zero charcoal incense', 'low smoke agarbatti', 'dhoop', 'bambooless incense', 'ethical incense'],
+  description: 'Addrika Fragrances by Centsibl Traders — India\'s premium charcoal-free incense brand. Shop luxury agarbatti (Kesar Chandan, Regal Rose, Oriental Oudh), bambooless dhoop, and authentic Arabian bakhoor (Omani & Yemeni). Over 60% less smoke, ethically sourced ingredients. Perfect for meditation, yoga, puja, and luxury home fragrance. Free shipping above ₹499.',
+  keywords: ['addrika', 'addrika fragrances', 'premium incense', 'luxury incense sticks', 'incense sticks for meditation', 'agarbatti', 'charcoal-free incense', 'low smoke agarbatti', 'kesar chandan incense', 'regal rose incense', 'oriental oudh', 'bakhoor', 'arabian bakhoor', 'bambooless dhoop', 'meditation incense', 'yoga incense', 'puja agarbatti', 'luxury home fragrance india', 'ethical incense', 'premium agarbatti online', 'buy incense online india', 'natural incense sticks', 'best incense for meditation', 'incense gift set india'],
   authors: [{ name: 'Centsibl Traders Private Limited', url: 'https://centraders.com' }],
   creator: 'Centsibl Traders',
   publisher: 'Centsibl Traders Private Limited',
@@ -26,22 +26,22 @@ export const metadata = {
     type: 'website',
     locale: 'en_IN',
     url: 'https://centraders.com',
-    siteName: 'Addrika',
-    title: 'Addrika - Premium Incense | Zero Charcoal, Low Smoke',
-    description: 'Sacred luxury in every scent. Premium incense from Centsibl Traders. Charcoal-free, 60%+ less smoke, ethically sourced.',
+    siteName: 'Addrika Fragrances',
+    title: 'Addrika Fragrances - Premium Charcoal-Free Incense | Agarbatti, Dhoop & Bakhoor',
+    description: 'India\'s premium charcoal-free incense brand. Luxury agarbatti, bambooless dhoop & authentic Arabian bakhoor. Over 60% less smoke. Perfect for meditation, yoga & puja. Free shipping above ₹499.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Addrika Premium Incense - Zero Charcoal, Low Smoke',
+        alt: 'Addrika Fragrances - Premium Charcoal-Free Incense, Agarbatti, Dhoop & Bakhoor',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Addrika - Premium Incense',
-    description: 'Sacred luxury in every scent. Zero charcoal, low smoke, ethically sourced.',
+    title: 'Addrika Fragrances - Premium Incense for Meditation & Luxury',
+    description: 'Charcoal-free agarbatti, bambooless dhoop & authentic Arabian bakhoor. Over 60% less smoke, ethically sourced. Shop now.',
     images: ['/og-image.png'],
     creator: '@addrika_incense',
   },
@@ -96,24 +96,50 @@ export default function RootLayout({ children }) {
               "@context": "https://schema.org",
               "@type": "Organization",
               "name": "Centsibl Traders Private Limited",
-              "alternateName": "Addrika",
+              "alternateName": ["Addrika", "Addrika Fragrances", "Addrika Incense"],
               "url": "https://centraders.com",
               "logo": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png",
-              "description": "Premium incense manufacturer offering authentic arabian fragrances. Zero charcoal, low smoke, ethically sourced ingredients.",
+              "description": "Addrika is India's premium charcoal-free incense brand offering luxury agarbatti, bambooless dhoop, and authentic Arabian bakhoor. Ethically sourced ingredients, over 60% less smoke. Perfect for meditation, yoga, puja, and luxury home fragrance.",
               "foundingDate": "2022",
+              "knowsAbout": [
+                "Premium Incense Manufacturing",
+                "Charcoal-Free Agarbatti",
+                "Bambooless Dhoop",
+                "Arabian Bakhoor",
+                "Meditation Incense",
+                "Luxury Home Fragrance",
+                "Ethically Sourced Incense"
+              ],
               "address": {
                 "@type": "PostalAddress",
                 "addressCountry": "IN",
                 "addressRegion": "India"
               },
-              "contactPoint": {
-                "@type": "ContactPoint",
-                "contactType": "customer service",
-                "email": "contact.us@centraders.com"
-              },
+              "contactPoint": [
+                {
+                  "@type": "ContactPoint",
+                  "contactType": "customer service",
+                  "email": "contact.us@centraders.com",
+                  "availableLanguage": ["English", "Hindi"]
+                },
+                {
+                  "@type": "ContactPoint",
+                  "contactType": "sales",
+                  "telephone": "+91-96672-69711",
+                  "contactOption": "TollFree",
+                  "availableLanguage": ["English", "Hindi"]
+                }
+              ],
               "sameAs": [
                 "https://www.instagram.com/addrika.fragrances"
-              ]
+              ],
+              "brand": {
+                "@type": "Brand",
+                "name": "Addrika",
+                "alternateName": "Addrika Fragrances",
+                "slogan": "Sacred Luxury in Every Scent",
+                "logo": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
+              }
             })
           }}
         />
@@ -126,8 +152,10 @@ export default function RootLayout({ children }) {
               "@context": "https://schema.org",
               "@type": "WebSite",
               "name": "Addrika - Premium Natural Incense",
-              "alternateName": "Addrika Fragrances",
+              "alternateName": ["Addrika Fragrances", "Addrika Incense Store", "Centraders"],
               "url": "https://centraders.com",
+              "description": "Shop premium charcoal-free incense sticks, bambooless dhoop, and authentic Arabian bakhoor from Addrika. Over 60% less smoke, ethically sourced, perfect for meditation and luxury home fragrance.",
+              "inLanguage": "en-IN",
               "potentialAction": {
                 "@type": "SearchAction",
                 "target": {
@@ -140,7 +168,7 @@ export default function RootLayout({ children }) {
           }}
         />
         
-        {/* Structured Data - Local Business */}
+        {/* Structured Data - Online Store with Full Catalog */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -148,41 +176,46 @@ export default function RootLayout({ children }) {
               "@context": "https://schema.org",
               "@type": "Store",
               "name": "Addrika Incense Store",
+              "alternateName": "Addrika Fragrances Online Store",
               "image": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png",
               "url": "https://centraders.com",
-              "priceRange": "₹₹",
-              "servesCuisine": "N/A",
+              "description": "Official online store for Addrika premium incense. Buy charcoal-free agarbatti, bambooless dhoop, and Arabian bakhoor with free shipping above ₹499 across India.",
+              "priceRange": "₹110 - ₹399",
+              "currenciesAccepted": "INR",
+              "paymentAccepted": "UPI, Credit Card, Debit Card, Net Banking, Razorpay",
+              "areaServed": {
+                "@type": "Country",
+                "name": "India"
+              },
               "hasOfferCatalog": {
                 "@type": "OfferCatalog",
-                "name": "Premium Natural Incense",
+                "name": "Addrika Premium Natural Incense Collection",
                 "itemListElement": [
                   {
-                    "@type": "Offer",
-                    "itemOffered": {
-                      "@type": "Product",
-                      "name": "Kesar Chandan Premium Incense"
-                    }
+                    "@type": "OfferCatalog",
+                    "name": "Premium Agarbatti (Incense Sticks)",
+                    "itemListElement": [
+                      { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Kesar Chandan Premium Incense", "url": "https://centraders.com/products/kesar-chandan" } },
+                      { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Regal Rose Premium Incense", "url": "https://centraders.com/products/regal-rose" } },
+                      { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Oriental Oudh Premium Incense", "url": "https://centraders.com/products/oriental-oudh" } },
+                      { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Bold Bakhoor Premium Incense", "url": "https://centraders.com/products/bold-bakhoor" } },
+                      { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Royal Kewda Premium Incense", "url": "https://centraders.com/products/royal-kewda" } }
+                    ]
                   },
                   {
-                    "@type": "Offer",
-                    "itemOffered": {
-                      "@type": "Product",
-                      "name": "Regal Rose Premium Incense"
-                    }
+                    "@type": "OfferCatalog",
+                    "name": "Premium Bambooless Dhoop",
+                    "itemListElement": [
+                      { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Mystical Meharishi Bambooless Dhoop", "url": "https://centraders.com/products/mystical-meharishi" } }
+                    ]
                   },
                   {
-                    "@type": "Offer",
-                    "itemOffered": {
-                      "@type": "Product",
-                      "name": "Oriental Oudh Premium Incense"
-                    }
-                  },
-                  {
-                    "@type": "Offer",
-                    "itemOffered": {
-                      "@type": "Product",
-                      "name": "Bold Bakhoor Premium Incense"
-                    }
+                    "@type": "OfferCatalog",
+                    "name": "Authentic Arabian Bakhoor",
+                    "itemListElement": [
+                      { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Grated Omani Bakhoor", "url": "https://centraders.com/products/grated-omani-bakhoor" } },
+                      { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Yemeni Bakhoor Chips", "url": "https://centraders.com/products/yemeni-bakhoor-chips" } }
+                    ]
                   }
                 ]
               }

@@ -51,6 +51,7 @@ export default async function sitemap() {
     const fallbackSlugs = [
       'kesar-chandan', 'regal-rose', 'oriental-oudh', 'bold-bakhoor',
       'mystical-meharishi', 'grated-omani-bakhoor', 'yemeni-bakhoor-chips',
+      'bilvapatra-fragrance', 'bambooless-dhoop-8inch', 'royal-kewda',
     ];
     productRoutes = fallbackSlugs.map((slug) => ({
       url: `${BASE_URL}/products/${slug}`,

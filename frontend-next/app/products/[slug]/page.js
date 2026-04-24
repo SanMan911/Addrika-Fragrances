@@ -46,10 +46,12 @@ export async function generateMetadata({ params }) {
   
   const lowestPrice = Math.min(...product.sizes.map(s => s.price));
   
+  const categoryLabel = product.category === 'bakhoor' ? 'Arabian Bakhoor' : product.category === 'dhoop' ? 'Bambooless Dhoop' : 'Agarbatti';
+  
   return {
-    title: `${product.name} - ${product.tagline} | Buy Online`,
-    description: `${product.description} Available in multiple sizes starting from ₹${lowestPrice}. Zero charcoal, low smoke. Free shipping above ₹499.`,
-    keywords: [product.name, ...product.notes, 'premium incense', 'agarbatti', 'addrika', 'buy online', 'zero charcoal', 'low smoke'].join(', '),
+    title: `${product.name} - Premium ${categoryLabel} by Addrika | Buy Online`,
+    description: `Buy ${product.name} from Addrika Fragrances. ${product.tagline}. ${product.description.slice(0, 120)}... Charcoal-free, over 60% less smoke. Starting from ₹${lowestPrice}. Free shipping above ₹499 across India.`,
+    keywords: [product.name, ...product.notes, 'addrika', 'addrika fragrances', `premium ${categoryLabel.toLowerCase()}`, 'charcoal-free incense', 'low smoke', 'buy online india', 'meditation incense', 'luxury home fragrance'].join(', '),
     alternates: {
       canonical: `https://centraders.com/products/${params.slug}`,
     },
@@ -111,17 +113,24 @@ function ProductStructuredData({ product }) {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": product.name,
+    "name": `${product.name} - Addrika Premium ${product.category === 'bakhoor' ? 'Bakhoor' : product.category === 'dhoop' ? 'Dhoop' : 'Agarbatti'}`,
     "image": product.sizes?.map(s => s.images?.[0]).filter(Boolean) || [product.image],
     "description": product.description,
     "sku": product.id,
     "url": `https://centraders.com/products/${product.id}`,
     "brand": {
       "@type": "Brand",
-      "name": "Addrika"
+      "name": "Addrika",
+      "alternateName": "Addrika Fragrances"
     },
-    "category": product.category === 'dhoop' ? "Incense > Premium Dhoop" : product.category === 'bakhoor' ? "Incense > Premium Bakhoor" : "Incense > Premium Agarbatti",
+    "manufacturer": {
+      "@type": "Organization",
+      "name": "Centsibl Traders Private Limited",
+      "url": "https://centraders.com"
+    },
+    "category": product.category === 'dhoop' ? "Home & Garden > Home Fragrance > Incense > Premium Dhoop" : product.category === 'bakhoor' ? "Home & Garden > Home Fragrance > Incense > Premium Bakhoor" : "Home & Garden > Home Fragrance > Incense > Premium Agarbatti",
     "material": product.category === 'dhoop' ? "Natural herbs, Essential oils, Bambooless" : product.category === 'bakhoor' ? "Aged oud, Natural resins, Essential oils" : "Natural herbs, Essential oils, Bamboo core",
+    "countryOfOrigin": "India",
     "additionalProperty": [
       {
         "@type": "PropertyValue",
@@ -142,6 +151,11 @@ function ProductStructuredData({ product }) {
         "@type": "PropertyValue",
         "name": "Suitable For",
         "value": "Daily Puja, Meditation, Yoga, Aromatherapy, Home Fragrance"
+      },
+      {
+        "@type": "PropertyValue",
+        "name": "Fragrance Notes",
+        "value": (product.notes || []).join(', ')
       }
     ],
     "offers": {
@@ -150,21 +164,47 @@ function ProductStructuredData({ product }) {
       "lowPrice": Math.min(...product.sizes.map(s => s.price)),
       "highPrice": Math.max(...product.sizes.map(s => s.price)),
       "offerCount": product.sizes.length,
-      "availability": "https://schema.org/InStock",
+      "availability": product.comingSoon ? "https://schema.org/PreOrder" : "https://schema.org/InStock",
       "seller": {
         "@type": "Organization",
         "name": "Centsibl Traders Private Limited",
         "url": "https://centraders.com"
+      },
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "IN" },
+        "deliveryTime": { "@type": "ShippingDeliveryTime", "businessDays": { "@type": "QuantitativeValue", "minValue": 3, "maxValue": 7 } },
+        "doesNotShip": false
       }
-    },
-    "aggregateRating": {
+    }
+  };
+
+  // Only add aggregateRating if product actually has reviews
+  if (product.rating > 0 && product.reviews > 0) {
+    structuredData.aggregateRating = {
       "@type": "AggregateRating",
       "ratingValue": product.rating,
       "reviewCount": product.reviews,
       "bestRating": "5",
       "worstRating": "1"
-    }
-  };
+    };
+  }
+
+  // Add individual Review schema for products with customerReviews
+  if (product.customerReviews && product.customerReviews.length > 0) {
+    structuredData.review = product.customerReviews.map((r) => ({
+      "@type": "Review",
+      "author": { "@type": "Person", "name": r.name },
+      "datePublished": r.date,
+      "reviewBody": r.text,
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": r.rating,
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    }));
+  }
 
   // Breadcrumb structured data
   const breadcrumbData = {
