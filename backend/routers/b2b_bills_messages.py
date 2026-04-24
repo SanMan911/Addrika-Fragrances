@@ -178,6 +178,8 @@ async def purge_old_bills(db) -> int:
         logger.info(
             f"Auto-purged {result.deleted_count} retailer bills older than {cutoff_iso}"
         )
+    else:
+        logger.info(f"purge_old_bills: 0 rows older than {cutoff_iso}")
     return result.deleted_count
 
 

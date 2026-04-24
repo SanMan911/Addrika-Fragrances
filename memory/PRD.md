@@ -130,17 +130,28 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Refactor** — `B2B_PRODUCTS` extracted from `b2b_orders.py` into `services/b2b_catalog.py`; `admin_b2b_settings.py` now imports the shared module (no more cross-router coupling).
 - **Tested** — iteration_61 (initial), iteration_62 (after route-collision fix). 40/40 backend tests green. Pytest regression: `tests/test_b2b_expansion.py`, `tests/test_b2b_iteration_61.py`.
 
+### April 24, 2026 — B2B Phase 3 (Reports · UX rules · GA · Hero · GST-after-discount)
+- **GST is now calculated AFTER all known-at-supply discounts** (tier → loyalty → voucher → cash) per Indian GST law. New `taxable_value` field and per-line `line_total_after_loyalty` / `taxable_value`.
+- **Top 5 Retailers widget** on `/admin` dashboard — `GET /api/admin/b2b/reports/top-retailers` (period=quarter|fy). Highlights retailers within 10% of their next loyalty tier so admin can nudge them.
+- **Sales Reports** at `/admin/b2b/reports` — `GET /api/admin/b2b/reports/sales` with `period=quarter|fy|custom`, `group_by=retailer|quarter|month`, plus combined totals and CSV export. Indian FY (Apr 1 → Mar 31).
+- **Waitlist UX rules** — GST now mandatory + format-validated, best-effort auto-verify (non-blocking), country-code dropdown (defaults `+91`), WhatsApp number, **server-side title-case** for names/city, lowercase email. Stores `whatsapp_full = country_code + phone`. New `frontend-next/lib/formHelpers.js` — `titleCase`, `lowerEmail`, `COUNTRY_CODES`, `GST_REGEX` reusable across all future forms.
+- **Bills 15-month retention** — `purge_old_bills(db)` runs on backend startup; deletes `retailer_bills` older than 458 days.
+- **Refactor** — `send_b2b_admin_notification_email` extracted from `b2b_orders.py` into `services/b2b_emails.py`.
+- **Google Analytics + cookie consent** — `NEXT_PUBLIC_GA_MEASUREMENT_ID` placeholder; `<CookieConsentAndGA />` only loads GA after Accept and only on public paths (skips `/admin/**` and `/retailer/**`); IP anonymization on.
+- **Hero smoke wisps** — `<HeroSmoke />` pure-CSS layered radial-gradient blurs drifting upward at low opacity; respects `prefers-reduced-motion`; ~3 KB, no video. Rendered behind hero text via `z-index: 0`.
+- **Tested** — iteration_63.json: 55/55 backend (15 iter63 + 13 iter61 + 7 expansion + 20 killswitch). Public frontend (cookie/hero/waitlist) verified.
+
 ### P1 (High)
-- [ ] Replace Bilvapatra & 8" Dhoop placeholder images with actual product photos (when provided)
-- [ ] Replace Royal Kewda placeholder images with actual product photos (when provided)
-- [ ] Integrate Appyflow (GST Verification) + AEPS India (PAN/Aadhaar eKYC) for retailer onboarding
+- [ ] Replace placeholder images for Bilvapatra, 8" Dhoop, Royal Kewda (awaiting product photos)
+- [ ] Integrate Appyflow (full GST verification — currently best-effort fallback) + AEPS India (PAN+Aadhaar eKYC)
 
 ### P2 (Medium)
-- [ ] Send notification emails when Coming Soon products become available
-- [ ] Google Analytics Integration
-- [ ] Split `b2b_orders.py` (~860 lines) into catalog/calculate/order/email submodules (catalog already extracted ✅)
-- [ ] Magic-number sniffing in bill/message attachment validator (currently trusts client-supplied MIME)
-- [ ] Object-storage upgrade for bills & message attachments (currently base64 in Mongo, capped at 5MB)
+- [ ] Apply title-case / lowercase-email / WhatsApp-CC rules to all OTHER forms across the site (currently applied to waitlist; helper `lib/formHelpers.js` ready for reuse)
+- [ ] Drop in the actual `G-XXXXXXXXXX` ID into `NEXT_PUBLIC_GA_MEASUREMENT_ID` env var
+- [ ] Send notification emails when "Coming Soon" products become available
+- [ ] Further split `b2b_orders.py` (email already extracted ✅; calculate/order remain)
+- [ ] Object-storage upgrade for bills & message attachments (currently base64 in Mongo, capped 5MB)
+- [ ] Magic-number sniffing on attachment uploads
 
 ### P3 (Low)
 - [ ] B2B product catalog in MongoDB
