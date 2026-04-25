@@ -39,7 +39,10 @@ async def require_b2b_enabled():
 
 async def require_kyc_complete(retailer: dict):
     """Block order placement when KYC gating is on and retailer has not completed
-    GST + PAN + Aadhaar verification. Returns silently when gate is off."""
+    GST + PAN + Aadhaar verification. Returns silently when gate is off.
+
+    On block, fires a rate-limited recovery email (≤1/24h per retailer) with
+    a deep link to the KYC self-service tab on /retailer/b2b."""
     if not await get_kyc_required_for_orders(db):
         return
     missing = []
@@ -50,6 +53,13 @@ async def require_kyc_complete(retailer: dict):
     if not retailer.get("aadhaar_verified"):
         missing.append("Aadhaar")
     if missing:
+        # Fire recovery email asynchronously so the 403 isn't delayed by the
+        # outbound Resend call. Throttling lives inside the helper.
+        from services.kyc_recovery_email import (
+            maybe_send_kyc_recovery_email,
+            fire_and_forget,
+        )
+        fire_and_forget(maybe_send_kyc_recovery_email(db, retailer, missing))
         raise HTTPException(
             status_code=403,
             detail={
@@ -57,7 +67,8 @@ async def require_kyc_complete(retailer: dict):
                 "missing": missing,
                 "message": (
                     f"Complete your KYC ({', '.join(missing)}) before placing orders. "
-                    "Visit your dashboard's KYC section to finish verification."
+                    "Visit your dashboard's KYC section to finish verification — "
+                    "we've also emailed you a direct link."
                 ),
             },
         )

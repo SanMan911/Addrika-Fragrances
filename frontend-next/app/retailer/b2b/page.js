@@ -6,11 +6,12 @@ import Image from 'next/image';
 import { 
   ArrowLeft, ShoppingCart, Package, Minus, Plus, 
   Percent, CreditCard, FileText, CheckCircle, Loader2,
-  Info, History
+  Info, History, ShieldCheck, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
 import RetailerFirstLoginTour from '../../../components/RetailerFirstLoginTour';
+import KYCVerificationCard from '../../../components/KYCVerificationCard';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -47,7 +48,21 @@ export default function RetailerB2BPage() {
   const [activeTab, setActiveTab] = useState('order');
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [kycGate, setKycGate] = useState(null); // { gate_enabled, fully_kyc_verified, missing, can_order, retailer_id }
+  const [showKycCard, setShowKycCard] = useState(false);
   const { fetchWithAuth, retailer: authRetailer } = useRetailerAuth();
+
+  // If the URL contains #kyc (deep link from the recovery email), auto-expand
+  // the KYC self-service section on mount.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#kyc') {
+      setShowKycCard(true);
+      setTimeout(() => {
+        const el = document.getElementById('kyc-self-service');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400);
+    }
+  }, []);
   const fetchCatalog = useCallback(async () => {
     setLoading(true);
     try {
@@ -244,22 +259,44 @@ export default function RetailerB2BPage() {
           {/* KYC gate banner — shown when admin has enabled the gate AND retailer is not fully verified */}
           {kycGate && kycGate.gate_enabled && !kycGate.fully_kyc_verified && (
             <div
-              className="rounded-xl p-4 bg-amber-50 border-2 border-amber-300 flex items-start gap-3"
+              id="kyc-self-service"
+              className="rounded-xl bg-amber-50 border-2 border-amber-300 overflow-hidden"
               data-testid="kyc-gate-banner"
             >
-              <Info className="text-amber-700 flex-shrink-0 mt-0.5" size={20} />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-900">
-                  Complete KYC to unlock orders
-                </p>
-                <p className="text-xs text-amber-800 mt-1">
-                  Pending verification:{' '}
-                  <b>{kycGate.missing.join(', ')}</b>. Place orders will be
-                  blocked at checkout until all three (GST, PAN, Aadhaar) are
-                  verified on your account. Reach out to Addrika support to
-                  finish KYC.
-                </p>
+              <div className="p-4 flex items-start gap-3">
+                <Info className="text-amber-700 flex-shrink-0 mt-0.5" size={20} />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-amber-900">
+                    Complete KYC to unlock orders
+                  </p>
+                  <p className="text-xs text-amber-800 mt-1">
+                    Pending verification:{' '}
+                    <b>{kycGate.missing.join(', ')}</b>. Orders will be
+                    blocked at checkout until all three (GST, PAN, Aadhaar)
+                    are verified on your account.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowKycCard(!showKycCard)}
+                  className="px-3 py-1.5 text-xs rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium inline-flex items-center gap-1 whitespace-nowrap"
+                  data-testid="kyc-self-service-toggle"
+                >
+                  <ShieldCheck size={12} />
+                  {showKycCard ? 'Hide' : 'Verify now'}
+                  {showKycCard ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
               </div>
+              {showKycCard && (
+                <div className="border-t border-amber-200 p-4 bg-white">
+                  <KYCVerificationCard
+                    retailerId={kycGate.retailer_id}
+                    onComplete={() => {
+                      toast.success('KYC complete — orders unlocked');
+                      fetchCatalog();
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
