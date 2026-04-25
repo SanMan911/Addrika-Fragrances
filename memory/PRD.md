@@ -215,15 +215,34 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Admin UI**: green "Onboard as Retailer" button on `/admin/b2b/waitlist` for any non-onboarded entry. Once onboarded, the row shows a "View RTL_…" deep-link to the retailer detail page instead.
 - **Tested** — 7 new tests in `tests/test_b2b_onboarding.py` (full happy-path with Appyflow address pull, double-onboard returns 409, single-use token semantics, password length validation, unauth/404 paths). Full B2B suite: **108/108**.
 
-### P1 (High) — still open
-- [ ] Replace placeholder images for Bilvapatra, 8" Dhoop, Royal Kewda (awaiting product photos)
-- [ ] Integrate Appyflow (full GST verification — currently best-effort) + AEPS India (PAN+Aadhaar eKYC)
-- [ ] Drop in actual `ZOHO_REFRESH_TOKEN` + `ZOHO_ORG_ID` to activate Zoho sync
+### April 26, 2026 — Sandbox API KYC Infrastructure (PAN + Aadhaar OTP)
+- **Sandbox API integrated** at `services/kyc_sandbox.py`. Auth flow uses `x-api-key` + `x-api-secret` headers → `/authenticate` returns short-lived `access_token` (cached in-memory ~24h with 5-min refresh buffer). Token reused across PAN + Aadhaar calls.
+- **Endpoints exposed** under both retailer-facing (`/api/retailer-auth/kyc/*`) and admin-facing (`/api/admin/kyc/*`) routers:
+  - `GET /status` — public health check, returns `{enabled, provider}`.
+  - `POST /pan/verify` — body `{pan_number, name_to_match?, waitlist_id?, retailer_id?}`; persists `pan_verified, pan_full_name, pan_status, pan_verified_at` on the linked doc.
+  - `POST /aadhaar/otp` — body `{aadhaar_number}`; returns `reference_id` for the OTP flow.
+  - `POST /aadhaar/verify` — body `{reference_id, otp, waitlist_id?, retailer_id?}`; persists `aadhaar_verified, aadhaar_last_4, aadhaar_name, aadhaar_dob, aadhaar_address, aadhaar_state, aadhaar_pincode, aadhaar_verified_at`.
+  - Admin-only: `GET /summary/{retailer|waitlist}/{id}` — fully composed KYC status (GST + PAN + Aadhaar).
+- **Graceful degrade**: `is_configured()` short-circuits when `SANDBOX_API_KEY` / `SANDBOX_API_SECRET` blank (current state). Verify endpoints return 503 "KYC service not configured"; status returns `{enabled:false}` (200) so frontend can show an amber notice.
+- **Frontend widget**: reusable `<KYCVerificationCard waitlistId|retailerId admin? />` at `components/KYCVerificationCard.js`. Auto-renders amber "KYC service not yet activated" panel (with sandbox.co.in signup link) when service disabled. Embedded as a per-row chevron-toggle on `/admin/b2b/waitlist`.
+- **Tested** — 17 new tests in `tests/test_kyc_sandbox.py` (graceful-degrade paths, format validation, monkey-patched happy-path & HTTP-error path for PAN + Aadhaar OTP + verify, route auth gates). Live URL curl: `/status` ⇒ 200 `{enabled:false}`, `/pan/verify` ⇒ 503, bad PAN ⇒ 422, admin status w/o auth ⇒ 401. Frontend testing-agent (iteration_65): backend 65/65 pass, KYC widget renders amber state correctly. Full B2B suite: **125/125** (17 new + 41 P1 + 67 prior).
+- **To flip on**: sign up free at https://app.sandbox.co.in/signup → API Keys → set `SANDBOX_API_KEY` + `SANDBOX_API_SECRET` in `backend/.env`, restart backend. Free tier ~100 calls/month for PAN + Aadhaar.
+- **Side fix**: cleaned up duplicate stale lines at bottom of `components/ZohoSyncHealthCard.js` that were causing webpack build errors. Added `data-testid="zoho-sync-health-card"` (root) and renamed Backfill testid to `zoho-backfill-button` per testing-agent feedback.
+
+### P1 Verification Status (Apr 26, 2026)
+- ✅ **GA4 cookie consent** — banner appears on public routes, suppressed on `/admin/**` and `/retailer/**`. Verified by testing agent.
+- ✅ **Zoho Sync Health card** — renders on `/admin` with live metrics + Connect/Re-auth/Backfill buttons.
+- ✅ **Zoho Backfill** — `POST /api/admin/zoho/backfill` working (verified via pytest `test_zoho_health_tour::TestZohoBackfill`). UI confirm dialog uses `window.confirm()` — testing agent's auto-accept didn't catch it but endpoint itself is verified.
+- ⏳ **Retailer First-Login Tour** — pytest-verified (`test_zoho_health_tour::TestRetailerTour`); end-to-end browser flow not visually re-verified this iteration. Use B2B test retailer `test_b2b_retailer@example.com / Test@12345` to self-verify on `/retailer/b2b`.
 
 ### P2 (Medium)
 - [ ] Drop actual `G-XXXXXXXXXX` into `NEXT_PUBLIC_GA_MEASUREMENT_ID`
 - [ ] Migrator script to move existing Mongo-base64 bills into object storage (new uploads already go there)
 - [ ] Further split `b2b_orders.py` calculate/order body (catalog ✅ + email ✅ already extracted)
+
+### Frontend dev workflow note (Apr 26, 2026)
+- Next.js runs in production mode (`next start`) under supervisor — code edits do **NOT** hot-reload. After any frontend change, run `cd /app/frontend-next && yarn build && sudo supervisorctl restart frontend` (~95s).
+
 - [ ] Apply title-case rules form-by-form across the remaining surface (helper ready; high-traffic forms done)
 
 ### P3 (Low)

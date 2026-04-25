@@ -162,7 +162,7 @@ export default function ZohoSyncHealthCard() {
                 onClick={backfill}
                 disabled={busy || data.pending_sales_orders === 0}
                 className="text-xs px-3 py-1.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 disabled:opacity-50 inline-flex items-center gap-1"
-                data-testid="zoho-backfill-btn"
+                data-testid="zoho-backfill-button"
                 title={
                   data.pending_sales_orders === 0
                     ? 'No pending orders to sync'
