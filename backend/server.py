@@ -127,9 +127,12 @@ async def startup_db_client():
     # Initialize B2B feature settings (kill-switch + discount)
     from services.b2b_settings import init_b2b_settings
     from services.b2b_loyalty import seed_default_milestones_if_empty
+    from services.b2b_catalog import seed_b2b_catalog, refresh_b2b_catalog
     await init_b2b_settings(db)
     await seed_default_milestones_if_empty(db)
-    print("B2B settings + loyalty milestones initialized")
+    await seed_b2b_catalog(db)
+    await refresh_b2b_catalog(db)
+    print("B2B settings + loyalty milestones + catalog initialized")
 
     # Auto-purge bills older than 15 months / 5 quarters
     try:

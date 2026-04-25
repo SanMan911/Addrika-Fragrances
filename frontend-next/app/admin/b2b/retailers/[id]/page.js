@@ -172,6 +172,25 @@ function OrdersPanel({ retailerId }) {
     }
   };
 
+  const emailInvoice = async (orderId) => {
+    if (!confirm(`Email tax invoice PDF for ${orderId} to the retailer?`)) return;
+    try {
+      const res = await authFetch(
+        `${API_URL}/api/admin/b2b/orders/${orderId}/email-invoice`,
+        { method: 'POST' }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.detail || 'Email failed');
+        return;
+      }
+      toast.success(`Invoice emailed to ${data.to}`);
+      fetchOrders();
+    } catch {
+      toast.error('Email failed');
+    }
+  };
+
   const resync = async (orderId) => {
     setResyncingId(orderId);
     try {
@@ -259,13 +278,28 @@ function OrdersPanel({ retailerId }) {
                 </span>
               </td>
               <td className="px-4 py-3 text-center">
-                <button
-                  onClick={() => downloadInvoice(o.order_id)}
-                  className="px-2 py-0.5 text-[11px] rounded bg-amber-50 text-amber-700 hover:bg-amber-100 inline-flex items-center gap-1"
-                  data-testid={`invoice-pdf-${o.order_id}`}
-                >
-                  PDF
-                </button>
+                <div className="flex items-center justify-center gap-1">
+                  <button
+                    onClick={() => downloadInvoice(o.order_id)}
+                    className="px-2 py-0.5 text-[11px] rounded bg-amber-50 text-amber-700 hover:bg-amber-100"
+                    data-testid={`invoice-pdf-${o.order_id}`}
+                    title="Download invoice PDF"
+                  >
+                    PDF
+                  </button>
+                  <button
+                    onClick={() => emailInvoice(o.order_id)}
+                    className="px-2 py-0.5 text-[11px] rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    data-testid={`invoice-email-${o.order_id}`}
+                    title={
+                      o.invoice_emailed_at
+                        ? `Last sent ${new Date(o.invoice_emailed_at).toLocaleString()}`
+                        : 'Email invoice to retailer'
+                    }
+                  >
+                    {o.invoice_emailed_at ? '✓ Email' : 'Email'}
+                  </button>
+                </div>
               </td>
               <td className="px-4 py-3 text-center">
                 {o.zoho_salesorder_id ? (
