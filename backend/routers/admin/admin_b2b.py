@@ -6,6 +6,7 @@ Admin B2B Management System
 - Self-pickup tracking and retailer performance
 """
 from fastapi import APIRouter, HTTPException, Request, Cookie
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
@@ -19,6 +20,38 @@ from dependencies import db, require_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/b2b", tags=["Admin B2B"])
+
+
+# ============================================================================
+# B2B Invoice PDF (admin download)
+# ============================================================================
+
+@router.get("/orders/{order_id}/invoice.pdf")
+async def admin_download_b2b_invoice(
+    order_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Generate a GST tax invoice PDF for a B2B order."""
+    await require_admin(request, session_token)
+    order = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    retailer = await db.retailers.find_one(
+        {"retailer_id": order["retailer_id"]},
+        {"_id": 0, "password_hash": 0},
+    ) or {}
+
+    from services.b2b_invoice_pdf import build_invoice_pdf
+
+    pdf_bytes = build_invoice_pdf(order, retailer)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="invoice-{order_id}.pdf"'
+        },
+    )
 
 
 # ============================================================================

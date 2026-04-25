@@ -306,7 +306,8 @@ async def _insert_message(
     await db.retailer_admin_messages.insert_one(doc)
     # Strip Mongo-injected _id before returning
     doc.pop("_id", None)
-    # Upsert thread doc (for fast listing in admin)
+    # Upsert thread doc (for fast listing in admin) — any new message
+    # also unarchives the thread if it was previously auto-archived.
     await db.retailer_admin_threads.update_one(
         {"thread_id": doc["thread_id"]},
         {
@@ -316,7 +317,9 @@ async def _insert_message(
                 "last_message_preview": message[:200],
                 "last_message_sender": sender_type,
                 "last_message_at": now,
+                "archived": False,
             },
+            "$unset": {"archived_at": ""},
             "$inc": {
                 "unread_admin_count": 0 if sender_type == "admin" else 1,
                 "unread_retailer_count": 0 if sender_type == "retailer" else 1,
@@ -403,9 +406,13 @@ async def retailer_download_message_attachment(
 async def admin_list_threads(
     request: Request,
     session_token: Optional[str] = Cookie(None),
+    include_archived: bool = False,
 ):
     await require_admin(request, session_token)
-    threads = await db.retailer_admin_threads.find({}, {"_id": 0}).sort(
+    query: dict = {} if include_archived else {
+        "$or": [{"archived": {"$ne": True}}, {"archived": {"$exists": False}}]
+    }
+    threads = await db.retailer_admin_threads.find(query, {"_id": 0}).sort(
         "last_message_at", -1
     ).to_list(200)
     # Enrich with retailer name

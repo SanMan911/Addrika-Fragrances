@@ -37,11 +37,11 @@ git push -u origin main
 
 | Variable Name | Value |
 |---------------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://incense-retailer-hub.preview.emergentagent.com` |
+| `NEXT_PUBLIC_API_URL` | `https://b2b-portal-preview-1.preview.emergentagent.com` |
 
 **How to add:**
 1. In Vercel project settings, go to **Settings → Environment Variables**
-2. Add: `NEXT_PUBLIC_API_URL` = `https://incense-retailer-hub.preview.emergentagent.com`
+2. Add: `NEXT_PUBLIC_API_URL` = `https://b2b-portal-preview-1.preview.emergentagent.com`
 3. Select all environments (Production, Preview, Development)
 4. Click **Save**
 
@@ -77,7 +77,7 @@ git push -u origin main
 
 ### Backend API
 Your backend is currently running on Emergent's preview environment:
-- URL: `https://incense-retailer-hub.preview.emergentagent.com`
+- URL: `https://b2b-portal-preview-1.preview.emergentagent.com`
 - This handles: Products, Orders, Auth, etc.
 
 **For production**, you may want to deploy backend separately to:

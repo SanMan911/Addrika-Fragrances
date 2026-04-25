@@ -71,7 +71,18 @@ async def send_b2b_admin_notification_email(order: dict, retailer: dict) -> None
         f"<td style='padding:8px 0;text-align:right;border-top:1px dashed #ccc;font-weight:600;'>"
         f"₹{taxable:,.2f}</td></tr>"
     )
-    breakdown_rows.append(_row("GST @ 18% (on taxable value)", gst_total))
+    # Determine the GST rate label dynamically from the line items
+    line_rates = {float(it.get("gst_rate") or 0) for it in (order.get("items") or [])}
+    if len(line_rates) == 1:
+        gst_label = f"GST @ {next(iter(line_rates)):g}% (on taxable value)"
+    elif line_rates:
+        gst_label = (
+            f"GST @ mixed rates ({', '.join(f'{r:g}%' for r in sorted(line_rates))} "
+            f"— see line items, on taxable value)"
+        )
+    else:
+        gst_label = "GST (on taxable value)"
+    breakdown_rows.append(_row(gst_label, gst_total))
     if cn_disc > 0:
         breakdown_rows.append(_row("Credit Note Applied", cn_disc, "#059669"))
     breakdown_rows.append(

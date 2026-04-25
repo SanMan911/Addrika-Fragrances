@@ -14,7 +14,7 @@ import requests
 from pymongo import MongoClient
 
 BASE_URL = os.environ.get(
-    "BACKEND_URL", "https://incense-retailer-hub.preview.emergentagent.com"
+    "BACKEND_URL", "https://b2b-portal-preview-1.preview.emergentagent.com"
 ).rstrip("/")
 API = f"{BASE_URL}/api"
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
@@ -197,15 +197,17 @@ class TestCalculateGstAfterDiscount:
         expected_taxable = round(b["subtotal_after_loyalty"] - b.get("voucher_discount", 0) - b["cash_discount"], 2)
         assert abs(b["taxable_value"] - expected_taxable) < 0.05
 
-        # GST computed on taxable_value (NOT on raw subtotal). 18% GST.
-        expected_gst = round(b["taxable_value"] * 18 / 100, 2)
+        # GST computed on taxable_value (NOT on raw subtotal). Agarbattis
+        # now taxed at 5% per product catalog (Bakhoor remains 18%).
+        GST_RATE = 5
+        expected_gst = round(b["taxable_value"] * GST_RATE / 100, 2)
         assert abs(b["gst_total"] - expected_gst) < 0.5, (
             f"gst_total={b['gst_total']} expected≈{expected_gst} (on taxable_value, not subtotal)"
         )
 
-        # Sanity: gst on raw subtotal would be ~18% of 1010 = 181.8 — confirm we are NOT that
-        gst_on_subtotal = round(subtotal * 18 / 100, 2)
-        assert abs(b["gst_total"] - gst_on_subtotal) > 0.5, (
+        # Sanity: gst on raw subtotal at same rate should still differ from final
+        gst_on_subtotal = round(subtotal * GST_RATE / 100, 2)
+        assert abs(b["gst_total"] - gst_on_subtotal) > 0.2, (
             "gst_total appears to be computed on raw subtotal — regression!"
         )
 

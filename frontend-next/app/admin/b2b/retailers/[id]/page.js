@@ -149,6 +149,29 @@ function OrdersPanel({ retailerId }) {
     }
   }, [retailerId]);
 
+  const downloadInvoice = async (orderId) => {
+    try {
+      const res = await authFetch(
+        `${API_URL}/api/admin/b2b/orders/${orderId}/invoice.pdf`
+      );
+      if (!res.ok) {
+        toast.error('Invoice download failed');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Invoice download failed');
+    }
+  };
+
   const resync = async (orderId) => {
     setResyncingId(orderId);
     try {
@@ -206,6 +229,7 @@ function OrdersPanel({ retailerId }) {
             <th className="px-4 py-3 text-right">Total</th>
             <th className="px-4 py-3 text-center">Status</th>
             <th className="px-4 py-3 text-center">Payment</th>
+            <th className="px-4 py-3 text-center">Invoice</th>
             <th className="px-4 py-3 text-center">Zoho</th>
           </tr>
         </thead>
@@ -233,6 +257,15 @@ function OrdersPanel({ retailerId }) {
                 >
                   {o.payment_status || 'pending'}
                 </span>
+              </td>
+              <td className="px-4 py-3 text-center">
+                <button
+                  onClick={() => downloadInvoice(o.order_id)}
+                  className="px-2 py-0.5 text-[11px] rounded bg-amber-50 text-amber-700 hover:bg-amber-100 inline-flex items-center gap-1"
+                  data-testid={`invoice-pdf-${o.order_id}`}
+                >
+                  PDF
+                </button>
               </td>
               <td className="px-4 py-3 text-center">
                 {o.zoho_salesorder_id ? (

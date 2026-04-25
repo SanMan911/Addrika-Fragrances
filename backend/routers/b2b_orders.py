@@ -3,6 +3,7 @@ B2B Wholesale Ordering System for Retailers
 Handles bulk ordering with special retailer pricing
 """
 from fastapi import APIRouter, HTTPException, Request, Cookie
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -488,7 +489,7 @@ async def create_b2b_order(
 
     # Best-effort sync to Zoho Books (no-op if env not configured)
     try:
-        from services.zoho_books import push_sales_order
+        from services.zoho_books import push_sales_order, is_configured as _zoho_cfg
         zoho_so = await push_sales_order(order, retailer)
         if zoho_so:
             await db.b2b_orders.update_one(
@@ -498,8 +499,27 @@ async def create_b2b_order(
                     "zoho_synced_at": datetime.now(timezone.utc).isoformat(),
                 }},
             )
+        elif _zoho_cfg():
+            # configured but returned None → treat as a sync error
+            from services.zoho_errors import record_error
+            await record_error(
+                "sales_order",
+                order["order_id"],
+                retailer["retailer_id"],
+                "push_sales_order returned None (Zoho API likely rejected the payload — see server logs).",
+            )
     except Exception as e:
         logger.error(f"Zoho sales-order sync failed for {order['order_id']}: {e}")
+        try:
+            from services.zoho_errors import record_error
+            await record_error(
+                "sales_order",
+                order["order_id"],
+                retailer["retailer_id"],
+                str(e),
+            )
+        except Exception:
+            pass
 
     # Mark voucher as used if applicable
     if order_data.voucher_code:
@@ -624,7 +644,7 @@ async def verify_b2b_payment(
 
         # Best-effort: record payment in Zoho Books
         try:
-            from services.zoho_books import push_payment
+            from services.zoho_books import push_payment, is_configured as _zoho_cfg
             zoho_pmt = await push_payment(
                 order, retailer, float(order.get("grand_total", 0)), razorpay_payment_id
             )
@@ -636,8 +656,23 @@ async def verify_b2b_payment(
                         "zoho_payment_synced_at": datetime.now(timezone.utc).isoformat(),
                     }},
                 )
+            elif _zoho_cfg():
+                from services.zoho_errors import record_error
+                await record_error(
+                    "payment",
+                    order_id,
+                    retailer["retailer_id"],
+                    "push_payment returned None (Zoho API likely rejected the payload — see server logs).",
+                )
         except Exception as e:
             logger.error(f"Zoho payment sync failed for {order_id}: {e}")
+            try:
+                from services.zoho_errors import record_error
+                await record_error(
+                    "payment", order_id, retailer["retailer_id"], str(e)
+                )
+            except Exception:
+                pass
 
         return {
             "message": "Payment verified successfully",
@@ -813,3 +848,33 @@ async def get_retailer_loyalty(
         raise HTTPException(status_code=401, detail="Not authenticated")
     state = await get_retailer_loyalty_state(db, retailer["retailer_id"])
     return state
+
+
+@router.get("/orders/{order_id}/invoice.pdf")
+async def retailer_download_invoice(
+    order_id: str,
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Retailer self-service download of their B2B GST tax invoice."""
+    await require_b2b_enabled()
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    order = await db.b2b_orders.find_one(
+        {"order_id": order_id, "retailer_id": retailer["retailer_id"]},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    from services.b2b_invoice_pdf import build_invoice_pdf
+
+    pdf_bytes = build_invoice_pdf(order, retailer)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="invoice-{order_id}.pdf"'
+        },
+    )
