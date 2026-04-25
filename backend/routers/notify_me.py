@@ -67,3 +67,82 @@ async def admin_notify_detail(product_id: str, admin=Depends(require_admin)):
         {"product_id": product_id}, {"_id": 0}
     ).sort("created_at", -1).to_list(1000)
     return entries
+
+
+
+@router.post("/admin/notify-me/{product_id}/blast")
+async def admin_send_blast(product_id: str, admin=Depends(require_admin)):
+    """Admin-triggered blast: emails everyone subscribed for a product that is
+    now Available. Marks each entry as `notified_at` so the same email is not
+    re-blasted. Idempotent.
+    """
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if product.get("comingSoon"):
+        raise HTTPException(
+            status_code=400,
+            detail="Product is still marked Coming Soon; flip availability first.",
+        )
+
+    cursor = db.notify_me.find(
+        {"product_id": product_id, "notified_at": {"$exists": False}},
+        {"_id": 0},
+    )
+
+    from services.email_service import send_email
+    sent, failed = 0, 0
+    name = product.get("name", "your product")
+    image = product.get("image") or (product.get("images") or [None])[0]
+    img_html = (
+        f'<img src="{image}" alt="{name}" '
+        f'style="width:100%;max-width:480px;border-radius:8px;display:block;margin:0 auto 18px;" />'
+        if image
+        else ""
+    )
+    async for sub in cursor:
+        try:
+            html = f"""
+            <!DOCTYPE html>
+            <html><body style="font-family:Arial,sans-serif;background:#f9f7f4;padding:24px;">
+                <table width="100%" cellpadding="0" cellspacing="0"
+                       style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">
+                    <tr><td style="background:#1e3a52;padding:24px;text-align:center;">
+                        <h1 style="color:#d4af37;margin:0;letter-spacing:2px;">ADDRIKA</h1>
+                        <p style="color:#fff;margin:6px 0 0;font-size:13px;">It's available!</p>
+                    </td></tr>
+                    <tr><td style="padding:24px;">
+                        {img_html}
+                        <h2 style="color:#1e3a52;margin:0 0 8px;">{name} is now in stock</h2>
+                        <p style="color:#444;line-height:1.6;">
+                            You asked us to let you know — and we kept our word.
+                            <strong>{name}</strong> just landed on our shelf and is ready to ship.
+                        </p>
+                        <p style="text-align:center;margin:24px 0;">
+                            <a href="https://addrika.com/products/{product_id}"
+                               style="background:#d4af37;color:#1e3a52;padding:12px 28px;border-radius:8px;
+                                      text-decoration:none;font-weight:bold;">
+                                Shop now
+                            </a>
+                        </p>
+                        <p style="color:#666;font-size:12px;margin-top:24px;">
+                            You're receiving this because you subscribed to a launch alert
+                            on addrika.com. Reply if you'd rather not hear from us again.
+                        </p>
+                    </td></tr>
+                </table>
+            </body></html>
+            """
+            await send_email(
+                to_email=sub["email"],
+                subject=f"It's here · {name} just dropped",
+                html_content=html,
+            )
+            await db.notify_me.update_one(
+                {"email": sub["email"], "product_id": product_id},
+                {"$set": {"notified_at": datetime.now(timezone.utc).isoformat()}},
+            )
+            sent += 1
+        except Exception:
+            failed += 1
+    return {"product_id": product_id, "sent": sent, "failed": failed}

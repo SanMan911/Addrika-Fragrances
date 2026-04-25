@@ -483,6 +483,21 @@ async def create_b2b_order(
     except Exception as e:
         logger.error(f"Failed to send B2B admin notification email: {str(e)}")
 
+    # Best-effort sync to Zoho Books (no-op if env not configured)
+    try:
+        from services.zoho_books import push_sales_order
+        zoho_so = await push_sales_order(order, retailer)
+        if zoho_so:
+            await db.b2b_orders.update_one(
+                {"order_id": order["order_id"]},
+                {"$set": {
+                    "zoho_salesorder_id": zoho_so.get("salesorder_id"),
+                    "zoho_synced_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+    except Exception as e:
+        logger.error(f"Zoho sales-order sync failed for {order['order_id']}: {e}")
+
     # Mark voucher as used if applicable
     if order_data.voucher_code:
         await db.retailer_vouchers.update_one(
@@ -603,7 +618,24 @@ async def verify_b2b_payment(
             logger.error(f"Failed to send B2B order confirmation email: {str(e)}")
         
         logger.info(f"B2B order {order_id} payment verified: {razorpay_payment_id}")
-        
+
+        # Best-effort: record payment in Zoho Books
+        try:
+            from services.zoho_books import push_payment
+            zoho_pmt = await push_payment(
+                order, retailer, float(order.get("grand_total", 0)), razorpay_payment_id
+            )
+            if zoho_pmt:
+                await db.b2b_orders.update_one(
+                    {"order_id": order_id},
+                    {"$set": {
+                        "zoho_payment_id": zoho_pmt.get("payment_id"),
+                        "zoho_payment_synced_at": datetime.now(timezone.utc).isoformat(),
+                    }},
+                )
+        except Exception as e:
+            logger.error(f"Zoho payment sync failed for {order_id}: {e}")
+
         return {
             "message": "Payment verified successfully",
             "order_id": order_id,
