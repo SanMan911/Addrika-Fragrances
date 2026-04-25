@@ -7,26 +7,21 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, timezone
-from decimal import Decimal, ROUND_HALF_UP
 import uuid
 import logging
 
-from dependencies import db, NOTIFICATION_EMAIL
+from dependencies import db, NOTIFICATION_EMAIL  # noqa: F401
 from services.b2b_settings import (
     get_b2b_enabled,
     get_cash_discount_percent,
-    get_pricing_tiers,
     get_all_pricing_tiers,
-    applicable_tier_discount,
 )
-from services.b2b_loyalty import (
-    get_retailer_loyalty_state,
-    list_active_milestones,
-    applicable_milestone,
-    get_retailer_quarter_purchases,
-)
-from services.b2b_catalog import B2B_PRODUCTS, find_b2b_product
+from services.b2b_loyalty import get_retailer_loyalty_state
+from services.b2b_catalog import B2B_PRODUCTS
 from services.b2b_emails import send_b2b_admin_notification_email
+from services.b2b_pricing import (
+    calculate_b2b_order as calc_b2b_pricing,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/retailer-dashboard/b2b", tags=["B2B Orders"])
@@ -40,9 +35,6 @@ async def require_b2b_enabled():
             detail="B2B portal is currently unavailable. Please contact Addrika for access.",
         )
 
-# Cash discount percentage for online payment (default; actual value loaded from DB)
-CASH_DISCOUNT_PERCENT = 1.5
-
 
 # ============================================================================
 # Helper Functions
@@ -53,29 +45,20 @@ async def get_current_retailer(request: Request, retailer_session: Optional[str]
     session_token = retailer_session or request.cookies.get("retailer_session")
     if not session_token:
         return None
-    
+
     session = await db.retailer_sessions.find_one({"session_token": session_token})
     if not session:
         return None
-    
+
     if datetime.fromisoformat(session["expires_at"]) < datetime.now(timezone.utc):
         return None
-    
+
     retailer = await db.retailers.find_one(
         {"retailer_id": session["retailer_id"]},
         {"_id": 0, "password_hash": 0}
     )
-    
+
     return retailer
-
-
-def calculate_line_total(quantity_boxes: float, price_per_box: float, price_per_half_box: float) -> float:
-    """Calculate line total for a given quantity of boxes"""
-    full_boxes = int(quantity_boxes)
-    half_boxes = (quantity_boxes - full_boxes) * 2  # 0.5 becomes 1 half box
-    
-    total = (full_boxes * price_per_box) + (half_boxes * price_per_half_box)
-    return round(total, 2)
 
 
 # ============================================================================
@@ -130,76 +113,6 @@ class B2BOrderCreate(BaseModel):
     notes: Optional[str] = None
 
 
-async def validate_retailer_voucher(voucher_code: str, retailer_id: str, order_subtotal: float):
-    """Validate and get retailer voucher details"""
-    voucher = await db.retailer_vouchers.find_one({
-        "code": voucher_code.upper(),
-        "is_active": True,
-        "$or": [
-            {"retailer_id": retailer_id},
-            {"retailer_id": None}  # Global retailer vouchers
-        ]
-    })
-    
-    if not voucher:
-        return None, "Invalid or expired voucher code"
-    
-    # Check expiry
-    if voucher.get("expires_at"):
-        expiry = datetime.fromisoformat(voucher["expires_at"])
-        if expiry < datetime.now(timezone.utc):
-            return None, "Voucher has expired"
-    
-    # Check usage limit
-    if voucher.get("max_uses") and voucher.get("used_count", 0) >= voucher["max_uses"]:
-        return None, "Voucher usage limit reached"
-    
-    # Check minimum order
-    if voucher.get("min_order") and order_subtotal < voucher["min_order"]:
-        return None, f"Minimum order of ₹{voucher['min_order']} required"
-    
-    # Calculate discount
-    discount_amount = 0
-    if voucher.get("discount_type") == "percentage":
-        discount_amount = order_subtotal * voucher["discount_value"] / 100
-        if voucher.get("max_discount"):
-            discount_amount = min(discount_amount, voucher["max_discount"])
-    else:  # fixed
-        discount_amount = voucher["discount_value"]
-    
-    return {
-        "voucher_id": voucher.get("id"),
-        "code": voucher["code"],
-        "discount_type": voucher["discount_type"],
-        "discount_value": voucher["discount_value"],
-        "discount_amount": round(discount_amount, 2)
-    }, None
-
-
-async def validate_credit_note(cn_code: str, retailer_id: str):
-    """Validate and get credit note details"""
-    credit_note = await db.credit_notes.find_one({
-        "code": cn_code.upper(),
-        "retailer_id": retailer_id,
-        "status": "active"
-    })
-    
-    if not credit_note:
-        return None, "Invalid or already used credit note"
-    
-    # Check expiry (45 days from creation, excluding creation date)
-    expiry = datetime.fromisoformat(credit_note["expires_at"])
-    if expiry < datetime.now(timezone.utc):
-        return None, "Credit note has expired"
-    
-    return {
-        "cn_id": credit_note.get("id"),
-        "code": credit_note["code"],
-        "amount": credit_note["amount"],
-        "balance": credit_note.get("balance", credit_note["amount"])
-    }, None
-
-
 @router.post("/calculate")
 async def calculate_b2b_order(
     order_data: B2BOrderCreate,
@@ -211,187 +124,15 @@ async def calculate_b2b_order(
     retailer = await get_current_retailer(request, retailer_session)
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    if not order_data.items or len(order_data.items) == 0:
-        raise HTTPException(status_code=400, detail="No items in order")
-    
-    # Build order items
-    order_items = []
-    subtotal = 0
-    total_gst = 0
-    total_tier_discount = 0
-    
-    for item in order_data.items:
-        if item.quantity_boxes <= 0:
-            continue
-        
-        # Validate quantity is in 0.5 increments
-        if (item.quantity_boxes * 2) % 1 != 0:
-            raise HTTPException(
-                status_code=400, 
-                detail="Quantity must be in multiples of 0.5 boxes"
-            )
-        
-        # Find product
-        product = next((p for p in B2B_PRODUCTS if p["id"] == item.product_id), None)
-        if not product:
-            raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
-        
-        # Calculate line total
-        line_total_base = calculate_line_total(
-            item.quantity_boxes,
-            product["price_per_box"],
-            product["price_per_half_box"]
-        )
 
-        # Apply quantity-tier discount (if any configured)
-        tiers = await get_pricing_tiers(db, product["id"])
-        tier_pct = applicable_tier_discount(tiers, item.quantity_boxes)
-        tier_discount_amount = round(line_total_base * tier_pct / 100, 2) if tier_pct else 0
-        line_total = round(line_total_base - tier_discount_amount, 2)
-
-        # Calculate GST on the discounted line total
-        gst_rate = product.get("gst_rate", 18)
-        line_gst = round(line_total * gst_rate / 100, 2)
-        
-        order_items.append({
-            "product_id": item.product_id,
-            "name": product["name"],
-            "net_weight": product["net_weight"],
-            "image": product["image"],
-            "quantity_boxes": item.quantity_boxes,
-            "price_per_box": product["price_per_box"],
-            "price_per_half_box": product["price_per_half_box"],
-            "line_total_base": line_total_base,
-            "tier_discount_percent": tier_pct,
-            "tier_discount_amount": tier_discount_amount,
-            "line_total": line_total,
-            "gst_rate": gst_rate,
-            "gst_amount": line_gst,
-            "hsn_code": product.get("hsn_code")
-        })
-
-        subtotal += line_total
-        total_gst += line_gst
-        total_tier_discount += tier_discount_amount
-    
-    if not order_items:
-        raise HTTPException(status_code=400, detail="No valid items in order")
-
-    # Live cash discount percent from admin settings
-    cash_discount_percent_setting = await get_cash_discount_percent(db)
-
-    # Loyalty bonus: applies on subtotal, BEFORE cash discount and GST.
-    # Based on retailer's paid purchase total this quarter.
-    loyalty_milestones_active = await list_active_milestones(db)
-    loyalty_state_quarter = await get_retailer_quarter_purchases(
-        db, retailer["retailer_id"]
+    return await calc_b2b_pricing(
+        db,
+        retailer=retailer,
+        items=order_data.items,
+        apply_cash_discount=order_data.apply_cash_discount,
+        voucher_code=order_data.voucher_code,
+        credit_note_code=order_data.credit_note_code,
     )
-    applied_loyalty = applicable_milestone(
-        loyalty_milestones_active, loyalty_state_quarter["purchases_total"]
-    )
-    loyalty_discount = 0.0
-    loyalty_discount_percent = 0.0
-    if applied_loyalty:
-        loyalty_discount_percent = float(applied_loyalty.get("discount_percent", 0))
-        loyalty_discount = round(
-            subtotal * loyalty_discount_percent / 100, 2
-        )
-
-    # Subtotal after loyalty (used for downstream discount application)
-    subtotal_after_loyalty = round(subtotal - loyalty_discount, 2)
-
-    # Voucher and Cash discount are mutually exclusive
-    voucher_discount = 0
-    voucher_info = None
-    cash_discount = 0
-    
-    if order_data.voucher_code:
-        # Validate voucher - if voucher is used, no cash discount
-        voucher_info, error = await validate_retailer_voucher(
-            order_data.voucher_code, 
-            retailer["retailer_id"], 
-            subtotal
-        )
-        if error:
-            raise HTTPException(status_code=400, detail=error)
-        voucher_discount = voucher_info["discount_amount"]
-    elif order_data.apply_cash_discount:
-        # Cash discount is applied on subtotal AFTER loyalty discount
-        cash_discount = round(subtotal_after_loyalty * cash_discount_percent_setting / 100, 2)
-
-    # ------------------------------------------------------------------------
-    # Per Indian GST law and user requirement: GST is calculated AFTER ALL
-    # known-at-supply-time discounts (tier, loyalty, voucher, cash). Credit
-    # note (post-supply financial credit) is applied AFTER GST.
-    # ------------------------------------------------------------------------
-    taxable_value = round(
-        max(0.0, subtotal_after_loyalty - voucher_discount - cash_discount), 2
-    )
-
-    total_gst = 0
-    if subtotal > 0 and taxable_value > 0:
-        factor = taxable_value / subtotal
-        for oi in order_items:
-            new_line_taxable = round(oi["line_total"] * factor, 2)
-            oi["line_total_after_loyalty"] = new_line_taxable
-            oi["taxable_value"] = new_line_taxable
-            oi["gst_amount"] = round(new_line_taxable * oi["gst_rate"] / 100, 2)
-            total_gst += oi["gst_amount"]
-        total_gst = round(total_gst, 2)
-    else:
-        for oi in order_items:
-            oi["line_total_after_loyalty"] = 0
-            oi["taxable_value"] = 0
-            oi["gst_amount"] = 0
-    
-    # Credit note (financial credit — applied on taxable + GST)
-    cn_discount = 0
-    cn_info = None
-    if order_data.credit_note_code:
-        cn_info, error = await validate_credit_note(
-            order_data.credit_note_code,
-            retailer["retailer_id"]
-        )
-        if error:
-            raise HTTPException(status_code=400, detail=error)
-        # CN can be partially used
-        cn_discount = min(cn_info["balance"], taxable_value + total_gst)
-    
-    # Grand total
-    total_discount = loyalty_discount + voucher_discount + cash_discount + cn_discount
-    grand_total = round(taxable_value + total_gst - cn_discount, 2)
-    grand_total = max(0, grand_total)  # Ensure non-negative
-    
-    return {
-        "items": order_items,
-        "subtotal": subtotal,
-        "loyalty_discount": loyalty_discount,
-        "loyalty_discount_percent": loyalty_discount_percent,
-        "loyalty_milestone": applied_loyalty,
-        "quarter_purchases_total": loyalty_state_quarter["purchases_total"],
-        "quarter_label": loyalty_state_quarter["quarter_label"],
-        "subtotal_after_loyalty": subtotal_after_loyalty,
-        "taxable_value": taxable_value,
-        "gst_total": total_gst,
-        "tier_discount_total": round(total_tier_discount, 2),
-        "voucher_discount": voucher_discount,
-        "voucher_code": order_data.voucher_code if voucher_info else None,
-        "cash_discount": cash_discount,
-        "cash_discount_percent": cash_discount_percent_setting if cash_discount > 0 else 0,
-        "credit_note_discount": cn_discount,
-        "credit_note_code": order_data.credit_note_code if cn_info else None,
-        "total_discount": total_discount,
-        "grand_total": grand_total,
-        "retailer_gst": retailer.get("gst_number"),
-        "retailer_address": {
-            "business_name": retailer.get("business_name") or retailer.get("trade_name"),
-            "address": retailer.get("address"),
-            "city": retailer.get("city"),
-            "state": retailer.get("state"),
-            "pincode": retailer.get("pincode")
-        }
-    }
 
 
 @router.post("/order")
