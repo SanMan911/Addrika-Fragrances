@@ -67,7 +67,7 @@ async def admin_zoho_oauth_init(
     region = os.environ.get("ZOHO_REGION", "in")
     redirect_uri = os.environ.get(
         "ZOHO_REDIRECT_URI",
-        "https://b2b-portal-preview-1.preview.emergentagent.com/api/zoho-books/callback",
+        "https://addrika-kyc-onboard.preview.emergentagent.com/api/zoho-books/callback",
     )
     state = secrets.token_urlsafe(24)
     # Persist the state nonce + (optional) org_id so the callback can verify
@@ -259,6 +259,173 @@ async def admin_zoho_save_org_id(
         )
     reset_token_cache()
     return {"ok": True, "org_id": org_id, "status": await zoho_status()}
+
+
+# ---------------------------------------------------------------------------
+# Sync health summary (for the admin dashboard card)
+# ---------------------------------------------------------------------------
+
+@router.get("/sync-health")
+async def admin_zoho_sync_health(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Aggregate Zoho sync health for the admin dashboard card."""
+    await require_admin(request, session_token)
+    base_status = await zoho_status()
+
+    synced_so = await db.b2b_orders.count_documents(
+        {"zoho_salesorder_id": {"$exists": True, "$ne": None}}
+    )
+    pending_so = await db.b2b_orders.count_documents(
+        {"$or": [
+            {"zoho_salesorder_id": {"$exists": False}},
+            {"zoho_salesorder_id": None},
+        ]}
+    )
+    synced_pmt = await db.b2b_orders.count_documents(
+        {"zoho_payment_id": {"$exists": True, "$ne": None}}
+    )
+    paid_orders = await db.b2b_orders.count_documents({"payment_status": "paid"})
+    pending_pmt = max(0, paid_orders - synced_pmt)
+    unresolved_errors = await zoho_unresolved_count()
+
+    last_sync_doc = await db.b2b_orders.find_one(
+        {"zoho_synced_at": {"$exists": True}},
+        {"_id": 0, "order_id": 1, "zoho_synced_at": 1, "zoho_salesorder_id": 1},
+        sort=[("zoho_synced_at", -1)],
+    )
+
+    return {
+        **base_status,
+        "synced_sales_orders": synced_so,
+        "pending_sales_orders": pending_so,
+        "synced_payments": synced_pmt,
+        "pending_payments": pending_pmt,
+        "unresolved_errors": unresolved_errors,
+        "last_sync": last_sync_doc,
+    }
+
+
+# ---------------------------------------------------------------------------
+# One-click backfill — pushes any unsynced B2B order to Zoho.
+# ---------------------------------------------------------------------------
+
+@router.post("/backfill")
+async def admin_zoho_backfill(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    limit: int = 100,
+    only_paid: bool = False,
+):
+    """Walk B2B orders missing `zoho_salesorder_id` and try to push each one.
+
+    - Skips orders already synced (idempotent).
+    - For every order with `payment_status=paid`, also pushes the matching
+      payment (best-effort).
+    - Records failures into the existing `zoho_sync_errors` log so they
+      surface in the admin Zoho-errors banner.
+    """
+    await require_admin(request, session_token)
+    if not await is_configured():
+        raise HTTPException(
+            status_code=412, detail="Zoho is not connected — run OAuth first"
+        )
+
+    query: dict = {
+        "$or": [
+            {"zoho_salesorder_id": {"$exists": False}},
+            {"zoho_salesorder_id": None},
+        ]
+    }
+    if only_paid:
+        query["payment_status"] = "paid"
+
+    cursor = db.b2b_orders.find(query, {"_id": 0}).sort("created_at", 1).limit(max(1, min(limit, 500)))
+    so_pushed = 0
+    pmt_pushed = 0
+    failed = 0
+    skipped_no_retailer = 0
+    failures: list[dict] = []
+
+    async for order in cursor:
+        retailer = await db.retailers.find_one(
+            {"retailer_id": order.get("retailer_id")},
+            {"_id": 0, "password_hash": 0},
+        )
+        if not retailer:
+            skipped_no_retailer += 1
+            continue
+
+        try:
+            so = await push_sales_order(order, retailer)
+        except Exception as e:
+            so = None
+            await record_zoho_error(
+                "sales_order", order["order_id"], retailer["retailer_id"], str(e)
+            )
+            failed += 1
+            failures.append({"order_id": order["order_id"], "stage": "sales_order", "error": str(e)[:200]})
+            continue
+
+        if not so:
+            await record_zoho_error(
+                "sales_order",
+                order["order_id"],
+                retailer["retailer_id"],
+                "push_sales_order returned None during backfill",
+            )
+            failed += 1
+            failures.append({"order_id": order["order_id"], "stage": "sales_order", "error": "returned None"})
+            continue
+
+        await db.b2b_orders.update_one(
+            {"order_id": order["order_id"]},
+            {"$set": {
+                "zoho_salesorder_id": so.get("salesorder_id"),
+                "zoho_synced_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+            }},
+        )
+        so_pushed += 1
+
+        if order.get("payment_status") == "paid" and not order.get("zoho_payment_id"):
+            try:
+                pmt = await push_payment(
+                    order,
+                    retailer,
+                    float(order.get("grand_total", 0)),
+                    order.get("razorpay_payment_id") or order["order_id"],
+                )
+            except Exception as e:
+                pmt = None
+                await record_zoho_error(
+                    "payment", order["order_id"], retailer["retailer_id"], str(e)
+                )
+            if pmt:
+                await db.b2b_orders.update_one(
+                    {"order_id": order["order_id"]},
+                    {"$set": {
+                        "zoho_payment_id": pmt.get("payment_id"),
+                        "zoho_payment_synced_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+                    }},
+                )
+                pmt_pushed += 1
+            elif order.get("payment_status") == "paid":
+                await record_zoho_error(
+                    "payment",
+                    order["order_id"],
+                    retailer["retailer_id"],
+                    "push_payment returned None during backfill",
+                )
+
+    return {
+        "ok": True,
+        "sales_orders_pushed": so_pushed,
+        "payments_pushed": pmt_pushed,
+        "failed": failed,
+        "skipped_orphan": skipped_no_retailer,
+        "failures": failures[:20],
+    }
 
 
 @router.post("/resync/{order_id}")

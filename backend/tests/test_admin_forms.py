@@ -10,7 +10,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('NEXT_PUBLIC_BACKEND_URL', 'https://b2b-portal-preview-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('NEXT_PUBLIC_BACKEND_URL', 'https://addrika-kyc-onboard.preview.emergentagent.com')
 
 # Test credentials from test_credentials.md
 ADMIN_EMAIL = "contact.us@centraders.com"

@@ -591,6 +591,26 @@ async def get_retailer_loyalty(
     return state
 
 
+@router.post("/tour-complete")
+async def mark_retailer_tour_complete(
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Persist that this retailer has completed (or dismissed) the
+    first-login product tour, so it doesn't show again."""
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    await db.retailers.update_one(
+        {"retailer_id": retailer["retailer_id"]},
+        {"$set": {
+            "tour_completed": True,
+            "tour_completed_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    return {"ok": True}
+
+
 @router.get("/orders/{order_id}/invoice.pdf")
 async def retailer_download_invoice(
     order_id: str,
