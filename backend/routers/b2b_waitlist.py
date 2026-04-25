@@ -6,7 +6,8 @@ Admin can view all signups.
 from fastapi import APIRouter, HTTPException, Request, Cookie
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import os
 import re
 import uuid
 import logging
@@ -204,6 +205,151 @@ async def admin_list_waitlist(
         "items": items,
         "status_counts": status_counts,
         "pagination": {"page": page, "limit": limit, "total": total},
+    }
+
+
+@admin_router.post("/{signup_id}/onboard")
+async def admin_onboard_waitlist_retailer(
+    signup_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """One-click onboarding from waitlist:
+
+    - Re-fetch GSTN data via Appyflow (uses freshest legal-name / address).
+    - Create the retailer with everything pre-filled.
+    - Generate a single-use invite token (24h TTL) and email a magic
+      `setup-password` link to the retailer's email.
+    - Mark the waitlist entry as `onboarded` and link the new retailer_id.
+    Returns 409 if the retailer was already onboarded from this signup.
+    """
+    admin = await require_admin(request, session_token)
+    signup = await db.retailer_waitlist.find_one({"id": signup_id}, {"_id": 0})
+    if not signup:
+        raise HTTPException(status_code=404, detail="Signup not found")
+    if signup.get("retailer_id"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Already onboarded as retailer {signup['retailer_id']}",
+        )
+
+    # Refresh GSTN data — Appyflow may have newer info than at signup time
+    legal_name = signup.get("legal_name_from_gst")
+    address = signup.get("address")
+    state = signup.get("state")
+    city = signup.get("city")
+    pincode = signup.get("pincode")
+    try:
+        from services.gst_verification import verify_gst_number
+
+        verify = await verify_gst_number(signup["gst_number"])
+        if verify.get("verified"):
+            legal_name = verify.get("taxpayer_name") or legal_name
+            full_addr = verify.get("address") or ""
+            if full_addr:
+                parts = [p.strip() for p in full_addr.split(",") if p.strip()]
+                # Last numeric token is pincode; second-to-last is state
+                if parts and parts[-1].isdigit():
+                    pincode = pincode or parts[-1]
+                    parts = parts[:-1]
+                if parts:
+                    state = state or parts[-1]
+                    parts = parts[:-1]
+                if parts:
+                    city = city or parts[-1]
+                    parts = parts[:-1]
+                address = address or ", ".join(parts) or full_addr
+    except Exception as e:
+        logger.warning(f"Onboarding refresh GST lookup failed: {e}")
+
+    retailer_id = f"RTL_{uuid.uuid4().hex[:10].upper()}"
+    invite_token = uuid.uuid4().hex + uuid.uuid4().hex
+    invite_expires = datetime.now(timezone.utc).replace(microsecond=0)
+    invite_expires_iso = (
+        invite_expires.replace(tzinfo=timezone.utc) + timedelta(days=1)
+    ).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
+
+    retailer = {
+        "retailer_id": retailer_id,
+        "business_name": signup.get("business_name") or legal_name or "—",
+        "trade_name": legal_name,
+        "name": signup.get("contact_name") or signup.get("business_name") or "—",
+        "contact_name": signup.get("contact_name"),
+        "email": signup["email"],
+        "phone": signup.get("phone"),
+        "country_code": signup.get("country_code", "+91"),
+        "gst_number": signup.get("gst_number"),
+        "city": city,
+        "state": state,
+        "address": address,
+        "pincode": pincode,
+        "status": "pending_setup",
+        "invite_token": invite_token,
+        "invite_expires_at": invite_expires_iso,
+        "password_hash": None,
+        "created_at": now,
+        "onboarded_by": admin.get("email", "admin"),
+        "from_waitlist_id": signup_id,
+    }
+    await db.retailers.insert_one(retailer)
+
+    # Mark waitlist entry as onboarded
+    await db.retailer_waitlist.update_one(
+        {"id": signup_id},
+        {"$set": {
+            "status": "onboarded",
+            "retailer_id": retailer_id,
+            "onboarded_at": now,
+            "onboarded_by": admin.get("email", "admin"),
+            "updated_at": now,
+        }},
+    )
+
+    # Send invite email
+    try:
+        from services.email_service import send_email
+
+        portal_url = os.environ.get(
+            "FRONTEND_PUBLIC_URL",
+            "https://b2b-portal-preview-1.preview.emergentagent.com",
+        ).rstrip("/")
+        link = f"{portal_url}/retailer/setup-password?token={invite_token}"
+        html = f"""
+        <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
+          <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;'>
+            <tr><td style='background:#1e3a52;padding:24px;text-align:center;'>
+              <h1 style='color:#d4af37;margin:0;'>ADDRIKA</h1>
+              <p style='color:#fff;margin:4px 0 0;'>Welcome to our wholesale family</p>
+            </td></tr>
+            <tr><td style='padding:24px;'>
+              <p>Hi {retailer['name']},</p>
+              <p>You've been onboarded to Addrika's B2B Retailer Portal.
+              Your account <b>{retailer['business_name']}</b> ({retailer['gst_number']}) is ready.</p>
+              <p style='text-align:center;margin:28px 0;'>
+                <a href='{link}' style='background:#d4af37;color:#1e3a52;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;'>
+                  Set your password
+                </a>
+              </p>
+              <p style='color:#888;font-size:12px;'>This link expires in 24 hours. If it doesn't work, paste this in your browser:<br/><code>{link}</code></p>
+              <p style='margin-top:24px;color:#888;font-size:12px;'>— Addrika B2B Team · contact.us@centraders.com</p>
+            </td></tr>
+          </table>
+        </body></html>
+        """
+        await send_email(
+            to_email=retailer["email"],
+            subject="Welcome to Addrika B2B — set your password (link expires in 24h)",
+            html_content=html,
+        )
+    except Exception as e:
+        logger.error(f"Onboarding email failed for {retailer['email']}: {e}")
+
+    return {
+        "ok": True,
+        "retailer_id": retailer_id,
+        "invite_link": f"/retailer/setup-password?token={invite_token}",
+        "expires_at": invite_expires_iso,
     }
 
 

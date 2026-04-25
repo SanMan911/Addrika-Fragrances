@@ -207,6 +207,13 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Bills migrator** (one-shot): `scripts/migrate_bills_to_object_storage.py` — walks `retailer_bills` with `file_base64` + no `storage_path`, decodes + uploads to Emergent object storage, unsets `file_base64`, writes `storage_path`. Idempotent + dry-run flag. Exposed via `POST /api/admin/b2b/maintenance/migrate-bills[?dry_run=true]`.
 - **Tested** — `tests/test_b2b_autofill_backlog.py` adds 11 new tests (GST lookup happy/invalid/unverified, catalog CRUD, migrator dry-run, email-invoice 404/401/send). Full B2B suite: **101/101** passing.
 
+### April 25, 2026 (later still) — One-Click Waitlist → Retailer Onboarding
+- **`POST /api/admin/b2b-waitlist/{id}/onboard`** — creates the retailer record using freshly re-fetched Appyflow GSTN data (legal_name, address, city, state, pincode), generates a single-use 24h invite token, and emails a magic-link `setup-password` page via Resend. Marks the waitlist row `onboarded` + links the new `retailer_id`. Returns 409 if already onboarded.
+- **`GET /api/retailer-auth/setup-password/validate/{token}`** + **`POST /api/retailer-auth/setup-password`** — public endpoints. Validation returns the welcome name + business name; setup is single-use (token + invite_expires_at unset on success), enforces 8-char minimum.
+- **New page**: `/retailer/setup-password?token=…` — pre-greets the user with their business name, asks for new password + confirmation, redirects to login on success. Works with the existing portal kill-switch (login still gated).
+- **Admin UI**: green "Onboard as Retailer" button on `/admin/b2b/waitlist` for any non-onboarded entry. Once onboarded, the row shows a "View RTL_…" deep-link to the retailer detail page instead.
+- **Tested** — 7 new tests in `tests/test_b2b_onboarding.py` (full happy-path with Appyflow address pull, double-onboard returns 409, single-use token semantics, password length validation, unauth/404 paths). Full B2B suite: **108/108**.
+
 ### P1 (High) — still open
 - [ ] Replace placeholder images for Bilvapatra, 8" Dhoop, Royal Kewda (awaiting product photos)
 - [ ] Integrate Appyflow (full GST verification — currently best-effort) + AEPS India (PAN+Aadhaar eKYC)
