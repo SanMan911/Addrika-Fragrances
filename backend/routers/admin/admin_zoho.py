@@ -166,9 +166,14 @@ async def zoho_oauth_callback(request: Request):
             400,
         )
 
+    # Preserve pre-existing org_id if neither env nor state nonce supplied one
+    pre_existing = await db.admin_settings.find_one(
+        {"setting_key": "zoho_oauth"}, {"_id": 0, "setting_value": 1}
+    )
     org_id = (
         os.environ.get("ZOHO_ORG_ID", "").strip()
         or expected.get("org_id", "").strip()
+        or (pre_existing or {}).get("setting_value", {}).get("org_id", "").strip()
     )
 
     await db.admin_settings.update_one(
