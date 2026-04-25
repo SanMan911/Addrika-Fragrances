@@ -54,6 +54,155 @@ async def admin_download_b2b_invoice(
     )
 
 
+@router.post("/orders/{order_id}/email-invoice")
+async def admin_email_b2b_invoice(
+    order_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Email the GST tax invoice PDF to the retailer's account email."""
+    await require_admin(request, session_token)
+    order = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    retailer = await db.retailers.find_one(
+        {"retailer_id": order["retailer_id"]},
+        {"_id": 0, "password_hash": 0},
+    )
+    if not retailer or not retailer.get("email"):
+        raise HTTPException(status_code=400, detail="Retailer has no email on file")
+
+    from services.b2b_invoice_pdf import build_invoice_pdf
+    from services.email_service import send_email
+
+    pdf_bytes = build_invoice_pdf(order, retailer)
+
+    business_name = (
+        retailer.get("business_name") or retailer.get("trade_name") or "Retailer"
+    )
+    html = f"""
+    <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
+      <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;'>
+        <tr><td style='background:#1e3a52;padding:20px;text-align:center;'>
+          <h1 style='color:#d4af37;margin:0;'>ADDRIKA</h1>
+          <p style='color:#fff;margin:4px 0 0;'>Tax Invoice · {order_id}</p>
+        </td></tr>
+        <tr><td style='padding:24px;'>
+          <p>Dear {business_name},</p>
+          <p>Please find attached the GST tax invoice for your B2B order
+          <b>{order_id}</b>, totalling <b>₹{float(order.get('grand_total') or 0):,.2f}</b>.</p>
+          <p>For any queries, reply to this email or contact us at
+          <a href='mailto:contact.us@centraders.com'>contact.us@centraders.com</a>.</p>
+          <p style='margin-top:24px;color:#888;font-size:12px;'>— Addrika B2B Team</p>
+        </td></tr>
+      </table>
+    </body></html>
+    """
+
+    sent = await send_email(
+        to_email=retailer["email"],
+        subject=f"Addrika · Tax Invoice {order_id}",
+        html_content=html,
+        attachments=[{"filename": f"invoice-{order_id}.pdf", "content": pdf_bytes}],
+    )
+    if not sent:
+        raise HTTPException(
+            status_code=502,
+            detail="Email service unavailable — could not send invoice",
+        )
+
+    from datetime import datetime, timezone
+    await db.b2b_orders.update_one(
+        {"order_id": order_id},
+        {"$set": {
+            "invoice_emailed_at": datetime.now(timezone.utc).isoformat(),
+            "invoice_emailed_to": retailer["email"],
+        }},
+    )
+    return {"emailed": True, "to": retailer["email"]}
+
+
+# ============================================================================
+# B2B Catalog (Mongo-managed) — admin CRUD
+# ============================================================================
+
+class B2BProductPayload(BaseModel):
+    id: str = Field(..., min_length=2, max_length=80)
+    product_id: str = Field(..., min_length=2, max_length=80)
+    name: str = Field(..., min_length=1, max_length=120)
+    image: Optional[str] = None
+    net_weight: str = Field(..., max_length=20)
+    units_per_box: int = Field(..., ge=1)
+    mrp_per_unit: float = Field(..., ge=0)
+    price_per_box: int = Field(..., ge=0)
+    price_per_half_box: int = Field(..., ge=0)
+    min_order: float = Field(0.5, ge=0)
+    gst_rate: int = Field(..., ge=0, le=28)
+    hsn_code: Optional[str] = Field(None, max_length=12)
+    is_active: bool = True
+
+
+@router.get("/products")
+async def admin_list_b2b_products(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    await require_admin(request, session_token)
+    docs = await db.b2b_products.find({}, {"_id": 0}).sort("id", 1).to_list(500)
+    return {"products": docs}
+
+
+@router.post("/products")
+async def admin_upsert_b2b_product(
+    payload: B2BProductPayload,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    await require_admin(request, session_token)
+    from services.b2b_catalog import upsert_b2b_product
+
+    product = payload.model_dump(exclude_none=True)
+    await upsert_b2b_product(db, product)
+    return {"ok": True, "product": product}
+
+
+@router.delete("/products/{product_id}")
+async def admin_delete_b2b_product(
+    product_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    await require_admin(request, session_token)
+    from services.b2b_catalog import delete_b2b_product
+
+    deleted = await delete_b2b_product(db, product_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return {"deleted": True}
+
+
+# ============================================================================
+# B2B Maintenance — bills migration to object storage
+# ============================================================================
+
+@router.post("/maintenance/migrate-bills")
+async def admin_migrate_bills(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    dry_run: bool = False,
+):
+    """One-shot migrator: move legacy base64 bills into object storage.
+
+    Pass `?dry_run=true` to count what would be migrated without writing.
+    Idempotent — already-migrated bills are skipped automatically.
+    """
+    await require_admin(request, session_token)
+    from scripts.migrate_bills_to_object_storage import migrate_bills
+
+    result = await migrate_bills(db, dry_run=dry_run)
+    return result
+
+
 # ============================================================================
 # B2B Order Status Management
 # ============================================================================

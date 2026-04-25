@@ -353,31 +353,52 @@ def get_order_status_update_html(order: dict, new_status: str) -> str:
     """
 
 
-async def send_email(to_email: str, subject: str, html_content: str) -> bool:
-    """Send an email using Resend"""
+async def send_email(
+    to_email: str,
+    subject: str,
+    html_content: str,
+    attachments: list = None,
+) -> bool:
+    """Send an email using Resend.
+
+    `attachments`, if provided, must be a list of dicts with keys
+    `filename` (str) and `content` (bytes or base64 str). Resend accepts
+    base64-encoded content directly.
+    """
     api_key = _get_resend_key()
     sender_email = _get_sender_email()
-    
+
     if not api_key or not api_key.startswith('re_'):
         logger.warning(f"Resend API key not configured or invalid, skipping email. Key present: {bool(api_key)}")
         return False
-    
+
     try:
         # Set API key at runtime
         resend.api_key = api_key
-        
+
         params = {
             "from": f"Addrika <{sender_email}>",
             "to": [to_email],
             "subject": subject,
-            "html": html_content
+            "html": html_content,
         }
-        
+        if attachments:
+            import base64 as _b64
+            payload_attachments = []
+            for a in attachments:
+                content = a.get("content")
+                if isinstance(content, (bytes, bytearray)):
+                    content = _b64.b64encode(bytes(content)).decode("ascii")
+                payload_attachments.append(
+                    {"filename": a["filename"], "content": content}
+                )
+            params["attachments"] = payload_attachments
+
         # Run sync SDK in thread to keep FastAPI non-blocking
         result = await asyncio.to_thread(resend.Emails.send, params)
         logger.info(f"Email sent successfully to {to_email}, ID: {result.get('id')}")
         return True
-        
+
     except Exception as e:
         logger.error(f"Failed to send email to {to_email}: {str(e)}")
         return False

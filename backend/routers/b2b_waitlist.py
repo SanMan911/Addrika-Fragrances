@@ -19,6 +19,23 @@ admin_router = APIRouter(prefix="/admin/b2b-waitlist", tags=["Admin B2B Waitlist
 
 GST_PATTERN = re.compile(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$')
 
+# State code → state name (first 2 chars of GSTIN)
+INDIAN_STATE_CODES = {
+    "01": "Jammu and Kashmir", "02": "Himachal Pradesh", "03": "Punjab",
+    "04": "Chandigarh", "05": "Uttarakhand", "06": "Haryana", "07": "Delhi",
+    "08": "Rajasthan", "09": "Uttar Pradesh", "10": "Bihar", "11": "Sikkim",
+    "12": "Arunachal Pradesh", "13": "Nagaland", "14": "Manipur",
+    "15": "Mizoram", "16": "Tripura", "17": "Meghalaya", "18": "Assam",
+    "19": "West Bengal", "20": "Jharkhand", "21": "Odisha",
+    "22": "Chhattisgarh", "23": "Madhya Pradesh", "24": "Gujarat",
+    "25": "Daman and Diu", "26": "Dadra and Nagar Haveli",
+    "27": "Maharashtra", "28": "Andhra Pradesh", "29": "Karnataka",
+    "30": "Goa", "31": "Lakshadweep", "32": "Kerala", "33": "Tamil Nadu",
+    "34": "Puducherry", "35": "Andaman and Nicobar Islands",
+    "36": "Telangana", "37": "Andhra Pradesh (New)", "38": "Ladakh",
+    "97": "Other Territory", "99": "Centre Jurisdiction",
+}
+
 
 class WaitlistSignup(BaseModel):
     business_name: str = Field(..., min_length=2, max_length=200)
@@ -28,6 +45,9 @@ class WaitlistSignup(BaseModel):
     country_code: str = Field(default="+91", max_length=5)
     gst_number: str = Field(..., min_length=15, max_length=15)
     city: Optional[str] = None
+    state: Optional[str] = None
+    address: Optional[str] = None
+    pincode: Optional[str] = None
     message: Optional[str] = Field(None, max_length=1000)
 
 
@@ -35,6 +55,55 @@ def _titlecase(value: Optional[str]) -> Optional[str]:
     if not value:
         return value
     return " ".join(w.capitalize() for w in value.strip().split())
+
+
+# ---------------------------------------------------------------------------
+# Public GST lookup — used by the waitlist form to auto-prefill business
+# name + city + state once a valid GSTIN is typed. NOT authenticated; rate
+# is implicitly limited by Appyflow's per-key quota.
+# ---------------------------------------------------------------------------
+
+@router.get("/gst-lookup/{gst_number}")
+async def public_gst_lookup(gst_number: str):
+    """Return verified business name + address fields for a GSTIN.
+
+    Returns 200 with `verified=False` (instead of an error) when the GSTIN
+    is well-formed but Appyflow can't find/verify it — so the form can show
+    a soft warning without aborting.
+    """
+    gst = (gst_number or "").upper().strip()
+    if not GST_PATTERN.match(gst):
+        raise HTTPException(status_code=400, detail="Invalid GST number format")
+
+    from services.gst_verification import verify_gst_number
+
+    result = await verify_gst_number(gst)
+    if not result.get("verified"):
+        return {
+            "verified": False,
+            "gst_number": gst,
+            "state": INDIAN_STATE_CODES.get(gst[:2]),
+            "error": result.get("error") or "Could not verify GSTIN",
+        }
+
+    # Build a clean payload for the form
+    addr_parts = result.get("address", "").split(", ")
+    return {
+        "verified": True,
+        "gst_number": gst,
+        "business_name": _titlecase(
+            result.get("trade_name") or result.get("taxpayer_name") or ""
+        ),
+        "legal_name": result.get("taxpayer_name"),
+        "trade_name": result.get("trade_name"),
+        "is_active": result.get("is_active", False),
+        "status": result.get("status"),
+        "state": INDIAN_STATE_CODES.get(gst[:2]) or result.get("state"),
+        "city": _titlecase(addr_parts[-4]) if len(addr_parts) >= 4 else None,
+        "pincode": addr_parts[-1] if addr_parts and addr_parts[-1].isdigit() else None,
+        "address": result.get("address"),
+        "registration_date": result.get("registration_date"),
+    }
 
 
 @router.post("")
@@ -51,11 +120,13 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
     try:
         from services.gst_verification import verify_gst_number  # type: ignore
         result = await verify_gst_number(gst)
-        if isinstance(result, dict) and result.get("valid"):
+        if isinstance(result, dict) and result.get("verified"):
             gst_verified = True
-            legal_name = result.get("legal_name") or result.get("trade_name")
+            legal_name = result.get("taxpayer_name") or result.get("trade_name")
         else:
-            gst_verification_error = (result or {}).get("error", "Verification unavailable")
+            gst_verification_error = (result or {}).get(
+                "error", "Verification unavailable"
+            )
     except Exception as e:
         gst_verification_error = str(e) or "Verification service unavailable"
 
@@ -80,6 +151,10 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
                 "gst_verified": gst_verified,
                 "gst_verification_error": gst_verification_error,
                 "city": _titlecase((data.city or "").strip()) or None,
+                "state": _titlecase((data.state or "").strip())
+                or INDIAN_STATE_CODES.get(gst[:2]),
+                "address": (data.address or "").strip() or None,
+                "pincode": (data.pincode or "").strip() or None,
                 "message": (data.message or "").strip() or None,
                 "updated_at": now,
                 "source_ip": request.client.host if request.client else None,

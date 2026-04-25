@@ -13,6 +13,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 function WaitlistComingSoon() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [gstStatus, setGstStatus] = useState({ state: 'idle' }); // idle | looking | verified | failed
   const [form, setForm] = useState({
     business_name: '',
     contact_name: '',
@@ -21,8 +22,51 @@ function WaitlistComingSoon() {
     phone: '',
     gst_number: '',
     city: '',
+    state: '',
     message: '',
   });
+
+  // Auto-prefill business name + city + state when a complete valid GSTIN is typed
+  useEffect(() => {
+    const gst = (form.gst_number || '').toUpperCase();
+    if (!GST_REGEX.test(gst)) {
+      if (gstStatus.state !== 'idle') setGstStatus({ state: 'idle' });
+      return;
+    }
+    let cancelled = false;
+    setGstStatus({ state: 'looking' });
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/api/retailer-auth/waitlist/gst-lookup/${gst}`
+        );
+        if (cancelled) return;
+        const data = await res.json();
+        if (!data || data.verified === false) {
+          setGstStatus({ state: 'failed', error: data?.error || 'GST not verified' });
+          // Still prefill state from GSTIN prefix
+          if (data?.state) {
+            setForm((f) => ({ ...f, state: f.state || data.state }));
+          }
+          return;
+        }
+        setGstStatus({ state: 'verified', legal_name: data.legal_name });
+        setForm((f) => ({
+          ...f,
+          // Only prefill empty fields — never overwrite user-typed values
+          business_name: f.business_name || data.business_name || '',
+          city: f.city || data.city || '',
+          state: f.state || data.state || '',
+        }));
+      } catch {
+        if (!cancelled) setGstStatus({ state: 'failed', error: 'Lookup unavailable' });
+      }
+    }, 400); // debounce
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [form.gst_number]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -40,6 +84,7 @@ function WaitlistComingSoon() {
       payload.email = lowerEmail(payload.email);
       payload.gst_number = (payload.gst_number || '').toUpperCase();
       if (!payload.city) delete payload.city;
+      if (!payload.state) delete payload.state;
       if (!payload.message) delete payload.message;
       const res = await fetch(`${API_URL}/api/retailer-auth/waitlist`, {
         method: 'POST',
@@ -154,18 +199,44 @@ function WaitlistComingSoon() {
                 data-testid="waitlist-phone"
               />
             </div>
-            <input
-              type="text"
-              placeholder="GST Number*"
-              value={form.gst_number}
-              onChange={(e) => setForm({ ...form, gst_number: e.target.value.toUpperCase().slice(0, 15) })}
-              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none uppercase font-mono"
-              data-testid="waitlist-gst"
-              maxLength={15}
-              required
-              pattern="[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}"
-              title="Enter a valid 15-character GSTIN"
-            />
+            <div className="sm:col-span-2">
+              <input
+                type="text"
+                placeholder="GST Number*"
+                value={form.gst_number}
+                onChange={(e) => setForm({ ...form, gst_number: e.target.value.toUpperCase().slice(0, 15) })}
+                className={`w-full px-3 py-2 rounded-lg border focus:border-[#D4AF37] outline-none uppercase font-mono ${
+                  gstStatus.state === 'verified' ? 'border-emerald-500' :
+                  gstStatus.state === 'failed' ? 'border-amber-400' : 'border-gray-300'
+                }`}
+                data-testid="waitlist-gst"
+                maxLength={15}
+                required
+                pattern="[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}"
+                title="Enter a valid 15-character GSTIN"
+              />
+              {gstStatus.state === 'looking' && (
+                <p className="mt-1 text-xs text-gray-500" data-testid="gst-lookup-status">
+                  Verifying GSTIN…
+                </p>
+              )}
+              {gstStatus.state === 'verified' && (
+                <p
+                  className="mt-1 text-xs text-emerald-700"
+                  data-testid="gst-lookup-status"
+                >
+                  ✓ Verified · {gstStatus.legal_name || 'business name auto-filled'}
+                </p>
+              )}
+              {gstStatus.state === 'failed' && (
+                <p
+                  className="mt-1 text-xs text-amber-700"
+                  data-testid="gst-lookup-status"
+                >
+                  Could not auto-verify — you can still submit; we'll verify manually.
+                </p>
+              )}
+            </div>
             <input
               type="text"
               placeholder="City"
@@ -173,6 +244,14 @@ function WaitlistComingSoon() {
               onChange={(e) => setForm({ ...form, city: titleCase(e.target.value) })}
               className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
               data-testid="waitlist-city"
+            />
+            <input
+              type="text"
+              placeholder="State"
+              value={form.state}
+              onChange={(e) => setForm({ ...form, state: titleCase(e.target.value) })}
+              className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
+              data-testid="waitlist-state"
             />
           </div>
           <textarea
