@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Briefcase, Search, RefreshCw, Package, Check, X, Eye, DollarSign, UserPlus, BarChart3 } from 'lucide-react';
+import { Briefcase, Search, RefreshCw, Package, Check, X, Eye, DollarSign, UserPlus, BarChart3, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
@@ -110,6 +110,13 @@ export default function AdminB2BPage() {
           data-testid="link-waitlist"
         >
           <UserPlus size={16} /> Retailer Waitlist
+        </Link>
+        <Link
+          href="/admin/b2b/catalog"
+          className="px-4 py-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-700 hover:bg-purple-100 text-sm font-medium flex items-center gap-2"
+          data-testid="link-b2b-catalog"
+        >
+          <Boxes size={16} /> B2B Catalog
         </Link>
         <Link
           href="/admin/b2b/reports"

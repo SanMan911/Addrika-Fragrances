@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 # Default values (used when DB not yet seeded)
 DEFAULT_B2B_ENABLED = False
 DEFAULT_CASH_DISCOUNT_PERCENT = 1.5
+DEFAULT_KYC_REQUIRED_FOR_ORDERS = False  # OFF by default — admin opts in once existing retailers are KYC'd
 
 
 async def get_b2b_enabled(db) -> bool:
@@ -76,6 +77,7 @@ async def init_b2b_settings(db):
     for key, default in (
         ("b2b_enabled", DEFAULT_B2B_ENABLED),
         ("b2b_cash_discount_percent", DEFAULT_CASH_DISCOUNT_PERCENT),
+        ("b2b_kyc_required_for_orders", DEFAULT_KYC_REQUIRED_FOR_ORDERS),
     ):
         existing = await db.admin_settings.find_one({"setting_key": key})
         if not existing:
@@ -88,6 +90,32 @@ async def init_b2b_settings(db):
                 }
             )
             logger.info(f"Initialized B2B setting {key}={default}")
+
+
+async def get_kyc_required_for_orders(db) -> bool:
+    """Whether retailers must complete GST + PAN + Aadhaar KYC before ordering."""
+    setting = await db.admin_settings.find_one(
+        {"setting_key": "b2b_kyc_required_for_orders"}
+    )
+    if setting and "setting_value" in setting:
+        return bool(setting["setting_value"])
+    return DEFAULT_KYC_REQUIRED_FOR_ORDERS
+
+
+async def set_kyc_required_for_orders(db, enabled: bool, admin_email: str) -> bool:
+    await db.admin_settings.update_one(
+        {"setting_key": "b2b_kyc_required_for_orders"},
+        {
+            "$set": {
+                "setting_value": bool(enabled),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_by": admin_email,
+            }
+        },
+        upsert=True,
+    )
+    logger.info(f"B2B KYC gate enabled={enabled} by {admin_email}")
+    return bool(enabled)
 
 
 # ============================================================================
