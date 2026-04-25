@@ -26,16 +26,66 @@ async def send_b2b_admin_notification_email(order: dict, retailer: dict) -> None
         </tr>
         """
 
+    # Build the discount breakdown rows so the math is unambiguous
+    subtotal = float(order.get("subtotal") or 0)
+    tier_disc = float(order.get("tier_discount_total") or 0)
+    loyalty_disc = float(order.get("loyalty_discount") or 0)
+    voucher_disc = float(order.get("voucher_discount") or 0)
+    cash_disc = float(order.get("cash_discount") or 0)
+    cn_disc = float(order.get("credit_note_discount") or 0)
+    taxable = float(
+        order.get("taxable_value")
+        or max(0.0, subtotal - tier_disc - loyalty_disc - voucher_disc - cash_disc)
+    )
+    gst_total = float(order.get("gst_total") or 0)
+    grand = float(order.get("grand_total") or 0)
+
+    def _row(label: str, value: float, color: str = "#444") -> str:
+        sign = "-" if value > 0 and "Discount" in label else ""
+        if "Discount" not in label:
+            sign = ""
+        return (
+            f"<tr><td style='padding:6px 0;color:{color};'>{label}</td>"
+            f"<td style='padding:6px 0;text-align:right;color:{color};'>"
+            f"{sign}₹{value:,.2f}</td></tr>"
+        )
+
+    breakdown_rows = [_row("Subtotal (after bulk-tier savings)", subtotal)]
+    if tier_disc > 0:
+        # subtotal already excludes tier-discount; show the saved amount as info
+        breakdown_rows.append(
+            f"<tr><td style='padding:6px 0;color:#059669;font-size:12px;'>"
+            f"&nbsp;&nbsp;Bulk-tier savings already applied per line</td>"
+            f"<td style='padding:6px 0;text-align:right;color:#059669;font-size:12px;'>"
+            f"-₹{tier_disc:,.2f}</td></tr>"
+        )
+    if loyalty_disc > 0:
+        breakdown_rows.append(_row("Loyalty Bonus Discount", loyalty_disc, "#059669"))
+    if voucher_disc > 0:
+        breakdown_rows.append(_row("Voucher Discount", voucher_disc, "#059669"))
+    if cash_disc > 0:
+        breakdown_rows.append(_row("Online Payment Discount", cash_disc, "#059669"))
+    breakdown_rows.append(
+        f"<tr><td style='padding:8px 0;border-top:1px dashed #ccc;font-weight:600;'>"
+        f"Taxable Value</td>"
+        f"<td style='padding:8px 0;text-align:right;border-top:1px dashed #ccc;font-weight:600;'>"
+        f"₹{taxable:,.2f}</td></tr>"
+    )
+    breakdown_rows.append(_row("GST @ 18% (on taxable value)", gst_total))
+    if cn_disc > 0:
+        breakdown_rows.append(_row("Credit Note Applied", cn_disc, "#059669"))
+    breakdown_rows.append(
+        f"<tr><td style='padding:10px 0;border-top:2px solid #d4af37;color:#1e3a52;font-weight:bold;'>"
+        f"Grand Total</td>"
+        f"<td style='padding:10px 0;text-align:right;border-top:2px solid #d4af37;color:#1e3a52;font-weight:bold;'>"
+        f"₹{grand:,.2f}</td></tr>"
+    )
+    breakdown_html = "".join(breakdown_rows)
+
     business_name = (
         retailer.get("business_name") or retailer.get("trade_name") or "Retailer"
     )
     payment_method = (order.get("payment_method", "credit") or "credit").upper()
-    online_line: Optional[str] = ""
-    if order.get("cash_discount", 0) > 0:
-        online_line = (
-            f"<p style='margin:5px 0;'><strong>Online Payment Discount:</strong> "
-            f"{order.get('cash_discount_percent', 0)}% (₹{order['cash_discount']:,.2f})</p>"
-        )
 
     html = f"""
     <!DOCTYPE html>
@@ -62,26 +112,28 @@ async def send_b2b_admin_notification_email(order: dict, retailer: dict) -> None
                 <h3 style="margin:18px 0 8px 0;color:#1e3a52;">Order {order['order_id']}</h3>
                 <p style="margin:4px 0;"><strong>Payment Method:</strong> {payment_method}</p>
                 <p style="margin:4px 0;"><strong>Payment Status:</strong> {order.get('payment_status', 'pending').upper()}</p>
-                {online_line}
 
                 <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;margin-top:12px;">
                     <thead>
                         <tr style="background:#f9f7f4;">
                             <th style="padding:10px;text-align:left;">Product</th>
                             <th style="padding:10px;text-align:center;">Qty</th>
-                            <th style="padding:10px;text-align:right;">Amount</th>
+                            <th style="padding:10px;text-align:right;">Line Total*</th>
                         </tr>
                     </thead>
                     <tbody>{items_html}</tbody>
                 </table>
+                <p style="font-size:11px;color:#888;margin:6px 0 0;">
+                    *Line total is the box price &times; quantity, with bulk-tier savings already netted in.
+                </p>
 
-                <div style="margin-top:18px;padding:14px;background:#f9f7f4;border-radius:6px;">
-                    <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>₹{order['subtotal']:,.2f}</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>GST:</span><span>₹{order['gst_total']:,.2f}</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Discount:</span><span>-₹{order.get('total_discount', 0):,.2f}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-weight:bold;color:#d4af37;margin-top:8px;border-top:2px solid #d4af37;padding-top:8px;">
-                        <span>Grand Total:</span><span>₹{order['grand_total']:,.2f}</span>
-                    </div>
+                <div style="margin-top:18px;padding:14px 16px;background:#f9f7f4;border-radius:6px;">
+                    <p style="margin:0 0 8px;color:#1e3a52;font-weight:600;font-size:13px;">
+                        Bill computation (GST charged on taxable value, after all discounts)
+                    </p>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                        {breakdown_html}
+                    </table>
                 </div>
             </td></tr>
             <tr><td style="background:#1e3a52;padding:14px;text-align:center;">

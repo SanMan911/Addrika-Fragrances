@@ -115,14 +115,35 @@ async def admin_upload_bill(
         "amount": data.amount,
         "bill_date": data.bill_date,
         "notes": (data.notes or "").strip() or None,
-        "file_base64": data.file_base64,
         "file_name": data.file_name,
         "file_type": data.file_type.lower(),
         "uploaded_by": admin.get("email", "admin"),
         "created_at": now,
     }
+
+    # Try object storage first; fall back to base64-in-Mongo if not configured / failed
+    from services.object_storage import is_configured as obj_configured, put_object, make_path
+    stored_in_object_storage = False
+    if obj_configured():
+        try:
+            decoded = base64.b64decode(data.file_base64.split(",")[-1], validate=True)
+            ext = (data.file_name.rsplit(".", 1)[-1] if "." in data.file_name else "bin")
+            path = make_path("bills", retailer_id, ext)
+            res = await put_object(path, decoded, data.file_type.lower())
+            if res and res.get("path"):
+                doc["storage_path"] = res["path"]
+                doc["size_bytes"] = res.get("size") or len(decoded)
+                stored_in_object_storage = True
+        except Exception as e:
+            logger.error(f"Bill upload to object storage failed, falling back to Mongo: {e}")
+    if not stored_in_object_storage:
+        doc["file_base64"] = data.file_base64
+
     await db.retailer_bills.insert_one(doc)
-    logger.info(f"Bill {bill_id} uploaded for retailer {retailer_id}")
+    logger.info(
+        f"Bill {bill_id} uploaded for {retailer_id} "
+        f"(storage={'object' if stored_in_object_storage else 'mongo'})"
+    )
     response = {k: v for k, v in doc.items() if k not in ("file_base64", "_id")}
     return {"message": "Bill uploaded", "bill": response}
 
@@ -140,6 +161,22 @@ async def admin_list_bills(
     return {"bills": bills}
 
 
+async def _hydrate_bill(bill: dict) -> dict:
+    """If a bill is stored in object storage, fetch it and return base64 to client."""
+    if bill.get("file_base64"):
+        return bill
+    storage_path = bill.get("storage_path")
+    if not storage_path:
+        return bill
+    from services.object_storage import get_object
+    fetched = await get_object(storage_path)
+    if not fetched:
+        return bill
+    raw, content_type = fetched
+    bill["file_base64"] = "data:" + content_type + ";base64," + base64.b64encode(raw).decode("ascii")
+    return bill
+
+
 @admin_router.get("/bills/{bill_id}/download")
 async def admin_download_bill(
     bill_id: str,
@@ -150,7 +187,7 @@ async def admin_download_bill(
     bill = await db.retailer_bills.find_one({"bill_id": bill_id}, {"_id": 0})
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
-    return bill
+    return await _hydrate_bill(bill)
 
 
 @admin_router.delete("/bills/{bill_id}")
@@ -195,7 +232,7 @@ async def retailer_download_bill(
     )
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
-    return bill
+    return await _hydrate_bill(bill)
 
 
 async def purge_old_bills(db) -> int:

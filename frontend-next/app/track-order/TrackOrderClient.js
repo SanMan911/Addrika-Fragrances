@@ -132,7 +132,7 @@ export default function TrackOrderClient() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.toLowerCase().trim())}
                     placeholder="your@email.com"
                     className="w-full pl-12 pr-4 py-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4AF37] placeholder-gray-500"
                     style={inputStyles}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Bell, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
+import { lowerEmail } from '../lib/formHelpers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -83,7 +84,7 @@ export default function NotifyMeButton({ productId, variant = 'default' }) {
         <input
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => setEmail(lowerEmail(e.target.value))}
           placeholder="Your email"
           className="flex-1 px-3 py-2.5 rounded-lg text-sm bg-white/5 border border-purple-500/30 text-white placeholder-slate-500 focus:border-purple-400 focus:outline-none"
           autoFocus
