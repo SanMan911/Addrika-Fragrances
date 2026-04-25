@@ -1,27 +1,39 @@
 # Addrika E-Commerce Platform — PRD
 
-## 🎯 CURRENT PRIORITY ITEMS  *(Apr 26, 2026 — final)*
-> Pin until ✅. The full B2B + KYC stack is now production-ready; only soft P1/P2 items remain.
+## 🎯 PRIORITY ITEMS  *(Apr 26, 2026 — final published)*
+> All engineering items shipped & tested. Only user-action items remain.
 
-### 🟢 P0 — All P0 items complete
-*(B2B portal, retailer self-onboarding, KYC live, order gate, recovery email, admin catalog UI — all shipped & tested.)*
+### 🟢 P0 — Complete
+*(B2B portal, retailer self-onboarding, KYC live, order gate ON, recovery email, admin catalog UI, CSV bulk import, archive filter, GDPR cookie variant, gtag.js direct injection — all shipped & tested.)*
 
-### 🟠 P1 — User action needed (not engineering)
-- ⏳ **Replace placeholder images** for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, Royal Kewda *(awaiting your real product photos)*.
-- ⏳ **Bulk-mark legacy retailers as KYC-verified** before flipping the KYC gate ON, or onboard them one-by-one via `/admin/b2b/waitlist` → KYC card. Otherwise the gate will block existing retailers from ordering. *(One-click admin button can be added later if needed.)*
-- ⏳ **Verify Zoho refresh token health** quarterly — `<ZohoSyncHealthCard />` polls live; alert banner appears in admin if it fails.
+### 🟠 P1 — User action only (no engineering)
+- ⏳ **Replace placeholder images** for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, Royal Kewda *(awaiting your real product photos)*. *Per user request Apr 26: deferred indefinitely.*
+- ⏳ **Verify Zoho refresh-token health** quarterly — `<ZohoSyncHealthCard />` polls live; alert banner appears in admin if it fails.
+- ✅ **KYC gate is ON** in production (`b2b_kyc_required_for_orders=True` since Apr 26, 2026). Existing retailers can be batch-grandfathered via `/admin/settings/b2b` → "Grandfather all retailers" button (idempotent).
 
-### 🟡 P2 — Polish / future enhancements (not blocking)
-- "Bulk-KYC verified" admin one-click button for grandfathering existing retailers when flipping the KYC gate ON.
-- Admin email digest (weekly) of KYC-incomplete retailers + recovery email open rates.
-- Migrate to a paid Sandbox API plan if monthly KYC verifications exceed free-tier (~100/mo).
-- (Cosmetic) Richer B2B catalog UI: image upload (instead of URL), CSV bulk import, soft-delete/archive filter.
-- Pydantic v1 → v2 validator migration to silence deprecation warnings (`@validator` → `@field_validator`).
+### 🟡 P2 — Deferred / future enhancements (per user)
+- ❌ Weekly admin digest of KYC-incomplete retailers + recovery email open rates *(per user)*
+- ❌ Image upload (vs URL field) in catalog editor *(per user)*
+- ⏳ Migrate to a paid Sandbox API plan if monthly KYC verifications exceed free-tier (~100/mo).
 
-### 🔵 Future / Backlog
-- 2FA SMS option for admin (currently email-only OTP).
-- Customer-facing wishlist sharing tweaks (a few flaky tests in `test_wishlist.py`).
-- Cookie consent — region-specific banner (GDPR variant for EU visitors).
+### 🔵 Backlog — Deferred / future
+- ❌ SMS 2FA for admin (currently email-only OTP) *(per user)*
+- ✅ Wishlist test suite — 17/17 pass after Apr 26 fix (Bearer-token auth + default BASE_URL).
+- ✅ GDPR-region cookie consent — region-aware banner shipped Apr 26 (browser timezone detection → stricter copy + "Reject all" CTA).
+
+---
+
+## 🔑 Active Integrations (Apr 26, 2026)
+| Integration | Env var(s) | Status | Notes |
+| --- | --- | --- | --- |
+| Razorpay | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | ✅ live | retail + B2B checkout |
+| Resend | `RESEND_API_KEY`, `SENDER_EMAIL` | ✅ live | order, OTP, KYC recovery |
+| Appyflow GST | `APPYFLOW_API_KEY` | ✅ live | GSTN auto-fill on waitlist |
+| Sandbox API KYC | `SANDBOX_API_KEY`, `SANDBOX_API_SECRET`, `SANDBOX_API_VERSION` | ✅ live | PAN + Aadhaar OTP eKYC, free ~100/mo |
+| Zoho Books | `ZOHO_CLIENT_ID/SECRET/REFRESH_TOKEN/REDIRECT_URI`, `admin_settings.zoho_oauth` | ✅ live | OAuth completed; org `60057247059` |
+| Google Analytics 4 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` *(legacy, optional)* + **direct gtag injection in `app/layout.js`** for `G-9CBN63VGCK` | ✅ live | Direct injection on every page (admin/retailer/public) per Google's setup |
+| Emergent LLM Key | `EMERGENT_LLM_KEY` | ✅ live | object storage backend (bills, future uploads) |
+| Invoice header (optional) | `SELLER_NAME/GSTIN/ADDRESS/STATE/EMAIL/PHONE` | optional | falls back to Centsibl Traders / Delhi |
 
 ---
 

@@ -181,6 +181,120 @@ async def admin_delete_b2b_product(
     return {"deleted": True}
 
 
+@router.post("/products/bulk-import")
+async def admin_bulk_import_b2b_products(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """CSV bulk import for B2B catalog. Body: text/csv with header row.
+
+    Headers (case-insensitive): id, product_id, name, image, net_weight,
+    units_per_box, mrp_per_unit, price_per_box, price_per_half_box,
+    min_order, gst_rate, hsn_code, is_active.
+    Rows are upserted by `id`. Pricing columns missing → auto-derived as
+    76.52% × units × MRP. Returns per-row {ok|error} so partial imports
+    surface clearly.
+    """
+    await require_admin(request, session_token)
+    import csv
+    import io
+    from services.b2b_catalog import upsert_b2b_product
+
+    raw = await request.body()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty CSV body")
+    text = raw.decode("utf-8", errors="replace")
+    reader = csv.DictReader(io.StringIO(text))
+
+    results = []
+    created = 0
+    updated = 0
+    failed = 0
+    for idx, row in enumerate(reader, start=2):  # row 1 is header
+        try:
+            row = {k.strip().lower(): (v or "").strip() for k, v in row.items() if k}
+            if not row.get("id") or not row.get("product_id") or not row.get("name"):
+                raise ValueError("id, product_id, name are required")
+            units = int(row.get("units_per_box") or 12)
+            mrp = float(row.get("mrp_per_unit") or 0)
+            price_box = int(row.get("price_per_box") or round(units * mrp * 0.7652))
+            price_half = int(
+                row.get("price_per_half_box") or round((units / 2) * mrp * 0.7652)
+            )
+            payload = {
+                "id": row["id"],
+                "product_id": row["product_id"],
+                "name": row["name"],
+                "image": row.get("image") or "",
+                "net_weight": row.get("net_weight") or "",
+                "units_per_box": units,
+                "mrp_per_unit": mrp,
+                "price_per_box": price_box,
+                "price_per_half_box": price_half,
+                "min_order": float(row.get("min_order") or 0.5),
+                "gst_rate": int(row.get("gst_rate") or 5),
+                "hsn_code": row.get("hsn_code") or "33074100",
+                "is_active": str(row.get("is_active", "true")).lower() not in ("false", "0", "no"),
+            }
+            existed = await db.b2b_products.find_one({"id": payload["id"]}, {"_id": 0})
+            await upsert_b2b_product(db, payload)
+            if existed:
+                updated += 1
+            else:
+                created += 1
+            results.append({"row": idx, "id": payload["id"], "ok": True})
+        except Exception as e:
+            failed += 1
+            results.append({"row": idx, "ok": False, "error": str(e)})
+    return {
+        "created": created,
+        "updated": updated,
+        "failed": failed,
+        "total": created + updated + failed,
+        "results": results,
+    }
+
+
+@router.post("/retailers/bulk-grandfather-kyc")
+async def admin_bulk_grandfather_kyc(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """One-click migration: mark every existing retailer's KYC as verified.
+
+    Used to flip the `b2b_kyc_required_for_orders` gate ON without
+    blocking already-onboarded retailers from placing orders. Sets
+    `gst_verified=True, pan_verified=True, aadhaar_verified=True` on
+    every retailer doc that currently has at least one of them False.
+    Idempotent — re-running matches no docs.
+    """
+    await require_admin(request, session_token)
+    now = datetime.now(timezone.utc).isoformat()
+    res = await db.retailers.update_many(
+        {
+            "$or": [
+                {"gst_verified": {"$ne": True}},
+                {"pan_verified": {"$ne": True}},
+                {"aadhaar_verified": {"$ne": True}},
+            ]
+        },
+        {
+            "$set": {
+                "gst_verified": True,
+                "pan_verified": True,
+                "aadhaar_verified": True,
+                "kyc_grandfathered_at": now,
+            }
+        },
+    )
+    logger.info(f"KYC grandfather migration matched={res.matched_count} modified={res.modified_count}")
+    return {
+        "matched": res.matched_count,
+        "modified": res.modified_count,
+        "grandfathered_at": now,
+    }
+
+
 # ============================================================================
 # B2B Maintenance — bills migration to object storage
 # ============================================================================

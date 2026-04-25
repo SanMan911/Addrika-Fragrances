@@ -14,8 +14,40 @@ export default function AdminB2BSettingsPage() {
   const [enabled, setEnabled] = useState(false);
   const [cashDiscount, setCashDiscount] = useState(1.5);
   const [kycRequired, setKycRequired] = useState(false);
+  const [grandfathering, setGrandfathering] = useState(false);
   const [products, setProducts] = useState([]);
   const [savingTiersFor, setSavingTiersFor] = useState(null);
+
+  const grandfatherKYC = async () => {
+    if (
+      !confirm(
+        'Mark every existing retailer as KYC-verified (GST + PAN + Aadhaar)?\n\n' +
+          'Use this once before flipping the KYC gate ON, so legacy retailers ' +
+          'are not blocked at checkout. Idempotent — safe to re-run.'
+      )
+    ) {
+      return;
+    }
+    setGrandfathering(true);
+    try {
+      const res = await authFetch(
+        `${API_URL}/api/admin/b2b/retailers/bulk-grandfather-kyc`,
+        { method: 'POST' }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Migration failed');
+      toast.success(
+        `Grandfathered ${data.modified} retailer${data.modified === 1 ? '' : 's'}` +
+          (data.matched !== data.modified
+            ? ` (${data.matched - data.modified} already verified)`
+            : '')
+      );
+    } catch (e) {
+      toast.error(e.message || 'Migration failed');
+    } finally {
+      setGrandfathering(false);
+    }
+  };
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
@@ -266,6 +298,22 @@ export default function AdminB2BSettingsPage() {
             data-testid="toggle-kyc-gate"
           >
             {kycRequired ? 'Disable KYC Gate' : 'Enable KYC Gate'}
+          </button>
+        </div>
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl">
+            <b>Grandfather existing retailers</b> · One-click sets every
+            current retailer&apos;s GST + PAN + Aadhaar as verified. Run this
+            <i> before</i> enabling the gate so legacy retailers aren&apos;t
+            blocked. Idempotent.
+          </p>
+          <button
+            onClick={grandfatherKYC}
+            disabled={grandfathering}
+            className="px-4 py-2 text-sm rounded-lg bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white inline-flex items-center gap-2"
+            data-testid="grandfather-kyc-button"
+          >
+            {grandfathering ? 'Grandfathering…' : 'Grandfather all retailers'}
           </button>
         </div>
       </section>

@@ -6,7 +6,11 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
+BASE_URL = (
+    os.environ.get('REACT_APP_BACKEND_URL')
+    or os.environ.get('BACKEND_URL')
+    or 'http://localhost:8001'
+).rstrip('/')
 
 # Test credentials
 TEST_EMAIL = "test.checkout@example.com"
@@ -42,8 +46,10 @@ def api_client():
 
 @pytest.fixture(scope="module")
 def authenticated_client(api_client):
-    """Session with authentication cookie"""
-    # Login to get session cookie - uses identifier field (email or username)
+    """Session with authentication. The session cookie set by /api/auth/login
+    has Secure=True which doesn't stick over plain http://localhost. We
+    therefore also send the session_token as a Bearer Authorization header
+    on every request — matches the pattern used by the B2B test suite."""
     response = api_client.post(
         f"{BASE_URL}/api/auth/login",
         json={"identifier": TEST_EMAIL, "password": TEST_PASSWORD}
@@ -52,6 +58,9 @@ def authenticated_client(api_client):
     if response.status_code != 200:
         pytest.skip(f"Authentication failed: {response.text}")
     
+    token = response.json().get("session_token")
+    if token:
+        api_client.headers["Authorization"] = f"Bearer {token}"
     return api_client
 
 
