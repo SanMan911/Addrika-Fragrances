@@ -1,24 +1,55 @@
-# Addrika E-Commerce Platform - PRD
+# Addrika E-Commerce Platform — PRD
 
-## 🔴 CURRENT PRIORITY ITEMS (always pinned at top)
-> These get reminded with every PRD update until completed.
+## 🎯 CURRENT PRIORITY ITEMS  *(Apr 26, 2026 — final)*
+> Pin until ✅. The full B2B + KYC stack is now production-ready; only soft P1/P2 items remain.
 
-- 🟠 **P1** — ~~Drop in `ZOHO_REFRESH_TOKEN` + `ZOHO_ORG_ID` to activate Sales Order + Customer Payment auto-sync to Zoho Books~~ ✅ **DONE Apr 25, 2026** — connected via in-app OAuth flow (refresh_token in `admin_settings.zoho_oauth`, org_id `60057247059`).
-- 🟠 **P1** — Replace placeholder images for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, and Royal Kewda once real product photos are provided.
-- 🟠 **P1** — ~~Sandbox API KYC infrastructure~~ ✅ **LIVE Apr 26, 2026** — keys plugged in, end-to-end verified with real PAN (returned `GE VERNOVA T&D INDIA LIMITED`). KYC widget embedded in `/admin/b2b/waitlist` and `/retailer/setup-password` flows.
+### 🟢 P0 — All P0 items complete
+*(B2B portal, retailer self-onboarding, KYC live, order gate, recovery email, admin catalog UI — all shipped & tested.)*
 
-## 🔑 Required API Keys / Credentials Summary
-| Integration | Env var(s) | Status | Where to obtain |
+### 🟠 P1 — User action needed (not engineering)
+- ⏳ **Replace placeholder images** for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, Royal Kewda *(awaiting your real product photos)*.
+- ⏳ **Bulk-mark legacy retailers as KYC-verified** before flipping the KYC gate ON, or onboard them one-by-one via `/admin/b2b/waitlist` → KYC card. Otherwise the gate will block existing retailers from ordering. *(One-click admin button can be added later if needed.)*
+- ⏳ **Verify Zoho refresh token health** quarterly — `<ZohoSyncHealthCard />` polls live; alert banner appears in admin if it fails.
+
+### 🟡 P2 — Polish / future enhancements (not blocking)
+- "Bulk-KYC verified" admin one-click button for grandfathering existing retailers when flipping the KYC gate ON.
+- Admin email digest (weekly) of KYC-incomplete retailers + recovery email open rates.
+- Migrate to a paid Sandbox API plan if monthly KYC verifications exceed free-tier (~100/mo).
+- (Cosmetic) Richer B2B catalog UI: image upload (instead of URL), CSV bulk import, soft-delete/archive filter.
+- Pydantic v1 → v2 validator migration to silence deprecation warnings (`@validator` → `@field_validator`).
+
+### 🔵 Future / Backlog
+- 2FA SMS option for admin (currently email-only OTP).
+- Customer-facing wishlist sharing tweaks (a few flaky tests in `test_wishlist.py`).
+- Cookie consent — region-specific banner (GDPR variant for EU visitors).
+
+---
+
+## 🔑 Active Integrations (Apr 26, 2026)
+| Integration | Env var(s) | Status | Notes |
 | --- | --- | --- | --- |
-| Razorpay (payments) | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | ✅ in .env | razorpay.com/dashboard |
-| Resend (emails) | `RESEND_API_KEY`, `SENDER_EMAIL` | ✅ in .env | resend.com → API Keys |
-| Appyflow GST verify | `APPYFLOW_API_KEY` | ✅ in .env (Apr 25) | appyflow.in/gst-api |
-| Zoho Books (ERP) | `ZOHO_REFRESH_TOKEN`, `ZOHO_ORG_ID` | ✅ live (Apr 25) — refresh_token saved in `admin_settings.zoho_oauth`, org_id `60057247059` | api-console.zoho.in (Self-Client) + Zoho Books → Settings → Organization Profile |
-| Google Analytics 4 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ❌ pending | analytics.google.com → Admin → Data Streams |
-| AEPS India (PAN+Aadhaar eKYC) | `AEPS_API_KEY`, `AEPS_API_SECRET` | ❌ deprecated — replaced by Sandbox API | aepsindia.com developer portal |
-| Sandbox API KYC | `SANDBOX_API_KEY`, `SANDBOX_API_SECRET`, `SANDBOX_API_VERSION` | ✅ LIVE (Apr 26) — verified end-to-end with real PAN | app.sandbox.co.in/signup |
-| Emergent LLM Key (object storage) | `EMERGENT_LLM_KEY` | ✅ live (Apr 26) — required for object storage / bills migration | platform-managed |
-| Optional invoice header overrides | `SELLER_NAME`, `SELLER_GSTIN`, `SELLER_ADDRESS`, `SELLER_STATE`, `SELLER_EMAIL`, `SELLER_PHONE` | optional, defaults shipped | hard-coded fallback to Centsibl Traders / Delhi |
+| Razorpay | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | ✅ live | retail + B2B checkout |
+| Resend | `RESEND_API_KEY`, `SENDER_EMAIL` | ✅ live | order, OTP, KYC recovery |
+| Appyflow GST | `APPYFLOW_API_KEY` | ✅ live | GSTN auto-fill on waitlist |
+| Sandbox API KYC | `SANDBOX_API_KEY`, `SANDBOX_API_SECRET`, `SANDBOX_API_VERSION` | ✅ live | PAN + Aadhaar OTP eKYC, free ~100/mo |
+| Zoho Books | `ZOHO_CLIENT_ID/SECRET/REFRESH_TOKEN/REDIRECT_URI`, `admin_settings.zoho_oauth` | ✅ live | OAuth completed; org `60057247059` |
+| Google Analytics 4 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ✅ live | hidden on /admin/** & /retailer/** |
+| Emergent LLM Key | `EMERGENT_LLM_KEY` | ✅ live | object storage backend (bills, future uploads) |
+| Invoice header (optional) | `SELLER_NAME/GSTIN/ADDRESS/STATE/EMAIL/PHONE` | optional | falls back to Centsibl Traders / Delhi |
+
+---
+
+## 🔴 Original Priority Snapshot (historical)
+- ~~Zoho Books OAuth~~ ✅ Apr 25, 2026
+- ~~AEPS India / KYC integration~~ ✅ Apr 26, 2026 (chose Sandbox API instead)
+- ~~Sandbox KYC infrastructure + retailer self-KYC + order gate~~ ✅ Apr 26, 2026
+- ~~B2B Catalog admin CRUD UI~~ ✅ Apr 26, 2026
+- ~~KYC recovery email with rate-limited deep link~~ ✅ Apr 26, 2026
+- ~~Dark-OS white-text bug on /retailer/*~~ ✅ Apr 26, 2026
+- ~~GST-first waitlist form with autofill~~ ✅ Apr 26, 2026
+- ~~Bills base64 → object storage migration~~ ✅ Apr 26, 2026
+
+---
 
 ## Original Problem Statement
 Build a premium e-commerce platform for Addrika natural incense brand by Centsibl Traders. Features include product catalog, user auth, admin portal, retailer dashboard, SEO, and messaging consistency enforcement.
@@ -221,6 +252,14 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Endpoints exposed** under both retailer-facing (`/api/retailer-auth/kyc/*`) and admin-facing (`/api/admin/kyc/*`) routers:
   - `GET /status` — public health check, returns `{enabled, provider}`.
   - `POST /pan/verify` — body `{pan_number, name_to_match?, waitlist_id?, retailer_id?}`; persists `pan_verified, pan_full_name, pan_status, pan_verified_at` on the linked doc.
+
+### April 26, 2026 (final) — KYC Recovery Email + Self-Service KYC Tab
+- **Automated recovery email** fires whenever a retailer hits the KYC gate at checkout. Implemented in `services/kyc_recovery_email.py` with `maybe_send_kyc_recovery_email(db, retailer, missing)`:
+  - Rate-limited to **once per retailer per 24h** via the new `kyc_email_log` MongoDB collection — repeated blocked checkouts don't spam.
+  - Fired **fire-and-forget** from `require_kyc_complete()` so the 403 response isn't slowed by Resend's outbound HTTP.
+  - HTML email lists exactly which verifications are missing (`PAN`, `Aadhaar`, etc.) and includes a **deep link** to `/retailer/b2b#kyc`.
+- **Retailer self-service KYC tab** on `/retailer/b2b`: the amber gate banner now has a "Verify now" CTA button. Clicking expands an inline `<KYCVerificationCard retailerId={…} />` so the retailer can complete PAN + Aadhaar OTP without leaving the page. The deep link in the recovery email auto-expands this section + scrolls into view (via `#kyc` URL hash + `useEffect`).
+- **Tested** — 8 new pytest tests in `tests/test_kyc_recovery_email.py` covering: HTML rendering with/without name, skip when no missing items, skip when no email, first-time send + log persistence, throttle within 24h, re-send after 24h, no-op when send_email returns False. All 8 pass. Combined batch: **36 passing** (8 recovery + 11 gate/catalog + 17 sandbox).
 
 ### April 26, 2026 (eve) — KYC Gate · Admin B2B Catalog UI
 - **B2B order KYC gate** added (admin-toggleable). New `b2b_kyc_required_for_orders` setting in `admin_settings` (default OFF so existing retailers aren't broken). When ON, `POST /api/retailer-dashboard/b2b/order` returns 403 `{error:"kyc_incomplete", missing:[...]}` until retailer has all of `gst_verified + pan_verified + aadhaar_verified` set on their record. Helper `require_kyc_complete(retailer)` in `routers/b2b_orders.py`. New retailer endpoint `GET /api/retailer-dashboard/b2b/kyc-gate` returns `{gate_enabled, fully_kyc_verified, missing, can_order}` so the dashboard can render an actionable banner.
