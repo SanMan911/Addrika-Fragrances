@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, RefreshCw, Mail, Phone, MapPin, FileText, UserPlus } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Mail, Phone, MapPin, FileText, UserPlus, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../../layout';
+import KYCVerificationCard from '../../../../components/KYCVerificationCard';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -21,6 +22,7 @@ export default function AdminB2BWaitlistPage() {
   const [counts, setCounts] = useState({});
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [expandedKyc, setExpandedKyc] = useState({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -219,7 +221,34 @@ export default function AdminB2BWaitlistPage() {
                     Mark {s}
                   </button>
                 ))}
+                <button
+                  onClick={() =>
+                    setExpandedKyc((prev) => ({ ...prev, [w.id]: !prev[w.id] }))
+                  }
+                  className="px-3 py-1 text-xs rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 inline-flex items-center gap-1 ml-auto"
+                  data-testid={`waitlist-kyc-toggle-${w.id}`}
+                >
+                  <ShieldCheck size={12} />
+                  KYC
+                  {expandedKyc[w.id] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  {(w.pan_verified || w.aadhaar_verified) && (
+                    <span className="ml-1 text-[10px] bg-emerald-600 text-white rounded-full px-1.5">
+                      {[w.pan_verified && 'PAN', w.aadhaar_verified && 'AADHAAR']
+                        .filter(Boolean)
+                        .join('+')}
+                    </span>
+                  )}
+                </button>
               </div>
+              {expandedKyc[w.id] && (
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <KYCVerificationCard
+                    waitlistId={w.id}
+                    admin
+                    onComplete={fetchData}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>

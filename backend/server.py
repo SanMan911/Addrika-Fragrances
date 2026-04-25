@@ -49,6 +49,7 @@ from routers.admin.admin_zoho import router as admin_zoho_router, public_router 
 from routers.b2b_waitlist import router as b2b_waitlist_router, admin_router as admin_b2b_waitlist_router
 from routers.b2b_bills_messages import admin_router as admin_b2b_bills_msgs_router, retailer_router as retailer_b2b_bills_msgs_router
 from routers.notify_me import router as notify_me_router
+from routers.kyc import retailer_router as kyc_retailer_router, admin_router as kyc_admin_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -111,6 +112,8 @@ app.include_router(admin_b2b_waitlist_router, prefix="/api")
 app.include_router(admin_b2b_bills_msgs_router, prefix="/api")
 app.include_router(retailer_b2b_bills_msgs_router, prefix="/api")
 app.include_router(notify_me_router, prefix="/api")
+app.include_router(kyc_retailer_router, prefix="/api")
+app.include_router(kyc_admin_router, prefix="/api")
 
 
 # Startup event
