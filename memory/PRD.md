@@ -5,7 +5,7 @@
 
 - 🟠 **P1** — ~~Drop in `ZOHO_REFRESH_TOKEN` + `ZOHO_ORG_ID` to activate Sales Order + Customer Payment auto-sync to Zoho Books~~ ✅ **DONE Apr 25, 2026** — connected via in-app OAuth flow (refresh_token in `admin_settings.zoho_oauth`, org_id `60057247059`).
 - 🟠 **P1** — Replace placeholder images for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, and Royal Kewda once real product photos are provided.
-- 🟠 **P1** — Sandbox API KYC (PAN + Aadhaar OTP) ✅ **Infra built Apr 26, 2026** — drop in `SANDBOX_API_KEY` + `SANDBOX_API_SECRET` (placeholders in `.env`) to flip on. Service degrades gracefully (`enabled:false`) when keys are blank. Routes: `/api/{retailer-auth,admin}/kyc/{status,pan/verify,aadhaar/otp,aadhaar/verify}`. UI widget at `components/KYCVerificationCard.js` already embedded in `/admin/b2b/waitlist`. Get free credentials at https://app.sandbox.co.in/signup.
+- 🟠 **P1** — ~~Sandbox API KYC infrastructure~~ ✅ **LIVE Apr 26, 2026** — keys plugged in, end-to-end verified with real PAN (returned `GE VERNOVA T&D INDIA LIMITED`). KYC widget embedded in `/admin/b2b/waitlist` and `/retailer/setup-password` flows.
 
 ## 🔑 Required API Keys / Credentials Summary
 | Integration | Env var(s) | Status | Where to obtain |
@@ -16,7 +16,8 @@
 | Zoho Books (ERP) | `ZOHO_REFRESH_TOKEN`, `ZOHO_ORG_ID` | ✅ live (Apr 25) — refresh_token saved in `admin_settings.zoho_oauth`, org_id `60057247059` | api-console.zoho.in (Self-Client) + Zoho Books → Settings → Organization Profile |
 | Google Analytics 4 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ❌ pending | analytics.google.com → Admin → Data Streams |
 | AEPS India (PAN+Aadhaar eKYC) | `AEPS_API_KEY`, `AEPS_API_SECRET` | ❌ deprecated — replaced by Sandbox API | aepsindia.com developer portal |
-| Sandbox API KYC | `SANDBOX_API_KEY`, `SANDBOX_API_SECRET`, `SANDBOX_API_VERSION` | ⚠️ placeholders in .env (Apr 26) — free tier ~100 calls/mo | app.sandbox.co.in/signup |
+| Sandbox API KYC | `SANDBOX_API_KEY`, `SANDBOX_API_SECRET`, `SANDBOX_API_VERSION` | ✅ LIVE (Apr 26) — verified end-to-end with real PAN | app.sandbox.co.in/signup |
+| Emergent LLM Key (object storage) | `EMERGENT_LLM_KEY` | ✅ live (Apr 26) — required for object storage / bills migration | platform-managed |
 | Optional invoice header overrides | `SELLER_NAME`, `SELLER_GSTIN`, `SELLER_ADDRESS`, `SELLER_STATE`, `SELLER_EMAIL`, `SELLER_PHONE` | optional, defaults shipped | hard-coded fallback to Centsibl Traders / Delhi |
 
 ## Original Problem Statement
@@ -220,6 +221,16 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Endpoints exposed** under both retailer-facing (`/api/retailer-auth/kyc/*`) and admin-facing (`/api/admin/kyc/*`) routers:
   - `GET /status` — public health check, returns `{enabled, provider}`.
   - `POST /pan/verify` — body `{pan_number, name_to_match?, waitlist_id?, retailer_id?}`; persists `pan_verified, pan_full_name, pan_status, pan_verified_at` on the linked doc.
+
+### April 26, 2026 (later) — KYC Live · Retailer Self-KYC · GST-First Waitlist · Dark-OS Fix
+- **Sandbox API KYC activated** (live keys plugged into `backend/.env`). End-to-end smoke verified — real PAN `AAACG2115R` returns `{"verified":true, "full_name":"GE VERNOVA T&D INDIA LIMITED", "status":"VALID", "category":"Company"}`. Invalid PAN surfaces Sandbox's actual error message ("Invalid Pan pattern") instead of generic HTTP code.
+- **Retailer self-KYC during onboarding**: `/retailer/setup-password?token=…` is now a 2-step wizard. After password is set, retailer is shown the embedded `<KYCVerificationCard retailerId={…} />` so they can verify their PAN + Aadhaar OTP themselves before first login. Skip option preserved (can be done later from dashboard). New `retailer_id` returned by `/setup-password/validate/{token}` so the widget knows which retailer record to persist on.
+- **GST-first waitlist form** on `/retailer/login` (Coming Soon screen): GSTIN is now Step 1, full-width prominent field, autofocus + required (form-level + Pydantic-pattern validated). Step 2 (business name / contact / email / phone / city / state) is dimmed + non-interactive until a valid 15-character GSTIN is entered, then revealed with Appyflow auto-fill. Submission blocked client-side if GST missing/invalid.
+- **Dark-OS white-input bug FIXED** on `/retailer/*` pages: root cause was browsers in dark-mode OS auto-styling native inputs with white text, ignoring our light theme. Fixed in `globals.css` with `color-scheme: light` on `:root` plus a defensive `input/select/textarea { color: #1a1918 }` rule (admin's `dark:text-*` classes still override correctly via `.dark` parent selector).
+- **Bills object-storage migration completed**: `migrate_bills(db)` ran successfully in production — 3 legacy base64 bills moved to Emergent object storage, `file_base64` unset, `storage_path` written. Idempotent re-run shows `{moved: 3, already_in_storage: 3, failed: 0}`.
+- **Sandbox error transparency**: new `_extract_error_message()` in `services/kyc_sandbox.py` pulls Sandbox's `message` / `error` field into the user-facing response on non-200, so `verified:false` carries an actionable reason rather than just `"Sandbox API error (422)"`.
+- **Tested** — all 17 KYC + 41 P1 regression tests still pass (58/58). Live curl: `/kyc/status` → `{enabled:true}`, `/pan/verify` with real PAN → 200 with full_name; bad PAN → 422 with Sandbox's "Invalid Pan pattern" message.
+
   - `POST /aadhaar/otp` — body `{aadhaar_number}`; returns `reference_id` for the OTP flow.
   - `POST /aadhaar/verify` — body `{reference_id, otp, waitlist_id?, retailer_id?}`; persists `aadhaar_verified, aadhaar_last_4, aadhaar_name, aadhaar_dob, aadhaar_address, aadhaar_state, aadhaar_pincode, aadhaar_verified_at`.
   - Admin-only: `GET /summary/{retailer|waitlist}/{id}` — fully composed KYC status (GST + PAN + Aadhaar).
