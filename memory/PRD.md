@@ -1,5 +1,12 @@
 # Addrika E-Commerce Platform - PRD
 
+## 🔴 CURRENT PRIORITY ITEMS (always pinned at top)
+> These get reminded with every PRD update until completed.
+
+- 🟠 **P1** — Drop in `ZOHO_REFRESH_TOKEN` + `ZOHO_ORG_ID` to activate Sales Order + Customer Payment auto-sync to Zoho Books (steps in §"Zoho Books — to flip on" below). Existing client_id/secret in `.env` already work.
+- 🟠 **P1** — Replace placeholder images for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, and Royal Kewda once real product photos are provided.
+- 🟠 **P1** — Integrate **Appyflow** (full GST verification API — currently best-effort fallback used in waitlist) and **AEPS India** (PAN + Aadhaar eKYC) for retailer onboarding.
+
 ## Original Problem Statement
 Build a premium e-commerce platform for Addrika natural incense brand by Centsibl Traders. Features include product catalog, user auth, admin portal, retailer dashboard, SEO, and messaging consistency enforcement.
 
@@ -157,16 +164,22 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 4. Find your `organization_id` under **Settings → Organization Profile** in Zoho Books.
 5. Set `ZOHO_REFRESH_TOKEN` and `ZOHO_ORG_ID` in `backend/.env`, restart backend. Done.
 
-### P1 (High)
+### April 24, 2026 (later) — GST-after-discount visibility · Object storage · Form rules · Email layout
+- **Admin notification email rewritten** — explicit row-by-row breakdown: `Subtotal → bulk-tier savings (info) → Loyalty Discount → Voucher Discount → Online Payment Discount → Taxable Value → GST @ 18% (on taxable value) → Credit Note → Grand Total`. GST is now visually proven to be on the post-discount taxable value. Persisted on order doc: `subtotal_after_loyalty`, `tier_discount_total`, `taxable_value`. New regression test `tests/test_b2b_email_layout.py`.
+- **Object-storage support for bills**: `services/object_storage.py` + Emergent managed bucket. Bill upload tries object storage first (≤5MB), falls back to base64-in-Mongo if not configured. Download endpoints transparently hydrate either source — fully backwards-compatible with existing legacy bills. Records carry `storage_path` (new) or `file_base64` (legacy).
+- **Form rules** applied to remaining customer-facing forms (`/register`, `<NotifyMeButton>`, `/track-order`): emails lowercase-normalized; existing register form already had title-case + WhatsApp + `+91` default. Helper at `lib/formHelpers.js` is the canonical source for any future form.
+- **Tested** — 18/18 (1 new email-layout test + 17 iter64 regression). Full suite: 73/73 across all 6 test files.
+
+### P1 (High) — still open
 - [ ] Replace placeholder images for Bilvapatra, 8" Dhoop, Royal Kewda (awaiting product photos)
 - [ ] Integrate Appyflow (full GST verification — currently best-effort) + AEPS India (PAN+Aadhaar eKYC)
 - [ ] Drop in actual `ZOHO_REFRESH_TOKEN` + `ZOHO_ORG_ID` to activate Zoho sync
 
 ### P2 (Medium)
-- [ ] Apply title-case + lowercase-email + WhatsApp-CC rules to OTHER forms (helper `lib/formHelpers.js` ready; currently applied to waitlist only)
 - [ ] Drop actual `G-XXXXXXXXXX` into `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+- [ ] Migrator script to move existing Mongo-base64 bills into object storage (new uploads already go there)
 - [ ] Further split `b2b_orders.py` calculate/order body (catalog ✅ + email ✅ already extracted)
-- [ ] Object-storage upgrade for bills / message attachments (currently base64 in Mongo)
+- [ ] Apply title-case rules form-by-form across the remaining surface (helper ready; high-traffic forms done)
 
 ### P3 (Low)
 - [ ] B2B product catalog in MongoDB
