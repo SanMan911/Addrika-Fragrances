@@ -25,6 +25,74 @@ async def get_portal_status():
     return {"enabled": enabled}
 
 
+# ---------------------------------------------------------------------------
+# Setup-password flow (used by waitlist → onboarding magic link)
+# ---------------------------------------------------------------------------
+
+class SetupPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=20)
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+@router.get("/setup-password/validate/{token}")
+async def validate_setup_token(token: str):
+    """Public — return whether an invite token is valid + the
+    business name (so the setup page can greet the user)."""
+    retailer = await db.retailers.find_one(
+        {"invite_token": token},
+        {"_id": 0, "business_name": 1, "name": 1, "email": 1, "invite_expires_at": 1, "password_hash": 1},
+    )
+    if not retailer:
+        return {"valid": False, "reason": "Invalid invitation link"}
+    if retailer.get("password_hash"):
+        return {"valid": False, "reason": "Password already set — please log in"}
+    if retailer.get("invite_expires_at"):
+        try:
+            expires = datetime.fromisoformat(retailer["invite_expires_at"])
+            if expires < datetime.now(timezone.utc):
+                return {"valid": False, "reason": "This invitation link has expired"}
+        except Exception:
+            pass
+    return {
+        "valid": True,
+        "business_name": retailer.get("business_name"),
+        "name": retailer.get("name"),
+        "email": retailer.get("email"),
+    }
+
+
+@router.post("/setup-password")
+async def setup_password(data: SetupPasswordRequest):
+    """Public — exchanges a one-time invite token for the user's chosen password."""
+    retailer = await db.retailers.find_one({"invite_token": data.token})
+    if not retailer:
+        raise HTTPException(status_code=404, detail="Invalid invitation link")
+    if retailer.get("password_hash"):
+        raise HTTPException(status_code=409, detail="Password already set — please log in")
+    if retailer.get("invite_expires_at"):
+        try:
+            expires = datetime.fromisoformat(retailer["invite_expires_at"])
+            if expires < datetime.now(timezone.utc):
+                raise HTTPException(status_code=410, detail="This invitation link has expired")
+        except ValueError:
+            pass
+
+    new_hash = hash_password(data.password)
+    await db.retailers.update_one(
+        {"retailer_id": retailer["retailer_id"]},
+        {
+            "$set": {
+                "password_hash": new_hash,
+                "status": "active",
+                "password_set_at": datetime.now(timezone.utc).isoformat(),
+            },
+            "$unset": {"invite_token": "", "invite_expires_at": ""},
+        },
+    )
+    logger.info(f"Retailer {retailer['retailer_id']} completed setup-password")
+    return {"ok": True, "email": retailer["email"]}
+
+
 class RetailerLoginRequest(BaseModel):
     email: Optional[str] = None  # Can be email or username
     username: Optional[str] = None  # Alternative login method

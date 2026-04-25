@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, RefreshCw, Mail, Phone, MapPin, FileText } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Mail, Phone, MapPin, FileText, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../../layout';
 
@@ -57,6 +57,32 @@ export default function AdminB2BWaitlistPage() {
       fetchData();
     } catch {
       toast.error('Failed to update status');
+    }
+  };
+
+  const onboardRetailer = async (id, businessName) => {
+    if (
+      !confirm(
+        `Onboard "${businessName}" as a B2B retailer?\n\nWe'll create their account using verified GST data and email them a one-click "set your password" link (24h validity).`
+      )
+    )
+      return;
+    try {
+      const res = await authFetch(
+        `${API_URL}/api/admin/b2b-waitlist/${id}/onboard`,
+        { method: 'POST' }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.detail || 'Onboarding failed');
+        return;
+      }
+      toast.success(
+        `Onboarded as ${data.retailer_id} — invite email sent`
+      );
+      fetchData();
+    } catch {
+      toast.error('Onboarding failed');
     }
   };
 
@@ -159,7 +185,25 @@ export default function AdminB2BWaitlistPage() {
                   {w.message}
                 </p>
               )}
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
+                {!w.retailer_id && (
+                  <button
+                    onClick={() => onboardRetailer(w.id, w.business_name)}
+                    className="px-3 py-1 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white inline-flex items-center gap-1 font-medium"
+                    data-testid={`waitlist-onboard-${w.id}`}
+                  >
+                    <UserPlus size={12} /> Onboard as Retailer
+                  </button>
+                )}
+                {w.retailer_id && (
+                  <Link
+                    href={`/admin/b2b/retailers/${w.retailer_id}`}
+                    className="px-3 py-1 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 inline-flex items-center gap-1"
+                    data-testid={`waitlist-view-retailer-${w.id}`}
+                  >
+                    View {w.retailer_id}
+                  </Link>
+                )}
                 {STATUS_OPTIONS.map((s) => (
                   <button
                     key={s}
