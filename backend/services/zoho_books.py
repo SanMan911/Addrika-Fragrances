@@ -7,6 +7,10 @@ Zoho Books integration for Addrika B2B.
 - Discount is split proportionally per line so Zoho's GST math matches ours.
 - Razorpay payments recorded as customer payment, applied to invoice when
   available, otherwise held as customer advance against the sales order.
+
+Credentials are read at *call-time* (env first, then `admin_settings` in
+MongoDB), so the OAuth callback flow can drop a fresh refresh_token into
+the DB without requiring a backend restart.
 """
 from __future__ import annotations
 
@@ -21,18 +25,59 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-REGION = os.environ.get("ZOHO_REGION", "in")
-CLIENT_ID = os.environ.get("ZOHO_CLIENT_ID", "")
-CLIENT_SECRET = os.environ.get("ZOHO_CLIENT_SECRET", "")
-REFRESH_TOKEN = os.environ.get("ZOHO_REFRESH_TOKEN", "")
-ORG_ID = os.environ.get("ZOHO_ORG_ID", "")
 
-ACCOUNTS_URL = f"https://accounts.zoho.{REGION}/oauth/v2/token"
-API_URL = f"https://www.zohoapis.{REGION}/books/v3"
+def _region() -> str:
+    return os.environ.get("ZOHO_REGION", "in")
 
 
-def is_configured() -> bool:
-    return all([CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN, ORG_ID])
+async def _get_creds() -> dict:
+    """Read creds at call-time. Env wins; DB `admin_settings` is the
+    runtime-mutable fallback used by the OAuth callback flow."""
+    creds = {
+        "client_id": os.environ.get("ZOHO_CLIENT_ID", "").strip(),
+        "client_secret": os.environ.get("ZOHO_CLIENT_SECRET", "").strip(),
+        "refresh_token": os.environ.get("ZOHO_REFRESH_TOKEN", "").strip(),
+        "org_id": os.environ.get("ZOHO_ORG_ID", "").strip(),
+    }
+    if not (creds["refresh_token"] and creds["org_id"]):
+        try:
+            from dependencies import db
+            settings = await db.admin_settings.find_one(
+                {"setting_key": "zoho_oauth"}, {"_id": 0, "setting_value": 1}
+            )
+            if settings and isinstance(settings.get("setting_value"), dict):
+                stored = settings["setting_value"]
+                creds["refresh_token"] = creds["refresh_token"] or stored.get("refresh_token", "")
+                creds["org_id"] = creds["org_id"] or stored.get("org_id", "")
+                creds["client_id"] = creds["client_id"] or stored.get("client_id", "")
+                creds["client_secret"] = creds["client_secret"] or stored.get("client_secret", "")
+        except Exception as e:
+            logger.error(f"Could not read Zoho creds from DB: {e}")
+    return creds
+
+
+def _accounts_url() -> str:
+    return f"https://accounts.zoho.{_region()}/oauth/v2/token"
+
+
+def _api_url() -> str:
+    return f"https://www.zohoapis.{_region()}/books/v3"
+
+
+async def is_configured() -> bool:
+    creds = await _get_creds()
+    return all([creds["client_id"], creds["client_secret"], creds["refresh_token"], creds["org_id"]])
+
+
+# Backwards-compat: retain the old sync `is_configured()` callsites
+def is_configured_sync_legacy() -> bool:
+    """Best-effort sync probe — env-only. Used by callers that can't await."""
+    return all([
+        os.environ.get("ZOHO_CLIENT_ID", "").strip(),
+        os.environ.get("ZOHO_CLIENT_SECRET", "").strip(),
+        os.environ.get("ZOHO_REFRESH_TOKEN", "").strip(),
+        os.environ.get("ZOHO_ORG_ID", "").strip(),
+    ])
 
 
 # ---------------------------------------------------------------------------
@@ -43,7 +88,8 @@ _token_lock = asyncio.Lock()
 
 
 async def _get_access_token() -> Optional[str]:
-    if not is_configured():
+    creds = await _get_creds()
+    if not all([creds["client_id"], creds["client_secret"], creds["refresh_token"], creds["org_id"]]):
         return None
     now = datetime.now(timezone.utc)
     if _token_cache["token"] and _token_cache["expiry"] and now < _token_cache["expiry"]:
@@ -53,12 +99,12 @@ async def _get_access_token() -> Optional[str]:
             return _token_cache["token"]
         async with httpx.AsyncClient(timeout=10) as c:
             r = await c.post(
-                ACCOUNTS_URL,
+                _accounts_url(),
                 data={
                     "grant_type": "refresh_token",
-                    "client_id": CLIENT_ID,
-                    "client_secret": CLIENT_SECRET,
-                    "refresh_token": REFRESH_TOKEN,
+                    "client_id": creds["client_id"],
+                    "client_secret": creds["client_secret"],
+                    "refresh_token": creds["refresh_token"],
                 },
             )
             r.raise_for_status()
@@ -70,8 +116,16 @@ async def _get_access_token() -> Optional[str]:
             return _token_cache["token"]
 
 
+def reset_token_cache() -> None:
+    """Force the next call to fetch a brand-new access token. Used after
+    the OAuth callback writes a fresh refresh_token to the DB."""
+    _token_cache["token"] = None
+    _token_cache["expiry"] = None
+
+
 async def _request(method: str, path: str, *, json_body: Optional[dict] = None,
                    params: Optional[dict] = None) -> Optional[dict]:
+    creds = await _get_creds()
     token = await _get_access_token()
     if not token:
         return None
@@ -79,8 +133,8 @@ async def _request(method: str, path: str, *, json_body: Optional[dict] = None,
         "Authorization": f"Zoho-oauthtoken {token}",
         "Content-Type": "application/json",
     }
-    qp = {"organization_id": ORG_ID, **(params or {})}
-    url = f"{API_URL}/{path.lstrip('/')}"
+    qp = {"organization_id": creds["org_id"], **(params or {})}
+    url = f"{_api_url()}/{path.lstrip('/')}"
     async with httpx.AsyncClient(timeout=20) as c:
         r = await c.request(method, url, headers=headers, params=qp, json=json_body)
         if r.status_code == 401:
@@ -114,7 +168,7 @@ async def find_customer_by_gst(gst_number: str) -> Optional[dict]:
 
 async def upsert_customer(retailer: dict) -> Optional[str]:
     """Return Zoho contact_id, or None if integration disabled / failed."""
-    if not is_configured():
+    if not await is_configured():
         return None
     gst = (retailer.get("gst_number") or "").upper().strip()
     name = (
@@ -198,7 +252,7 @@ def _distribute_discount(order: dict) -> list[dict]:
 
 async def push_sales_order(order: dict, retailer: dict) -> Optional[dict]:
     """Create a Zoho Sales Order from an Addrika B2B order. Returns Zoho payload or None."""
-    if not is_configured():
+    if not await is_configured():
         return None
     contact_id = await upsert_customer(retailer)
     if not contact_id:
@@ -222,7 +276,7 @@ async def push_sales_order(order: dict, retailer: dict) -> Optional[dict]:
 async def push_payment(order: dict, retailer: dict, amount: float,
                        razorpay_payment_id: str) -> Optional[dict]:
     """Record a Razorpay payment as Zoho customer payment (advance against SO)."""
-    if not is_configured():
+    if not await is_configured():
         return None
     contact_id = await upsert_customer(retailer)
     if not contact_id:
@@ -246,15 +300,16 @@ async def push_payment(order: dict, retailer: dict, amount: float,
 
 async def status() -> dict:
     """Lightweight ping for admin sanity check."""
-    if not is_configured():
+    creds = await _get_creds()
+    if not all([creds["client_id"], creds["client_secret"], creds["refresh_token"], creds["org_id"]]):
         return {"configured": False}
     try:
         res = await _request("GET", "organizations")
         return {
             "configured": True,
             "ok": bool(res),
-            "org_id": ORG_ID,
-            "region": REGION,
+            "org_id": creds["org_id"],
+            "region": _region(),
         }
     except Exception as e:
         return {"configured": True, "ok": False, "error": str(e)[:200]}

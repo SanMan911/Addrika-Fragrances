@@ -240,7 +240,7 @@ async def create_b2b_order(
                     "zoho_synced_at": datetime.now(timezone.utc).isoformat(),
                 }},
             )
-        elif _zoho_cfg():
+        elif await _zoho_cfg():
             # configured but returned None → treat as a sync error
             from services.zoho_errors import record_error
             await record_error(
@@ -397,7 +397,7 @@ async def verify_b2b_payment(
                         "zoho_payment_synced_at": datetime.now(timezone.utc).isoformat(),
                     }},
                 )
-            elif _zoho_cfg():
+            elif await _zoho_cfg():
                 from services.zoho_errors import record_error
                 await record_error(
                     "payment",

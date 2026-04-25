@@ -316,6 +316,7 @@ class TestDistributeDiscount:
         assert abs(sum(l["item_total"] for l in lines) - 1000.0) <= 0.5
 
     def test_is_configured_false_when_blank(self):
+        import asyncio
         from services.zoho_books import is_configured
         # ZOHO_* env vars are intentionally blank in this iteration
-        assert is_configured() is False
+        assert asyncio.get_event_loop().run_until_complete(is_configured()) is False
