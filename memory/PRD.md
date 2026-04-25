@@ -141,17 +141,32 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Hero smoke wisps** — `<HeroSmoke />` pure-CSS layered radial-gradient blurs drifting upward at low opacity; respects `prefers-reduced-motion`; ~3 KB, no video. Rendered behind hero text via `z-index: 0`.
 - **Tested** — iteration_63.json: 55/55 backend (15 iter63 + 13 iter61 + 7 expansion + 20 killswitch). Public frontend (cookie/hero/waitlist) verified.
 
+### April 24, 2026 — Zoho Books · Nudge · Magic-number · Coming-Soon Blast
+- **Zoho Books direct integration** (single-tenant OAuth refresh-token, region `in`). Auto-creates Sales Order on B2B order placement and records Customer Payment on Razorpay verify. Discounts (loyalty + voucher + cash) split proportionally per line so Zoho's GST math matches ours. Tier discount stays inside `line_total`. Best-effort, gated behind `is_configured()` — silently no-ops if `ZOHO_REFRESH_TOKEN` / `ZOHO_ORG_ID` blank, never breaks the user-facing flow.
+- **Admin Zoho controls**: `GET /api/admin/zoho/status` (health), `POST /api/admin/zoho/resync/{order_id}` (idempotent retry); per-row "Sync" button on retailer-detail Orders tab (only renders for orders not yet synced).
+- **Nudge button** on Top-5 Retailers widget → opens `wa.me/{cc}{phone}?text=…` with a pre-filled INR-localized message; only shown for retailers within 10% of next milestone AND who have a phone number on file. `country_code` now in projection (no `+91` fallback).
+- **Magic-number sniffing** on bill / message attachments — server-side validates first 16 bytes against PDF / PNG / JPEG / WEBP signatures AND asserts sniffed MIME == declared `file_type` (with `image/jpg` ↔ `image/jpeg` alias). Defense in depth on top of the 5MB cap and MIME whitelist.
+- **Coming Soon → Available email blast**: `POST /api/admin/notify-me/{product_id}/blast` — emails every subscriber, sets `notified_at` so re-runs are idempotent. 400 if product still flagged comingSoon, 404 if unknown.
+- **`.env` cleanup**: pre-existing `ZOHO_CLIENT_ID` / `ZOHO_CLIENT_SECRET` (from the old Sheets work) are reused; only `ZOHO_REFRESH_TOKEN` and `ZOHO_ORG_ID` need to be plugged in to flip the integration on.
+- **Tested** — iteration_64.json: 72/72 (17 new + 55 regression). All Zoho calls covered for the no-op path so production is safe with creds blank.
+
+### Zoho Books — to flip on
+1. Visit https://api-console.zoho.in → Self Client → use the existing CLIENT_ID/SECRET in `.env`.
+2. Generate a code with scope: `ZohoBooks.contacts.CREATE,ZohoBooks.contacts.UPDATE,ZohoBooks.contacts.READ,ZohoBooks.salesorders.CREATE,ZohoBooks.salesorders.READ,ZohoBooks.customerpayments.CREATE,ZohoBooks.customerpayments.READ` (offline access).
+3. Exchange the code for a refresh_token (one-time).
+4. Find your `organization_id` under **Settings → Organization Profile** in Zoho Books.
+5. Set `ZOHO_REFRESH_TOKEN` and `ZOHO_ORG_ID` in `backend/.env`, restart backend. Done.
+
 ### P1 (High)
 - [ ] Replace placeholder images for Bilvapatra, 8" Dhoop, Royal Kewda (awaiting product photos)
-- [ ] Integrate Appyflow (full GST verification — currently best-effort fallback) + AEPS India (PAN+Aadhaar eKYC)
+- [ ] Integrate Appyflow (full GST verification — currently best-effort) + AEPS India (PAN+Aadhaar eKYC)
+- [ ] Drop in actual `ZOHO_REFRESH_TOKEN` + `ZOHO_ORG_ID` to activate Zoho sync
 
 ### P2 (Medium)
-- [ ] Apply title-case / lowercase-email / WhatsApp-CC rules to all OTHER forms across the site (currently applied to waitlist; helper `lib/formHelpers.js` ready for reuse)
-- [ ] Drop in the actual `G-XXXXXXXXXX` ID into `NEXT_PUBLIC_GA_MEASUREMENT_ID` env var
-- [ ] Send notification emails when "Coming Soon" products become available
-- [ ] Further split `b2b_orders.py` (email already extracted ✅; calculate/order remain)
-- [ ] Object-storage upgrade for bills & message attachments (currently base64 in Mongo, capped 5MB)
-- [ ] Magic-number sniffing on attachment uploads
+- [ ] Apply title-case + lowercase-email + WhatsApp-CC rules to OTHER forms (helper `lib/formHelpers.js` ready; currently applied to waitlist only)
+- [ ] Drop actual `G-XXXXXXXXXX` into `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+- [ ] Further split `b2b_orders.py` calculate/order body (catalog ✅ + email ✅ already extracted)
+- [ ] Object-storage upgrade for bills / message attachments (currently base64 in Mongo)
 
 ### P3 (Low)
 - [ ] B2B product catalog in MongoDB
