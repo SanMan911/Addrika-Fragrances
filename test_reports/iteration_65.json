@@ -1,0 +1,43 @@
+{
+  "summary": "Tested Sandbox KYC graceful-degrade backend + frontend KYC widget on waitlist + GA4 cookie consent + Zoho Sync Health Card. Backend: 17/17 KYC sandbox tests pass, all 41 P1 regression tests pass. Public-URL smoke: GET /api/retailer-auth/kyc/status returns {enabled:false, provider:'sandbox'} (200), POST .../pan/verify with valid PAN returns 503, with 'BAD' returns 422, /aadhaar/otp returns 503, all admin KYC endpoints return 401 unauth. Frontend: GA4 banner appears on homepage, absent on /admin/login. Admin Zoho Sync Health Card renders with metrics + Backfill (24)/Re-auth buttons. KYC chevron-toggle on each waitlist row works after fix and shows amber 'KYC service not yet activated' card with sandbox.co.in link and data-testid='kyc-card-disabled'. Found and fixed a CRITICAL frontend bug: missing useState hook for expandedKyc in /app/frontend-next/app/admin/b2b/waitlist/page.js was causing 'ReferenceError: expandedKyc is not defined' and a full client-side crash of the page once the new build was deployed. Rebuild + restart confirms the fix. NOTE: dev server runs `next start` (production build) — code edits do NOT hot-reload; main agent must run `yarn build && supervisorctl restart frontend` after frontend changes.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminWaitlist (/admin/b2b/waitlist)", "issue": "FIXED by testing agent: missing `const [expandedKyc, setExpandedKyc] = useState({})` declaration caused full-page ReferenceError client-side crash after rebuild. Patched line 25 of page.js. Page now renders 31 KYC toggle buttons and the amber 'not yet activated' card.", "selector": "[data-testid^=\"waitlist-kyc-toggle-\"]", "priority": "HIGH (already fixed)"}
+    ],
+    "integration_issues": [
+      {"flow": "Admin Dashboard Backfill button (Zoho Sync Health Card)", "issue": "Click on 'Backfill (24)' button never fires POST /api/admin/zoho/backfill (response listener captured nothing in 6s). Likely a confirm-modal step that auto-accept dialog handler did not catch (it may use a custom in-app modal rather than native confirm). Endpoint itself works (test_zoho_health_tour::TestZohoBackfill passes). Main agent should verify the click handler wires through the in-app modal and that the 'confirm' button triggers the fetch.", "affected_selectors": ["button:has-text(\"Backfill\")"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_kyc_sandbox.py",
+    "/app/test_reports/pytest/test_kyc_sandbox.xml",
+    "/app/test_reports/pytest/p1_regression.xml"
+  ],
+  "action_items": [
+    "Verify Backfill button on Zoho Sync Health Card actually triggers POST /api/admin/zoho/backfill — likely the in-app confirm modal's 'Confirm' button is not wired or its testid is missing. Add data-testid='zoho-backfill-button' and 'zoho-backfill-confirm' to make this testable.",
+    "Add data-testid='zoho-sync-health-card' to the card root for parity with other dashboard cards (currently only inner element has data-testid='zoho-sync-health').",
+    "Commit the expandedKyc useState fix that the testing agent applied to /app/frontend-next/app/admin/b2b/waitlist/page.js. Without it the admin waitlist page crashes for everyone.",
+    "Document: this Next.js app runs `next start` in production mode — frontend code changes require `cd /app/frontend-next && yarn build && sudo supervisorctl restart frontend` (≈80s). HOT reload is NOT active. Consider switching supervisor to `yarn dev` for faster iteration in preview env."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend-next/app/admin/b2b/waitlist/page.js: CRITICAL — referenced expandedKyc/setExpandedKyc without declaring the state. Static analysis (ESLint react/no-undef) would have caught this. Recommend enabling `next lint` in CI.",
+    "Sandbox KYC backend: services/kyc_sandbox.py degrades gracefully — is_configured() short-circuits when SANDBOX_API_KEY/SECRET blank; routers/kyc.py raises 503 with clear message. Status endpoint correctly returns {enabled:false} (200) so the frontend can render the amber notice. Clean implementation.",
+    "Admin KYC routes correctly require admin session (401 on all 3 unauthenticated calls).",
+    "ZohoSyncHealthCard renders correctly with live metrics; banner alert 'Zoho Books sync failed for 27 items' shows on dashboard above the card — good UX."
+  ],
+  "updated_files": [
+    "/app/frontend-next/app/admin/b2b/waitlist/page.js (added missing useState for expandedKyc)"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 KYC sandbox + 41/41 P1 regression + 7/7 public-URL smoke = 65/65)",
+    "frontend": "85% (cookie consent + admin login + Zoho Sync Health Card render + KYC widget on waitlist all PASS; Backfill click→API not observed)"
+  },
+  "test_credentials": "Admin: contact.us@centraders.com / PIN 050499 (OTP fetched live from db.admin_2fa_tokens via /tmp/get_otp.py). B2B retailer: test_b2b_retailer@example.com / Test@12345 (RTL_TEST_B2B). SANDBOX_API_KEY/SECRET intentionally blank.",
+  "seed_data_creation": "None. Only DB read of admin_2fa_tokens for OTP retrieval.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Frontend uses Next.js production build (`next start`). After ANY edit under /app/frontend-next/, run `cd /app/frontend-next && yarn build && sudo supervisorctl restart frontend` (~85s) before browser-testing. Use /tmp/get_otp.py to fetch latest admin OTP from MongoDB. The Retailer First-Login Tour was NOT visually verified this iteration (out of token budget) — backend test_zoho_health_tour::TestRetailerTour::test_marks_completed_idempotent passes; main agent should self-verify by logging in as test_b2b_retailer@example.com / Test@12345 to /retailer/b2b. KYC widget verified working on /admin/b2b/waitlist after expandedKyc fix.",
+  "rca_of_the_issue": "Frontend crash RCA: /app/frontend-next/app/admin/b2b/waitlist/page.js line ~225 references setExpandedKyc((prev)=>...) and lines 232/242 read expandedKyc[w.id] but the useState hook was never declared. In Next.js production build the ReferenceError surfaces as 'Application error: a client-side exception has occurred' wiping the page. Mitigation: added `const [expandedKyc, setExpandedKyc] = useState({});` after the loading state. Rebuild verified — KYC toggle now expands the KYCVerificationCard which correctly fetches /api/admin/kyc/status, sees enabled:false and renders the amber 'KYC service not yet activated' panel with data-testid='kyc-card-disabled' and sandbox.co.in link."
+}

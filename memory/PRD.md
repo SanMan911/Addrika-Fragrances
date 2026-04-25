@@ -5,7 +5,7 @@
 
 - 🟠 **P1** — ~~Drop in `ZOHO_REFRESH_TOKEN` + `ZOHO_ORG_ID` to activate Sales Order + Customer Payment auto-sync to Zoho Books~~ ✅ **DONE Apr 25, 2026** — connected via in-app OAuth flow (refresh_token in `admin_settings.zoho_oauth`, org_id `60057247059`).
 - 🟠 **P1** — Replace placeholder images for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, and Royal Kewda once real product photos are provided.
-- 🟠 **P1** — Integrate **AEPS India** (PAN + Aadhaar eKYC) for retailer onboarding. ✅ Appyflow GST verification migrated April 25 2026.
+- 🟠 **P1** — Sandbox API KYC (PAN + Aadhaar OTP) ✅ **Infra built Apr 26, 2026** — drop in `SANDBOX_API_KEY` + `SANDBOX_API_SECRET` (placeholders in `.env`) to flip on. Service degrades gracefully (`enabled:false`) when keys are blank. Routes: `/api/{retailer-auth,admin}/kyc/{status,pan/verify,aadhaar/otp,aadhaar/verify}`. UI widget at `components/KYCVerificationCard.js` already embedded in `/admin/b2b/waitlist`. Get free credentials at https://app.sandbox.co.in/signup.
 
 ## 🔑 Required API Keys / Credentials Summary
 | Integration | Env var(s) | Status | Where to obtain |
@@ -15,7 +15,8 @@
 | Appyflow GST verify | `APPYFLOW_API_KEY` | ✅ in .env (Apr 25) | appyflow.in/gst-api |
 | Zoho Books (ERP) | `ZOHO_REFRESH_TOKEN`, `ZOHO_ORG_ID` | ✅ live (Apr 25) — refresh_token saved in `admin_settings.zoho_oauth`, org_id `60057247059` | api-console.zoho.in (Self-Client) + Zoho Books → Settings → Organization Profile |
 | Google Analytics 4 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ❌ pending | analytics.google.com → Admin → Data Streams |
-| AEPS India (PAN+Aadhaar eKYC) | `AEPS_API_KEY`, `AEPS_API_SECRET` | ❌ pending | aepsindia.com developer portal |
+| AEPS India (PAN+Aadhaar eKYC) | `AEPS_API_KEY`, `AEPS_API_SECRET` | ❌ deprecated — replaced by Sandbox API | aepsindia.com developer portal |
+| Sandbox API KYC | `SANDBOX_API_KEY`, `SANDBOX_API_SECRET`, `SANDBOX_API_VERSION` | ⚠️ placeholders in .env (Apr 26) — free tier ~100 calls/mo | app.sandbox.co.in/signup |
 | Optional invoice header overrides | `SELLER_NAME`, `SELLER_GSTIN`, `SELLER_ADDRESS`, `SELLER_STATE`, `SELLER_EMAIL`, `SELLER_PHONE` | optional, defaults shipped | hard-coded fallback to Centsibl Traders / Delhi |
 
 ## Original Problem Statement
