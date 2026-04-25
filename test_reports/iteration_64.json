@@ -1,0 +1,63 @@
+{
+  "summary": "Iteration 64 backend testing for: (1) Top-5 retailers nudge data, (2) Zoho Books integration with no-op safety when ZOHO_* unset, (3) magic-number sniffing on bills/messages attachments, (4) Coming-Soon -> Available email blast, (5) _distribute_discount pure function. Wrote 17 new tests in /app/backend/tests/test_b2b_iteration_64.py. 15/17 PASS. 2 FAIL revealing one real HIGH-priority security bug in _validate_attachment (does not enforce claimed file_type == sniffed magic-number). All 55 prior iter63 regression tests still PASS (test_b2b_expansion + test_b2b_iteration_61 + test_b2b_iteration_63 + test_b2b_portal_killswitch).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/admin/b2b/retailers/{id}/bills  AND  POST /api/admin/b2b/retailers/{id}/messages",
+        "issue": "_validate_attachment() in /app/backend/routers/b2b_bills_messages.py does NOT compare the client-supplied file_type against the sniffed magic-number. It only checks (a) claimed file_type in ALLOWED_MIME and (b) sniffed in ALLOWED_MIME. So an attacker can upload JPEG bytes claiming application/pdf and the server stores them as PDF (200 OK). The original spec — 'returns 400 File content does not match' — is violated. Reproduced in test_pdf_claim_jpeg_bytes_400 (got 200 instead of 400) and test_admin_message_mismatch_400 (got 200 instead of 400). FIX: after `sniffed = _sniff_mime(...)`, add `if file_type and sniffed != file_type.lower(): raise HTTPException(400, 'File content does not match')`. Note: image/jpg is whitelisted but _sniff_mime returns image/jpeg — handle that alias in the equality check.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/app/backend/.env",
+        "issue": "ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET appear TWICE in backend/.env (lines 15-18 with real-looking Zoho Sheets values, then lines 36-39 blank). dotenv last-write-wins so blanks correctly override → is_configured()==False today. But this is fragile: anyone editing the top block will silently re-enable Zoho. Recommend deleting the older Zoho Sheets block or moving all ZOHO_* into one block with comments."
+      },
+      {
+        "endpoint": "GET /api/admin/b2b/reports/top-retailers",
+        "issue": "Mongo projection at admin_b2b_reports.py L96-99 fetches phone but NOT country_code from retailers — function falls back to '+91' string literal. If retailers actually have non-+91 country_code stored, it will be ignored. Add 'country_code: 1' to the projection."
+      },
+      {
+        "endpoint": "POST /api/admin/zoho/resync/{order_id}",
+        "issue": "Response field naming inconsistency: returns `configured: bool(so or pmt) or False` which conflates 'integration configured' with 'something was pushed'. When Zoho is configured but the order had no payment, configured can flip to False. Recommend renaming to `synced` or returning the real is_configured() value separately."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_b2b_iteration_64.py",
+    "/app/test_reports/pytest/b2b_iteration_64.xml",
+    "/app/test_reports/pytest/b2b_regression_iter64.xml"
+  ],
+  "action_items": [
+    "HIGH: Fix _validate_attachment() in /app/backend/routers/b2b_bills_messages.py to also assert sniffed_mime == claimed file_type.lower() (with image/jpg ↔ image/jpeg alias). This is the bug the iter-64 spec line 'returns 400 File content does not match' describes. Two failing tests will then go green.",
+    "Clean up duplicate ZOHO_* entries in /app/backend/.env (delete the older Zoho Sheets block or merge into one).",
+    "Add 'country_code: 1' to retailer projection in admin_b2b_reports.admin_top_retailers so the nudge button can use the real country code, not the hardcoded '+91' fallback.",
+    "Reconsider the response shape of /api/admin/zoho/resync/{order_id} so 'configured' truthfully reflects is_configured() and a separate flag indicates whether anything was actually pushed."
+  ],
+  "critical_code_review_comments": [
+    "services/zoho_books.py: solid no-op gating via is_configured(); _get_access_token short-circuits when not configured, _request short-circuits when token is None — so even if creds are partially set the code won't blow up. Good.",
+    "_distribute_discount is a pure function: factor = max(0, 1 - total_discount/subtotal). subtotal=0 falls back to factor=1.0 (won't divide by zero). Verified sum-of-item_total ≈ subtotal - all_discounts within ₹0.5 for both 2-line and 1-line orders.",
+    "routers/b2b_orders.py L487-499 and L624-635: both Zoho calls correctly wrapped in try/except so the user-facing checkout / verify-payment flows cannot 500 even if Zoho returns garbage. Logs 'Zoho sales-order sync failed' / equivalent on payment side. Good defensive coding.",
+    "routers/admin/admin_zoho.py: resync endpoint correctly 404s when order missing AND when retailer record missing. Re-using push_sales_order/push_payment guarantees same code path as live flow — good for parity.",
+    "routers/notify_me.py admin_send_blast: idempotency via {notified_at: $exists: false} cursor + per-success update is correct. Edge case: if send_email succeeds but the update_one races and fails (rare), the next call will re-send. Acceptable trade-off; marked as known. Cursor uses async for over a dynamic collection — adding new subscribers mid-loop will be picked up; that's also fine.",
+    "routers/b2b_bills_messages._validate_attachment: SECURITY GAP — does not assert sniffed_mime == claimed file_type. See critical issue above."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_b2b_iteration_64.py (NEW — 17 tests)"
+  ],
+  "success_rate": {
+    "backend": "88% (15/17 new tests + 55/55 regression = 70/72 total)",
+    "frontend": "not tested (review_request scope: backend only)"
+  },
+  "test_credentials": "Admin: contact.us@centraders.com / PIN 050499 (OTP via db.admin_2fa_tokens). Retailer: test_b2b_retailer@example.com / Test@12345 (RTL_TEST_B2B). ZOHO_* env vars confirmed BLANK — is_configured()==False.",
+  "seed_data_creation": "All seeded data is auto-cleaned in finally blocks: TEST_IT64_TOP_* and TEST_IT64_RESYNC_* b2b_orders, TEST_IT64_CS_* and TEST_IT64_AVAIL_* products, pytest_it64_* notify_me rows. Iter64 PNG/PDF bills auto-deleted via DELETE /admin/b2b/bills/{id}.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run all 4 regression suites + new iter64 with: cd /app/backend && pytest tests/test_b2b_expansion.py tests/test_b2b_iteration_61.py tests/test_b2b_iteration_63.py tests/test_b2b_portal_killswitch.py tests/test_b2b_iteration_64.py -v. After main agent fixes _validate_attachment, the 2 currently failing tests (test_pdf_claim_jpeg_bytes_400, test_admin_message_mismatch_400) should go green. ZOHO_* must remain blank in .env until prod creds are plugged in. B2B portal is left ENABLED at end of iter64 because portal_teardown sets it back to disabled in iter63 fixture but iter64 fixtures don't touch it; main agent should toggle as needed.",
+  "rca_of_the_issue": "Bug RCA — magic-number mismatch not caught: In b2b_bills_messages._validate_attachment, the sniff step asserts `sniffed in ALLOWED_MIME` but never compares against the claimed `file_type`. Because both PDF and JPEG are in the whitelist, an upload claiming application/pdf with JPEG bytes passes both gates. Reproduce: POST /api/admin/b2b/retailers/RTL_TEST_B2B/bills with file_type='application/pdf' and file_base64=base64(b'\\xff\\xd8\\xff'+b'\\x00'*100) → returns 200 instead of 400. Mitigation patch: replace the sniff block with `if not sniffed or sniffed not in ALLOWED_MIME: raise HTTPException(400, 'File content does not match an allowed type'); claimed = file_type.lower().replace('image/jpg','image/jpeg'); if sniffed != claimed: raise HTTPException(400, 'File content does not match the declared type')`."
+}

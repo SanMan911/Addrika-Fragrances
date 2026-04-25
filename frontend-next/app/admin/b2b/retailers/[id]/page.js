@@ -131,6 +131,7 @@ export default function AdminRetailerDetailPage() {
 function OrdersPanel({ retailerId }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [resyncingId, setResyncingId] = useState(null);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -147,6 +148,35 @@ function OrdersPanel({ retailerId }) {
       setLoading(false);
     }
   }, [retailerId]);
+
+  const resync = async (orderId) => {
+    setResyncingId(orderId);
+    try {
+      const res = await authFetch(
+        `${API_URL}/api/admin/zoho/resync/${orderId}`,
+        { method: 'POST' }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Resync failed');
+      }
+      const data = await res.json();
+      if (!data.salesorder_pushed && !data.payment_pushed) {
+        toast.warning(
+          'Zoho not configured (or order failed validation). Add ZOHO_* env vars and retry.'
+        );
+      } else {
+        toast.success(
+          `Synced to Zoho · SO:${data.salesorder_pushed ? '✓' : '–'} Payment:${data.payment_pushed ? '✓' : '–'}`
+        );
+        fetchOrders();
+      }
+    } catch (e) {
+      toast.error(e.message || 'Resync failed');
+    } finally {
+      setResyncingId(null);
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -176,6 +206,7 @@ function OrdersPanel({ retailerId }) {
             <th className="px-4 py-3 text-right">Total</th>
             <th className="px-4 py-3 text-center">Status</th>
             <th className="px-4 py-3 text-center">Payment</th>
+            <th className="px-4 py-3 text-center">Zoho</th>
           </tr>
         </thead>
         <tbody>
@@ -202,6 +233,22 @@ function OrdersPanel({ retailerId }) {
                 >
                   {o.payment_status || 'pending'}
                 </span>
+              </td>
+              <td className="px-4 py-3 text-center">
+                {o.zoho_salesorder_id ? (
+                  <span className="text-[11px] text-emerald-700" title={o.zoho_salesorder_id}>
+                    ✓ Synced
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => resync(o.order_id)}
+                    disabled={resyncingId === o.order_id}
+                    className="px-2 py-0.5 text-[11px] rounded bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                    data-testid={`zoho-resync-${o.order_id}`}
+                  >
+                    {resyncingId === o.order_id ? 'Syncing…' : 'Sync'}
+                  </button>
+                )}
               </td>
             </tr>
           ))}

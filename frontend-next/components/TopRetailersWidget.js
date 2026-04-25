@@ -88,49 +88,88 @@ export default function TopRetailersWidget() {
       ) : (
         <div className="space-y-2">
           {data.top_retailers.map((r, idx) => (
-            <Link
+            <div
               key={r.retailer_id}
-              href={`/admin/b2b/retailers/${r.retailer_id}`}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
               data-testid={`top-retailer-${idx}`}
             >
-              <span className="w-7 h-7 rounded-full bg-amber-100 text-amber-700 text-sm font-bold flex items-center justify-center">
-                {idx + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-slate-800 dark:text-white truncate">
-                  {r.retailer_name}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {r.order_count} order{r.order_count === 1 ? '' : 's'}
-                  {r.applied_milestone && (
-                    <>
-                      {' · '}
-                      <span className="text-emerald-700 font-medium">
-                        {r.applied_milestone.discount_percent}% bonus active
-                      </span>
-                    </>
-                  )}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-slate-800 dark:text-white">
-                  {formatCurrency(r.purchases_total)}
-                </p>
-                {r.is_close_to_next && r.next_milestone && (
-                  <p
-                    className="text-[11px] text-amber-600 flex items-center gap-1 justify-end"
-                    title={`${formatCurrency(r.gap_to_next)} more for ${r.next_milestone.discount_percent}%`}
-                  >
-                    <AlertCircle size={10} />
-                    {formatCurrency(r.gap_to_next)} → {r.next_milestone.discount_percent}%
+              <Link
+                href={`/admin/b2b/retailers/${r.retailer_id}`}
+                className="flex items-center gap-3 flex-1 min-w-0"
+              >
+                <span className="w-7 h-7 rounded-full bg-amber-100 text-amber-700 text-sm font-bold flex items-center justify-center flex-shrink-0">
+                  {idx + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-slate-800 dark:text-white truncate">
+                    {r.retailer_name}
                   </p>
-                )}
-              </div>
-            </Link>
+                  <p className="text-xs text-slate-500">
+                    {r.order_count} order{r.order_count === 1 ? '' : 's'}
+                    {r.applied_milestone && (
+                      <>
+                        {' · '}
+                        <span className="text-emerald-700 font-medium">
+                          {r.applied_milestone.discount_percent}% bonus active
+                        </span>
+                      </>
+                    )}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-slate-800 dark:text-white">
+                    {formatCurrency(r.purchases_total)}
+                  </p>
+                  {r.is_close_to_next && r.next_milestone && (
+                    <p
+                      className="text-[11px] text-amber-600 flex items-center gap-1 justify-end"
+                      title={`${formatCurrency(r.gap_to_next)} more for ${r.next_milestone.discount_percent}%`}
+                    >
+                      <AlertCircle size={10} />
+                      {formatCurrency(r.gap_to_next)} → {r.next_milestone.discount_percent}%
+                    </p>
+                  )}
+                </div>
+              </Link>
+              {r.is_close_to_next && r.next_milestone && r.retailer_phone && (
+                <NudgeButton retailer={r} />
+              )}
+            </div>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function NudgeButton({ retailer }) {
+  const onClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const cc = (retailer.retailer_country_code || '+91').replace(/\D/g, '');
+    const phone = (retailer.retailer_phone || '').replace(/\D/g, '');
+    const wa = `${cc}${phone}`;
+    const formatINR = (v) =>
+      new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0,
+      }).format(v || 0);
+    const msg = encodeURIComponent(
+      `Hi ${retailer.retailer_name}, this is the Addrika team — you're just ${formatINR(
+        retailer.gap_to_next
+      )} away from unlocking a ${retailer.next_milestone.discount_percent}% loyalty bonus this quarter. Place your next order on the portal and the bonus auto-applies on top of any other discounts. 🌿`
+    );
+    window.open(`https://wa.me/${wa}?text=${msg}`, '_blank', 'noopener,noreferrer');
+  };
+  return (
+    <button
+      onClick={onClick}
+      className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium flex items-center gap-1 flex-shrink-0"
+      title="Send a WhatsApp nudge"
+      data-testid={`nudge-${retailer.retailer_id}`}
+    >
+      Nudge
+    </button>
   );
 }

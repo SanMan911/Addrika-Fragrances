@@ -111,6 +111,8 @@ async def admin_top_retailers(
                 or retailer.get("trade_name")
                 or retailer_id,
                 "retailer_email": retailer.get("email"),
+                "retailer_phone": retailer.get("phone"),
+                "retailer_country_code": retailer.get("country_code") or "+91",
                 "retailer_city": retailer.get("city"),
                 "purchases_total": round(r["purchases_total"], 2),
                 "order_count": r["order_count"],

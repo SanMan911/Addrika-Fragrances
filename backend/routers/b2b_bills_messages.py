@@ -25,6 +25,24 @@ retailer_router = APIRouter(prefix="/retailer-dashboard", tags=["Retailer Bills 
 ALLOWED_MIME = {"application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"}
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 
+# Magic-number signatures (defense in depth — never trust client-supplied MIME)
+_FILE_SIGNATURES = (
+    (b"%PDF-", "application/pdf"),
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"RIFF", "image/webp"),  # RIFF...WEBP
+)
+
+
+def _sniff_mime(data: bytes) -> Optional[str]:
+    for sig, mime in _FILE_SIGNATURES:
+        if data.startswith(sig):
+            # Extra check for WEBP (RIFF...WEBP)
+            if mime == "image/webp" and len(data) >= 12 and data[8:12] != b"WEBP":
+                continue
+            return mime
+    return None
+
 
 def _validate_attachment(file_base64: Optional[str], file_type: Optional[str]) -> None:
     if not file_base64:
@@ -37,13 +55,19 @@ def _validate_attachment(file_base64: Optional[str], file_type: Optional[str]) -
     # Estimate decoded size (base64 expands by ~33%)
     try:
         data = file_base64.split(",")[-1]  # strip data: prefix if present
-        approx_bytes = len(base64.b64decode(data, validate=True))
+        decoded = base64.b64decode(data, validate=True)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid base64 attachment")
-    if approx_bytes > MAX_FILE_SIZE_BYTES:
+    if len(decoded) > MAX_FILE_SIZE_BYTES:
         raise HTTPException(
             status_code=400,
             detail="File exceeds 5MB limit",
+        )
+    sniffed = _sniff_mime(decoded[:16])
+    if not sniffed or sniffed not in ALLOWED_MIME:
+        raise HTTPException(
+            status_code=400,
+            detail="File content does not match an allowed type (PDF/PNG/JPG/WEBP)",
         )
 
 
