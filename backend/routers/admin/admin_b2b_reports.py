@@ -95,7 +95,7 @@ async def admin_top_retailers(
         retailer_id = r["_id"]
         retailer = await db.retailers.find_one(
             {"retailer_id": retailer_id},
-            {"_id": 0, "business_name": 1, "trade_name": 1, "email": 1, "phone": 1, "city": 1},
+            {"_id": 0, "business_name": 1, "trade_name": 1, "email": 1, "phone": 1, "country_code": 1, "city": 1},
         ) or {}
         applied = applicable_milestone(milestones, r["purchases_total"])
         nxt = next_milestone(milestones, r["purchases_total"])

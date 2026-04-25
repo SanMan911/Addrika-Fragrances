@@ -69,6 +69,13 @@ def _validate_attachment(file_base64: Optional[str], file_type: Optional[str]) -
             status_code=400,
             detail="File content does not match an allowed type (PDF/PNG/JPG/WEBP)",
         )
+    if file_type:
+        claimed = file_type.lower().replace("image/jpg", "image/jpeg")
+        if sniffed != claimed:
+            raise HTTPException(
+                status_code=400,
+                detail="File content does not match the declared type",
+            )
 
 
 # ============================================================================

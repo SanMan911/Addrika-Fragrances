@@ -8,7 +8,7 @@ from typing import Optional
 import logging
 
 from dependencies import db, require_admin
-from services.zoho_books import status as zoho_status, push_sales_order, push_payment
+from services.zoho_books import status as zoho_status, push_sales_order, push_payment, is_configured
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/zoho", tags=["Admin Zoho"])
@@ -61,7 +61,7 @@ async def admin_resync_order(
         await db.b2b_orders.update_one({"order_id": order_id}, {"$set": updates})
 
     return {
-        "configured": bool(so or pmt) or False,
+        "configured": is_configured(),
         "salesorder_pushed": bool(so),
         "payment_pushed": bool(pmt),
         "zoho_salesorder_id": (so or {}).get("salesorder_id"),
