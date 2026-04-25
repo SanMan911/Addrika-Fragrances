@@ -5,7 +5,7 @@ Admin endpoints for managing retailers with full legal compliance
 from fastapi import APIRouter, HTTPException, Request, Cookie, UploadFile, File, Form, BackgroundTasks
 from typing import Optional
 from datetime import datetime, timezone
-from pydantic import BaseModel, Field, EmailStr, validator
+from pydantic import BaseModel, Field, EmailStr, field_validator
 import logging
 import uuid
 import base64
@@ -78,7 +78,8 @@ class RetailerCreateRequest(BaseModel):
     # Authentication
     password: str = Field(..., min_length=6)
     
-    @validator('username', pre=True, always=True)
+    @field_validator('username', mode='before')
+    @classmethod
     def validate_username(cls, v):
         if v:
             # Only allow lowercase alphanumeric and underscore
@@ -87,11 +88,13 @@ class RetailerCreateRequest(BaseModel):
                 raise ValueError('Username must contain only lowercase letters, numbers, and underscores')
         return v
     
-    @validator('business_name', 'trade_name', 'city', 'district', 'state', 'spoc_name', 'spoc_designation', pre=True, always=True)
+    @field_validator('business_name', 'trade_name', 'city', 'district', 'state', 'spoc_name', 'spoc_designation', mode='before')
+    @classmethod
     def apply_title_case(cls, v):
         return to_title_case(v) if v else v
     
-    @validator('gst_number', pre=True, always=True)
+    @field_validator('gst_number', mode='before')
+    @classmethod
     def validate_gst(cls, v):
         if v:
             return validate_gst_number(v)
@@ -244,11 +247,13 @@ class RetailerUpdateRequest(BaseModel):
     retailer_label: Optional[str] = None  # "top_retailer_month", "star_retailer_quarter", etc.
     label_period: Optional[str] = None  # e.g., "March 2026", "Q1 2026"
     
-    @validator('business_name', 'trade_name', 'city', 'district', 'state', 'spoc_name', 'spoc_designation', pre=True, always=True)
+    @field_validator('business_name', 'trade_name', 'city', 'district', 'state', 'spoc_name', 'spoc_designation', mode='before')
+    @classmethod
     def apply_title_case(cls, v):
         return to_title_case(v) if v else v
     
-    @validator('gst_number', pre=True, always=True)
+    @field_validator('gst_number', mode='before')
+    @classmethod
     def validate_gst(cls, v):
         if v:
             return validate_gst_number(v)

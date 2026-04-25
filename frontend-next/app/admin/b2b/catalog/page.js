@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -12,6 +12,9 @@ import {
   RefreshCw,
   Boxes,
   IndianRupee,
+  Upload,
+  Download,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../../layout';
@@ -44,8 +47,25 @@ const calcHalfBoxPrice = (units, mrp) =>
 export default function AdminB2BCatalogPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null); // null | EMPTY_PRODUCT | existing row
+  const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'active' | 'inactive'
+  const [search, setSearch] = useState('');
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      if (filterStatus === 'active' && p.is_active === false) return false;
+      if (filterStatus === 'inactive' && p.is_active !== false) return false;
+      if (q) {
+        const hay = `${p.id} ${p.name} ${p.product_id}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [products, filterStatus, search]);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -120,6 +140,48 @@ export default function AdminB2BCatalogPage() {
     }
   };
 
+  const handleCSVImport = async (file) => {
+    if (!file) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const res = await authFetch(`${API_URL}/api/admin/b2b/products/bulk-import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/csv' },
+        body: text,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Import failed');
+      toast.success(
+        `Import: ${data.created} created, ${data.updated} updated${data.failed ? `, ${data.failed} failed` : ''}`
+      );
+      if (data.failed > 0) {
+        const firstErr = (data.results || []).find((r) => !r.ok);
+        if (firstErr) toast.error(`Row ${firstErr.row}: ${firstErr.error}`);
+      }
+      fetchProducts();
+    } catch (e) {
+      toast.error(e.message || 'Import failed');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const downloadTemplate = () => {
+    const csv = [
+      'id,product_id,name,image,net_weight,units_per_box,mrp_per_unit,price_per_box,price_per_half_box,min_order,gst_rate,hsn_code,is_active',
+      'sample-sku-b2b,sample-sku,Sample SKU,,100g,12,150,,,1,5,33074100,true',
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'b2b-catalog-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const recalcPrices = () => {
     if (!editing) return;
     setEditing({
@@ -160,6 +222,32 @@ export default function AdminB2BCatalogPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={downloadTemplate}
+            className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1"
+            title="Download CSV template"
+            data-testid="catalog-template"
+          >
+            <Download size={14} /> Template
+          </button>
+          <label
+            className={`px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1 cursor-pointer ${
+              importing ? 'opacity-60' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title="Bulk import via CSV"
+            data-testid="catalog-import"
+          >
+            <Upload size={14} />
+            {importing ? 'Importing…' : 'Import CSV'}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => handleCSVImport(e.target.files?.[0])}
+              disabled={importing}
+            />
+          </label>
+          <button
             onClick={fetchProducts}
             className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1"
             data-testid="catalog-refresh"
@@ -173,6 +261,43 @@ export default function AdminB2BCatalogPage() {
           >
             <Plus size={14} /> Add SKU
           </button>
+        </div>
+      </div>
+
+      {/* Filter strip */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search SKU id, name…"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 outline-none focus:border-emerald-500 text-sm"
+            data-testid="catalog-search"
+          />
+        </div>
+        <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-sm">
+          {['all', 'active', 'inactive'].map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              className={`px-3 py-2 capitalize ${
+                filterStatus === s
+                  ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+              data-testid={`catalog-filter-${s}`}
+            >
+              {s} {s !== 'all' && (
+                <span className="ml-1 text-xs opacity-70">
+                  ({s === 'active'
+                    ? products.filter((p) => p.is_active !== false).length
+                    : products.filter((p) => p.is_active === false).length})
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -208,9 +333,11 @@ export default function AdminB2BCatalogPage() {
         <div className="flex items-center justify-center h-40">
           <RefreshCw className="animate-spin text-slate-400" size={24} />
         </div>
-      ) : products.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center text-slate-500">
-          No B2B products yet. Click <b>Add SKU</b> to create one.
+          {products.length === 0
+            ? <>No B2B products yet. Click <b>Add SKU</b> or <b>Import CSV</b> to begin.</>
+            : <>No SKUs match the current filters.</>}
         </div>
       ) : (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto">
@@ -230,7 +357,7 @@ export default function AdminB2BCatalogPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-              {products.map((p) => (
+              {filtered.map((p) => (
                 <tr
                   key={p.id}
                   className="hover:bg-slate-50 dark:hover:bg-slate-900/40"

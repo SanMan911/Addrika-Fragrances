@@ -81,6 +81,23 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
+        {/* Google tag (gtag.js) — direct injection per Google's setup instructions,
+            loads on every page including admin/retailer. */}
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-9CBN63VGCK"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-9CBN63VGCK');
+            `,
+          }}
+        />
+
         {/* Preconnect to external resources for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
