@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAdmin, authFetch } from './layout';
 import TopRetailersWidget from '../../components/TopRetailersWidget';
+import ZohoErrorsBanner from '../../components/ZohoErrorsBanner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -182,6 +183,9 @@ export default function AdminOverviewPage() {
           </div>
         </Link>
       </div>
+
+      {/* Zoho sync errors banner */}
+      <ZohoErrorsBanner />
 
       {/* Top 5 B2B Retailers */}
       <TopRetailersWidget />

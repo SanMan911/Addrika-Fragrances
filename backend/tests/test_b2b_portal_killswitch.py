@@ -14,7 +14,7 @@ import pytest
 import requests
 from pymongo import MongoClient
 
-BASE_URL = "https://incense-retailer-hub.preview.emergentagent.com"
+BASE_URL = "https://b2b-portal-preview-1.preview.emergentagent.com"
 API = f"{BASE_URL}/api"
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "addrika_db")

@@ -574,7 +574,7 @@ export default function RetailerB2BPage() {
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-gray-500">GST (18%)</span>
+                    <span className="text-gray-500">GST (after discount)</span>
                     <span className="font-medium">{formatCurrency(orderSummary.gst_total)}</span>
                   </div>
                   {orderSummary.voucher_discount > 0 && (
@@ -673,9 +673,36 @@ export default function RetailerB2BPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {order.items.length} product(s) • 
-                    {order.cash_discount > 0 && ` ${order.cash_discount_percent}% cash discount applied`}
+                  <div className="text-sm text-gray-500 flex items-center justify-between gap-3">
+                    <span>
+                      {order.items.length} product(s) 
+                      {order.cash_discount > 0 && ` • ${order.cash_discount_percent}% cash discount applied`}
+                    </span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetchWithAuth(
+                            `${API_URL}/api/retailer-dashboard/b2b/orders/${order.order_id}/invoice.pdf`
+                          );
+                          if (!res.ok) return toast.error('Invoice download failed');
+                          const blob = await res.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `invoice-${order.order_id}.pdf`;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          window.URL.revokeObjectURL(url);
+                        } catch {
+                          toast.error('Invoice download failed');
+                        }
+                      }}
+                      className="shrink-0 px-3 py-1 text-xs font-medium rounded-md bg-[#D4AF37]/10 text-[#2B3A4A] hover:bg-[#D4AF37]/20 border border-[#D4AF37]/40"
+                      data-testid={`retailer-invoice-pdf-${order.order_id}`}
+                    >
+                      Download Invoice PDF
+                    </button>
                   </div>
                 </div>
               ))}

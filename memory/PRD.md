@@ -7,6 +7,17 @@
 - 🟠 **P1** — Replace placeholder images for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, and Royal Kewda once real product photos are provided.
 - 🟠 **P1** — Integrate **Appyflow** (full GST verification API — currently best-effort fallback used in waitlist) and **AEPS India** (PAN + Aadhaar eKYC) for retailer onboarding.
 
+## 🔑 Required API Keys / Credentials Summary
+| Integration | Env var(s) | Status | Where to obtain |
+| --- | --- | --- | --- |
+| Razorpay (payments) | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | ✅ in .env | razorpay.com/dashboard |
+| Resend (emails) | `RESEND_API_KEY`, `SENDER_EMAIL` | ✅ in .env | resend.com → API Keys |
+| Zoho Books (ERP) | `ZOHO_REFRESH_TOKEN`, `ZOHO_ORG_ID` | ❌ pending | api-console.zoho.in (Self-Client) + Zoho Books → Settings → Organization Profile |
+| Google Analytics 4 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ❌ pending | analytics.google.com → Admin → Data Streams |
+| Appyflow (GST) | `APPYFLOW_API_KEY` | ❌ pending | appyflow.in/gst-api |
+| AEPS India (PAN+Aadhaar eKYC) | `AEPS_API_KEY`, `AEPS_API_SECRET` | ❌ pending | aepsindia.com developer portal |
+| Seller invoice info (optional) | `SELLER_GSTIN`, `SELLER_ADDRESS`, `SELLER_NAME`, `SELLER_STATE`, `SELLER_EMAIL`, `SELLER_PHONE` | optional, sane defaults shipped | hard-coded fallback to Centsibl Traders / Delhi |
+
 ## Original Problem Statement
 Build a premium e-commerce platform for Addrika natural incense brand by Centsibl Traders. Features include product catalog, user auth, admin portal, retailer dashboard, SEO, and messaging consistency enforcement.
 
@@ -169,6 +180,19 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Object-storage support for bills**: `services/object_storage.py` + Emergent managed bucket. Bill upload tries object storage first (≤5MB), falls back to base64-in-Mongo if not configured. Download endpoints transparently hydrate either source — fully backwards-compatible with existing legacy bills. Records carry `storage_path` (new) or `file_base64` (legacy).
 - **Form rules** applied to remaining customer-facing forms (`/register`, `<NotifyMeButton>`, `/track-order`): emails lowercase-normalized; existing register form already had title-case + WhatsApp + `+91` default. Helper at `lib/formHelpers.js` is the canonical source for any future form.
 - **Tested** — 18/18 (1 new email-layout test + 17 iter64 regression). Full suite: 73/73 across all 6 test files.
+
+### April 25, 2026 — PDF Invoices · Zoho Error Alerts · 90-day Thread Auto-Archive
+- **Server-side B2B GST tax invoice (PDF)** via `reportlab` — `services/b2b_invoice_pdf.py`. Splits CGST+SGST when buyer & seller share state, IGST otherwise (state derived from GSTIN prefix). Uses persisted per-line `taxable_value` so GST math always equals the on-screen / email math. New endpoints:
+  - Admin: `GET /api/admin/b2b/orders/{order_id}/invoice.pdf`
+  - Retailer: `GET /api/retailer-dashboard/b2b/orders/{order_id}/invoice.pdf`
+  Admin invoice button rendered on `/admin/b2b/retailers/[id]` Orders tab; retailer download button on `/retailer/b2b` Orders list. Both use blob-download via `authFetch`. Optional `SELLER_*` env vars override the hard-coded Centsibl Traders fallback.
+- **Zoho Books sync error log**: `services/zoho_errors.py` + `zoho_sync_errors` collection. Every B2B order create + payment verify (and admin resync) records a row + emails `contact.us@centraders.com` when Zoho returns `None` or raises. New endpoints:
+  - `GET /api/admin/zoho/errors` (admin), `GET /api/admin/zoho/errors/count`, `POST /api/admin/zoho/errors/{id}/resolve`
+- **Admin Zoho Errors banner**: `<ZohoErrorsBanner />` rendered above Top-5 Retailers on `/admin`. Polls every 60s, expandable list with per-row Retry (calls existing `/api/admin/zoho/resync/{order_id}`) and Resolve buttons. Dismissible per session.
+- **Auto-archive admin↔retailer threads idle > 90 days**: `services/b2b_thread_archive.py`. Runs on backend startup + daily 24h loop. Flags `archived: true` on `retailer_admin_threads` (no retailer status change). Posting a new message auto-unarchives. Admin threads list (`/api/admin/b2b/threads`) hides archived by default — pass `?include_archived=true` to see them.
+- **Tested** — `tests/test_b2b_invoice_zoho_archive.py` (9 new tests: PDF magic-bytes, admin & retailer endpoints, 401/404 paths, Zoho error CRUD, idle thread flagging + filter). Full B2B suite: **82/82** (53 + 9 new + 20 killswitch).
+- **Bug fix surfaced during this session**: `services/b2b_emails.py` had a duplicate `if loyalty_disc > 0:` causing IndentationError → backend crash on import. Fixed.
+- **Required new env vars**: none. Optional: `SELLER_*` vars to override invoice header.
 
 ### P1 (High) — still open
 - [ ] Replace placeholder images for Bilvapatra, 8" Dhoop, Royal Kewda (awaiting product photos)

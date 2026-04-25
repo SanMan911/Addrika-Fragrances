@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://incense-retailer-hub.preview.emergentagent.com/api
+https://b2b-portal-preview-1.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

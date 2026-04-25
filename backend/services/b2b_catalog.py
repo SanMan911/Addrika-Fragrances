@@ -30,8 +30,8 @@ B2B_PRODUCTS = [
         "price_per_box": calculate_box_price(12, 110),
         "price_per_half_box": calculate_half_box_price(12, 110),
         "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900",
+        "gst_rate": 5,
+        "hsn_code": "33074100",
     },
     {
         "id": "kesar-chandan-200-b2b",
@@ -44,8 +44,8 @@ B2B_PRODUCTS = [
         "price_per_box": calculate_box_price(16, 402),
         "price_per_half_box": calculate_half_box_price(16, 402),
         "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900",
+        "gst_rate": 5,
+        "hsn_code": "33074100",
     },
     {
         "id": "regal-rose-b2b",
@@ -58,8 +58,8 @@ B2B_PRODUCTS = [
         "price_per_box": calculate_box_price(12, 110),
         "price_per_half_box": calculate_half_box_price(12, 110),
         "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900",
+        "gst_rate": 5,
+        "hsn_code": "33074100",
     },
     {
         "id": "regal-rose-200-b2b",
@@ -72,8 +72,8 @@ B2B_PRODUCTS = [
         "price_per_box": calculate_box_price(16, 402),
         "price_per_half_box": calculate_half_box_price(16, 402),
         "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900",
+        "gst_rate": 5,
+        "hsn_code": "33074100",
     },
     {
         "id": "oriental-oudh-b2b",
@@ -86,8 +86,8 @@ B2B_PRODUCTS = [
         "price_per_box": calculate_box_price(12, 110),
         "price_per_half_box": calculate_half_box_price(12, 110),
         "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900",
+        "gst_rate": 5,
+        "hsn_code": "33074100",
     },
     {
         "id": "oriental-oudh-200-b2b",
@@ -100,8 +100,8 @@ B2B_PRODUCTS = [
         "price_per_box": calculate_box_price(16, 402),
         "price_per_half_box": calculate_half_box_price(16, 402),
         "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900",
+        "gst_rate": 5,
+        "hsn_code": "33074100",
     },
     {
         "id": "bold-bakhoor-b2b",
@@ -142,8 +142,8 @@ B2B_PRODUCTS = [
         "price_per_box": calculate_box_price(12, 110),
         "price_per_half_box": calculate_half_box_price(12, 110),
         "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900",
+        "gst_rate": 5,
+        "hsn_code": "33074100",
     },
     {
         "id": "mogra-magic-200-b2b",
@@ -156,8 +156,8 @@ B2B_PRODUCTS = [
         "price_per_box": calculate_box_price(16, 402),
         "price_per_half_box": calculate_half_box_price(16, 402),
         "min_order": 0.5,
-        "gst_rate": 18,
-        "hsn_code": "33074900",
+        "gst_rate": 5,
+        "hsn_code": "33074100",
     },
 ]
 

@@ -139,6 +139,17 @@ async def startup_db_client():
             print(f"Purged {purged} bills older than 15 months")
     except Exception as e:
         print(f"Bill purge skipped: {e}")
+
+    # Auto-archive admin-retailer message threads idle > 90 days
+    try:
+        from services.b2b_thread_archive import archive_idle_threads, thread_archive_scheduler_loop
+        archived = await archive_idle_threads(db)
+        if archived:
+            print(f"Archived {archived} admin-retailer threads idle > 90 days")
+        asyncio.create_task(thread_archive_scheduler_loop(db))
+        print("Thread archive scheduler started")
+    except Exception as e:
+        print(f"Thread archive skipped: {e}")
     
     # Start background scheduler for review emails
     asyncio.create_task(review_email_scheduler_loop())
@@ -182,7 +193,7 @@ extra_origins = [o.strip() for o in env_cors.split(',') if o.strip() and o.strip
 
 CORS_ORIGINS = [
     "http://localhost:3000",
-    "https://incense-retailer-hub.preview.emergentagent.com",
+    "https://b2b-portal-preview-1.preview.emergentagent.com",
     "https://fragrant-incense.emergent.host",
     "https://centraders.com",
     "https://www.centraders.com",
