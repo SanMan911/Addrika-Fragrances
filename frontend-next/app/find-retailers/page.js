@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import { Store, MapPin, Mail, Navigation, Building2 } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import PartnershipCTAButton from '../../components/PartnershipCTAButton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -382,17 +383,7 @@ export default async function FindRetailersPage() {
                 Join our growing network of authorized retailers and bring premium 
                 zero-charcoal incense to your customers.
               </p>
-              <a
-                href="mailto:contact.us@centraders.com?subject=Retailer Partnership Inquiry"
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all hover:scale-105"
-                style={{ 
-                  background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
-                  color: '#1a1a2e'
-                }}
-              >
-                <Mail size={18} />
-                Contact for Partnership
-              </a>
+              <PartnershipCTAButton />
             </div>
           </div>
         </section>
