@@ -9,6 +9,7 @@ import {
 import { useAdmin, authFetch } from './layout';
 import TopRetailersWidget from '../../components/TopRetailersWidget';
 import ZohoErrorsBanner from '../../components/ZohoErrorsBanner';
+import ZohoSyncHealthCard from '../../components/ZohoSyncHealthCard';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -186,6 +187,9 @@ export default function AdminOverviewPage() {
 
       {/* Zoho sync errors banner */}
       <ZohoErrorsBanner />
+
+      {/* Zoho sync health card */}
+      <ZohoSyncHealthCard />
 
       {/* Top 5 B2B Retailers */}
       <TopRetailersWidget />

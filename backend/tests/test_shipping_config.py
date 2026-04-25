@@ -17,7 +17,7 @@ import time
 # Get BASE_URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://b2b-portal-preview-1.preview.emergentagent.com"
+    BASE_URL = "https://addrika-kyc-onboard.preview.emergentagent.com"
 
 # Admin credentials
 ADMIN_EMAIL = "contact.us@centraders.com"

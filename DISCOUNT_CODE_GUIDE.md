@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://b2b-portal-preview-1.preview.emergentagent.com/api
+https://addrika-kyc-onboard.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

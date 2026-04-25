@@ -312,7 +312,7 @@ async def admin_onboard_waitlist_retailer(
 
         portal_url = os.environ.get(
             "FRONTEND_PUBLIC_URL",
-            "https://b2b-portal-preview-1.preview.emergentagent.com",
+            "https://addrika-kyc-onboard.preview.emergentagent.com",
         ).rstrip("/")
         link = f"{portal_url}/retailer/setup-password?token={invite_token}"
         html = f"""

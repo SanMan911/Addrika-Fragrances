@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
+import RetailerFirstLoginTour from '../../../components/RetailerFirstLoginTour';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -46,7 +47,7 @@ export default function RetailerB2BPage() {
   const [activeTab, setActiveTab] = useState('order');
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
-  const { fetchWithAuth } = useRetailerAuth();
+  const { fetchWithAuth, retailer: authRetailer } = useRetailerAuth();
   const fetchCatalog = useCallback(async () => {
     setLoading(true);
     try {
@@ -187,6 +188,9 @@ export default function RetailerB2BPage() {
   const totalItems = Object.values(quantities).reduce((a, b) => a + b, 0);
   return (
     <div className="space-y-6">
+      {/* First-login tour (auto-skips if already completed) */}
+      <RetailerFirstLoginTour retailer={authRetailer} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

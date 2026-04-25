@@ -197,7 +197,7 @@ extra_origins = [o.strip() for o in env_cors.split(',') if o.strip() and o.strip
 
 CORS_ORIGINS = [
     "http://localhost:3000",
-    "https://b2b-portal-preview-1.preview.emergentagent.com",
+    "https://addrika-kyc-onboard.preview.emergentagent.com",
     "https://fragrant-incense.emergent.host",
     "https://centraders.com",
     "https://www.centraders.com",

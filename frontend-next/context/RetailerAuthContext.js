@@ -49,7 +49,7 @@ export function RetailerAuthProvider({ children }) {
   // Check auth on mount
   const checkAuth = useCallback(async () => {
     try {
-      const res = await fetchWithAuth(`${API_URL}/api/retailer/me`);
+      const res = await fetchWithAuth(`${API_URL}/api/retailer-auth/me`);
       if (res.ok) {
         const data = await res.json();
         setRetailer(data.retailer || data);
