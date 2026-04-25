@@ -5,18 +5,18 @@
 
 - 🟠 **P1** — Drop in `ZOHO_REFRESH_TOKEN` + `ZOHO_ORG_ID` to activate Sales Order + Customer Payment auto-sync to Zoho Books (steps in §"Zoho Books — to flip on" below). Existing client_id/secret in `.env` already work.
 - 🟠 **P1** — Replace placeholder images for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, and Royal Kewda once real product photos are provided.
-- 🟠 **P1** — Integrate **Appyflow** (full GST verification API — currently best-effort fallback used in waitlist) and **AEPS India** (PAN + Aadhaar eKYC) for retailer onboarding.
+- 🟠 **P1** — Integrate **AEPS India** (PAN + Aadhaar eKYC) for retailer onboarding. ✅ Appyflow GST verification migrated April 25 2026.
 
 ## 🔑 Required API Keys / Credentials Summary
 | Integration | Env var(s) | Status | Where to obtain |
 | --- | --- | --- | --- |
 | Razorpay (payments) | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | ✅ in .env | razorpay.com/dashboard |
 | Resend (emails) | `RESEND_API_KEY`, `SENDER_EMAIL` | ✅ in .env | resend.com → API Keys |
+| Appyflow GST verify | `APPYFLOW_API_KEY` | ✅ in .env (Apr 25) | appyflow.in/gst-api |
 | Zoho Books (ERP) | `ZOHO_REFRESH_TOKEN`, `ZOHO_ORG_ID` | ❌ pending | api-console.zoho.in (Self-Client) + Zoho Books → Settings → Organization Profile |
 | Google Analytics 4 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ❌ pending | analytics.google.com → Admin → Data Streams |
-| Appyflow (GST) | `APPYFLOW_API_KEY` | ❌ pending | appyflow.in/gst-api |
 | AEPS India (PAN+Aadhaar eKYC) | `AEPS_API_KEY`, `AEPS_API_SECRET` | ❌ pending | aepsindia.com developer portal |
-| Seller invoice info (optional) | `SELLER_GSTIN`, `SELLER_ADDRESS`, `SELLER_NAME`, `SELLER_STATE`, `SELLER_EMAIL`, `SELLER_PHONE` | optional, sane defaults shipped | hard-coded fallback to Centsibl Traders / Delhi |
+| Optional invoice header overrides | `SELLER_NAME`, `SELLER_GSTIN`, `SELLER_ADDRESS`, `SELLER_STATE`, `SELLER_EMAIL`, `SELLER_PHONE` | optional, defaults shipped | hard-coded fallback to Centsibl Traders / Delhi |
 
 ## Original Problem Statement
 Build a premium e-commerce platform for Addrika natural incense brand by Centsibl Traders. Features include product catalog, user auth, admin portal, retailer dashboard, SEO, and messaging consistency enforcement.
@@ -193,6 +193,12 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Tested** — `tests/test_b2b_invoice_zoho_archive.py` (9 new tests: PDF magic-bytes, admin & retailer endpoints, 401/404 paths, Zoho error CRUD, idle thread flagging + filter). Full B2B suite: **82/82** (53 + 9 new + 20 killswitch).
 - **Bug fix surfaced during this session**: `services/b2b_emails.py` had a duplicate `if loyalty_disc > 0:` causing IndentationError → backend crash on import. Fixed.
 - **Required new env vars**: none. Optional: `SELLER_*` vars to override invoice header.
+
+### April 25, 2026 (later) — Appyflow GST Verify · P2 Pricing Refactor
+- **Appyflow GST verification integrated** as primary provider. `services/gst_verification.py` rewritten as `Appyflow → gstincheck` cascade: tries `https://appyflow.in/api/verifyGST?gstNo=…&key_secret=…` first, falls back to legacy free-tier if Appyflow returns non-verified or errors. Both providers reshape to the same internal dict, so all callers (`/api/admin/retailers/{id}/verify-gst`, `/api/retailer-auth/waitlist`, etc.) keep working. Live-tested — verified `27AAACR5055K1Z7` ⇒ `Appyflow Technologies` is Active.
+- **Env**: `APPYFLOW_API_KEY` added to backend `.env`. `GST_VERIFICATION_API_KEY` retained as fallback.
+- **P2 refactor — pricing engine extracted**: `routers/b2b_orders.py` shrank from **881 → 621 lines** (-30%). New `services/b2b_pricing.py` owns: `calculate_line_total`, `validate_retailer_voucher`, `validate_credit_note`, and the entire `calculate_b2b_order` discount-cascade (subtotal → tier → loyalty → voucher/cash → taxable → GST → credit-note → grand_total). Router now just auth-gates and delegates; the order-create path reuses the same service so create/calculate are guaranteed identical.
+- **Tested** — full B2B suite: **90/90** passing (82 prior + 8 new GST shape tests in `tests/test_gst_verification.py`). No behavior change in pricing math; refactor is pure code-locality cleanup.
 
 ### P1 (High) — still open
 - [ ] Replace placeholder images for Bilvapatra, 8" Dhoop, Royal Kewda (awaiting product photos)
