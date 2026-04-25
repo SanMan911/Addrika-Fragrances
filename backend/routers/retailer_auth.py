@@ -40,7 +40,7 @@ async def validate_setup_token(token: str):
     business name (so the setup page can greet the user)."""
     retailer = await db.retailers.find_one(
         {"invite_token": token},
-        {"_id": 0, "business_name": 1, "name": 1, "email": 1, "invite_expires_at": 1, "password_hash": 1},
+        {"_id": 0, "business_name": 1, "name": 1, "email": 1, "invite_expires_at": 1, "password_hash": 1, "retailer_id": 1},
     )
     if not retailer:
         return {"valid": False, "reason": "Invalid invitation link"}
@@ -58,6 +58,7 @@ async def validate_setup_token(token: str):
         "business_name": retailer.get("business_name"),
         "name": retailer.get("name"),
         "email": retailer.get("email"),
+        "retailer_id": retailer.get("retailer_id"),
     }
 
 

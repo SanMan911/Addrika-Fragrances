@@ -6,6 +6,14 @@
 
 @layer base {
   :root {
+    /* Force browser to render native form controls (inputs, selects,
+       textareas, scrollbars) using the LIGHT color scheme — even when the
+       user's OS is in dark mode. Our UI is light-themed; admin pages
+       opt into their own dark styling explicitly via `dark:` classes.
+       Without this, dark-OS users on /retailer/* see white text in
+       light-bg inputs. */
+    color-scheme: light;
+
     /* Brand Colors - Japanese Indigo + Metallic Gold */
     --japanese-indigo: #2a3b49;
     --japanese-indigo-light: #3a4f5f;
@@ -101,6 +109,21 @@
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Defensive: explicitly enforce dark text on light inputs across the
+     site so even if a wrapper sets `color: white`, native form controls
+     render legibly. Admin uses `dark:bg-slate-*` + `dark:text-*` so the
+     `dark:` variants below apply correctly. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]),
+  select,
+  textarea {
+    color: #1a1918;
+  }
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]),
+  .dark select,
+  .dark textarea {
+    color: #e8eaed;
   }
   
   h1, h2, h3, h4, h5, h6 {

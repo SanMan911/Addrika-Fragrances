@@ -70,12 +70,12 @@ function WaitlistComingSoon() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!form.business_name || !form.contact_name || !form.email || !form.phone) {
-      toast.error('Please fill business name, contact, email & WhatsApp');
+    if (!GST_REGEX.test((form.gst_number || '').toUpperCase())) {
+      toast.error('GST is required — please enter a valid 15-character GSTIN');
       return;
     }
-    if (!GST_REGEX.test((form.gst_number || '').toUpperCase())) {
-      toast.error('Please enter a valid 15-digit GST number');
+    if (!form.business_name || !form.contact_name || !form.email || !form.phone) {
+      toast.error('Please fill business name, contact, email & WhatsApp');
       return;
     }
     setSubmitting(true);
@@ -150,7 +150,68 @@ function WaitlistComingSoon() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-3" data-testid="waitlist-form">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Step 1 — GST first. Required, drives autofill. */}
+          <div className="rounded-lg p-4 border-2 border-[#D4AF37]/40 bg-white/60">
+            <label className="block text-xs font-semibold text-[#2B3A4A] uppercase tracking-wider mb-2">
+              Step 1 · Your GSTIN <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="22AAAAA0000A1Z5"
+              value={form.gst_number}
+              onChange={(e) => setForm({ ...form, gst_number: e.target.value.toUpperCase().slice(0, 15) })}
+              className={`w-full px-3 py-2.5 rounded-lg border-2 focus:border-[#D4AF37] outline-none uppercase font-mono tracking-wider ${
+                gstStatus.state === 'verified' ? 'border-emerald-500 bg-emerald-50' :
+                gstStatus.state === 'failed' ? 'border-amber-400 bg-amber-50' : 'border-gray-300 bg-white'
+              }`}
+              data-testid="waitlist-gst"
+              maxLength={15}
+              required
+              autoFocus
+              pattern="[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}"
+              title="Enter a valid 15-character GSTIN"
+            />
+            {gstStatus.state === 'looking' && (
+              <p className="mt-1.5 text-xs text-gray-500" data-testid="gst-lookup-status">
+                Verifying GSTIN with GSTN records…
+              </p>
+            )}
+            {gstStatus.state === 'verified' && (
+              <p
+                className="mt-1.5 text-xs text-emerald-700 font-medium"
+                data-testid="gst-lookup-status"
+              >
+                ✓ Verified · {gstStatus.legal_name || 'Business details auto-filled below'}
+              </p>
+            )}
+            {gstStatus.state === 'failed' && (
+              <p
+                className="mt-1.5 text-xs text-amber-700"
+                data-testid="gst-lookup-status"
+              >
+                Could not auto-verify — you can still continue; we&apos;ll verify manually.
+              </p>
+            )}
+            {gstStatus.state === 'idle' && (
+              <p className="mt-1.5 text-xs text-gray-500">
+                We&apos;ll auto-fill your business name, city &amp; state from GSTN records.
+              </p>
+            )}
+          </div>
+
+          {/* Step 2 — Business details (revealed once a valid GSTIN is entered) */}
+          <div
+            className={`transition-all duration-300 overflow-hidden ${
+              GST_REGEX.test((form.gst_number || '').toUpperCase())
+                ? 'opacity-100 max-h-[1000px]'
+                : 'opacity-40 pointer-events-none max-h-[1000px]'
+            }`}
+            aria-hidden={!GST_REGEX.test((form.gst_number || '').toUpperCase())}
+          >
+            <p className="text-xs font-semibold text-[#2B3A4A] uppercase tracking-wider mb-2 mt-2">
+              Step 2 · Confirm &amp; complete
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="text"
               placeholder="Business Name*"
@@ -199,44 +260,6 @@ function WaitlistComingSoon() {
                 data-testid="waitlist-phone"
               />
             </div>
-            <div className="sm:col-span-2">
-              <input
-                type="text"
-                placeholder="GST Number*"
-                value={form.gst_number}
-                onChange={(e) => setForm({ ...form, gst_number: e.target.value.toUpperCase().slice(0, 15) })}
-                className={`w-full px-3 py-2 rounded-lg border focus:border-[#D4AF37] outline-none uppercase font-mono ${
-                  gstStatus.state === 'verified' ? 'border-emerald-500' :
-                  gstStatus.state === 'failed' ? 'border-amber-400' : 'border-gray-300'
-                }`}
-                data-testid="waitlist-gst"
-                maxLength={15}
-                required
-                pattern="[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}"
-                title="Enter a valid 15-character GSTIN"
-              />
-              {gstStatus.state === 'looking' && (
-                <p className="mt-1 text-xs text-gray-500" data-testid="gst-lookup-status">
-                  Verifying GSTIN…
-                </p>
-              )}
-              {gstStatus.state === 'verified' && (
-                <p
-                  className="mt-1 text-xs text-emerald-700"
-                  data-testid="gst-lookup-status"
-                >
-                  ✓ Verified · {gstStatus.legal_name || 'business name auto-filled'}
-                </p>
-              )}
-              {gstStatus.state === 'failed' && (
-                <p
-                  className="mt-1 text-xs text-amber-700"
-                  data-testid="gst-lookup-status"
-                >
-                  Could not auto-verify — you can still submit; we'll verify manually.
-                </p>
-              )}
-            </div>
             <input
               type="text"
               placeholder="City"
@@ -253,6 +276,7 @@ function WaitlistComingSoon() {
               className="px-3 py-2 rounded-lg border border-gray-300 focus:border-[#D4AF37] outline-none"
               data-testid="waitlist-state"
             />
+            </div>
           </div>
           <textarea
             placeholder="Tell us about your business (optional)"

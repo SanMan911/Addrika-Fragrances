@@ -102,6 +102,21 @@ def _auth_headers(token: str) -> Dict[str, str]:
     }
 
 
+def _extract_error_message(response) -> Optional[str]:
+    """Pull the human-readable message out of a Sandbox error response."""
+    try:
+        body = response.json()
+        if isinstance(body, dict):
+            return (
+                body.get("message")
+                or body.get("error")
+                or (body.get("data") or {}).get("message")
+            )
+    except Exception:
+        pass
+    return None
+
+
 # ---------------------------------------------------------------------------
 # PAN Verification
 # ---------------------------------------------------------------------------
@@ -134,10 +149,8 @@ async def verify_pan(pan_number: str, name_to_match: str = "") -> Dict[str, Any]
             )
         if r.status_code != 200:
             logger.error(f"Sandbox PAN verify HTTP {r.status_code}: {r.text[:200]}")
-            return {
-                "verified": False,
-                "error": f"Sandbox API error ({r.status_code})",
-            }
+            err_msg = _extract_error_message(r) or f"Sandbox API error ({r.status_code})"
+            return {"verified": False, "error": err_msg}
         return _shape_pan_response(r.json(), pan)
     except httpx.TimeoutException:
         return {"verified": False, "error": "Sandbox API timeout"}
@@ -261,10 +274,8 @@ async def aadhaar_verify_otp(reference_id: str, otp: str) -> Dict[str, Any]:
             )
         if r.status_code != 200:
             logger.error(f"Sandbox Aadhaar verify HTTP {r.status_code}: {r.text[:200]}")
-            return {
-                "verified": False,
-                "error": f"OTP verify failed ({r.status_code})",
-            }
+            err_msg = _extract_error_message(r) or f"OTP verify failed ({r.status_code})"
+            return {"verified": False, "error": err_msg}
         return _shape_aadhaar_verify(r.json())
     except httpx.TimeoutException:
         return {"verified": False, "error": "Sandbox API timeout"}

@@ -2,9 +2,10 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CheckCircle2, AlertTriangle, Lock } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Lock, ShieldCheck } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import Link from 'next/link';
+import KYCVerificationCard from '../../../components/KYCVerificationCard';
 
 const API_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -20,6 +21,7 @@ function SetupPasswordInner() {
   const [pwd, setPwd] = useState('');
   const [confirm, setConfirm] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState('password'); // 'password' | 'kyc' | 'done'
 
   useEffect(() => {
     if (!token) {
@@ -65,8 +67,8 @@ function SetupPasswordInner() {
         toast.error(data.detail || 'Setup failed');
         return;
       }
-      toast.success('Password set — redirecting to login…');
-      setTimeout(() => router.push('/retailer/login'), 1200);
+      toast.success('Password set — let\'s verify your identity');
+      setStep('kyc');
     } catch {
       toast.error('Setup failed');
     } finally {
@@ -74,15 +76,34 @@ function SetupPasswordInner() {
     }
   };
 
+  const finishOnboarding = () => {
+    setStep('done');
+    setTimeout(() => router.push('/retailer/login'), 1500);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#2B3A4A] p-4">
       <Toaster position="top-center" richColors />
       <div className="bg-[#F5EFE0] rounded-2xl shadow-xl p-8 max-w-md w-full">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-3 bg-[#D4AF37]">
-            <Lock className="w-7 h-7 text-white" />
+          <div className={`inline-flex items-center justify-center w-14 h-14 rounded-full mb-3 ${step === 'kyc' ? 'bg-emerald-600' : step === 'done' ? 'bg-emerald-600' : 'bg-[#D4AF37]'}`}>
+            {step === 'kyc' ? (
+              <ShieldCheck className="w-7 h-7 text-white" />
+            ) : step === 'done' ? (
+              <CheckCircle2 className="w-7 h-7 text-white" />
+            ) : (
+              <Lock className="w-7 h-7 text-white" />
+            )}
           </div>
-          <h1 className="text-2xl font-bold text-[#2B3A4A]">Set your password</h1>
+          <h1 className="text-2xl font-bold text-[#2B3A4A]">
+            {step === 'kyc' ? 'Verify your identity' : step === 'done' ? "You're all set" : 'Set your password'}
+          </h1>
+          {step === 'password' && (
+            <p className="text-xs text-gray-500 mt-1">Step 1 of 2 · Account security</p>
+          )}
+          {step === 'kyc' && (
+            <p className="text-xs text-gray-500 mt-1">Step 2 of 2 · KYC verification</p>
+          )}
         </div>
 
         {status.state === 'checking' && (
@@ -104,7 +125,7 @@ function SetupPasswordInner() {
           </div>
         )}
 
-        {status.state === 'valid' && (
+        {status.state === 'valid' && step === 'password' && (
           <form onSubmit={onSubmit} className="space-y-4" data-testid="setup-form">
             <div className="text-center -mt-2 mb-2">
               <p className="text-sm text-gray-700">
@@ -147,6 +168,39 @@ function SetupPasswordInner() {
               Your password is encrypted and never stored in plain text.
             </p>
           </form>
+        )}
+
+        {status.state === 'valid' && step === 'kyc' && (
+          <div data-testid="setup-kyc-step" className="space-y-4">
+            <p className="text-sm text-gray-700 text-center">
+              One last step — verify your <b>PAN</b> and <b>Aadhaar</b> so we can
+              activate your account immediately. Both are securely processed
+              via Sandbox API and never stored in plaintext.
+            </p>
+            <KYCVerificationCard
+              retailerId={status.retailer_id}
+              onComplete={finishOnboarding}
+            />
+            <button
+              type="button"
+              onClick={finishOnboarding}
+              className="w-full py-2.5 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100"
+              data-testid="setup-kyc-skip"
+            >
+              Skip for now &middot; complete later from your dashboard
+            </button>
+          </div>
+        )}
+
+        {status.state === 'valid' && step === 'done' && (
+          <div className="text-center" data-testid="setup-done">
+            <p className="text-sm text-gray-700 mb-1">
+              Account ready, <b>{status.business_name}</b>.
+            </p>
+            <p className="text-xs text-gray-500">
+              Redirecting you to login…
+            </p>
+          </div>
         )}
       </div>
     </div>
