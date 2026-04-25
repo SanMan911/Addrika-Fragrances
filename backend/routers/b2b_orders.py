@@ -15,6 +15,7 @@ from services.b2b_settings import (
     get_b2b_enabled,
     get_cash_discount_percent,
     get_all_pricing_tiers,
+    get_kyc_required_for_orders,
 )
 from services.b2b_loyalty import get_retailer_loyalty_state
 from services.b2b_catalog import B2B_PRODUCTS
@@ -33,6 +34,32 @@ async def require_b2b_enabled():
         raise HTTPException(
             status_code=403,
             detail="B2B portal is currently unavailable. Please contact Addrika for access.",
+        )
+
+
+async def require_kyc_complete(retailer: dict):
+    """Block order placement when KYC gating is on and retailer has not completed
+    GST + PAN + Aadhaar verification. Returns silently when gate is off."""
+    if not await get_kyc_required_for_orders(db):
+        return
+    missing = []
+    if not retailer.get("gst_verified"):
+        missing.append("GST")
+    if not retailer.get("pan_verified"):
+        missing.append("PAN")
+    if not retailer.get("aadhaar_verified"):
+        missing.append("Aadhaar")
+    if missing:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "kyc_incomplete",
+                "missing": missing,
+                "message": (
+                    f"Complete your KYC ({', '.join(missing)}) before placing orders. "
+                    "Visit your dashboard's KYC section to finish verification."
+                ),
+            },
         )
 
 
@@ -146,6 +173,7 @@ async def create_b2b_order(
     retailer = await get_current_retailer(request, retailer_session)
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    await require_kyc_complete(retailer)
     
     # Calculate order first
     calculation = await calculate_b2b_order(order_data, request, retailer_session)
@@ -589,6 +617,34 @@ async def get_retailer_loyalty(
         raise HTTPException(status_code=401, detail="Not authenticated")
     state = await get_retailer_loyalty_state(db, retailer["retailer_id"])
     return state
+
+
+@router.get("/kyc-gate")
+async def get_my_kyc_gate(
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Retailer endpoint: returns whether the KYC gate is on and which
+    fields the retailer still needs to verify before they can place orders."""
+    await require_b2b_enabled()
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    gate_on = await get_kyc_required_for_orders(db)
+    missing = []
+    if not retailer.get("gst_verified"):
+        missing.append("GST")
+    if not retailer.get("pan_verified"):
+        missing.append("PAN")
+    if not retailer.get("aadhaar_verified"):
+        missing.append("Aadhaar")
+    return {
+        "gate_enabled": gate_on,
+        "fully_kyc_verified": len(missing) == 0,
+        "missing": missing,
+        "can_order": (not gate_on) or (len(missing) == 0),
+        "retailer_id": retailer["retailer_id"],
+    }
 
 
 @router.post("/tour-complete")

@@ -18,6 +18,8 @@ from services.b2b_settings import (
     get_all_pricing_tiers,
     get_pricing_tiers,
     set_pricing_tiers,
+    get_kyc_required_for_orders,
+    set_kyc_required_for_orders,
 )
 from services.b2b_catalog import B2B_PRODUCTS
 
@@ -28,6 +30,7 @@ router = APIRouter(prefix="/admin/b2b-settings", tags=["Admin B2B Settings"])
 class B2BSettingsUpdate(BaseModel):
     enabled: Optional[bool] = None
     cash_discount_percent: Optional[float] = Field(None, ge=0, le=20)
+    kyc_required_for_orders: Optional[bool] = None
 
 
 class PricingTier(BaseModel):
@@ -66,6 +69,7 @@ async def admin_get_b2b_settings(
     return {
         "enabled": enabled,
         "cash_discount_percent": cash_pct,
+        "kyc_required_for_orders": await get_kyc_required_for_orders(db),
         "products": products,
     }
 
@@ -91,9 +95,15 @@ async def admin_update_b2b_settings(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+    if data.kyc_required_for_orders is not None:
+        await set_kyc_required_for_orders(
+            db, data.kyc_required_for_orders, admin_email
+        )
+
     return {
         "enabled": await get_b2b_enabled(db),
         "cash_discount_percent": await get_cash_discount_percent(db),
+        "kyc_required_for_orders": await get_kyc_required_for_orders(db),
     }
 
 

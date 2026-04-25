@@ -51,7 +51,15 @@ export default function RetailerB2BPage() {
   const fetchCatalog = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/b2b/catalog`);
+      // Run catalog fetch and KYC-gate fetch in parallel
+      const [response, kycRes] = await Promise.all([
+        fetchWithAuth(`${API_URL}/api/retailer-dashboard/b2b/catalog`),
+        fetchWithAuth(`${API_URL}/api/retailer-dashboard/b2b/kyc-gate`).catch(() => null),
+      ]);
+      if (kycRes && kycRes.ok) {
+        const k = await kycRes.json();
+        setKycGate(k);
+      }
       if (response.ok) {
         const data = await response.json();
         setCatalog(data.products || []);
@@ -233,6 +241,28 @@ export default function RetailerB2BPage() {
       </div>
       {activeTab === 'order' ? (
         <>
+          {/* KYC gate banner — shown when admin has enabled the gate AND retailer is not fully verified */}
+          {kycGate && kycGate.gate_enabled && !kycGate.fully_kyc_verified && (
+            <div
+              className="rounded-xl p-4 bg-amber-50 border-2 border-amber-300 flex items-start gap-3"
+              data-testid="kyc-gate-banner"
+            >
+              <Info className="text-amber-700 flex-shrink-0 mt-0.5" size={20} />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-900">
+                  Complete KYC to unlock orders
+                </p>
+                <p className="text-xs text-amber-800 mt-1">
+                  Pending verification:{' '}
+                  <b>{kycGate.missing.join(', ')}</b>. Place orders will be
+                  blocked at checkout until all three (GST, PAN, Aadhaar) are
+                  verified on your account. Reach out to Addrika support to
+                  finish KYC.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* GST Info Banner */}
           {retailerInfo && (
             <div className="rounded-xl p-4 bg-blue-50 border border-blue-200 flex items-start gap-3">
