@@ -1,3 +1,7 @@
+# Emergent's `emergentintegrations` package is hosted on a private CDN, not PyPI.
+# This directive tells pip to also search there during install (Render, Vercel, etc.).
+--extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
+
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.3
 aiosignal==1.4.0
