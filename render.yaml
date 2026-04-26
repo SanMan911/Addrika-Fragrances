@@ -1,0 +1,23 @@
+# Render Blueprint — explicit configuration for the Addrika backend service.
+# https://render.com/docs/blueprint-spec
+#
+# This file pins:
+#   - pythonVersion to 3.11.6 (matches runtime.txt + .python-version)
+#   - PIP_EXTRA_INDEX_URL so emergentintegrations resolves from Emergent's CDN
+#
+# If your service is already created in Render, this file is optional, but it
+# becomes the source-of-truth on the next "Sync Blueprint" action.
+
+services:
+  - type: web
+    name: addrika-backend
+    runtime: python
+    pythonVersion: "3.11.6"
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn server:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PIP_EXTRA_INDEX_URL
+        value: "https://d33sy5i8bnduwe.cloudfront.net/simple/"
+      - key: PYTHON_VERSION
+        value: "3.11.6"
