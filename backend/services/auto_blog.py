@@ -63,12 +63,17 @@ def md_to_html(text: str) -> str:
 # FREE STACK: Gemini text + Pollinations images
 # ---------------------------------------------------------------------------
 GEMINI_API_KEY = os.environ.get("GOOGLE_AI_STUDIO_API_KEY", "")
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 )
 
 POLLINATIONS_BASE = "https://image.pollinations.ai/prompt"
+
+# Stagger between parallel image-gen requests (seconds). Pollinations rate-limits
+# bursts of 3 images aggressively. Tests override these to 0.
+IMAGE_STAGGER_INLINE_1 = 18
+IMAGE_STAGGER_INLINE_2 = 36
 
 DEFAULTS = {
     "enabled": True,
@@ -248,7 +253,40 @@ def _strip_json_fence(text: str) -> str:
 
 
 def _gemini_payload(topic: dict) -> dict:
-    """Build a Gemini generateContent request body."""
+    """Build a Gemini generateContent request body with a strict response schema
+    so the body field's quotes/newlines are auto-escaped by Google's JSON
+    serializer (avoids the unterminated-string parse failures we saw on long
+    markdown bodies)."""
+    response_schema = {
+        "type": "OBJECT",
+        "properties": {
+            "title": {"type": "STRING"},
+            "slug": {"type": "STRING"},
+            "excerpt": {"type": "STRING"},
+            "content": {"type": "STRING"},
+            "tags": {"type": "ARRAY", "items": {"type": "STRING"}},
+            "geo_city": {"type": "STRING"},
+            "hero_image_prompt": {"type": "STRING"},
+            "inline_image_1_prompt": {"type": "STRING"},
+            "inline_image_2_prompt": {"type": "STRING"},
+            "faqs": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "q": {"type": "STRING"},
+                        "a": {"type": "STRING"},
+                    },
+                    "required": ["q", "a"],
+                },
+            },
+            "social_caption": {"type": "STRING"},
+        },
+        "required": [
+            "title", "slug", "excerpt", "content",
+            "tags", "hero_image_prompt", "faqs",
+        ],
+    }
     return {
         "contents": [
             {"role": "user", "parts": [{"text": _build_user_prompt(topic)}]}
@@ -256,8 +294,9 @@ def _gemini_payload(topic: dict) -> dict:
         "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
         "generationConfig": {
             "temperature": 0.7,
-            "maxOutputTokens": 4096,
+            "maxOutputTokens": 8192,
             "responseMimeType": "application/json",
+            "responseSchema": response_schema,
         },
     }
 
@@ -319,35 +358,47 @@ async def _generate_text(topic: dict) -> dict:
 # ---------------------------------------------------------------------------
 async def _generate_image(prompt: str, kind: str = "hero") -> Optional[bytes]:
     """Fetch a generated PNG from Pollinations. Hero is 16:9 (1920x1080); inline
-    images are 4:3 (1024x768) to fit blog body width nicely."""
+    images are 4:3 (1024x768) to fit blog body width nicely.
+
+    Retries up to 3x with exponential backoff on 429/5xx — Pollinations rate-
+    limits aggressively when bursting 3 images at once."""
     if not prompt:
         return None
     width, height = (1920, 1080) if kind == "hero" else (1024, 768)
-    # Append brand-style cues so all images feel like they belong on Addrika
     full_prompt = (
         f"{prompt}, photorealistic, warm Indian aesthetic, soft natural light, "
         f"premium product photography, no text overlay, no watermark, no logo"
     )
     encoded = urllib.parse.quote(full_prompt[:500])
-    # nologo=true keeps it clean; seed varies for diversity across the 3 images
-    seed = random.randint(1, 1_000_000)
-    url = (
-        f"{POLLINATIONS_BASE}/{encoded}"
-        f"?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
-    )
-    try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            r = await client.get(url)
-        if r.status_code != 200:
-            logger.warning(f"Auto-blog: Pollinations HTTP {r.status_code} for {kind}")
+
+    for attempt in range(3):
+        # Re-roll seed each attempt so a "stuck" prompt isn't retried verbatim
+        seed = random.randint(1, 1_000_000)
+        url = (
+            f"{POLLINATIONS_BASE}/{encoded}"
+            f"?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                r = await client.get(url)
+            if r.status_code == 200 and r.content and len(r.content) >= 1000:
+                return r.content
+            logger.warning(
+                f"Auto-blog: Pollinations {kind} attempt {attempt+1} → "
+                f"HTTP {r.status_code}, len={len(r.content) if r.content else 0}"
+            )
+            if r.status_code in (429, 500, 502, 503, 504) and attempt < 2:
+                # Stagger 8s, 20s — Pollinations recovers from burst-limit fast
+                await asyncio.sleep(8 * (attempt + 1) + random.uniform(0, 4))
+                continue
             return None
-        if not r.content or len(r.content) < 1000:
-            logger.warning(f"Auto-blog: Pollinations returned empty/tiny image for {kind}")
+        except Exception as e:
+            logger.error(f"Auto-blog Pollinations error for {kind} attempt {attempt+1}: {e}")
+            if attempt < 2:
+                await asyncio.sleep(8 * (attempt + 1))
+                continue
             return None
-        return r.content
-    except Exception as e:
-        logger.error(f"Auto-blog Pollinations error for {kind}: {e}")
-        return None
+    return None
 
 
 async def _save_image(post_id: str, kind: str, data: bytes) -> Optional[str]:
@@ -396,12 +447,19 @@ async def run_one_cycle(db, force: bool = False, admin_email: str = "system:auto
         await _log_run(db, ok=False, error=str(e), topic=topic)
         return {"ok": False, "error": f"text_gen_failed: {e}"}
 
-    # 2) Generate images via Pollinations in parallel
+    # 2) Generate images via Pollinations with staggered starts so we don't
+    # trigger their per-IP burst rate-limit (3 images in <5s = guaranteed 429s).
     post_id = str(uuid.uuid4())
+
+    async def _gen_with_gap(prompt, kind, gap):
+        if gap:
+            await asyncio.sleep(gap)
+        return await _generate_image(prompt, kind)
+
     hero_bytes, in1_bytes, in2_bytes = await asyncio.gather(
-        _generate_image(gen["hero_image_prompt"], "hero"),
-        _generate_image(gen.get("inline_image_1_prompt") or "", "inline-1"),
-        _generate_image(gen.get("inline_image_2_prompt") or "", "inline-2"),
+        _gen_with_gap(gen["hero_image_prompt"], "hero", 0),
+        _gen_with_gap(gen.get("inline_image_1_prompt") or "", "inline-1", IMAGE_STAGGER_INLINE_1),
+        _gen_with_gap(gen.get("inline_image_2_prompt") or "", "inline-2", IMAGE_STAGGER_INLINE_2),
     )
     hero_path = await _save_image(post_id, "hero", hero_bytes) if hero_bytes else None
     in1_path = await _save_image(post_id, "inline-1", in1_bytes) if in1_bytes else None

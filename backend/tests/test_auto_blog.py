@@ -32,6 +32,9 @@ def cleanup_state(mongo):
     # Don't delete real seeded blog posts — only tag-prefixed test ones
     mongo.blog_posts.delete_many({"auto_generated": True, "tags": "pytest-auto"})
     mongo.auto_blog_log.delete_many({"seed_title": {"$regex": "^pytest"}})
+    # Force image staggers to 0 so tests don't sleep 36s waiting for Pollinations
+    auto_blog.IMAGE_STAGGER_INLINE_1 = 0
+    auto_blog.IMAGE_STAGGER_INLINE_2 = 0
     yield
     mongo.admin_settings.delete_one({"setting_key": "auto_blog"})
     mongo.blog_posts.delete_many({"auto_generated": True, "tags": "pytest-auto"})
