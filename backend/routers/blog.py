@@ -1,14 +1,41 @@
 """Blog routes"""
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Cookie
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Cookie, Response
 from typing import Optional
 from datetime import datetime, timezone
 import re
 
 from models.content import BlogPostCreate
 from services.email_service import send_blog_notification
+from services.object_storage import get_object
 from dependencies import db, require_admin
 
 router = APIRouter(tags=["Blog"])
+
+
+# ---------------------------------------------------------------------------
+# Public image proxy for auto-generated blog hero/inline images.
+# Storage paths follow `addrika/blog-images/{post_id}/{kind}.png`.
+# `kind` is whitelisted to prevent path traversal.
+# ---------------------------------------------------------------------------
+_ALLOWED_IMAGE_KINDS = {"hero", "inline-1", "inline-2"}
+
+
+@router.get("/blog/images/{post_id}/{kind}")
+async def serve_blog_image(post_id: str, kind: str):
+    if kind not in _ALLOWED_IMAGE_KINDS:
+        raise HTTPException(404, "Image not found")
+    if not re.fullmatch(r"[a-zA-Z0-9_-]{4,40}", post_id):
+        raise HTTPException(404, "Image not found")
+    storage_path = f"addrika/blog-images/{post_id}/{kind}.png"
+    fetched = await get_object(storage_path)
+    if not fetched:
+        raise HTTPException(404, "Image not found")
+    data, content_type = fetched
+    return Response(
+        content=data,
+        media_type=content_type or "image/png",
+        headers={"Cache-Control": "public, max-age=86400, immutable"},
+    )
 
 
 def slugify(text: str) -> str:

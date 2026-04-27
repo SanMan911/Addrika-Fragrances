@@ -259,6 +259,19 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Admin UI**: green "Onboard as Retailer" button on `/admin/b2b/waitlist` for any non-onboarded entry. Once onboarded, the row shows a "View RTL_…" deep-link to the retailer detail page instead.
 - **Tested** — 7 new tests in `tests/test_b2b_onboarding.py` (full happy-path with Appyflow address pull, double-onboard returns 409, single-use token semantics, password length validation, unauth/404 paths). Full B2B suite: **108/108**.
 
+### April 27, 2026 — Auto-Blog Pipeline (AI-generated, SEO + GEO friendly)
+- **`services/auto_blog.py`** — orchestrator: Claude Sonnet 4.5 for body + FAQ + JSON-LD, Gemini Nano Banana for hero + 2 inline images, alternates topic-bank ↔ trend cycles, dedup by 90-day title window, auto-retry on 502/timeout (fails fast on budget exhaustion), markdown→HTML pipeline.
+- **`services/auto_blog_topics.py`** — 30-entry topic bank + 12-month seasonal hint table (Indian festivals, monsoon, Diwali, Navratri, etc.).
+- **`routers/admin/admin_auto_blog.py`** — admin endpoints: `GET/PUT /api/admin/auto-blog/settings`, `POST /api/admin/auto-blog/run-now`, `GET /api/admin/auto-blog/log`.
+- **Public image proxy** at `GET /api/blog/images/{post_id}/{kind}` — serves hero/inline-1/inline-2 from Emergent object storage with 1-day cache. Path-allow-list prevents traversal.
+- **Background scheduler** — asyncio task started in FastAPI startup, ticks hourly, fires `run_one_cycle` when `next_due_at` has passed. Defaults: enabled=True, cadence=3.5d (twice/week), publish_mode=auto.
+- **Admin UI** at `/admin/content/auto-blog` — status cards (enabled, cadence, mode, last/next run), 4 cadence presets, publish-mode toggle, "Run now" button (with cost warning), live activity log feed with deep links.
+- **Blog post page upgrades** (`/blog/[slug]`): JSON-LD `BlogPosting` with `contentLocation` for geo-tagged posts; separate JSON-LD `FAQPage` schema (GEO-optimised for Perplexity/ChatGPT/Google AI Overviews); FAQ accordion rendered from `post.faqs[]`; geo tag displayed in meta row; **`<BlogShareToolbar>`** — WhatsApp / X / Telegram / VK / Copy link / Instagram (mobile native share + desktop caption-copy fallback) / Image+caption download.
+- **Admin sidebar** — new "Auto-Blog" entry under Content with Sparkles icon.
+- **Tested** — 14 new pytest tests in `tests/test_auto_blog.py` covering topic bank shape, settings get/update, next-due math, picker logic, full mocked run cycle (post creation, JSON-LD, geo, FAQ, image paths, cycle counter, draft mode), JSON-LD builder. **14/14 pass.**
+- **Live status (Apr 27)**: pipeline is fully wired but **Emergent Universal Key budget exhausted** (`Current cost: $1.048 / Max: $1.0`) — first real generation will succeed once balance is added (Profile → Universal Key → Add Balance, or enable auto top-up).
+
+
 ### April 26, 2026 — Sandbox API KYC Infrastructure (PAN + Aadhaar OTP)
 - **Sandbox API integrated** at `services/kyc_sandbox.py`. Auth flow uses `x-api-key` + `x-api-secret` headers → `/authenticate` returns short-lived `access_token` (cached in-memory ~24h with 5-min refresh buffer). Token reused across PAN + Aadhaar calls.
 - **Endpoints exposed** under both retailer-facing (`/api/retailer-auth/kyc/*`) and admin-facing (`/api/admin/kyc/*`) routers:

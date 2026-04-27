@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Package, TrendingUp, Users, Tag, MessageSquare,
   Boxes, FileText, Settings, ChevronLeft, ChevronRight, LogOut,
-  ShieldCheck, Menu, X, Moon, Sun, Store, Briefcase, FileEdit, Activity, TreePine, Bell
+  ShieldCheck, Menu, X, Moon, Sun, Store, Briefcase, FileEdit, Activity, TreePine, Bell, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
@@ -39,6 +39,7 @@ const navItems = [
   { path: '/admin/b2b', label: 'B2B Wholesale', icon: Briefcase },
   { path: '/admin/marketing', label: 'Marketing', icon: Tag },
   { path: '/admin/content', label: 'Content', icon: FileText },
+  { path: '/admin/content/auto-blog', label: 'Auto-Blog', icon: Sparkles },
   { path: '/admin/inventory', label: 'Inventory', icon: Boxes },
   { path: '/admin/inquiries', label: 'Inquiries', icon: MessageSquare },
   { path: '/admin/settings', label: 'Settings', icon: Settings },

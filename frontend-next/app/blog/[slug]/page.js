@@ -135,10 +135,10 @@ export default async function BlogPostPage({ params }) {
         {/* Article */}
         <article className="max-w-3xl mx-auto px-4 pb-16">
           {/* Featured Image */}
-          {post.featuredImage && (
+          {(post.featured_image || post.featuredImage) && (
             <div className="aspect-[16/9] rounded-xl overflow-hidden mb-8">
               <img
-                src={post.featuredImage}
+                src={post.featured_image || post.featuredImage}
                 alt={post.title}
                 className="w-full h-full object-cover"
               />
@@ -146,10 +146,10 @@ export default async function BlogPostPage({ params }) {
           )}
 
           {/* Meta */}
-          <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+          <div className="flex items-center gap-4 text-sm text-gray-500 mb-4 flex-wrap">
             <span className="flex items-center gap-1">
               <Calendar size={14} />
-              {new Date(post.createdAt).toLocaleDateString('en-IN', {
+              {new Date(post.created_at || post.createdAt).toLocaleDateString('en-IN', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric'
@@ -159,6 +159,11 @@ export default async function BlogPostPage({ params }) {
               <Eye size={14} />
               {post.views || 0} views
             </span>
+            {post.geo_city && (
+              <span className="flex items-center gap-1 text-[#D4AF37]" data-testid="geo-tag">
+                · {post.geo_city}
+              </span>
+            )}
           </div>
 
           {/* Title */}
@@ -186,16 +191,38 @@ export default async function BlogPostPage({ params }) {
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
-          {/* Share */}
-          <div className="mt-12 pt-8 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <p className="text-gray-600">Enjoyed this article? Share it!</p>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F5F0E8] text-[#2B3A4A] hover:bg-[#D4AF37]/20 transition-colors">
-                <Share2 size={18} />
-                Share
-              </button>
-            </div>
-          </div>
+          {/* Share toolbar — WhatsApp / X / Telegram / VK / Copy / Instagram */}
+          <BlogShareToolbar
+            url={`${SITE_URL}/blog/${post.slug}`}
+            title={post.title}
+            excerpt={post.excerpt || ''}
+            socialCaption={post.social_caption || ''}
+            heroImage={post.featured_image || post.featuredImage || ''}
+          />
+
+          {/* FAQ section (rendered + JSON-LD'd above for GEO) */}
+          {Array.isArray(post.faqs) && post.faqs.length > 0 && (
+            <section className="mt-10" data-testid="blog-faq-section">
+              <h2 className="text-2xl font-bold text-[#2B3A4A] font-serif mb-4">
+                Frequently asked questions
+              </h2>
+              <div className="space-y-4">
+                {post.faqs.map((f, i) => (
+                  <details
+                    key={i}
+                    className="rounded-lg border border-gray-200 px-4 py-3 group open:bg-[#F5F0E8]"
+                    data-testid={`blog-faq-${i}`}
+                  >
+                    <summary className="font-medium text-[#2B3A4A] cursor-pointer list-none flex justify-between gap-3">
+                      <span>{f.q}</span>
+                      <span className="text-[#D4AF37] group-open:rotate-45 transition-transform">+</span>
+                    </summary>
+                    <p className="mt-2 text-gray-700 leading-relaxed">{f.a}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
         </article>
       </main>
 
