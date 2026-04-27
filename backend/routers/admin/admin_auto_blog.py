@@ -19,7 +19,8 @@ router = APIRouter(prefix="/admin/auto-blog", tags=["Admin Auto-Blog"])
 
 class AutoBlogSettingsUpdate(BaseModel):
     enabled: Optional[bool] = None
-    cadence_days: Optional[float] = Field(None, ge=0.5, le=30)
+    cadence_min_days: Optional[float] = Field(None, ge=0.5, le=30)
+    cadence_max_days: Optional[float] = Field(None, ge=0.5, le=30)
     publish_mode: Optional[str] = Field(None, pattern="^(auto|draft)$")
 
 

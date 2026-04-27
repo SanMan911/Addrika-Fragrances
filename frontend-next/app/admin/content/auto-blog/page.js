@@ -21,10 +21,10 @@ import { authFetch } from '../../layout';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const CADENCE_PRESETS = [
-  { label: 'Daily', days: 1 },
-  { label: 'Twice / week', days: 3.5 },
-  { label: 'Weekly', days: 7 },
-  { label: 'Bi-weekly', days: 14 },
+  { label: '~5 / week', min: 1.0, max: 2.0 },
+  { label: '2-3 / week', min: 2.0, max: 4.0 },
+  { label: 'Weekly', min: 6.0, max: 8.0 },
+  { label: 'Bi-weekly', min: 12.0, max: 16.0 },
 ];
 
 export default function AdminAutoBlogPage() {
@@ -74,7 +74,7 @@ export default function AdminAutoBlogPage() {
   const runNow = async () => {
     if (
       !confirm(
-        'Generate a new blog post right now?\n\nThis will call Claude Sonnet + Nano Banana via your Emergent LLM key (~₹2-4 in token cost) and may take 1-3 minutes.'
+        'Generate a new blog post right now?\n\nUses Google Gemini 2.0 Flash (free tier) for text + Pollinations AI (free, no key) for 3 images. May take 30-90 seconds.'
       )
     )
       return;
@@ -169,8 +169,10 @@ export default function AdminAutoBlogPage() {
             icon={<Calendar size={16} className="text-blue-600" />}
             label="Cadence"
             value={
-              CADENCE_PRESETS.find((p) => p.days === cfg.cadence_days)?.label ||
-              `Every ${cfg.cadence_days} days`
+              CADENCE_PRESETS.find(
+                (p) => p.min === cfg.cadence_min_days && p.max === cfg.cadence_max_days,
+              )?.label ||
+              `Every ${cfg.cadence_min_days}-${cfg.cadence_max_days} days`
             }
             tone="slate"
           />
@@ -227,19 +229,19 @@ export default function AdminAutoBlogPage() {
         </Row>
 
         {/* Cadence */}
-        <Row label="Cadence" hint="How often to generate. Twice/week = ~8 posts/month.">
+        <Row label="Cadence" hint="Posts are scheduled with random gaps between min/max days, so timing feels organic. ‘2-3 / week’ ≈ 8-10 posts/month.">
           <div className="flex flex-wrap gap-2">
             {CADENCE_PRESETS.map((p) => (
               <button
-                key={p.days}
-                onClick={() => updateCfg({ cadence_days: p.days })}
+                key={p.label}
+                onClick={() => updateCfg({ cadence_min_days: p.min, cadence_max_days: p.max })}
                 disabled={saving}
                 className={`px-3 py-1.5 text-sm rounded-lg border ${
-                  cfg.cadence_days === p.days
+                  cfg.cadence_min_days === p.min && cfg.cadence_max_days === p.max
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-slate-50'
                 }`}
-                data-testid={`cadence-${p.label.toLowerCase().replace(/[^a-z]/g, '-')}`}
+                data-testid={`cadence-${p.label.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
               >
                 {p.label}
               </button>

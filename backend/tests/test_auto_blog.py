@@ -69,20 +69,29 @@ class TestSettings:
     def test_default_settings(self, cleanup_state):
         cfg = _run(auto_blog.get_settings(motor_db))
         assert cfg["enabled"] is True
-        assert cfg["cadence_days"] == 3.5
+        assert cfg["cadence_min_days"] == 2.0
+        assert cfg["cadence_max_days"] == 4.0
         assert cfg["publish_mode"] == "auto"
         assert cfg["cycle_count"] == 0
 
     def test_update_settings(self, cleanup_state):
-        cfg = _run(auto_blog.update_settings(motor_db, {"cadence_days": 7, "publish_mode": "draft"}))
-        assert cfg["cadence_days"] == 7
+        cfg = _run(auto_blog.update_settings(
+            motor_db,
+            {"cadence_min_days": 3.0, "cadence_max_days": 5.0, "publish_mode": "draft"},
+        ))
+        assert cfg["cadence_min_days"] == 3.0
+        assert cfg["cadence_max_days"] == 5.0
         assert cfg["publish_mode"] == "draft"
 
     def test_next_due_calculation(self):
         from datetime import datetime, timezone
-        out = auto_blog._next_due("2026-04-26T10:00:00+00:00", 3.5)
-        # 2026-04-26 10:00 + 3.5 days = 2026-04-29 22:00
-        assert "2026-04-29" in out
+        # Randomized: should land between base + 2d and base + 4d
+        out = auto_blog._next_due("2026-04-26T10:00:00+00:00", 2.0, 4.0)
+        due = datetime.fromisoformat(out)
+        base = datetime(2026, 4, 26, 10, 0, tzinfo=timezone.utc)
+        delta_days = (due - base).total_seconds() / 86400
+        # Allow a small margin because hour-snap can shift slightly
+        assert 1.5 <= delta_days <= 4.5
 
 
 # ---------------------------------------------------------------------------
@@ -123,15 +132,15 @@ FAKE_LLM_RESPONSE = json.dumps({
 
 class TestRunCycle:
     def test_run_cycle_creates_post(self, cleanup_state, mongo, monkeypatch):
-        monkeypatch.setenv("EMERGENT_LLM_KEY", "test-key")
+        monkeypatch.setenv("GOOGLE_AI_STUDIO_API_KEY", "test-key")
         # Force re-read in module
-        auto_blog.EMERGENT_LLM_KEY = "test-key"
+        auto_blog.GEMINI_API_KEY = "test-key"
 
         async def fake_generate_text(topic):
             data = json.loads(FAKE_LLM_RESPONSE)
             return data
 
-        async def fake_generate_image(prompt):
+        async def fake_generate_image(prompt, kind="hero"):
             # 1x1 PNG
             return base64.b64decode(
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII="
@@ -176,23 +185,23 @@ class TestRunCycle:
         assert result.get("skipped") == "disabled"
 
     def test_run_cycle_force_overrides_disabled(self, cleanup_state, monkeypatch):
-        monkeypatch.setenv("EMERGENT_LLM_KEY", "")
-        auto_blog.EMERGENT_LLM_KEY = ""
+        monkeypatch.setenv("GOOGLE_AI_STUDIO_API_KEY", "")
+        auto_blog.GEMINI_API_KEY = ""
         _run(auto_blog.update_settings(motor_db, {"enabled": False}))
-        # force=True bypasses disabled, but still fails on no LLM key
+        # force=True bypasses disabled, but still fails on no API key
         result = _run(auto_blog.run_one_cycle(motor_db, force=True))
         assert result["ok"] is False
-        assert "EMERGENT_LLM_KEY" in result.get("error", "")
+        assert "GOOGLE_AI_STUDIO_API_KEY" in result.get("error", "")
 
     def test_draft_mode_does_not_publish(self, cleanup_state, mongo, monkeypatch):
-        monkeypatch.setenv("EMERGENT_LLM_KEY", "test-key")
-        auto_blog.EMERGENT_LLM_KEY = "test-key"
+        monkeypatch.setenv("GOOGLE_AI_STUDIO_API_KEY", "test-key")
+        auto_blog.GEMINI_API_KEY = "test-key"
         _run(auto_blog.update_settings(motor_db, {"publish_mode": "draft"}))
 
         async def fake_text(t):
             return json.loads(FAKE_LLM_RESPONSE)
 
-        async def fake_img(p):
+        async def fake_img(p, kind="hero"):
             return None
 
         async def fake_save(*a):
