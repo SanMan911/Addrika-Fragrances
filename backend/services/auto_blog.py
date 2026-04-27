@@ -63,10 +63,13 @@ def md_to_html(text: str) -> str:
 # FREE STACK: Gemini text + Pollinations images
 # ---------------------------------------------------------------------------
 GEMINI_API_KEY = os.environ.get("GOOGLE_AI_STUDIO_API_KEY", "")
-GEMINI_MODEL = "gemini-2.5-flash"
-GEMINI_URL = (
-    f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
-)
+# Try 2.5-flash first; if it 503s ("high demand"), fall back to flash-latest.
+GEMINI_MODELS = ["gemini-2.5-flash", "gemini-flash-latest"]
+GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+
+
+def _gemini_url(model: str) -> str:
+    return f"{GEMINI_BASE}/{model}:generateContent"
 
 POLLINATIONS_BASE = "https://image.pollinations.ai/prompt"
 
@@ -302,55 +305,61 @@ def _gemini_payload(topic: dict) -> dict:
 
 
 async def _generate_text(topic: dict) -> dict:
-    """Call Gemini 2.0 Flash via REST. Auto-retry on transient 5xx / 429."""
+    """Call Gemini via REST. Tries each model in GEMINI_MODELS, retrying 3x per
+    model on transient 5xx/429. Falls back to next model if all retries fail."""
     if not GEMINI_API_KEY:
         raise RuntimeError("GOOGLE_AI_STUDIO_API_KEY is not configured")
 
     last_err = None
-    for attempt in range(3):
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                r = await client.post(
-                    f"{GEMINI_URL}?key={GEMINI_API_KEY}",
-                    json=_gemini_payload(topic),
-                    headers={"Content-Type": "application/json"},
+    for model in GEMINI_MODELS:
+        for attempt in range(3):
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    r = await client.post(
+                        f"{_gemini_url(model)}?key={GEMINI_API_KEY}",
+                        json=_gemini_payload(topic),
+                        headers={"Content-Type": "application/json"},
+                    )
+                if r.status_code in (429, 500, 502, 503, 504):
+                    logger.warning(
+                        f"Auto-blog: Gemini {model} {r.status_code} attempt {attempt+1}: {r.text[:120]}"
+                    )
+                    last_err = RuntimeError(f"Gemini HTTP {r.status_code}")
+                    if attempt < 2:
+                        await asyncio.sleep(2 ** attempt * 5)
+                    continue
+                if r.status_code != 200:
+                    raise RuntimeError(f"Gemini HTTP {r.status_code}: {r.text[:200]}")
+                body = r.json()
+                text = (
+                    body.get("candidates", [{}])[0]
+                    .get("content", {})
+                    .get("parts", [{}])[0]
+                    .get("text", "")
                 )
-            if r.status_code in (429, 500, 502, 503, 504):
-                logger.warning(f"Auto-blog: Gemini {r.status_code} attempt {attempt+1}: {r.text[:120]}")
-                last_err = RuntimeError(f"Gemini HTTP {r.status_code}")
+                if not text:
+                    raise RuntimeError(f"Gemini returned empty content: {body}")
+                data = json.loads(_strip_json_fence(text))
+                for k in ("title", "slug", "excerpt", "content", "hero_image_prompt"):
+                    if not data.get(k):
+                        raise ValueError(f"Generated post missing required key: {k}")
+                if model != GEMINI_MODELS[0]:
+                    logger.info(f"Auto-blog: succeeded on fallback model {model}")
+                return data
+            except json.JSONDecodeError as e:
+                logger.error(f"Auto-blog: {model} returned invalid JSON: {e}")
+                last_err = e
+                if attempt < 2:
+                    await asyncio.sleep(3)
+                    continue
+            except (httpx.TimeoutException, httpx.NetworkError) as e:
+                last_err = e
+                logger.warning(f"Auto-blog: {model} network error attempt {attempt+1}: {e}")
                 if attempt < 2:
                     await asyncio.sleep(2 ** attempt * 5)
-                continue
-            if r.status_code != 200:
-                raise RuntimeError(f"Gemini HTTP {r.status_code}: {r.text[:200]}")
-            body = r.json()
-            text = (
-                body.get("candidates", [{}])[0]
-                .get("content", {})
-                .get("parts", [{}])[0]
-                .get("text", "")
-            )
-            if not text:
-                raise RuntimeError(f"Gemini returned empty content: {body}")
-            data = json.loads(_strip_json_fence(text))
-            for k in ("title", "slug", "excerpt", "content", "hero_image_prompt"):
-                if not data.get(k):
-                    raise ValueError(f"Generated post missing required key: {k}")
-            return data
-        except json.JSONDecodeError as e:
-            logger.error(f"Auto-blog: Gemini returned invalid JSON: {e}")
-            last_err = e
-            if attempt < 2:
-                await asyncio.sleep(3)
-                continue
-            raise
-        except (httpx.TimeoutException, httpx.NetworkError) as e:
-            last_err = e
-            logger.warning(f"Auto-blog: network error attempt {attempt+1}: {e}")
-            if attempt < 2:
-                await asyncio.sleep(2 ** attempt * 5)
-                continue
-    raise RuntimeError(f"Text generation failed after 3 attempts: {last_err}")
+                    continue
+        logger.warning(f"Auto-blog: {model} exhausted, trying next model…")
+    raise RuntimeError(f"Text generation failed across all models: {last_err}")
 
 
 # ---------------------------------------------------------------------------
@@ -523,6 +532,22 @@ async def run_one_cycle(db, force: bool = False, admin_email: str = "system:auto
     )
     await _log_run(db, ok=True, post_id=post_id, slug=slug, topic=topic)
 
+    # 6) Email blast to active subscribers — only if published
+    blast_count = 0
+    if is_published:
+        blast_count = await _send_blog_email_blast(
+            db,
+            post_title=gen["title"][:200],
+            post_excerpt=gen["excerpt"][:500],
+            post_slug=slug,
+            featured_image=(
+                f"{os.environ.get('PUBLIC_FRONTEND_URL', 'https://centraders.com').rstrip('/')}"
+                f"/api/blog/images/{post_id}/hero"
+                if hero_path
+                else None
+            ),
+        )
+
     return {
         "ok": True,
         "post_id": post_id,
@@ -530,7 +555,46 @@ async def run_one_cycle(db, force: bool = False, admin_email: str = "system:auto
         "is_published": is_published,
         "hero_image": bool(hero_path),
         "inline_images": sum(1 for p in (in1_path, in2_path) if p),
+        "email_blast_sent": blast_count,
     }
+
+
+async def _send_blog_email_blast(
+    db, post_title: str, post_excerpt: str, post_slug: str, featured_image: Optional[str]
+) -> int:
+    """Send the new-post notification to all active subscribers who opted into
+    blog updates. Fire-and-forget; failures per-recipient don't block others.
+    Returns the count of emails actually queued."""
+    # Lazy-import to avoid heavyweight email module load at module-import time
+    from services.email_service import send_blog_notification
+
+    cursor = db.subscribers.find(
+        {
+            "is_active": True,
+            "preferences.blog_posts": True,
+            "email": {"$exists": True, "$ne": ""},
+        },
+        {"_id": 0, "email": 1},
+    )
+    sent = 0
+    async for sub in cursor:
+        email = (sub.get("email") or "").strip()
+        if not email:
+            continue
+        try:
+            await send_blog_notification(
+                email=email,
+                post_title=post_title,
+                post_excerpt=post_excerpt,
+                post_slug=post_slug,
+                featured_image=featured_image,
+            )
+            sent += 1
+        except Exception as e:
+            logger.warning(f"Auto-blog: blast to {email} failed: {e}")
+    if sent:
+        logger.info(f"Auto-blog: blasted new post '{post_slug}' to {sent} subscribers")
+    return sent
 
 
 def _build_jsonld(gen: dict, slug: str, topic: dict, hero_path: Optional[str], post_id: str) -> dict:
