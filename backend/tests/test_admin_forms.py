@@ -10,7 +10,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('NEXT_PUBLIC_BACKEND_URL', 'https://addrika-kyc-onboard.preview.emergentagent.com')
+BASE_URL = os.environ.get('NEXT_PUBLIC_BACKEND_URL', 'https://kyc-verification-14.preview.emergentagent.com')
 
 # Test credentials from test_credentials.md
 ADMIN_EMAIL = "contact.us@centraders.com"

@@ -16,7 +16,7 @@ import requests
 from pymongo import MongoClient
 
 BASE_URL = os.environ.get(
-    "BACKEND_URL", "https://addrika-kyc-onboard.preview.emergentagent.com"
+    "BACKEND_URL", "https://kyc-verification-14.preview.emergentagent.com"
 ).rstrip("/")
 API = f"{BASE_URL}/api"
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")

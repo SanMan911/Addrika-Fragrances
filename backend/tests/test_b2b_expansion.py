@@ -9,7 +9,7 @@ import httpx
 
 BASE = os.environ.get(
     "BACKEND_URL",
-    "https://addrika-kyc-onboard.preview.emergentagent.com",
+    "https://kyc-verification-14.preview.emergentagent.com",
 )
 
 

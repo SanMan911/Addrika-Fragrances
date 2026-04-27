@@ -89,15 +89,15 @@
   "context_for_next_testing_agent": "Admin panel refactored to modular structure. Test session created: sess_285453942e11456aba12d9a277c7751a. To test admin UI, set this token in localStorage (addrika_session_token) and cookies (session_token). All 9 admin pages under /admin route: Overview, Orders, Analytics, Users, Marketing, Content, Inventory, Inquiries, Settings.",
 
   "tested_urls": [
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin",
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin/login",
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin/orders",
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin/analytics",
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin/users",
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin/marketing",
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin/content",
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin/inventory",
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin/inquiries",
-    "https://addrika-kyc-onboard.preview.emergentagent.com/admin/settings"
+    "https://kyc-verification-14.preview.emergentagent.com/admin",
+    "https://kyc-verification-14.preview.emergentagent.com/admin/login",
+    "https://kyc-verification-14.preview.emergentagent.com/admin/orders",
+    "https://kyc-verification-14.preview.emergentagent.com/admin/analytics",
+    "https://kyc-verification-14.preview.emergentagent.com/admin/users",
+    "https://kyc-verification-14.preview.emergentagent.com/admin/marketing",
+    "https://kyc-verification-14.preview.emergentagent.com/admin/content",
+    "https://kyc-verification-14.preview.emergentagent.com/admin/inventory",
+    "https://kyc-verification-14.preview.emergentagent.com/admin/inquiries",
+    "https://kyc-verification-14.preview.emergentagent.com/admin/settings"
   ]
 }
