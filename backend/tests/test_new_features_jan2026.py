@@ -9,7 +9,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://addrika-kyc-onboard.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://kyc-verification-14.preview.emergentagent.com')
 
 
 class TestRoyalKewdaProduct:

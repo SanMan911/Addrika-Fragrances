@@ -12,7 +12,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://addrika-kyc-onboard.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://kyc-verification-14.preview.emergentagent.com')
 
 class TestProductsAPI:
     """Test products API endpoints"""

@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://addrika-kyc-onboard.preview.emergentagent.com/api
+https://kyc-verification-14.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

@@ -67,7 +67,7 @@ async def admin_zoho_oauth_init(
     region = os.environ.get("ZOHO_REGION", "in")
     redirect_uri = os.environ.get(
         "ZOHO_REDIRECT_URI",
-        "https://addrika-kyc-onboard.preview.emergentagent.com/api/zoho-books/callback",
+        "https://kyc-verification-14.preview.emergentagent.com/api/zoho-books/callback",
     )
     state = secrets.token_urlsafe(24)
     # Persist the state nonce + (optional) org_id so the callback can verify

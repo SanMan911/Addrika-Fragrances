@@ -13,7 +13,7 @@ import time
 import random
 import string
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://addrika-kyc-onboard.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://kyc-verification-14.preview.emergentagent.com').rstrip('/')
 
 
 def generate_random_string(length=8):

@@ -14,7 +14,7 @@ import pytest
 import requests
 from pymongo import MongoClient
 
-BASE_URL = "https://addrika-kyc-onboard.preview.emergentagent.com"
+BASE_URL = "https://kyc-verification-14.preview.emergentagent.com"
 API = f"{BASE_URL}/api"
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "addrika_db")
