@@ -259,7 +259,15 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Admin UI**: green "Onboard as Retailer" button on `/admin/b2b/waitlist` for any non-onboarded entry. Once onboarded, the row shows a "View RTL_…" deep-link to the retailer detail page instead.
 - **Tested** — 7 new tests in `tests/test_b2b_onboarding.py` (full happy-path with Appyflow address pull, double-onboard returns 409, single-use token semantics, password length validation, unauth/404 paths). Full B2B suite: **108/108**.
 
-### April 27, 2026 — Auto-Blog Pipeline (AI-generated, SEO + GEO friendly)
+### Feb, 2026 — Auto-Blog Pipeline switched to FREE STACK (Gemini 2.0 Flash + Pollinations)
+- **Migrated off Emergent LLM Key** (budget exhausted at $1.0). New stack: **Google Gemini 2.0 Flash** (1500 req/day free) for body+FAQ+JSON-LD via direct REST, **Pollinations AI** (no key, no signup) for hero + 2 inline images.
+- **Randomized 2-3 posts/week cadence**: settings model replaced `cadence_days` with `cadence_min_days` / `cadence_max_days` (defaults 2.0 / 4.0). `_next_due()` picks a random offset uniformly between min/max, snaps to a random hour 09:00-21:00 IST so posts publish during waking hours.
+- **Admin UI updated** (`/admin/content/auto-blog`): cadence presets are now ranges (`~5/week`, `2-3/week`, `Weekly`, `Bi-weekly`); "Run now" warning replaced (no cost mention); status pill shows `2-3 / week` etc.
+- **Backend env**: requires `GOOGLE_AI_STUDIO_API_KEY` in `backend/.env` (free at https://aistudio.google.com/app/apikey). Without it, `run_one_cycle` returns `{ok:false, error:"GOOGLE_AI_STUDIO_API_KEY not configured"}` and the scheduler is a no-op.
+- **Tests updated**: 14/14 in `tests/test_auto_blog.py` pass against the new architecture.
+- **Bug fix**: previous fork left `services/auto_blog.py` with both old + new code stitched together (duplicate `from __future__ import annotations` on line 579) → SyntaxError → backend crash-loop. Truncated to lines 1-577 (free-stack only).
+
+### April 27, 2026 — Auto-Blog Pipeline (AI-generated, SEO + GEO friendly) [SUPERSEDED Feb 2026]
 - **`services/auto_blog.py`** — orchestrator: Claude Sonnet 4.5 for body + FAQ + JSON-LD, Gemini Nano Banana for hero + 2 inline images, alternates topic-bank ↔ trend cycles, dedup by 90-day title window, auto-retry on 502/timeout (fails fast on budget exhaustion), markdown→HTML pipeline.
 - **`services/auto_blog_topics.py`** — 30-entry topic bank + 12-month seasonal hint table (Indian festivals, monsoon, Diwali, Navratri, etc.).
 - **`routers/admin/admin_auto_blog.py`** — admin endpoints: `GET/PUT /api/admin/auto-blog/settings`, `POST /api/admin/auto-blog/run-now`, `GET /api/admin/auto-blog/log`.
