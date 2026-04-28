@@ -259,6 +259,24 @@ Build a premium e-commerce platform for Addrika natural incense brand by Centsib
 - **Admin UI**: green "Onboard as Retailer" button on `/admin/b2b/waitlist` for any non-onboarded entry. Once onboarded, the row shows a "View RTL_…" deep-link to the retailer detail page instead.
 - **Tested** — 7 new tests in `tests/test_b2b_onboarding.py` (full happy-path with Appyflow address pull, double-onboard returns 409, single-use token semantics, password length validation, unauth/404 paths). Full B2B suite: **108/108**.
 
+### Feb, 2026 — Find-Retailers Partnership Form: GST-First + Anti-Spoofing
+- **Frontend** (`/components/RetailerPartnershipModal.js`): completely rewritten as a 2-step wizard.
+  - **Step 1**: prominent full-width GSTIN input. Live Appyflow lookup (debounced 400ms). Verified card shows legal name + state + city + pincode pulled from the GST registry.
+  - **Step 2**: reveals once GST is verified (or user clicks "contact us directly" for non-GST businesses). Auto-fills business_name, legal_name, state, city, pincode. **Locked fields** (legal_name, state, pincode) become read-only when GST verifies — user cannot override registry data.
+  - "Why GST first?" explainer card + "Not GST-registered yet?" graceful path.
+- **Backend** (`/routers/b2b_waitlist.py`): adds anti-spoofing cross-checks on `POST /api/retailer-auth/waitlist`:
+  - New optional `legal_name` field. When GST verifies, claimed legal name is fuzzy-matched against Appyflow's `taxpayer_name`/`trade_name` via `_names_match()` (strips suffixes like "PVT LTD", "PRIVATE LIMITED", "INDIA LIMITED", "& Sons", etc.). Mismatch → 400 with the registered name surfaced.
+  - Claimed `state` (if provided) must match the GSTIN state code (first 2 digits via `INDIAN_STATE_CODES`). Mismatch → 400.
+  - Claimed `pincode` (if provided) must appear in Appyflow's registered address. Mismatch → 400.
+  - **Graceful degrade**: if Appyflow is offline OR credits are exhausted, all checks skip and submission is accepted with `gst_verified: false` so admin can review manually.
+- **GST lookup endpoint** improved: pincode extraction now uses regex `\b\d{6}\b` on the address string (was: last comma-segment, which sometimes failed on long Appyflow addresses).
+- **Tests** (`tests/test_waitlist_antispoof.py`): 15 total. 9 pure-helper tests (TestNameMatcher) cover suffix-stripping, case-insensitivity, punctuation tolerance, false-positive rejection. 6 endpoint tests auto-skip when Appyflow credits expire (currently the case — need top-up).
+- **Operational note**: Appyflow returned "Credit Expire" during this session. Top up at https://appyflow.in dashboard to keep auto-verification + anti-spoofing live; until then waitlist submissions still work but go through with `gst_verified: false`.
+
+### Feb, 2026 — Auto-Blog Email Blast on Auto-Publish
+- After every auto-published post, `services/auto_blog.py::_send_blog_email_blast()` queues `send_blog_notification()` (Resend) to all rows in `db.subscribers` where `is_active=true` and `preferences.blog_posts=true`. Failures per recipient don't block others; drafts skip the blast. Result dict now includes `email_blast_sent`.
+- Currently 0 active blog subscribers in production — consider adding a `<NewsletterSubscribeForm />` on `/blog` to start populating the list.
+
 ### Feb, 2026 — Auto-Blog Pipeline LIVE on FREE STACK (Gemini 2.5 Flash + Pollinations)
 - **Migrated off Emergent LLM Key** (budget exhausted at $1.0). New stack: **Google Gemini 2.5 Flash** (free tier, no card) for body+FAQ+JSON-LD via direct REST with `responseSchema` for guaranteed valid JSON; **Pollinations AI** (no key, no signup) for hero + 2 inline images.
 - **Randomized 2-3 posts/week cadence**: settings model replaced `cadence_days` with `cadence_min_days` / `cadence_max_days` (defaults 2.0 / 4.0). `_next_due()` picks a random offset uniformly between min/max, snaps to a random hour 09:00-21:00 IST so posts publish during waking hours.
