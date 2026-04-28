@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://kyc-verification-14.preview.emergentagent.com/api
+https://incense-retail.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

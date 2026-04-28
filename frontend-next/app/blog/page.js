@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Calendar, Eye, Tag, Search } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import SmokeSignalSubscribe from '../../components/SmokeSignalSubscribe';
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -176,6 +177,9 @@ export default async function BlogPage() {
             )}
           </div>
         </section>
+
+        {/* The Smoke Signal — Newsletter Subscribe */}
+        <SmokeSignalSubscribe />
       </main>
 
       <Footer />
