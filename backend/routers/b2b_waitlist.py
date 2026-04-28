@@ -45,11 +45,74 @@ class WaitlistSignup(BaseModel):
     phone: str = Field(..., min_length=10, max_length=20)
     country_code: str = Field(default="+91", max_length=5)
     gst_number: str = Field(..., min_length=15, max_length=15)
+    legal_name: Optional[str] = Field(
+        None,
+        min_length=2,
+        max_length=200,
+        description="Legal name exactly as on the GST certificate. "
+        "Cross-validated against Appyflow when GSTIN verifies.",
+    )
     city: Optional[str] = None
     state: Optional[str] = None
     address: Optional[str] = None
-    pincode: Optional[str] = None
+    pincode: Optional[str] = Field(None, min_length=6, max_length=6)
     message: Optional[str] = Field(None, max_length=1000)
+
+
+# ---------------------------------------------------------------------------
+# Anti-spoofing helpers — ensure the user can't submit someone else's GSTIN
+# ---------------------------------------------------------------------------
+_LEGAL_SUFFIXES = (
+    "private limited", "pvt ltd", "pvt. ltd.", "pvt limited",
+    "limited", "ltd", "ltd.",
+    "llp", "l.l.p.",
+    "incorporated", "inc", "inc.",
+    "corporation", "corp", "corp.",
+    "company", "co.", "co",
+    "partnership", "& co", "and co",
+    "& sons", "and sons",
+    "trust", "society", "association",
+    "huf",
+    "india",  # very common trailing word; safe to drop for matching
+)
+
+
+def _normalize_for_match(value: Optional[str]) -> str:
+    """Lowercase, strip punctuation/extra spaces, drop common legal suffixes.
+    Used to compare a user-typed business name with the GST registry's
+    `taxpayer_name` (legal name) so 'Reliance Industries' matches
+    'RELIANCE INDUSTRIES LIMITED'."""
+    if not value:
+        return ""
+    s = re.sub(r"[^a-z0-9& ]", " ", value.lower())
+    s = re.sub(r"\s+", " ", s).strip()
+    # Repeatedly strip a recognised trailing suffix
+    changed = True
+    while changed:
+        changed = False
+        for suf in _LEGAL_SUFFIXES:
+            if s.endswith(" " + suf) or s == suf:
+                s = s[: -len(suf)].strip()
+                changed = True
+                break
+    return s
+
+
+def _names_match(claimed: Optional[str], official: Optional[str]) -> bool:
+    """Return True when the user-typed legal name reasonably matches the
+    official GST taxpayer name (after suffix-stripping + case-folding).
+    Generous in either direction so abbreviations don't false-reject."""
+    a, b = _normalize_for_match(claimed), _normalize_for_match(official)
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    # Accept if one is a contiguous prefix/contains-substring of the other
+    # AND the shorter one is at least 60% the length of the longer.
+    short, long = (a, b) if len(a) <= len(b) else (b, a)
+    if short and short in long and len(short) >= 0.6 * len(long):
+        return True
+    return False
 
 
 def _titlecase(value: Optional[str]) -> Optional[str]:
@@ -88,7 +151,10 @@ async def public_gst_lookup(gst_number: str):
         }
 
     # Build a clean payload for the form
-    addr_parts = result.get("address", "").split(", ")
+    addr_str = result.get("address", "") or ""
+    addr_parts = [p.strip() for p in addr_str.split(",") if p.strip()]
+    # PIN is any 6-digit token in the address; pick the last one to be safe
+    pincode_match = re.findall(r"\b\d{6}\b", addr_str)
     return {
         "verified": True,
         "gst_number": gst,
@@ -101,7 +167,7 @@ async def public_gst_lookup(gst_number: str):
         "status": result.get("status"),
         "state": INDIAN_STATE_CODES.get(gst[:2]) or result.get("state"),
         "city": _titlecase(addr_parts[-4]) if len(addr_parts) >= 4 else None,
-        "pincode": addr_parts[-1] if addr_parts and addr_parts[-1].isdigit() else None,
+        "pincode": pincode_match[-1] if pincode_match else None,
         "address": result.get("address"),
         "registration_date": result.get("registration_date"),
     }
@@ -109,20 +175,33 @@ async def public_gst_lookup(gst_number: str):
 
 @router.post("")
 async def create_waitlist_signup(data: WaitlistSignup, request: Request):
-    """Public endpoint — anyone interested in B2B can leave their info."""
+    """Public endpoint — anyone interested in B2B can leave their info.
+
+    Anti-spoofing rules applied when GSTIN verifies:
+      • The user-typed `legal_name` must reasonably match the registry's
+        official taxpayer name (handles common legal suffixes like LIMITED).
+      • The user-typed `state` (if provided) must match the GSTIN state code.
+      • The user-typed `pincode` (if provided) must appear in the registry's
+        registered address.
+    Only enforced when Appyflow verifies; if the verification service is
+    unavailable, the submission is accepted with `gst_verified: false` so
+    the admin can review manually (graceful degrade).
+    """
     gst = (data.gst_number or "").upper().strip()
     if not GST_PATTERN.match(gst):
         raise HTTPException(status_code=400, detail="Invalid GST number format")
 
-    # Try to auto-verify GST (best-effort; doesn't block signup)
+    # Try to auto-verify GST (best-effort; doesn't block signup unless mismatch)
     legal_name = None
     gst_verified = False
     gst_verification_error: Optional[str] = None
+    gst_record: dict = {}
     try:
         from services.gst_verification import verify_gst_number  # type: ignore
         result = await verify_gst_number(gst)
         if isinstance(result, dict) and result.get("verified"):
             gst_verified = True
+            gst_record = result
             legal_name = result.get("taxpayer_name") or result.get("trade_name")
         else:
             gst_verification_error = (result or {}).get(
@@ -130,6 +209,48 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
             )
     except Exception as e:
         gst_verification_error = str(e) or "Verification service unavailable"
+
+    # ---- Anti-spoofing cross-checks (only when GSTIN actually verified) ----
+    if gst_verified:
+        # 1) Legal name must match the GST registry's taxpayer/trade name
+        official_legal = gst_record.get("taxpayer_name") or ""
+        official_trade = gst_record.get("trade_name") or ""
+        if data.legal_name and not (
+            _names_match(data.legal_name, official_legal)
+            or _names_match(data.legal_name, official_trade)
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Legal name does not match GST records. "
+                    f"This GSTIN is registered to “{official_legal or official_trade}”. "
+                    "Please enter the legal name exactly as on your GST certificate."
+                ),
+            )
+
+        # 2) State must match the GSTIN state code (first 2 digits)
+        expected_state = INDIAN_STATE_CODES.get(gst[:2])
+        if data.state and expected_state and _normalize_for_match(data.state) != _normalize_for_match(expected_state):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"State does not match GST records. This GSTIN is registered "
+                    f"in {expected_state}."
+                ),
+            )
+
+        # 3) Pincode must appear in the GST-registered address
+        if data.pincode:
+            pin = data.pincode.strip()
+            registered_addr = (gst_record.get("address") or "")
+            if pin and pin not in registered_addr:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Pincode does not match the GST-registered address. "
+                        "Please use the pincode shown on your GST certificate."
+                    ),
+                )
 
     cc = (data.country_code or "+91").strip()
     if not cc.startswith("+"):
@@ -143,6 +264,7 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
             "$set": {
                 "business_name": _titlecase(data.business_name),
                 "contact_name": _titlecase(data.contact_name),
+                "legal_name": _titlecase(data.legal_name) if data.legal_name else None,
                 "legal_name_from_gst": legal_name,
                 "email": data.email.lower(),
                 "country_code": cc,
