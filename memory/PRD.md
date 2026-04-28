@@ -1,15 +1,21 @@
 # Addrika E-Commerce Platform — PRD
 
-## 🎯 PRIORITY ITEMS  *(Apr 26, 2026 — final published)*
-> All engineering items shipped & tested. Only user-action items remain.
+## 🎯 PRIORITY ITEMS  *(Apr 28, 2026 — latest)*
+> Newsletter capture wired on `/blog`. Engineering backlog below.
+
+### 🆕 Apr 28, 2026 — Shipped
+- ✅ **"The Smoke Signal" subscribe component** on `/blog` — snazzy, on-brand (incense × journalism pun), glass-morphism card with flame icon, calls `POST /api/subscribe` (Resend welcome email auto-fires). Closes the auto-blog email-blast loop with real subscribers.
+  - Files: `frontend-next/components/SmokeSignalSubscribe.js` (new), `frontend-next/app/blog/page.js` (added import)
+  - E2E verified live: success state, duplicate-email branch, error state, `data-testid` coverage.
 
 ### 🟢 P0 — Complete
-*(B2B portal, retailer self-onboarding, KYC live, order gate ON, recovery email, admin catalog UI, CSV bulk import, archive filter, GDPR cookie variant, gtag.js direct injection — all shipped & tested.)*
+*(B2B portal, retailer self-onboarding, KYC live, order gate ON, recovery email, admin catalog UI, CSV bulk import, archive filter, GDPR cookie variant, gtag.js direct injection, GST-first 2-step waitlist with anti-spoofing, auto-blog Gemini 2.5 Flash + Pollinations + Resend blast — all shipped & tested.)*
 
 ### 🟠 P1 — User action only (no engineering)
-- ⏳ **Replace placeholder images** for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, Royal Kewda *(awaiting your real product photos)*. *Per user request Apr 26: deferred indefinitely.*
-- ⏳ **Verify Zoho refresh-token health** quarterly — `<ZohoSyncHealthCard />` polls live; alert banner appears in admin if it fails.
-- ✅ **KYC gate is ON** in production (`b2b_kyc_required_for_orders=True` since Apr 26, 2026). Existing retailers can be batch-grandfathered via `/admin/settings/b2b` → "Grandfather all retailers" button (idempotent).
+- ⏳ **AppyFlow API top-up** — account is out of credits ("Credit Expire."). Live GST autofill/anti-spoofing on `/find-retailers` will resume once you recharge AppyFlow.
+- ⏳ **Replace placeholder images** for Bilvapatra Fragrance Agarbatti, 8" Bambooless Dhoop, Royal Kewda *(awaiting your real product photos; deferred per user)*.
+- ⏳ **Verify Zoho refresh-token health** quarterly — `<ZohoSyncHealthCard />` polls live.
+- ✅ **KYC gate is ON** in production since Apr 26, 2026.
 
 ### 🟡 P2 — Deferred / future enhancements (per user)
 - ❌ Weekly admin digest of KYC-incomplete retailers + recovery email open rates *(per user)*
