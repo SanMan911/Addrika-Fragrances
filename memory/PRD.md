@@ -4,11 +4,16 @@
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
 ### 🆕 Apr 28-29, 2026 — Shipped
-- ✅ **Tri-fold product brochure (Apr 29, 2026)** — public `GET /api/brochure/download` returns a 2-page A4-landscape PDF (~159 KB) styled as a true tri-fold: OUTSIDE = [Brand Story flap | Contact back-cover | ADDRIKA front cover], INSIDE = 3 panels of product cards (image, name, tagline, description, sizes & price). Catalogue is read live from MongoDB so any new product appears in the next download. Image cache at `/tmp/addrika_brochure_cache` for ~6s cold start, near-instant warm. Full company metadata embedded (brand, company, address, CIN, email, phone, website, Instagram). Branded gold "Download Tri-Fold Brochure" CTA on `/find-retailers` hero. Regression tests in `backend/tests/test_brochure_download.py`.
-  - Files: `backend/services/brochure_pdf.py` (new), `backend/routers/brochure.py` (new), `backend/server.py` (router registered), `frontend-next/app/find-retailers/page.js` (CTA), `backend/tests/test_brochure_download.py` (new).
-- ✅ **`/find-retailers` lands on full India map (Apr 29, 2026)** — initial view set to country-level zoom (4.6) with `maxBounds` clamping to the Indian subcontinent. Auto fit-to-markers removed so the customer always sees the full picture first.
-- ✅ **Real retailer pins on `/find-retailers` map (Apr 29, 2026)** — Leaflet + OpenStreetMap, gold pins, popups (name, address, Verified badge, Directions, WhatsApp). Backend `GET /api/retailers/` auto-enriches missing `coordinates` from pincode so legacy and future retailers always pin. SSR fetch is `cache: 'no-store'` so admin-added retailers appear instantly. Locked by `backend/tests/test_retailers_map_pins.py`.
-- ✅ **"The Smoke Signal" subscribe component** on `/blog` (Apr 28) — calls `POST /api/subscribe` (Resend welcome auto-fires).
+- ✅ **Brochure: ₹ symbol + correct registered address (Apr 29, 2026)** — Embedded Noto Sans (regular/bold/italic/bold-italic) into the brochure PDF so the Indian Rupee glyph (U+20B9) renders correctly across all price lines. Updated registered address printed on the back-cover panel to **"745, Sector 17 Pocket A Phase II, Dwarka, South West Delhi, Delhi - 110078"**. Visually re-validated by the AI vision tool.
+  - Files: `backend/services/brochure_pdf.py` (Noto Sans registration + COMPANY_ADDRESS update), `backend/.env` (`SELLER_ADDRESS` env override).
+- ✅ **Mappls scaffolding (Apr 29, 2026)** — Architecture ready for one-paste activation of Survey-of-India compliant map tiles (PoK + Aksai Chin shown as part of India per Indian government).
+  - Backend: `services/mappls_geocode.py` (forward geocoding helper, no-op when key empty); `routers/retailers.py` enriches missing coords via Mappls → pincode-table → none.
+  - Frontend: `RetailerMap.js` swaps base tile layer to Mappls when `NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY` is set; OSM remains underneath as a fail-safe; visible `OSM`/`MAPPLS · INDIA` badge top-left.
+  - Env placeholders added to `backend/.env` (`MAPPLS_REST_API_KEY=`) and `frontend-next/.env.local` (`NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY=`). Just paste the key and rebuild — no other code changes.
+- ✅ **Tri-fold product brochure (Apr 29, 2026)** — public `GET /api/brochure/download` returns a 2-page A4-landscape PDF (~200 KB).
+- ✅ **`/find-retailers` lands on full India map (Apr 29, 2026)** — initial view is the full subcontinent; auto fit-to-markers removed; `maxBounds` clamps panning to India.
+- ✅ **Real retailer pins on map (Apr 29, 2026)** — Leaflet markers + popups with Verified badge / Directions / WhatsApp.
+- ✅ **"The Smoke Signal" subscribe component** on `/blog` (Apr 28).
 
 ### 🟢 P0 — Complete
 *(B2B portal, retailer self-onboarding, KYC live, order gate ON, recovery email, admin catalog UI, CSV bulk import, archive filter, GDPR cookie variant, gtag.js direct injection, GST-first 2-step waitlist with anti-spoofing, auto-blog Gemini 2.5 Flash + Pollinations + Resend blast — all shipped & tested.)*
