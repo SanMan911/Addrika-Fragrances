@@ -3,11 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, ExternalLink, Store } from 'lucide-react';
 
+const MAPPLS_KEY = process.env.NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY || '';
+
 export default function RetailerMap({ retailers }) {
   const mapEl = useRef(null);
   const mapRef = useRef(null);
   const leafletRef = useRef(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [tileSource, setTileSource] = useState(MAPPLS_KEY ? 'mappls' : 'osm');
 
   const validRetailers = useMemo(
     () =>
@@ -75,6 +78,36 @@ export default function RetailerMap({ retailers }) {
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }
       ).addTo(map);
+
+      // ---- Mappls (Survey-of-India compliant) tile overlay ----
+      // When NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY is set, swap the base layer to
+      // Mappls raster tiles. Mappls renders the correct India boundary
+      // (PoK & Aksai Chin shown as part of India). If Mappls fails for any
+      // reason (network, key invalid), the OSM layer underneath remains
+      // visible — the page never goes blank.
+      if (MAPPLS_KEY) {
+        try {
+          const mapplsLayer = L.tileLayer(
+            `https://apis.mappls.com/advancedmaps/v1/${MAPPLS_KEY}/map_tile/{z}/{x}/{y}`,
+            {
+              maxZoom: 19,
+              attribution:
+                '&copy; <a href="https://www.mappls.com">Mappls</a> · Survey of India',
+            }
+          );
+          mapplsLayer.on('tileerror', () => {
+            // If Mappls tiles are unauthorised, remove the layer so OSM shows.
+            if (map.hasLayer(mapplsLayer)) {
+              map.removeLayer(mapplsLayer);
+              setTileSource('osm');
+            }
+          });
+          mapplsLayer.addTo(map);
+          setTileSource('mappls');
+        } catch (e) {
+          setTileSource('osm');
+        }
+      }
 
       // Custom gold pin (SVG) so it matches the brand
       const goldIcon = L.divIcon({
@@ -236,6 +269,25 @@ export default function RetailerMap({ retailers }) {
           </div>
         </div>
       )}
+
+      {/* Tile source badge (helps verify when the Mappls key flips on) */}
+      <div
+        className="absolute top-4 left-4 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider z-[400]"
+        style={{
+          background: tileSource === 'mappls' ? 'rgba(212,175,55,0.95)' : 'rgba(26,26,46,0.85)',
+          color: tileSource === 'mappls' ? '#1a1a2e' : '#D4AF37',
+          border: '1px solid rgba(212,175,55,0.4)',
+          backdropFilter: 'blur(6px)',
+        }}
+        data-testid="retailer-map-tile-source"
+        title={
+          tileSource === 'mappls'
+            ? 'Mappls (Survey-of-India compliant) tiles'
+            : 'OpenStreetMap tiles — set NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY for India-compliant tiles'
+        }
+      >
+        {tileSource === 'mappls' ? 'MAPPLS · INDIA' : 'OSM'}
+      </div>
 
       {/* Store count overlay */}
       <button

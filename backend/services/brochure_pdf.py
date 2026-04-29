@@ -35,12 +35,51 @@ TAGLINE = "Elegance in Every Scent"
 COMPANY_CIN = "U46491DL2022PTC392334"
 COMPANY_ADDRESS = os.environ.get(
     "SELLER_ADDRESS",
-    "H-1/5, Sector 16, Rohini, Delhi - 110089, India",
+    "745, Sector 17 Pocket A Phase II, Dwarka, South West Delhi, Delhi - 110078",
 )
 COMPANY_EMAIL = os.environ.get("SELLER_EMAIL", "contact.us@centraders.com")
 COMPANY_PHONE = os.environ.get("SELLER_PHONE", "+91 96672 69711")
 COMPANY_WEBSITE = "centraders.com"
 INSTAGRAM = "@addrika.fragrances"
+
+# ----- Fonts (Noto Sans bundled with the OS — has the ₹ glyph) -----
+_FONT_DIR = "/usr/share/fonts/truetype/noto"
+_FONTS_REGISTERED = False
+
+
+def _ensure_fonts():
+    """Register Noto Sans variants once. Falls back to Helvetica if Noto
+    is unavailable (the ₹ symbol will not render but text won't crash)."""
+    global _FONTS_REGISTERED
+    if _FONTS_REGISTERED:
+        return
+    try:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+
+        pdfmetrics.registerFont(TTFont("NotoSans", f"{_FONT_DIR}/NotoSans-Regular.ttf"))
+        pdfmetrics.registerFont(TTFont("NotoSans-Bold", f"{_FONT_DIR}/NotoSans-Bold.ttf"))
+        pdfmetrics.registerFont(TTFont("NotoSans-Italic", f"{_FONT_DIR}/NotoSans-Italic.ttf"))
+        pdfmetrics.registerFont(TTFont("NotoSans-BoldItalic", f"{_FONT_DIR}/NotoSans-BoldItalic.ttf"))
+        from reportlab.pdfbase.pdfmetrics import registerFontFamily
+        registerFontFamily(
+            "NotoSans",
+            normal="NotoSans",
+            bold="NotoSans-Bold",
+            italic="NotoSans-Italic",
+            boldItalic="NotoSans-BoldItalic",
+        )
+        _FONTS_REGISTERED = True
+    except Exception:
+        # Last-ditch fallback to built-in Helvetica (no ₹ glyph).
+        _FONTS_REGISTERED = True
+
+
+# Public font names used everywhere below. _ensure_fonts() is called before
+# any rendering happens, and the names map onto the registered TTFs.
+F_REG = "NotoSans"
+F_BOLD = "NotoSans-Bold"
+F_ITAL = "NotoSans-Italic"
 
 # ----- Colours (brand palette) -----
 DEEP_BLUE = colors.HexColor("#0f1419")
@@ -124,7 +163,7 @@ def _wrap_text(text: str, width_chars: int) -> list[str]:
 
 
 def _draw_paragraph(
-    c, text, x, y, *, max_width, font="Helvetica", size=9, color=WHITE,
+    c, text, x, y, *, max_width, font="NotoSans", size=9, color=WHITE,
     leading=12, max_lines=12,
 ):
     """Word-wrap and draw, returns final y."""
@@ -184,14 +223,14 @@ def _draw_front_cover(c: canvas.Canvas, x: float):
 
     # Top tag
     _draw_centered_text(c, "PREMIUM NATURAL INCENSE", cx, PAGE_H - 28 * MM,
-                        "Helvetica-Bold", 8, GOLD)
+                        "NotoSans-Bold", 8, GOLD)
 
     # Brand
     _draw_centered_text(c, BRAND_NAME.upper(), cx, PAGE_H - 60 * MM,
-                        "Helvetica-Bold", 44, WHITE)
+                        "NotoSans-Bold", 44, WHITE)
     _draw_gold_divider(c, cx, PAGE_H - 70 * MM, width=80)
     _draw_centered_text(c, TAGLINE, cx, PAGE_H - 82 * MM,
-                        "Helvetica-Oblique", 12, CREAM)
+                        "NotoSans-Italic", 12, CREAM)
 
     # Manifesto
     body = (
@@ -201,16 +240,16 @@ def _draw_front_cover(c: canvas.Canvas, x: float):
         "quiet moment in between."
     )
     _draw_paragraph(c, body, x + INNER_PAD, PAGE_H - 105 * MM,
-                    max_width=PANEL_W - 2 * INNER_PAD, font="Helvetica",
+                    max_width=PANEL_W - 2 * INNER_PAD, font="NotoSans",
                     size=9.5, color=CREAM, leading=13.5, max_lines=8)
 
     # Bottom call-out
     _draw_centered_text(c, "ZERO CHARCOAL  •  100% NATURAL  •  HAND-ROLLED",
-                        cx, 28 * MM, "Helvetica-Bold", 8, GOLD)
+                        cx, 28 * MM, "NotoSans-Bold", 8, GOLD)
     _draw_centered_text(c, "centraders.com", cx, 18 * MM,
-                        "Helvetica-Bold", 11, WHITE)
+                        "NotoSans-Bold", 11, WHITE)
     _draw_centered_text(c, COMPANY_NAME, cx, 11 * MM,
-                        "Helvetica", 7.5, SOFT_GREY)
+                        "NotoSans", 7.5, SOFT_GREY)
 
 
 def _draw_back_cover(c: canvas.Canvas, x: float):
@@ -220,7 +259,7 @@ def _draw_back_cover(c: canvas.Canvas, x: float):
 
     # Header
     _draw_centered_text(c, "GET IN TOUCH", cx, PAGE_H - 28 * MM,
-                        "Helvetica-Bold", 11, GOLD)
+                        "NotoSans-Bold", 11, GOLD)
     _draw_gold_divider(c, cx, PAGE_H - 33 * MM, width=60)
 
     # Contact block
@@ -234,28 +273,28 @@ def _draw_back_cover(c: canvas.Canvas, x: float):
     ]
     y = PAGE_H - 50 * MM
     for label, value in contact_lines:
-        c.setFont("Helvetica", 7.5)
+        c.setFont("NotoSans", 7.5)
         c.setFillColor(SOFT_GREY)
         c.drawString(x + INNER_PAD, y, label.upper())
         y -= 9
-        c.setFont("Helvetica-Bold", 10)
+        c.setFont("NotoSans-Bold", 10)
         c.setFillColor(WHITE)
         c.drawString(x + INNER_PAD, y, value)
         y -= 14
 
     # Address
     y -= 4
-    c.setFont("Helvetica", 7.5)
+    c.setFont("NotoSans", 7.5)
     c.setFillColor(SOFT_GREY)
     c.drawString(x + INNER_PAD, y, "REGISTERED ADDRESS")
     y -= 10
     y = _draw_paragraph(
         c, COMPANY_ADDRESS, x + INNER_PAD, y,
         max_width=PANEL_W - 2 * INNER_PAD,
-        font="Helvetica-Bold", size=9.5, color=WHITE, leading=12, max_lines=3,
+        font="NotoSans-Bold", size=9.5, color=WHITE, leading=12, max_lines=3,
     )
     y -= 4
-    c.setFont("Helvetica", 7)
+    c.setFont("NotoSans", 7)
     c.setFillColor(SOFT_GREY)
     c.drawString(x + INNER_PAD, y, f"CIN: {COMPANY_CIN}")
 
@@ -268,19 +307,19 @@ def _draw_back_cover(c: canvas.Canvas, x: float):
     c.roundRect(x + INNER_PAD, box_y, PANEL_W - 2 * INNER_PAD, box_h,
                 4, stroke=1, fill=1)
     _draw_centered_text(c, "RETAILER & WHOLESALE", cx, box_y + box_h - 9 * MM,
-                        "Helvetica-Bold", 9, GOLD)
+                        "NotoSans-Bold", 9, GOLD)
     _draw_paragraph(
         c,
         "Become an authorised Addrika partner. GST-verified onboarding, "
         "transparent margins, dedicated SPOC. Visit centraders.com/find-retailers",
         x + INNER_PAD + 4, box_y + box_h - 14 * MM,
         max_width=PANEL_W - 2 * INNER_PAD - 8,
-        font="Helvetica", size=8, color=CREAM, leading=10.5, max_lines=4,
+        font="NotoSans", size=8, color=CREAM, leading=10.5, max_lines=4,
     )
 
     # Footer line
     _draw_centered_text(c, f"© {COMPANY_NAME}", cx, 8 * MM,
-                        "Helvetica", 7, SOFT_GREY)
+                        "NotoSans", 7, SOFT_GREY)
 
 
 def _draw_inner_flap(c: canvas.Canvas, x: float):
@@ -291,13 +330,13 @@ def _draw_inner_flap(c: canvas.Canvas, x: float):
     cx = x + PANEL_W / 2
 
     _draw_centered_text(c, "OUR STORY", cx, PAGE_H - 28 * MM,
-                        "Helvetica-Bold", 11, GOLD_DARK)
+                        "NotoSans-Bold", 11, GOLD_DARK)
     _draw_gold_divider(c, cx, PAGE_H - 33 * MM, width=60)
 
     _draw_centered_text(c, "Built on a refusal", cx, PAGE_H - 46 * MM,
-                        "Helvetica-Bold", 14, INK_BLUE)
+                        "NotoSans-Bold", 14, INK_BLUE)
     _draw_centered_text(c, "to settle for ordinary.", cx, PAGE_H - 53 * MM,
-                        "Helvetica-Bold", 14, INK_BLUE)
+                        "NotoSans-Bold", 14, INK_BLUE)
 
     body = (
         "Addrika was born when a third-generation incense family looked at "
@@ -315,7 +354,7 @@ def _draw_inner_flap(c: canvas.Canvas, x: float):
         y = _draw_paragraph(
             c, para, x + INNER_PAD, y,
             max_width=PANEL_W - 2 * INNER_PAD,
-            font="Helvetica", size=9.5, color=INK_BLUE, leading=13, max_lines=10,
+            font="NotoSans", size=9.5, color=INK_BLUE, leading=13, max_lines=10,
         )
         y -= 6
 
@@ -326,9 +365,9 @@ def _draw_inner_flap(c: canvas.Canvas, x: float):
     ]
     py = 30 * MM
     px = x + INNER_PAD
-    c.setFont("Helvetica-Bold", 7.5)
+    c.setFont("NotoSans-Bold", 7.5)
     for pill in pills:
-        text_w = c.stringWidth(pill, "Helvetica-Bold", 7.5)
+        text_w = c.stringWidth(pill, "NotoSans-Bold", 7.5)
         pad = 5
         pw = text_w + 2 * pad
         if px + pw > x + PANEL_W - INNER_PAD:
@@ -341,7 +380,7 @@ def _draw_inner_flap(c: canvas.Canvas, x: float):
         px += pw + 4
 
     _draw_centered_text(c, "Turn over for our full collection →", cx, 14 * MM,
-                        "Helvetica-Oblique", 8.5, GOLD_DARK)
+                        "NotoSans-Italic", 8.5, GOLD_DARK)
 
 
 def _draw_product_card(c, x, y, w, h, product):
@@ -367,7 +406,7 @@ def _draw_product_card(c, x, y, w, h, product):
         c.setFillColor(INK_BLUE)
         c.roundRect(img_x, img_y, img_size, img_size, 2, stroke=0, fill=1)
         c.setFillColor(GOLD)
-        c.setFont("Helvetica-Bold", 18)
+        c.setFont("NotoSans-Bold", 18)
         c.drawCentredString(
             img_x + img_size / 2, img_y + img_size / 2 - 6,
             (product.get("name") or "?")[:1].upper(),
@@ -379,7 +418,7 @@ def _draw_product_card(c, x, y, w, h, product):
     ty = y + h - 12
 
     # Name
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("NotoSans-Bold", 10)
     c.setFillColor(INK_BLUE)
     name = (product.get("name") or "").strip()
     c.drawString(tx, ty, name[:28])
@@ -387,7 +426,7 @@ def _draw_product_card(c, x, y, w, h, product):
 
     # Tagline / fragrance notes
     tagline = product.get("tagline") or ""
-    c.setFont("Helvetica-Oblique", 7.5)
+    c.setFont("NotoSans-Italic", 7.5)
     c.setFillColor(GOLD_DARK)
     c.drawString(tx, ty, tagline[:36])
     ty -= 9
@@ -399,7 +438,7 @@ def _draw_product_card(c, x, y, w, h, product):
         desc_short = desc_short[:142].rstrip() + "…"
     _draw_paragraph(
         c, desc_short, tx, ty,
-        max_width=tw, font="Helvetica", size=7.5,
+        max_width=tw, font="NotoSans", size=7.5,
         color=INK_BLUE, leading=9.5, max_lines=4,
     )
 
@@ -415,7 +454,7 @@ def _draw_product_card(c, x, y, w, h, product):
             except Exception:
                 size_strs.append(str(sz))
         line = "   ".join(size_strs)
-        c.setFont("Helvetica-Bold", 7.5)
+        c.setFont("NotoSans-Bold", 7.5)
         c.setFillColor(GOLD_DARK)
         c.drawString(tx, y + 5, line)
 
@@ -427,7 +466,7 @@ def _draw_inside_panel(c, x, header, products, panel_index):
     cx = x + PANEL_W / 2
 
     _draw_centered_text(c, header.upper(), cx, PAGE_H - 18 * MM,
-                        "Helvetica-Bold", 10, GOLD_DARK)
+                        "NotoSans-Bold", 10, GOLD_DARK)
     _draw_gold_divider(c, cx, PAGE_H - 22 * MM, width=50)
 
     # Card grid: 1 per row, multiple rows.
@@ -447,7 +486,7 @@ def _draw_inside_panel(c, x, header, products, panel_index):
 
     # Footer
     _draw_centered_text(c, f"{BRAND_NAME.upper()} · {COMPANY_WEBSITE}",
-                        cx, 8 * MM, "Helvetica-Bold", 7.5, GOLD_DARK)
+                        cx, 8 * MM, "NotoSans-Bold", 7.5, GOLD_DARK)
 
 
 # ----- Public API -----
@@ -462,6 +501,8 @@ def build_brochure_pdf(products: list[dict]) -> bytes:
         p for p in products
         if p.get("isActive", True) and not p.get("comingSoon", False)
     ]
+
+    _ensure_fonts()
 
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=landscape(A4))

@@ -887,10 +887,15 @@ async def admin_restore_retailer(
 @router.get("/")
 async def get_retailers_for_pickup():
     """Get active retailers for store pickup selection (public).
-    Falls back to pincode-derived coordinates so legacy/new retailers
-    without explicit coordinates still appear on the map.
+    Falls back to Mappls geocoding (when configured) and finally
+    pincode-derived coordinates so legacy/new retailers without
+    explicit coordinates still appear on the map.
     """
     from services.shipping_config import get_coordinates_for_pincode
+    from services.mappls_geocode import (
+        forward_geocode as mappls_forward_geocode,
+        is_mappls_enabled,
+    )
 
     retailers = await db.retailers.find(
         {"status": "active", "is_verified": True},
@@ -903,7 +908,9 @@ async def get_retailers_for_pickup():
         }
     ).to_list(100)
 
-    # Enrich with pincode-derived coordinates if missing/invalid.
+    mappls_on = is_mappls_enabled()
+
+    # Enrich with geocoded / pincode-derived coordinates if missing.
     for r in retailers:
         coords = r.get("coordinates")
         has_valid = (
@@ -911,13 +918,29 @@ async def get_retailers_for_pickup():
             and coords.get("lat") is not None
             and coords.get("lng") is not None
         )
-        if not has_valid:
-            fallback = get_coordinates_for_pincode(r.get("pincode") or "")
-            if fallback:
-                r["coordinates"] = fallback
-                r["coordinates_source"] = "pincode_fallback"
-            else:
-                r["coordinates"] = None
+        if has_valid:
+            continue
+
+        # 1) Try Mappls forward-geocode (most accurate; sub-locality precision).
+        if mappls_on:
+            address = ", ".join(filter(None, [
+                r.get("registered_address") or r.get("address"),
+                r.get("city") or r.get("district"),
+                r.get("state"),
+            ]))
+            geo = await mappls_forward_geocode(address, pincode=r.get("pincode"))
+            if geo:
+                r["coordinates"] = geo
+                r["coordinates_source"] = "mappls_geocode"
+                continue
+
+        # 2) Fall back to the static pincode prefix table.
+        fallback = get_coordinates_for_pincode(r.get("pincode") or "")
+        if fallback:
+            r["coordinates"] = fallback
+            r["coordinates_source"] = "pincode_fallback"
+        else:
+            r["coordinates"] = None
 
     return {"retailers": retailers}
 
