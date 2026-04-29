@@ -3,10 +3,10 @@
 ## 🎯 PRIORITY ITEMS  *(Apr 28, 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
-### 🆕 Apr 28, 2026 — Shipped
-- ✅ **"The Smoke Signal" subscribe component** on `/blog` — snazzy, on-brand (incense × journalism pun), glass-morphism card with flame icon, calls `POST /api/subscribe` (Resend welcome email auto-fires). Closes the auto-blog email-blast loop with real subscribers.
-  - Files: `frontend-next/components/SmokeSignalSubscribe.js` (new), `frontend-next/app/blog/page.js` (added import)
-  - E2E verified live: success state, duplicate-email branch, error state, `data-testid` coverage.
+### 🆕 Apr 28-29, 2026 — Shipped
+- ✅ **Real retailer pins on `/find-retailers` map (Apr 29, 2026)** — replaced static India iframe with Leaflet + OpenStreetMap (no API key). Every active+verified retailer is pinned with a custom gold marker, popup (name, address, Verified badge, Directions, WhatsApp), fit-to-bounds, "Open in Google Maps" CTA. Backend `GET /api/retailers/` now auto-enriches missing `coordinates` from pincode (via `services.shipping_config.PINCODE_COORDINATES`) so legacy and future-added retailers always pin — even if admin omits coordinates. SSR fetch switched to `cache: 'no-store'` so newly added retailers appear instantly. Regression locked by `backend/tests/test_retailers_map_pins.py`.
+  - Files: `frontend-next/components/RetailerMap.js` (rewritten), `frontend-next/app/find-retailers/page.js` (cache off), `backend/routers/retailers.py` (pincode fallback in `get_retailers_for_pickup`), `backend/tests/test_retailers_map_pins.py` (new).
+- ✅ **"The Smoke Signal" subscribe component** on `/blog` (Apr 28) — snazzy, on-brand glass-morphism card calling `POST /api/subscribe` (Resend welcome email auto-fires). Closes the auto-blog email-blast loop with real subscribers. E2E verified live.
 
 ### 🟢 P0 — Complete
 *(B2B portal, retailer self-onboarding, KYC live, order gate ON, recovery email, admin catalog UI, CSV bulk import, archive filter, GDPR cookie variant, gtag.js direct injection, GST-first 2-step waitlist with anti-spoofing, auto-blog Gemini 2.5 Flash + Pollinations + Resend blast — all shipped & tested.)*

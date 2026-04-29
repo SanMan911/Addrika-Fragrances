@@ -886,18 +886,39 @@ async def admin_restore_retailer(
 
 @router.get("/")
 async def get_retailers_for_pickup():
-    """Get active retailers for store pickup selection (public)"""
+    """Get active retailers for store pickup selection (public).
+    Falls back to pincode-derived coordinates so legacy/new retailers
+    without explicit coordinates still appear on the map.
+    """
+    from services.shipping_config import get_coordinates_for_pincode
+
     retailers = await db.retailers.find(
         {"status": "active", "is_verified": True},
         {
-            "_id": 0, 
-            "password_hash": 0, 
+            "_id": 0,
+            "password_hash": 0,
             "legal_documents": 0,
             "spoc.id_proof_document": 0,
             "spoc.id_proof_number": 0
         }
     ).to_list(100)
-    
+
+    # Enrich with pincode-derived coordinates if missing/invalid.
+    for r in retailers:
+        coords = r.get("coordinates")
+        has_valid = (
+            isinstance(coords, dict)
+            and coords.get("lat") is not None
+            and coords.get("lng") is not None
+        )
+        if not has_valid:
+            fallback = get_coordinates_for_pincode(r.get("pincode") or "")
+            if fallback:
+                r["coordinates"] = fallback
+                r["coordinates_source"] = "pincode_fallback"
+            else:
+                r["coordinates"] = None
+
     return {"retailers": retailers}
 
 

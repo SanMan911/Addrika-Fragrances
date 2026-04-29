@@ -66,7 +66,7 @@ async function getRetailers() {
 
   try {
     const res = await fetch(`${backendUrl}/api/retailers`, {
-      next: { revalidate: 300 } // Revalidate every 5 minutes for faster updates
+      cache: 'no-store' // Always fetch fresh so admin-added retailers appear immediately
     });
     if (res.ok) {
       const data = await res.json();
