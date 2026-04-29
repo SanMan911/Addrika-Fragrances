@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Store, MapPin, Mail, Navigation, Building2 } from 'lucide-react';
+import { Store, MapPin, Mail, Navigation, Building2, Download } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import PartnershipCTAButton from '../../components/PartnershipCTAButton';
@@ -182,6 +182,28 @@ export default async function FindRetailersPage() {
               Visit our authorized retailers to experience premium zero-charcoal incense in person. 
               Available in <strong className="text-[#D4AF37]">select stores across India</strong>.
             </p>
+
+            {/* Download Brochure CTA */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href={`${process.env.NEXT_PUBLIC_BACKEND_URL || ''}/api/brochure/download`}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="download-brochure-btn"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:-translate-y-0.5"
+                style={{
+                  background: 'linear-gradient(135deg, #f0c849 0%, #d4af37 50%, #a8842b 100%)',
+                  color: '#1a1410',
+                  boxShadow: '0 10px 30px -10px rgba(212,175,55,0.5), inset 0 1px 0 rgba(255,255,255,0.3)',
+                }}
+              >
+                <Download size={16} strokeWidth={2.5} />
+                Download Tri-Fold Brochure (PDF)
+              </a>
+              <span className="text-xs text-gray-500">
+                Ready-to-share · 159 KB · Updated live with our catalogue
+              </span>
+            </div>
           </div>
         </section>
 

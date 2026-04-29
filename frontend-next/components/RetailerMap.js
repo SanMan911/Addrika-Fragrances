@@ -59,7 +59,13 @@ export default function RetailerMap({ retailers }) {
         zoomControl: true,
         scrollWheelZoom: false,
         attributionControl: true,
-      }).setView([22.9734, 78.6569], 5); // India center as default
+        minZoom: 4,
+        maxBounds: [
+          [6.0, 67.0],   // SW: covers Lakshadweep / Kerala
+          [37.5, 98.0],  // NE: covers J&K / Arunachal
+        ],
+        maxBoundsViscosity: 0.7,
+      }).setView([22.9734, 80.0], 4.6); // India centre — full country in focus
 
       L.tileLayer(
         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -138,13 +144,10 @@ export default function RetailerMap({ retailers }) {
         markers.push(marker);
       });
 
-      // Fit bounds if we have markers, else stay on India view
-      if (markers.length === 1) {
-        map.setView(markers[0].getLatLng(), 11);
-      } else if (markers.length > 1) {
-        const group = L.featureGroup(markers);
-        map.fitBounds(group.getBounds().pad(0.25));
-      }
+      // Always land with the full India map in focus.
+      // Pins are visible at this zoom; users can click pins or scroll the
+      // retailer cards below for details. We deliberately do NOT auto-fit
+      // to marker bounds.
 
       mapRef.current = map;
     })();
