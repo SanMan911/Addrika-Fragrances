@@ -51,6 +51,7 @@ from routers.b2b_bills_messages import admin_router as admin_b2b_bills_msgs_rout
 from routers.notify_me import router as notify_me_router
 from routers.kyc import retailer_router as kyc_retailer_router, admin_router as kyc_admin_router
 from routers.admin.admin_auto_blog import router as admin_auto_blog_router
+from routers.brochure import router as brochure_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -80,6 +81,7 @@ async def health_check():
 # Include all routers with /api prefix
 app.include_router(auth_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
+app.include_router(brochure_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(blog_router, prefix="/api")
