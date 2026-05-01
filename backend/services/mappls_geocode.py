@@ -3,6 +3,10 @@
 Used to forward-geocode a retailer address → lat/lng so newly added
 retailers without explicit coordinates land on the map.
 
+Mappls uses a Static-Key auth pattern where the key is embedded in the
+URL path, not sent as a Bearer token. Whitelisting of caller domains
+must be configured in the Mappls Console → App → Whitelisting tab.
+
 If `MAPPLS_REST_API_KEY` is empty the helpers no-op and callers should
 fall back to the existing pincode-prefix table.
 """
@@ -15,14 +19,6 @@ from typing import Optional
 import httpx
 
 logger = logging.getLogger(__name__)
-
-# Mappls free-tier key (registered on apis.mappls.com).
-# Both the JS Map SDK key and the REST API key may be the same value
-# depending on how the dashboard provisioned them; the user can paste
-# either into MAPPLS_REST_API_KEY.
-_FORWARD_GEOCODE_URL = (
-    "https://atlas.mappls.com/api/places/geocode"
-)
 
 
 def _key() -> str:
@@ -50,12 +46,13 @@ async def forward_geocode(
     if pincode and pincode not in query:
         query = f"{query} {pincode}"
 
+    url = f"https://apis.mappls.com/advancedmaps/v1/{key}/geo_code"
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             r = await client.get(
-                _FORWARD_GEOCODE_URL,
-                params={"address": query, "itemCount": 1, "region": "ind"},
-                headers={"Authorization": f"Bearer {key}"},
+                url,
+                params={"addr": query},
+                headers={"Referer": "https://centraders.com/"},
             )
             if r.status_code != 200:
                 logger.warning(
@@ -64,12 +61,13 @@ async def forward_geocode(
                 )
                 return None
             data = r.json()
-            results = data.get("copResults") or data.get("suggestedLocations") or []
+            # Mappls returns `results` array with `lat`/`lng` keys.
+            results = data.get("results") or []
             if not isinstance(results, list) or not results:
                 return None
             top = results[0]
-            lat = top.get("latitude") or top.get("lat")
-            lng = top.get("longitude") or top.get("lng")
+            lat = top.get("lat") or top.get("latitude")
+            lng = top.get("lng") or top.get("longitude")
             if lat is None or lng is None:
                 return None
             return {"lat": float(lat), "lng": float(lng)}

@@ -116,33 +116,42 @@ async def probe_appyflow() -> Dict[str, Any]:
 
 
 async def probe_mappls() -> Dict[str, Any]:
-    """Attempt a minimal Mappls tile fetch (or geocode). Detect 401/exhaustion."""
+    """Attempt a minimal Mappls call. Mappls static-key auth passes the key
+    as a path segment, NOT as a Bearer token — that was the source of the
+    earlier 401 confusion. We try two well-known static-key endpoints and
+    interpret the response.
+    """
     key = (os.environ.get("MAPPLS_REST_API_KEY") or "").strip()
     if not key:
         return {"status": "unconfigured", "message": "MAPPLS_REST_API_KEY is not set."}
     try:
         async with httpx.AsyncClient(timeout=8) as client:
-            # Atlas geocode is the cheapest Mappls call and returns JSON.
+            # Forward-geocode is cheap, JSON response, static-key path-style.
             r = await client.get(
-                "https://atlas.mappls.com/api/places/geocode",
-                params={"address": "India Gate Delhi", "itemCount": 1, "region": "ind"},
-                headers={"Authorization": f"Bearer {key}"},
+                f"https://apis.mappls.com/advancedmaps/v1/{key}/geo_code",
+                params={"addr": "India Gate Delhi"},
+                headers={
+                    # Mappls whitelists by Referer; mimic the production domain
+                    # so the probe succeeds once the user whitelists that domain.
+                    "Referer": "https://centraders.com/",
+                },
             )
-        if r.status_code == 401:
-            body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-            desc = body.get("error_description") or body.get("error") or "unauthorised"
-            if "token" in desc.lower() and "recogn" in desc.lower():
-                return {"status": "needs_oauth", "message": (
-                    "Static key rejected — Mappls now requires OAuth 2.0 "
-                    "(Client ID + Client Secret). Please generate both from "
-                    "the Mappls console and store as MAPPLS_CLIENT_ID / MAPPLS_CLIENT_SECRET."
-                )}
-            return {"status": "auth_error", "message": desc}
-        if r.status_code == 429:
-            return {"status": "rate_limited", "message": "HTTP 429 — too many requests"}
         if r.status_code == 200:
             return {"status": "healthy", "message": "Geocode probe succeeded."}
-        return {"status": "unknown", "message": f"HTTP {r.status_code}"}
+        if r.status_code in (401, 412):
+            return {
+                "status": "auth_error",
+                "message": (
+                    f"Mappls HTTP {r.status_code} — key is valid but the app "
+                    "isn't fully configured yet. In the Mappls console → app detail: "
+                    "(1) Allocations tab: allocate Raster Map Tile + Geocoding APIs. "
+                    "(2) Whitelisting tab: add centraders.com and "
+                    "incense-retail.preview.emergentagent.com."
+                ),
+            }
+        if r.status_code == 429:
+            return {"status": "rate_limited", "message": "HTTP 429 — too many requests"}
+        return {"status": "unknown", "message": f"HTTP {r.status_code}: {r.text[:120]}"}
     except Exception as e:
         return {"status": "network_error", "message": str(e)[:200]}
 
