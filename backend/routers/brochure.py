@@ -29,7 +29,10 @@ async def download_brochure():
 
     headers = {
         "Content-Disposition": f'attachment; filename="{filename}"',
-        "Cache-Control": "public, max-age=300",  # CDN-friendly
+        # No CDN/browser cache — every download is freshly rendered so any
+        # catalogue or address change appears immediately, with no stale PDF.
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
     }
     return StreamingResponse(
         iter([pdf_bytes]),

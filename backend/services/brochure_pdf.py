@@ -42,9 +42,21 @@ COMPANY_PHONE = os.environ.get("SELLER_PHONE", "+91 96672 69711")
 COMPANY_WEBSITE = "centraders.com"
 INSTAGRAM = "@addrika.fragrances"
 
-# ----- Fonts (Noto Sans bundled with the OS — has the ₹ glyph) -----
-_FONT_DIR = "/usr/share/fonts/truetype/noto"
+# ----- Fonts (Noto Sans bundled with the repo — has the ₹ glyph) -----
+# Fonts ship inside the repo at backend/fonts/ so they survive container
+# resets and deploy with the code on Render/Vercel/preview alike.
+_REPO_FONT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "fonts")
+_SYS_FONT_DIR = "/usr/share/fonts/truetype/noto"
 _FONTS_REGISTERED = False
+
+
+def _font_path(name: str) -> Optional[str]:
+    """Return the first path that exists for the requested Noto Sans variant."""
+    for root in (_REPO_FONT_DIR, _SYS_FONT_DIR):
+        candidate = os.path.join(root, name)
+        if os.path.exists(candidate):
+            return candidate
+    return None
 
 
 def _ensure_fonts():
@@ -57,17 +69,31 @@ def _ensure_fonts():
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
 
-        pdfmetrics.registerFont(TTFont("NotoSans", f"{_FONT_DIR}/NotoSans-Regular.ttf"))
-        pdfmetrics.registerFont(TTFont("NotoSans-Bold", f"{_FONT_DIR}/NotoSans-Bold.ttf"))
-        pdfmetrics.registerFont(TTFont("NotoSans-Italic", f"{_FONT_DIR}/NotoSans-Italic.ttf"))
-        pdfmetrics.registerFont(TTFont("NotoSans-BoldItalic", f"{_FONT_DIR}/NotoSans-BoldItalic.ttf"))
+        reg = _font_path("NotoSans-Regular.ttf")
+        bold = _font_path("NotoSans-Bold.ttf")
+        ital = _font_path("NotoSans-Italic.ttf")
+        bold_ital = _font_path("NotoSans-BoldItalic.ttf")
+        if not reg:
+            # No Noto fonts available; leave registry alone, drawing falls
+            # back to Helvetica (no ₹). Mark registered to avoid retry loops.
+            _FONTS_REGISTERED = True
+            return
+
+        pdfmetrics.registerFont(TTFont("NotoSans", reg))
+        if bold:
+            pdfmetrics.registerFont(TTFont("NotoSans-Bold", bold))
+        if ital:
+            pdfmetrics.registerFont(TTFont("NotoSans-Italic", ital))
+        if bold_ital:
+            pdfmetrics.registerFont(TTFont("NotoSans-BoldItalic", bold_ital))
+
         from reportlab.pdfbase.pdfmetrics import registerFontFamily
         registerFontFamily(
             "NotoSans",
             normal="NotoSans",
-            bold="NotoSans-Bold",
-            italic="NotoSans-Italic",
-            boldItalic="NotoSans-BoldItalic",
+            bold="NotoSans-Bold" if bold else "NotoSans",
+            italic="NotoSans-Italic" if ital else "NotoSans",
+            boldItalic="NotoSans-BoldItalic" if bold_ital else "NotoSans",
         )
         _FONTS_REGISTERED = True
     except Exception:
