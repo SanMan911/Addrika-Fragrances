@@ -3,7 +3,20 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
-### 🆕 Feb 1, 2026 — Plan B India boundary overlay (Mappls 24h provisioning workaround)
+### 🆕 Feb 1, 2026 (later) — Floating Retailer CTA · Brochure messaging cleanup + redesign
+- ✅ **Site-wide "Become a Retailer" floating CTA** (`components/RetailerFloatingCTA.js`) — bottom-left pill (gold ring + dark pill, opposite the WhatsApp button), shows on every public page **except** `/find-retailers`, `/admin/**`, `/retailer/**`, `/cart`, `/checkout`. Click → popover with two actions: "Become a Retailer" (opens `RetailerPartnershipModal` GST-first wizard) and "Download Brochure (PDF)" (hits `/api/brochure/download` with toast feedback). Mounted in `app/layout.js`.
+- ✅ **Brochure messaging cleansed** — removed all banned phrases: `100% natural`, `100% organic`, `halmaddi`, `essential oils`, `Hand-Crafted`, `Hand-Rolled`. Replaced with brand-approved language: `Ethical Sourcing`, `60%+ less smoke`, `Zero Charcoal`, `Crafted in Delhi`. Pills updated to `ZERO CHARCOAL · 60%+ LESS SMOKE · SMALL-BATCH · ETHICAL SOURCING · PAN-INDIA SHIPPING`. Front-cover top tag now reads `PREMIUM CHARCOAL-FREE INCENSE`.
+- ✅ **Brochure redesigned for elegance** (`services/brochure_pdf.py`):
+  - Decorative gold L-shaped corner ornaments on every panel (`_draw_corner_ornaments`).
+  - New `_draw_ornate_divider` — gold line + flanking diamonds + center diamond accent.
+  - Brand monogram glyph (ringed `A`) as an accent on the front cover and a giant 6%-opacity watermark behind the front-cover text.
+  - Diagonal gold pin-stripe watermark on the back-cover panel.
+  - Product cards now have a soft drop-shadow, a gold left-edge accent bar, gold border on the thumbnail, and a tiny gold underline beneath each product name.
+  - Subtle gold underline accents under each contact label on the back cover.
+  - "ADDRIKA · COLLECTION" eyebrow tag added above each inside-panel header.
+- ✅ **New regression test** `test_brochure_no_banned_messaging` (uses `pdfminer.six`) extracts the PDF text and asserts banned phrases are absent + brand-approved phrases are present. **3/3 brochure tests pass.**
+
+### Feb 1, 2026 — Plan B India boundary overlay (Mappls 24h provisioning workaround)
 - ✅ **Survey-of-India compliant national boundary overlay** rendered on `/find-retailers` while Mappls is provisioning. Source: DataMeet `india-composite.geojson` simplified with shapely (tolerance=0.02°) → 106 KB asset bundled at `/public/india-boundary.geojson`. Rendered via Leaflet `L.geoJSON` as a dark halo (#1a1a2e, weight 4.5, opacity 0.55) + gold dashed accent (#D4AF37, weight 2, dashArray 6,4). Map now shows full India outline including PoK, Aksai Chin, Ladakh, Arunachal Pradesh on top of OSM tiles. Tile-source badge updated to "OSM · INDIA BORDER" with explanatory tooltip. Will continue to work when Mappls flips on (geojson layer just sits on top of Mappls tiles).
 - 🔁 **Mappls integration kept wired** — when the 24h provisioning + CORS toggle completes, `NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY` will activate and the tile-source badge will flip to "MAPPLS · INDIA". GeoJSON overlay is harmless either way.
 

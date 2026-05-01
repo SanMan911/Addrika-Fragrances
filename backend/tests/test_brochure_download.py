@@ -35,3 +35,30 @@ async def test_brochure_has_two_pages():
     page_count = body.count(b"/Type /Page\n") + body.count(b"/Type /Page ")
     # Allow >=2 because trailers may include page-tree entries.
     assert page_count >= 2, f"expected at least 2 page objects, got {page_count}"
+
+
+@pytest.mark.asyncio
+async def test_brochure_no_banned_messaging():
+    """Brand-consistency rules: the brochure must NOT claim 100% natural,
+    100% organic, halmaddi paste, or natural essential oils. It MUST carry
+    the brand-approved messaging instead (Ethical Sourcing, 60%+ less smoke,
+    Zero Charcoal)."""
+    pytest.importorskip("pdfminer")
+    from pdfminer.high_level import extract_text
+    import io
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.get(f"{BASE_URL}/api/brochure/download")
+    text = extract_text(io.BytesIO(r.content)).lower()
+
+    for banned in (
+        "100% natural", "100% organic", "halmaddi", "essential oils",
+        "hand-rolled", "hand-crafted",
+    ):
+        assert banned not in text, f"banned phrase {banned!r} found in brochure"
+
+    for required in (
+        "ethical sourcing", "60%+ less smoke", "zero charcoal",
+        "crafted in delhi",
+    ):
+        assert required in text, f"required phrase {required!r} missing from brochure"
