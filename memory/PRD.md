@@ -4,18 +4,19 @@
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
 ### 🆕 Apr 28-May 1, 2026 — Shipped
-- ✅ **B2B eKYC gate turned ON (May 1, 2026)** — `b2b_kyc_required_for_orders = true` in `app_settings`. Retailers can't place B2B orders until they complete GST + PAN (Sandbox) + Aadhaar OTP (Sandbox) on `/retailer/b2b` → KYC self-service tab. Recovery email fires on first blocked order attempt (rate-limited 1/24h). KYC UI (`KYCVerificationCard`) was already mounted on the retailer B2B page; fixed its API base URL fallback so production picks up the correct backend URL.
-- ✅ **AppyFlow recharge confirmed (May 1, 2026)** — live test pulled Reliance's full GST record; `/find-retailers` 2-step wizard GST autofill + anti-spoofing is back to fully operational.
-- ✅ **"Hand-rolled" purged domain-wide (May 1, 2026)** — brochure cover callout, OUR STORY body, pill badges, auto-blog system prompt & topics — all replaced with "SMALL-BATCH". Brand copy now accurate.
-- ✅ **Brochure product count + grouping (May 1, 2026)** — dynamic count reads actual active SKUs ("Eight signature fragrances" today, auto-updates when inventory changes). Products grouped by real DB category: Signature Agarbattis (5), Dhoop Collection (1), Bakhoor & Specialities (2). All 8 SKUs render with no truncation.
-- ✅ **GST modal contrast fix (May 1, 2026)** — the global `.dark input` CSS rule was bleeding into the light-themed partnership modal, painting input text in near-white on white background. Added `!important` overrides on modal inputs. Computed colour went from `rgb(232,234,237)` → `rgb(43,58,74)`.
-- ✅ **Sacred Mappls cheat-sheet (May 1, 2026)** — one-tap reference at `/api/docs/mappls-setup` (HTML) and `/api/docs/mappls-setup.txt` (plain text). Source of truth at `/app/MAPPLS_SETUP.md`.
-- ✅ **Brochure: ₹ symbol + correct registered address (Apr 29, 2026)** — Noto Sans bundled in `backend/fonts/`, correct Dwarka address.
-- ✅ **Mappls scaffolding (Apr 29, 2026)** — env-flag-gated swap of base tile layer; OSM fallback.
-- ✅ **Tri-fold product brochure (Apr 29, 2026)** — `GET /api/brochure/download`.
-- ✅ **`/find-retailers` lands on full India map (Apr 29, 2026)**.
-- ✅ **Real retailer pins on map (Apr 29, 2026)** — Leaflet + pincode fallback + Mappls geocode chain.
-- ✅ **"The Smoke Signal" subscribe component** on `/blog` (Apr 28).
+- ✅ **Admin "Provider Balances" panel (May 1, 2026)** — new route `GET /api/admin/provider-balances` runs live probes against AppyFlow, Sandbox, and Mappls in parallel and joins them with a 30-day rollup from `provider_health` collection (call log). UI at `/admin/settings/balances` shows a card per provider: status pill, live probe message, 30d calls / success % / last success, last error details, plus branded "Recharge" and "Provider Dashboard" buttons. Auto-refreshes every 90s. Live test: AppyFlow `healthy` · Sandbox `healthy` · Mappls `needs_oauth` (with human-readable fix instructions). Linked from `/admin/settings`.
+  - Files: `backend/services/provider_health.py` (new), `backend/routers/admin/admin_provider_balances.py` (new), `backend/server.py` (register), `frontend-next/app/admin/settings/balances/page.js` (new), `frontend-next/app/admin/settings/page.js` (nav link).
+- ✅ **Pre-order KYC nudge upgrade (May 1, 2026)** — existing `/retailer/b2b` banner now **sticky** at top during scroll, with **per-step progress chips** (GST ✓ / PAN ○ / Aadhaar ○ — green when done, amber outline when pending), prominent gold/amber gradient CTA, and "~3 min" time promise. Guarantees retailers see the nudge while browsing products, not just at checkout.
+- ✅ **Mappls partial activation (May 1, 2026)** — user provided Static Key; wired into `backend/.env` + `frontend-next/.env.local`. Mappls console has moved to OAuth 2.0 so Static Key alone isn't sufficient. Map gracefully falls back to OSM on preview/prod. Admin balances panel reports `needs_oauth` status with exact next-step for the user (generate Client ID + Client Secret).
+- ✅ **B2B eKYC gate turned ON (May 1, 2026)** — `b2b_kyc_required_for_orders = true`.
+- ✅ **Grandfathered 3 existing retailers** (May 1, 2026) as KYC-complete in preview DB. 30 Reliance test dupes cleaned up.
+- ✅ **AppyFlow recharge confirmed (May 1, 2026)** — live test pulled Reliance's full GST record.
+- ✅ **"Hand-rolled" purged domain-wide (May 1, 2026)** — brochure + auto-blog system prompt + topics → SMALL-BATCH.
+- ✅ **Brochure product count + grouping + ₹ + address + font (Apr 29-May 1, 2026)** — dynamic count, category-based panels, Noto Sans bundled.
+- ✅ **GST modal contrast fix (May 1, 2026)** — `!important` overrides on light-modal inputs.
+- ✅ **Sacred Mappls cheat-sheet (May 1, 2026)** — `/api/docs/mappls-setup`.
+- ✅ **Tri-fold brochure, India-map focus, retailer pins** (Apr 29).
+- ✅ **"The Smoke Signal" subscribe on `/blog`** (Apr 28).
 
 ### 🟢 P0 — Complete
 *(B2B portal, retailer self-onboarding, KYC live, order gate ON, recovery email, admin catalog UI, CSV bulk import, archive filter, GDPR cookie variant, gtag.js direct injection, GST-first 2-step waitlist with anti-spoofing, auto-blog Gemini 2.5 Flash + Pollinations + Resend blast — all shipped & tested.)*
