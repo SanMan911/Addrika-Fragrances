@@ -5,7 +5,7 @@ import pytest
 
 BASE_URL = os.environ.get(
     "BACKEND_URL",
-    "https://incense-retail.preview.emergentagent.com",
+    "https://retailer-locator-map.preview.emergentagent.com",
 ).rstrip("/")
 
 

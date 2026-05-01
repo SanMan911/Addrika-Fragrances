@@ -13,7 +13,7 @@ import time
 import random
 import string
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://incense-retail.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://retailer-locator-map.preview.emergentagent.com').rstrip('/')
 
 
 def generate_random_string(length=8):

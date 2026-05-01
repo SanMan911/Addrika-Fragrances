@@ -89,15 +89,15 @@
   "context_for_next_testing_agent": "Admin panel refactored to modular structure. Test session created: sess_285453942e11456aba12d9a277c7751a. To test admin UI, set this token in localStorage (addrika_session_token) and cookies (session_token). All 9 admin pages under /admin route: Overview, Orders, Analytics, Users, Marketing, Content, Inventory, Inquiries, Settings.",
 
   "tested_urls": [
-    "https://incense-retail.preview.emergentagent.com/admin",
-    "https://incense-retail.preview.emergentagent.com/admin/login",
-    "https://incense-retail.preview.emergentagent.com/admin/orders",
-    "https://incense-retail.preview.emergentagent.com/admin/analytics",
-    "https://incense-retail.preview.emergentagent.com/admin/users",
-    "https://incense-retail.preview.emergentagent.com/admin/marketing",
-    "https://incense-retail.preview.emergentagent.com/admin/content",
-    "https://incense-retail.preview.emergentagent.com/admin/inventory",
-    "https://incense-retail.preview.emergentagent.com/admin/inquiries",
-    "https://incense-retail.preview.emergentagent.com/admin/settings"
+    "https://retailer-locator-map.preview.emergentagent.com/admin",
+    "https://retailer-locator-map.preview.emergentagent.com/admin/login",
+    "https://retailer-locator-map.preview.emergentagent.com/admin/orders",
+    "https://retailer-locator-map.preview.emergentagent.com/admin/analytics",
+    "https://retailer-locator-map.preview.emergentagent.com/admin/users",
+    "https://retailer-locator-map.preview.emergentagent.com/admin/marketing",
+    "https://retailer-locator-map.preview.emergentagent.com/admin/content",
+    "https://retailer-locator-map.preview.emergentagent.com/admin/inventory",
+    "https://retailer-locator-map.preview.emergentagent.com/admin/inquiries",
+    "https://retailer-locator-map.preview.emergentagent.com/admin/settings"
   ]
 }
