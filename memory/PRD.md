@@ -1,7 +1,11 @@
 # Addrika E-Commerce Platform — PRD
 
-## 🎯 PRIORITY ITEMS  *(Apr 28, 2026 — latest)*
+## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
+
+### 🆕 Feb 1, 2026 — Plan B India boundary overlay (Mappls 24h provisioning workaround)
+- ✅ **Survey-of-India compliant national boundary overlay** rendered on `/find-retailers` while Mappls is provisioning. Source: DataMeet `india-composite.geojson` simplified with shapely (tolerance=0.02°) → 106 KB asset bundled at `/public/india-boundary.geojson`. Rendered via Leaflet `L.geoJSON` as a dark halo (#1a1a2e, weight 4.5, opacity 0.55) + gold dashed accent (#D4AF37, weight 2, dashArray 6,4). Map now shows full India outline including PoK, Aksai Chin, Ladakh, Arunachal Pradesh on top of OSM tiles. Tile-source badge updated to "OSM · INDIA BORDER" with explanatory tooltip. Will continue to work when Mappls flips on (geojson layer just sits on top of Mappls tiles).
+- 🔁 **Mappls integration kept wired** — when the 24h provisioning + CORS toggle completes, `NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY` will activate and the tile-source badge will flip to "MAPPLS · INDIA". GeoJSON overlay is harmless either way.
 
 ### 🆕 Apr 28-May 1, 2026 — Shipped
 - ✅ **Production grandfather migration prepped (May 1, 2026)** — one-tap playbook at `/api/docs/grandfather-migration` (HTML) and `.txt`. One-liner: paste `fetch('/api/admin/b2b/retailers/bulk-grandfather-kyc', {method:'POST', credentials:'include'}).then(r=>r.json()).then(console.log)` in DevTools Console while logged into `centraders.com/admin` → all existing retailers get `gst_verified/pan_verified/aadhaar_verified = true` + `kyc_grandfathered_at` stamp. Idempotent.

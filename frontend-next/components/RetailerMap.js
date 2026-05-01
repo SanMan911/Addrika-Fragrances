@@ -79,6 +79,45 @@ export default function RetailerMap({ retailers }) {
         }
       ).addTo(map);
 
+      // ---- Plan B: Survey-of-India compliant India boundary overlay ----
+      // OSM's default tiles draw the LoC / LAC as the de-facto border, which
+      // shows PoK and Aksai Chin outside of India. Until Mappls is fully
+      // activated, we overlay the official Survey-of-India national outline
+      // (sourced from DataMeet's india-composite.geojson, simplified) so
+      // visitors always see India with its complete legal boundary.
+      try {
+        const res = await fetch('/india-boundary.geojson', { cache: 'force-cache' });
+        if (res.ok) {
+          const gj = await res.json();
+          if (cancelled) return;
+          // Outer thick "halo" stroke for legibility against busy tile content
+          L.geoJSON(gj, {
+            style: {
+              color: '#1a1a2e',
+              weight: 4.5,
+              opacity: 0.55,
+              fill: false,
+              interactive: false,
+            },
+            pane: 'overlayPane',
+          }).addTo(map);
+          // Brand-gold accent stroke on top
+          L.geoJSON(gj, {
+            style: {
+              color: '#D4AF37',
+              weight: 2,
+              opacity: 0.95,
+              dashArray: '6, 4',
+              fill: false,
+              interactive: false,
+            },
+            pane: 'overlayPane',
+          }).addTo(map);
+        }
+      } catch (e) {
+        /* non-fatal — OSM still renders */
+      }
+
       // ---- Mappls (Survey-of-India compliant) tile overlay ----
       // When NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY is set, swap the base layer to
       // Mappls raster tiles. Mappls renders the correct India boundary
@@ -283,10 +322,10 @@ export default function RetailerMap({ retailers }) {
         title={
           tileSource === 'mappls'
             ? 'Mappls (Survey-of-India compliant) tiles'
-            : 'OpenStreetMap tiles — set NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY for India-compliant tiles'
+            : 'OSM tiles + Survey-of-India compliant national boundary overlay (sourced from DataMeet)'
         }
       >
-        {tileSource === 'mappls' ? 'MAPPLS · INDIA' : 'OSM'}
+        {tileSource === 'mappls' ? 'MAPPLS · INDIA' : 'OSM · INDIA BORDER'}
       </div>
 
       {/* Store count overlay */}
