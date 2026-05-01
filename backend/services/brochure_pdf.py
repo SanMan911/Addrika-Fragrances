@@ -233,6 +233,57 @@ def _draw_gold_divider(c, x_center, y, width=70):
     c.circle(x_center, y, 1.6, stroke=0, fill=1)
 
 
+def _draw_corner_ornaments(c: canvas.Canvas, x: float, color, *, inset: float = 6 * MM, length: float = 8 * MM):
+    """Draw four delicate gold L-shaped corner ornaments inside a panel."""
+    c.setStrokeColor(color)
+    c.setLineWidth(0.7)
+    # top-left
+    c.line(x + inset, PAGE_H - inset, x + inset + length, PAGE_H - inset)
+    c.line(x + inset, PAGE_H - inset, x + inset, PAGE_H - inset - length)
+    # top-right
+    c.line(x + PANEL_W - inset, PAGE_H - inset, x + PANEL_W - inset - length, PAGE_H - inset)
+    c.line(x + PANEL_W - inset, PAGE_H - inset, x + PANEL_W - inset, PAGE_H - inset - length)
+    # bottom-left
+    c.line(x + inset, inset, x + inset + length, inset)
+    c.line(x + inset, inset, x + inset, inset + length)
+    # bottom-right
+    c.line(x + PANEL_W - inset, inset, x + PANEL_W - inset - length, inset)
+    c.line(x + PANEL_W - inset, inset, x + PANEL_W - inset, inset + length)
+
+
+def _draw_ornate_divider(c, x_center, y, width=70):
+    """A more refined divider: gold line + flanking diamonds + center dot."""
+    c.setStrokeColor(GOLD)
+    c.setLineWidth(0.9)
+    c.line(x_center - width / 2, y, x_center - 6, y)
+    c.line(x_center + 6, y, x_center + width / 2, y)
+    c.setFillColor(GOLD)
+    # center diamond
+    c.saveState()
+    c.translate(x_center, y)
+    c.rotate(45)
+    c.rect(-2, -2, 4, 4, stroke=0, fill=1)
+    c.restoreState()
+    # flanking dots
+    c.circle(x_center - width / 2, y, 1.2, stroke=0, fill=1)
+    c.circle(x_center + width / 2, y, 1.2, stroke=0, fill=1)
+
+
+def _draw_monogram(c, cx, cy, *, size=24, ring_color=GOLD, letter_color=WHITE, fill_color=None):
+    """Brand monogram: ring with a centred 'A' — used as a watermark / accent."""
+    if fill_color is not None:
+        c.setFillColor(fill_color)
+        c.circle(cx, cy, size, stroke=0, fill=1)
+    c.setStrokeColor(ring_color)
+    c.setLineWidth(1.0)
+    c.circle(cx, cy, size, stroke=1, fill=0)
+    c.setLineWidth(0.5)
+    c.circle(cx, cy, size - 3, stroke=1, fill=0)
+    c.setFillColor(letter_color)
+    c.setFont("NotoSans-Bold", size * 1.05)
+    c.drawCentredString(cx, cy - size * 0.35, "A")
+
+
 # ----- Panels -----
 def _draw_front_cover(c: canvas.Canvas, x: float):
     """Right panel of OUTSIDE page — what people see when folded."""
@@ -245,32 +296,49 @@ def _draw_front_cover(c: canvas.Canvas, x: float):
         c.circle(x + PANEL_W / 2, PAGE_H * 0.62, r, stroke=0, fill=1)
     c.restoreState()
 
+    # Subtle giant 'A' watermark behind everything
+    c.saveState()
+    c.setFillColorRGB(0.83, 0.69, 0.22, alpha=0.06)
+    c.setFont("NotoSans-Bold", 360)
+    c.drawCentredString(x + PANEL_W / 2, PAGE_H * 0.18, "A")
+    c.restoreState()
+
     cx = x + PANEL_W / 2
 
+    # Decorative corner ornaments
+    _draw_corner_ornaments(c, x, colors.HexColor("#7a6a3a"), inset=6 * MM, length=10 * MM)
+
     # Top tag
-    _draw_centered_text(c, "PREMIUM NATURAL INCENSE", cx, PAGE_H - 28 * MM,
+    _draw_centered_text(c, "PREMIUM CHARCOAL-FREE INCENSE", cx, PAGE_H - 26 * MM,
                         "NotoSans-Bold", 8, GOLD)
 
+    # Tiny monogram between tag and brand
+    _draw_monogram(
+        c, cx, PAGE_H - 42 * MM, size=12,
+        ring_color=GOLD, letter_color=GOLD, fill_color=None,
+    )
+
     # Brand
-    _draw_centered_text(c, BRAND_NAME.upper(), cx, PAGE_H - 60 * MM,
-                        "NotoSans-Bold", 44, WHITE)
-    _draw_gold_divider(c, cx, PAGE_H - 70 * MM, width=80)
-    _draw_centered_text(c, TAGLINE, cx, PAGE_H - 82 * MM,
+    _draw_centered_text(c, BRAND_NAME.upper(), cx, PAGE_H - 70 * MM,
+                        "NotoSans-Bold", 46, WHITE)
+    _draw_ornate_divider(c, cx, PAGE_H - 80 * MM, width=90)
+    _draw_centered_text(c, TAGLINE, cx, PAGE_H - 92 * MM,
                         "NotoSans-Italic", 12, CREAM)
 
     # Manifesto
     body = (
-        "Hand-crafted in Delhi, born of ancient Indian ritual and a refusal to "
-        "settle for charcoal smoke. Twelve fragrances. Zero shortcuts. Just "
-        "pure, lingering elegance for your home, your meditation, and every "
-        "quiet moment in between."
+        "Crafted in Delhi, born of ancient Indian ritual and a refusal to "
+        "settle for charcoal smoke. Twelve signature fragrances. Zero "
+        "shortcuts. Just clean, lingering elegance for your home, your "
+        "meditation, and every quiet moment in between."
     )
-    _draw_paragraph(c, body, x + INNER_PAD, PAGE_H - 105 * MM,
-                    max_width=PANEL_W - 2 * INNER_PAD, font="NotoSans",
-                    size=9.5, color=CREAM, leading=13.5, max_lines=8)
+    _draw_paragraph(c, body, x + INNER_PAD + 4, PAGE_H - 115 * MM,
+                    max_width=PANEL_W - 2 * INNER_PAD - 8, font="NotoSans",
+                    size=10, color=CREAM, leading=14, max_lines=8)
 
     # Bottom call-out
-    _draw_centered_text(c, "ZERO CHARCOAL  •  100% NATURAL  •  SMALL-BATCH",
+    _draw_ornate_divider(c, cx, 38 * MM, width=70)
+    _draw_centered_text(c, "ZERO CHARCOAL  •  ETHICAL SOURCING  •  SMALL-BATCH",
                         cx, 28 * MM, "NotoSans-Bold", 8, GOLD)
     _draw_centered_text(c, "centraders.com", cx, 18 * MM,
                         "NotoSans-Bold", 11, WHITE)
@@ -283,10 +351,21 @@ def _draw_back_cover(c: canvas.Canvas, x: float):
     _draw_panel_bg(c, x, INK_BLUE, with_borders=True)
     cx = x + PANEL_W / 2
 
+    # Faint diagonal lines watermark
+    c.saveState()
+    c.setStrokeColorRGB(0.83, 0.69, 0.22, alpha=0.05)
+    c.setLineWidth(0.4)
+    for i in range(-10, 30):
+        c.line(x + i * 18, 0, x + i * 18 + PAGE_H, PAGE_H)
+    c.restoreState()
+
+    # Decorative corner ornaments
+    _draw_corner_ornaments(c, x, colors.HexColor("#7a6a3a"), inset=5 * MM, length=8 * MM)
+
     # Header
-    _draw_centered_text(c, "GET IN TOUCH", cx, PAGE_H - 28 * MM,
+    _draw_centered_text(c, "GET IN TOUCH", cx, PAGE_H - 26 * MM,
                         "NotoSans-Bold", 11, GOLD)
-    _draw_gold_divider(c, cx, PAGE_H - 33 * MM, width=60)
+    _draw_ornate_divider(c, cx, PAGE_H - 32 * MM, width=70)
 
     # Contact block
     contact_lines = [
@@ -306,6 +385,10 @@ def _draw_back_cover(c: canvas.Canvas, x: float):
         c.setFont("NotoSans-Bold", 10)
         c.setFillColor(WHITE)
         c.drawString(x + INNER_PAD, y, value)
+        # subtle gold underline accent
+        c.setStrokeColor(GOLD)
+        c.setLineWidth(0.3)
+        c.line(x + INNER_PAD, y - 3, x + INNER_PAD + 16, y - 3)
         y -= 14
 
     # Address
@@ -332,6 +415,10 @@ def _draw_back_cover(c: canvas.Canvas, x: float):
     c.setLineWidth(0.8)
     c.roundRect(x + INNER_PAD, box_y, PANEL_W - 2 * INNER_PAD, box_h,
                 4, stroke=1, fill=1)
+    # tiny crown-like cap inside the box
+    c.setFillColor(GOLD)
+    c.circle(x + INNER_PAD + 8, box_y + box_h - 5, 1.5, stroke=0, fill=1)
+    c.circle(x + PANEL_W - INNER_PAD - 8, box_y + box_h - 5, 1.5, stroke=0, fill=1)
     _draw_centered_text(c, "RETAILER & WHOLESALE", cx, box_y + box_h - 9 * MM,
                         "NotoSans-Bold", 9, GOLD)
     _draw_paragraph(
@@ -356,9 +443,12 @@ def _draw_inner_flap(c: canvas.Canvas, x: float, active_count: int):
     _draw_panel_bg(c, x, CREAM, with_borders=False)
     cx = x + PANEL_W / 2
 
-    _draw_centered_text(c, "OUR STORY", cx, PAGE_H - 28 * MM,
+    # Decorative corner ornaments in dark gold on cream
+    _draw_corner_ornaments(c, x, GOLD_DARK, inset=5 * MM, length=8 * MM)
+
+    _draw_centered_text(c, "OUR STORY", cx, PAGE_H - 26 * MM,
                         "NotoSans-Bold", 11, GOLD_DARK)
-    _draw_gold_divider(c, cx, PAGE_H - 33 * MM, width=60)
+    _draw_ornate_divider(c, cx, PAGE_H - 32 * MM, width=70)
 
     _draw_centered_text(c, "Built on a refusal", cx, PAGE_H - 46 * MM,
                         "NotoSans-Bold", 14, INK_BLUE)
@@ -369,10 +459,10 @@ def _draw_inner_flap(c: canvas.Canvas, x: float, active_count: int):
         "Addrika was born when a third-generation incense family looked at "
         "the modern agarbatti — choked with charcoal, perfumed with cheap "
         "synthetics — and decided enough was enough.\n\n"
-        "Every stick is crafted in small batches in our Delhi workshop using "
-        "100% natural halmaddi paste, slow-distilled essential oils, and "
-        "absolutely zero charcoal. The result: a clean, lingering scent that "
-        "doesn't fight your home — it elevates it.\n\n"
+        "Every stick is crafted in small batches in our Delhi workshop with "
+        "ethically-sourced ingredients and absolutely zero charcoal. The "
+        "result: a clean, lingering scent that produces over 60% less smoke "
+        "than ordinary agarbattis — gentle on your lungs, gentle on your home.\n\n"
         f"{_count_word(active_count).title()} signature fragrances. One "
         "promise: elegance in every scent."
     )
@@ -388,8 +478,8 @@ def _draw_inner_flap(c: canvas.Canvas, x: float, active_count: int):
 
     # Why-us pills
     pills = [
-        "ZERO CHARCOAL", "100% NATURAL", "SMALL-BATCH",
-        "GST-COMPLIANT", "PAN-INDIA SHIPPING",
+        "ZERO CHARCOAL", "60%+ LESS SMOKE", "SMALL-BATCH",
+        "ETHICAL SOURCING", "PAN-INDIA SHIPPING",
     ]
     py = 30 * MM
     px = x + INNER_PAD
@@ -413,26 +503,36 @@ def _draw_inner_flap(c: canvas.Canvas, x: float, active_count: int):
 
 def _draw_product_card(c, x, y, w, h, product):
     """Single product card on inside panels."""
+    # Soft drop-shadow (slightly offset darker rect)
+    c.setFillColor(colors.HexColor("#e7dfc5"))
+    c.roundRect(x + 1.2, y - 1.2, w, h, 4, stroke=0, fill=1)
+
     # Card frame
-    c.setFillColor(colors.HexColor("#f9f5e8"))
+    c.setFillColor(colors.HexColor("#fbf6e6"))
     c.setStrokeColor(GOLD)
-    c.setLineWidth(0.6)
-    c.roundRect(x, y, w, h, 3, stroke=1, fill=1)
+    c.setLineWidth(0.7)
+    c.roundRect(x, y, w, h, 4, stroke=1, fill=1)
+
+    # Gold accent bar on the left edge
+    c.setFillColor(GOLD)
+    c.rect(x, y + 4, 2, h - 8, stroke=0, fill=1)
 
     # Image (square thumbnail on left)
     img_size = h - 8
-    img_x = x + 4
+    img_x = x + 6
     img_y = y + 4
     img_url = product.get("image") or ""
     img_path = _cache_image(img_url)
     if img_path:
         # subtle bg
         c.setFillColor(WHITE)
-        c.roundRect(img_x, img_y, img_size, img_size, 2, stroke=0, fill=1)
+        c.setStrokeColor(colors.HexColor("#e7dfc5"))
+        c.setLineWidth(0.4)
+        c.roundRect(img_x, img_y, img_size, img_size, 3, stroke=1, fill=1)
         _draw_image_fit(c, img_path, img_x + 2, img_y + 2, img_size - 4, img_size - 4)
     else:
         c.setFillColor(INK_BLUE)
-        c.roundRect(img_x, img_y, img_size, img_size, 2, stroke=0, fill=1)
+        c.roundRect(img_x, img_y, img_size, img_size, 3, stroke=0, fill=1)
         c.setFillColor(GOLD)
         c.setFont("NotoSans-Bold", 18)
         c.drawCentredString(
@@ -441,7 +541,7 @@ def _draw_product_card(c, x, y, w, h, product):
         )
 
     # Text block to the right of image
-    tx = img_x + img_size + 6
+    tx = img_x + img_size + 8
     tw = w - (tx - x) - 6
     ty = y + h - 10
 
@@ -450,7 +550,12 @@ def _draw_product_card(c, x, y, w, h, product):
     c.setFillColor(INK_BLUE)
     name = (product.get("name") or "").strip()
     c.drawString(tx, ty, name[:30])
-    ty -= 10
+    ty -= 9
+    # Tiny gold underline under name
+    c.setStrokeColor(GOLD)
+    c.setLineWidth(0.5)
+    c.line(tx, ty + 2, tx + 14, ty + 2)
+    ty -= 3
 
     # Tagline / fragrance notes
     tagline = product.get("tagline") or ""
@@ -493,15 +598,22 @@ def _draw_inside_panel(c, x, header, products, panel_index):
     _draw_panel_bg(c, x, bg, with_borders=True)
     cx = x + PANEL_W / 2
 
-    _draw_centered_text(c, header.upper(), cx, PAGE_H - 18 * MM,
-                        "NotoSans-Bold", 10, GOLD_DARK)
-    _draw_gold_divider(c, cx, PAGE_H - 22 * MM, width=50)
+    # Decorative corner ornaments
+    _draw_corner_ornaments(c, x, GOLD_DARK, inset=4 * MM, length=7 * MM)
+
+    # Tiny eyebrow tag
+    _draw_centered_text(c, "ADDRIKA · COLLECTION",
+                        cx, PAGE_H - 13 * MM, "NotoSans-Bold", 6.5, SOFT_GREY)
+
+    _draw_centered_text(c, header.upper(), cx, PAGE_H - 22 * MM,
+                        "NotoSans-Bold", 12, GOLD_DARK)
+    _draw_ornate_divider(c, cx, PAGE_H - 27 * MM, width=70)
 
     # Card grid: 1 per row, multiple rows.
     card_w = PANEL_W - 2 * INNER_PAD
     card_h = 28 * MM
     card_gap = 3 * MM
-    top_y = PAGE_H - 27 * MM
+    top_y = PAGE_H - 32 * MM
 
     available = top_y - 14 * MM
     max_cards = max(1, int(available / (card_h + card_gap)))
@@ -512,7 +624,10 @@ def _draw_inside_panel(c, x, header, products, panel_index):
         _draw_product_card(c, x + INNER_PAD, cy, card_w, card_h, p)
         cy -= card_h + card_gap
 
-    # Footer
+    # Footer with monogram-style flourish
+    c.setFillColor(GOLD)
+    c.circle(cx - 38, 8 * MM + 1, 1, stroke=0, fill=1)
+    c.circle(cx + 38, 8 * MM + 1, 1, stroke=0, fill=1)
     _draw_centered_text(c, f"{BRAND_NAME.upper()} · {COMPANY_WEBSITE}",
                         cx, 8 * MM, "NotoSans-Bold", 7.5, GOLD_DARK)
 
