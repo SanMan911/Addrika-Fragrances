@@ -270,7 +270,7 @@ def _draw_front_cover(c: canvas.Canvas, x: float):
                     size=9.5, color=CREAM, leading=13.5, max_lines=8)
 
     # Bottom call-out
-    _draw_centered_text(c, "ZERO CHARCOAL  •  100% NATURAL  •  HAND-ROLLED",
+    _draw_centered_text(c, "ZERO CHARCOAL  •  100% NATURAL  •  SMALL-BATCH",
                         cx, 28 * MM, "NotoSans-Bold", 8, GOLD)
     _draw_centered_text(c, "centraders.com", cx, 18 * MM,
                         "NotoSans-Bold", 11, WHITE)
@@ -348,9 +348,10 @@ def _draw_back_cover(c: canvas.Canvas, x: float):
                         "NotoSans", 7, SOFT_GREY)
 
 
-def _draw_inner_flap(c: canvas.Canvas, x: float):
+def _draw_inner_flap(c: canvas.Canvas, x: float, active_count: int):
     """Left panel of OUTSIDE page — the flap that folds inward first.
     Contains the brand story (visible when the brochure is opened first time).
+    `active_count` is the live number of available SKUs (drives copy).
     """
     _draw_panel_bg(c, x, CREAM, with_borders=False)
     cx = x + PANEL_W / 2
@@ -368,11 +369,12 @@ def _draw_inner_flap(c: canvas.Canvas, x: float):
         "Addrika was born when a third-generation incense family looked at "
         "the modern agarbatti — choked with charcoal, perfumed with cheap "
         "synthetics — and decided enough was enough.\n\n"
-        "Every stick is hand-rolled in our Delhi workshop using 100% natural "
-        "halmaddi paste, slow-distilled essential oils, and zero charcoal. "
-        "The result: a clean, lingering scent that doesn't fight your home — "
-        "it elevates it.\n\n"
-        "Twelve signature fragrances. One promise: elegance in every scent."
+        "Every stick is crafted in small batches in our Delhi workshop using "
+        "100% natural halmaddi paste, slow-distilled essential oils, and "
+        "absolutely zero charcoal. The result: a clean, lingering scent that "
+        "doesn't fight your home — it elevates it.\n\n"
+        f"{_count_word(active_count).title()} signature fragrances. One "
+        "promise: elegance in every scent."
     )
     y = PAGE_H - 70 * MM
     paragraphs = body.split("\n\n")
@@ -386,7 +388,7 @@ def _draw_inner_flap(c: canvas.Canvas, x: float):
 
     # Why-us pills
     pills = [
-        "ZERO CHARCOAL", "100% NATURAL", "HAND-ROLLED",
+        "ZERO CHARCOAL", "100% NATURAL", "SMALL-BATCH",
         "GST-COMPLIANT", "PAN-INDIA SHIPPING",
     ]
     py = 30 * MM
@@ -441,31 +443,31 @@ def _draw_product_card(c, x, y, w, h, product):
     # Text block to the right of image
     tx = img_x + img_size + 6
     tw = w - (tx - x) - 6
-    ty = y + h - 12
+    ty = y + h - 10
 
     # Name
-    c.setFont("NotoSans-Bold", 10)
+    c.setFont("NotoSans-Bold", 9.5)
     c.setFillColor(INK_BLUE)
     name = (product.get("name") or "").strip()
-    c.drawString(tx, ty, name[:28])
-    ty -= 11
+    c.drawString(tx, ty, name[:30])
+    ty -= 10
 
     # Tagline / fragrance notes
     tagline = product.get("tagline") or ""
-    c.setFont("NotoSans-Italic", 7.5)
+    c.setFont("NotoSans-Italic", 7)
     c.setFillColor(GOLD_DARK)
-    c.drawString(tx, ty, tagline[:36])
-    ty -= 9
+    c.drawString(tx, ty, tagline[:38])
+    ty -= 8
 
-    # Description (truncated)
+    # Description (truncated, 2 lines max for the tighter card)
     desc = (product.get("description") or "").strip()
     desc_short = desc.split(".")[0] + ("." if "." in desc else "")
-    if len(desc_short) > 145:
-        desc_short = desc_short[:142].rstrip() + "…"
+    if len(desc_short) > 110:
+        desc_short = desc_short[:107].rstrip() + "…"
     _draw_paragraph(
         c, desc_short, tx, ty,
-        max_width=tw, font="NotoSans", size=7.5,
-        color=INK_BLUE, leading=9.5, max_lines=4,
+        max_width=tw, font="NotoSans", size=7,
+        color=INK_BLUE, leading=8.5, max_lines=2,
     )
 
     # Sizes / price line at bottom of card
@@ -480,9 +482,9 @@ def _draw_product_card(c, x, y, w, h, product):
             except Exception:
                 size_strs.append(str(sz))
         line = "   ".join(size_strs)
-        c.setFont("NotoSans-Bold", 7.5)
+        c.setFont("NotoSans-Bold", 7)
         c.setFillColor(GOLD_DARK)
-        c.drawString(tx, y + 5, line)
+        c.drawString(tx, y + 4, line)
 
 
 def _draw_inside_panel(c, x, header, products, panel_index):
@@ -497,8 +499,8 @@ def _draw_inside_panel(c, x, header, products, panel_index):
 
     # Card grid: 1 per row, multiple rows.
     card_w = PANEL_W - 2 * INNER_PAD
-    card_h = 36 * MM
-    card_gap = 4 * MM
+    card_h = 28 * MM
+    card_gap = 3 * MM
     top_y = PAGE_H - 27 * MM
 
     available = top_y - 14 * MM
@@ -538,27 +540,47 @@ def build_brochure_pdf(products: list[dict]) -> bytes:
     c.setCreator(f"{BRAND_NAME} brochure generator")
 
     # ---- Page 1: OUTSIDE  [Inner-Flap | Back-Cover | Front-Cover] ----
-    _draw_inner_flap(c, _panel_x(0))
+    _draw_inner_flap(c, _panel_x(0), active_count=len(products))
     _draw_back_cover(c, _panel_x(1))
     _draw_front_cover(c, _panel_x(2))
     c.showPage()
 
-    # ---- Page 2: INSIDE  [Panel A | Panel B | Panel C]  ----
-    # Distribute products evenly across three panels.
-    n = len(products)
-    if n == 0:
-        third = []
-        a, b, p3 = [], [], []
-    else:
-        third = max(1, (n + 2) // 3)
-        a = products[:third]
-        b = products[third:2 * third]
-        p3 = products[2 * third:]
+    # ---- Page 2: INSIDE  [Agarbatti | Dhoop | Bakhoor & Specialities] ----
+    # Group products by their actual DB category so they appear under the
+    # correct heading. Fallback to generic buckets if a category is missing.
+    buckets: dict[str, list[dict]] = {"agarbatti": [], "dhoop": [], "bakhoor": []}
+    other: list[dict] = []
+    for p in products:
+        cat = (p.get("category") or p.get("type") or "").strip().lower()
+        if cat in buckets:
+            buckets[cat].append(p)
+        else:
+            other.append(p)
 
-    _draw_inside_panel(c, _panel_x(0), "Signature Agarbattis", a, 0)
-    _draw_inside_panel(c, _panel_x(1), "Premium Range", b, 1)
-    _draw_inside_panel(c, _panel_x(2), "Dhoop & Specialities", p3, 2)
+    # Merge anything uncategorised into the third panel so it still appears.
+    bakhoor_panel = buckets["bakhoor"] + other
+
+    panels = [
+        ("Signature Agarbattis", buckets["agarbatti"]),
+        ("Dhoop Collection", buckets["dhoop"]),
+        ("Bakhoor & Specialities", bakhoor_panel),
+    ]
+    for idx, (header, items) in enumerate(panels):
+        _draw_inside_panel(c, _panel_x(idx), header, items, idx)
     c.showPage()
 
     c.save()
     return buf.getvalue()
+
+
+# ------------------- helpers -------------------
+def _count_word(n: int) -> str:
+    """Return the count as a word for the brand-story copy (1..20 covered)."""
+    words = {
+        1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
+        6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
+        11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen",
+        15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen",
+        19: "nineteen", 20: "twenty",
+    }
+    return words.get(n, str(n))
