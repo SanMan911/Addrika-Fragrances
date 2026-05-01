@@ -113,25 +113,53 @@ async def verify_gst_number(gst_number: str) -> dict:
 
     # ---- Try Appyflow first ----
     if appyflow_key:
+        from services.provider_health import log_call as _log_provider
+        import asyncio as _aio, time as _t
+        _t0 = _t.time()
         try:
             async with httpx.AsyncClient(timeout=20.0) as client:
                 r = await client.get(
                     APPYFLOW_URL,
                     params={"gstNo": gst_number, "key_secret": appyflow_key},
                 )
+            _lat = int((_t.time() - _t0) * 1000)
             if r.status_code == 200:
                 data = r.json()
                 shaped = _shape_appyflow(data, gst_number)
                 if shaped.get("verified"):
+                    _aio.create_task(_log_provider(
+                        "appyflow", endpoint="verifyGST",
+                        outcome="success", latency_ms=_lat,
+                    ))
                     return shaped
+                err = (shaped.get("error") or "").lower()
+                outcome = ("credit_exhausted" if ("credit" in err or "limit" in err)
+                           else "unknown")
+                _aio.create_task(_log_provider(
+                    "appyflow", endpoint="verifyGST",
+                    outcome=outcome, note=shaped.get("error"), latency_ms=_lat,
+                ))
                 logger.info(
                     f"Appyflow non-verified for {gst_number}: {shaped.get('error')}"
                 )
             else:
+                _aio.create_task(_log_provider(
+                    "appyflow", endpoint="verifyGST",
+                    outcome="auth_error" if r.status_code in (401, 403) else "unknown",
+                    note=f"HTTP {r.status_code}", latency_ms=_lat,
+                ))
                 logger.error(f"Appyflow HTTP {r.status_code} · {r.text[:200]}")
         except httpx.TimeoutException:
+            _aio.create_task(_log_provider(
+                "appyflow", endpoint="verifyGST",
+                outcome="network_error", note="timeout",
+            ))
             logger.error("Appyflow timeout — falling back if possible")
         except Exception as e:
+            _aio.create_task(_log_provider(
+                "appyflow", endpoint="verifyGST",
+                outcome="network_error", note=str(e)[:200],
+            ))
             logger.error(f"Appyflow error: {e}")
 
     # ---- Legacy fallback ----

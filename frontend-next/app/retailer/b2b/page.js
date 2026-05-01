@@ -256,38 +256,73 @@ export default function RetailerB2BPage() {
       </div>
       {activeTab === 'order' ? (
         <>
-          {/* KYC gate banner — shown when admin has enabled the gate AND retailer is not fully verified */}
+          {/* KYC gate nudge — sticky on scroll with per-step progress chips */}
           {kycGate && kycGate.gate_enabled && !kycGate.fully_kyc_verified && (
             <div
               id="kyc-self-service"
-              className="rounded-xl bg-amber-50 border-2 border-amber-300 overflow-hidden"
+              className="sticky top-16 z-30 rounded-xl overflow-hidden shadow-lg"
+              style={{
+                background:
+                  'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                border: '2px solid #d97706',
+              }}
               data-testid="kyc-gate-banner"
             >
-              <div className="p-4 flex items-start gap-3">
-                <Info className="text-amber-700 flex-shrink-0 mt-0.5" size={20} />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-amber-900">
-                    Complete KYC to unlock orders
-                  </p>
-                  <p className="text-xs text-amber-800 mt-1">
-                    Pending verification:{' '}
-                    <b>{kycGate.missing.join(', ')}</b>. Orders will be
-                    blocked at checkout until all three (GST, PAN, Aadhaar)
-                    are verified on your account.
-                  </p>
+              <div className="p-4 flex flex-col md:flex-row md:items-center gap-3">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className="shrink-0 w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center">
+                    <ShieldCheck className="text-white" size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-amber-900 mb-1.5">
+                      🔒 Complete your KYC to unlock wholesale pricing &amp; ordering
+                    </p>
+
+                    {/* Progress chips — one per verification step */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {[
+                        { key: 'gst', label: 'GST', done: !kycGate.missing.includes('GST') },
+                        { key: 'pan', label: 'PAN', done: !kycGate.missing.includes('PAN') },
+                        { key: 'aadhaar', label: 'Aadhaar OTP', done: !kycGate.missing.includes('Aadhaar') },
+                      ].map((step) => (
+                        <span
+                          key={step.key}
+                          data-testid={`kyc-step-${step.key}`}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                          style={{
+                            background: step.done ? '#10b981' : 'rgba(120, 53, 15, 0.15)',
+                            color: step.done ? '#fff' : '#78350f',
+                            border: step.done ? 'none' : '1px solid rgba(120,53,15,0.3)',
+                          }}
+                        >
+                          {step.done ? '✓' : '○'} {step.label}
+                        </span>
+                      ))}
+                      <span className="text-[11px] text-amber-900/70 ml-1">
+                        takes ~3 min
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowKycCard(!showKycCard)}
-                  className="px-3 py-1.5 text-xs rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium inline-flex items-center gap-1 whitespace-nowrap"
+                  className="shrink-0 px-4 py-2 text-xs rounded-lg font-bold whitespace-nowrap transition-transform hover:-translate-y-0.5"
+                  style={{
+                    background:
+                      'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                    color: '#fff',
+                    boxShadow: '0 4px 12px -2px rgba(180,83,9,0.4)',
+                  }}
                   data-testid="kyc-self-service-toggle"
                 >
-                  <ShieldCheck size={12} />
-                  {showKycCard ? 'Hide' : 'Verify now'}
-                  {showKycCard ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  <span className="inline-flex items-center gap-1.5">
+                    <ShieldCheck size={13} />
+                    {showKycCard ? 'Hide verification' : 'Verify now →'}
+                  </span>
                 </button>
               </div>
               {showKycCard && (
-                <div className="border-t border-amber-200 p-4 bg-white">
+                <div className="border-t border-amber-300 p-4 bg-white">
                   <KYCVerificationCard
                     retailerId={kycGate.retailer_id}
                     onComplete={() => {
