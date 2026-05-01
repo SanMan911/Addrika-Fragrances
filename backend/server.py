@@ -52,6 +52,7 @@ from routers.notify_me import router as notify_me_router
 from routers.kyc import retailer_router as kyc_retailer_router, admin_router as kyc_admin_router
 from routers.admin.admin_auto_blog import router as admin_auto_blog_router
 from routers.brochure import router as brochure_router
+from routers.docs import router as docs_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -82,6 +83,7 @@ async def health_check():
 app.include_router(auth_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
 app.include_router(brochure_router, prefix="/api")
+app.include_router(docs_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(blog_router, prefix="/api")

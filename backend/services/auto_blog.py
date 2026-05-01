@@ -189,7 +189,7 @@ async def _pick_topic(db, cycle_count: int) -> dict:
 # ---------------------------------------------------------------------------
 # Text generation — Gemini 2.0 Flash via direct REST (free tier)
 # ---------------------------------------------------------------------------
-SYSTEM_PROMPT = """You are the senior content editor for Addrika, a premium hand-rolled, charcoal-free agarbatti & dhoop brand made in Delhi (centraders.com).
+SYSTEM_PROMPT = """You are the senior content editor for Addrika, a premium small-batch, charcoal-free agarbatti & dhoop brand made in Delhi (centraders.com).
 
 Voice:
 - Warm, knowledgeable, gently poetic. Uses Indian English. Familiar with Vastu, Ayurveda, festivals, and ritual.
@@ -221,7 +221,7 @@ Output STRICT JSON with these keys (no markdown wrapper, no preamble):
   "tags": ["5-7 relevant tags lowercase"],
   "geo_city": "{geo_city_value}",
   "hero_image_prompt": "120-180 char descriptive image prompt for the article hero (16:9, photorealistic, warm Indian aesthetic, natural light, NO text overlays, NO logos)",
-  "inline_image_1_prompt": "image prompt for an inline image (close-up product or hand-rolled detail)",
+  "inline_image_1_prompt": "image prompt for an inline image (close-up product or small-batch production detail)",
   "inline_image_2_prompt": "image prompt for an inline image (lifestyle context — Indian home, ritual, festival)",
   "faqs": [{{"q": "Question?", "a": "1-3 sentence answer."}}, ...4-6 entries...],
   "social_caption": "120-200 char Instagram/X-friendly caption with 2-3 relevant hashtags"

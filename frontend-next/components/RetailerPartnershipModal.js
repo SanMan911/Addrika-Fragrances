@@ -175,7 +175,7 @@ export default function RetailerPartnershipModal({ open, onClose }) {
   if (!open) return null;
 
   const inputBase =
-    'px-3 py-2 rounded-lg border focus:border-[#D4AF37] outline-none bg-white text-[#2B3A4A] placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500';
+    'px-3 py-2 rounded-lg border focus:border-[#D4AF37] outline-none !bg-white !text-[#2B3A4A] placeholder:text-gray-400 disabled:!bg-gray-50 disabled:!text-gray-500';
 
   // GST-locked fields: when the lookup verifies a real GST record, those
   // fields become read-only so the user can't override them with spoof data.
