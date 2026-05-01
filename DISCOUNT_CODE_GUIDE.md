@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://incense-retail.preview.emergentagent.com/api
+https://retailer-locator-map.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 
