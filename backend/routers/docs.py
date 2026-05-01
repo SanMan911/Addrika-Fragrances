@@ -5,65 +5,55 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 
 router = APIRouter(tags=["Docs"])
 
-_DOC_PATH = os.path.join(
+_REPO_ROOT = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-    "MAPPLS_SETUP.md",
 )
+_DOCS = {
+    "mappls-setup": os.path.join(_REPO_ROOT, "MAPPLS_SETUP.md"),
+    "grandfather-migration": os.path.join(_REPO_ROOT, "GRANDFATHER_MIGRATION.md"),
+}
 
 
-def _load() -> str:
-    if not os.path.exists(_DOC_PATH):
-        raise HTTPException(status_code=404, detail="MAPPLS_SETUP.md not found")
-    with open(_DOC_PATH, "r", encoding="utf-8") as f:
+def _load(slug: str) -> str:
+    path = _DOCS.get(slug)
+    if not path or not os.path.exists(path):
+        raise HTTPException(status_code=404, detail=f"Doc '{slug}' not found")
+    with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
 
-@router.get("/docs/mappls-setup", response_class=HTMLResponse)
-async def mappls_setup_html():
-    """Render the cheat-sheet as a styled HTML page for one-tap reference."""
-    md = _load()
-    # Tiny, dependency-free Markdown → HTML for the bits we use.
+def _render_html(slug: str, title: str, badge: str) -> str:
+    md = _load(slug)
     import re
     html = md
     html = html.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    # Headings
     html = re.sub(r"^### (.+)$", r"<h3>\1</h3>", html, flags=re.M)
     html = re.sub(r"^## (.+)$", r"<h2>\1</h2>", html, flags=re.M)
     html = re.sub(r"^# (.+)$", r"<h1>\1</h1>", html, flags=re.M)
-    # Bold / inline-code / italic
     html = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", html)
     html = re.sub(r"`([^`]+)`", r"<code>\1</code>", html)
     html = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", html)
-    # Links [text](url)
     html = re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
                   r'<a href="\2" target="_blank" rel="noopener">\1</a>', html)
-    # Auto-links <https://...>
     html = re.sub(r"&lt;(https?://[^&]+)&gt;",
                   r'<a href="\1" target="_blank" rel="noopener">\1</a>', html)
-    # Blockquote
     html = re.sub(r"^&gt; (.+)$", r"<blockquote>\1</blockquote>", html, flags=re.M)
-    # Horizontal rule
     html = html.replace("\n---\n", "\n<hr/>\n")
-    # Lists (very lightweight)
     html = re.sub(r"^([0-9]+)\. (.+)$", r"<li>\2</li>", html, flags=re.M)
     html = re.sub(r"^- (.+)$", r"<li>\1</li>", html, flags=re.M)
-    # Wrap consecutive <li> blocks in <ul>
-    html = re.sub(r"(<li>.*?</li>)(\n(?!<li>))",
-                  r"<ul>\1</ul>\2", html, flags=re.S)
-    # Fenced code blocks
+    html = re.sub(r"(<li>.*?</li>)(\n(?!<li>))", r"<ul>\1</ul>\2", html, flags=re.S)
     html = re.sub(r"```bash\n(.*?)```", r"<pre><code>\1</code></pre>", html, flags=re.S)
+    html = re.sub(r"```js\n(.*?)```", r"<pre><code>\1</code></pre>", html, flags=re.S)
+    html = re.sub(r"```python\n(.*?)```", r"<pre><code>\1</code></pre>", html, flags=re.S)
     html = re.sub(r"```\n(.*?)```", r"<pre><code>\1</code></pre>", html, flags=re.S)
-    # Tables — keep the original markdown line breaks readable inside <pre>
-    # (we don't bother building real <table> for brevity).
-    # Paragraphs: turn double newlines into <p>
     html = re.sub(r"\n{2,}", "\n\n", html)
 
-    page = f"""<!doctype html>
+    return f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Mappls Setup — Sacred Cheat-Sheet</title>
+  <title>{title}</title>
   <style>
     body {{ font-family: -apple-system, Segoe UI, Roboto, sans-serif;
            background:#0f1419; color:#e8e6e3; margin:0;
@@ -99,22 +89,39 @@ async def mappls_setup_html():
 <body>
   <div class="wrap">
     <div class="actions">
-      <span class="badge">SACRED · KEEP UNTIL MAPPLS IS LIVE</span>
+      <span class="badge">{badge}</span>
       <div style="margin-top:10px;">
-        <a href="/api/docs/mappls-setup.txt">Plain text</a>
-        <a href="https://apis.mappls.com" target="_blank" rel="noopener">Open Mappls Console ↗</a>
-        <a href="https://vercel.com/dashboard" target="_blank" rel="noopener">Vercel ↗</a>
-        <a href="https://dashboard.render.com" target="_blank" rel="noopener">Render ↗</a>
+        <a href="/api/docs/{slug}.txt">Plain text</a>
+        <a href="/api/docs/mappls-setup">Mappls doc</a>
+        <a href="/api/docs/grandfather-migration">Grandfather migration</a>
       </div>
     </div>
     {html}
   </div>
 </body>
 </html>"""
-    return HTMLResponse(content=page)
+
+
+@router.get("/docs/mappls-setup", response_class=HTMLResponse)
+async def mappls_setup_html():
+    return HTMLResponse(content=_render_html(
+        "mappls-setup", "Mappls Setup — Sacred Cheat-Sheet", "SACRED · KEEP UNTIL MAPPLS IS LIVE",
+    ))
 
 
 @router.get("/docs/mappls-setup.txt", response_class=PlainTextResponse)
 async def mappls_setup_txt():
-    """Plain-text version (for copy-paste into Notes / WhatsApp / email)."""
-    return PlainTextResponse(content=_load())
+    return PlainTextResponse(content=_load("mappls-setup"))
+
+
+@router.get("/docs/grandfather-migration", response_class=HTMLResponse)
+async def grandfather_migration_html():
+    return HTMLResponse(content=_render_html(
+        "grandfather-migration", "Production Grandfather Migration — Playbook",
+        "PRODUCTION · RUN ONCE",
+    ))
+
+
+@router.get("/docs/grandfather-migration.txt", response_class=PlainTextResponse)
+async def grandfather_migration_txt():
+    return PlainTextResponse(content=_load("grandfather-migration"))
