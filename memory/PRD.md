@@ -3,16 +3,18 @@
 ## 🎯 PRIORITY ITEMS  *(Apr 28, 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
-### 🆕 Apr 28-29, 2026 — Shipped
-- ✅ **Brochure: ₹ symbol + correct registered address (Apr 29, 2026)** — Embedded Noto Sans (regular/bold/italic/bold-italic) into the brochure PDF so the Indian Rupee glyph (U+20B9) renders correctly across all price lines. Updated registered address printed on the back-cover panel to **"745, Sector 17 Pocket A Phase II, Dwarka, South West Delhi, Delhi - 110078"**. Visually re-validated by the AI vision tool.
-  - Files: `backend/services/brochure_pdf.py` (Noto Sans registration + COMPANY_ADDRESS update), `backend/.env` (`SELLER_ADDRESS` env override).
-- ✅ **Mappls scaffolding (Apr 29, 2026)** — Architecture ready for one-paste activation of Survey-of-India compliant map tiles (PoK + Aksai Chin shown as part of India per Indian government).
-  - Backend: `services/mappls_geocode.py` (forward geocoding helper, no-op when key empty); `routers/retailers.py` enriches missing coords via Mappls → pincode-table → none.
-  - Frontend: `RetailerMap.js` swaps base tile layer to Mappls when `NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY` is set; OSM remains underneath as a fail-safe; visible `OSM`/`MAPPLS · INDIA` badge top-left.
-  - Env placeholders added to `backend/.env` (`MAPPLS_REST_API_KEY=`) and `frontend-next/.env.local` (`NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY=`). Just paste the key and rebuild — no other code changes.
-- ✅ **Tri-fold product brochure (Apr 29, 2026)** — public `GET /api/brochure/download` returns a 2-page A4-landscape PDF (~200 KB).
-- ✅ **`/find-retailers` lands on full India map (Apr 29, 2026)** — initial view is the full subcontinent; auto fit-to-markers removed; `maxBounds` clamps panning to India.
-- ✅ **Real retailer pins on map (Apr 29, 2026)** — Leaflet markers + popups with Verified badge / Directions / WhatsApp.
+### 🆕 Apr 28-May 1, 2026 — Shipped
+- ✅ **B2B eKYC gate turned ON (May 1, 2026)** — `b2b_kyc_required_for_orders = true` in `app_settings`. Retailers can't place B2B orders until they complete GST + PAN (Sandbox) + Aadhaar OTP (Sandbox) on `/retailer/b2b` → KYC self-service tab. Recovery email fires on first blocked order attempt (rate-limited 1/24h). KYC UI (`KYCVerificationCard`) was already mounted on the retailer B2B page; fixed its API base URL fallback so production picks up the correct backend URL.
+- ✅ **AppyFlow recharge confirmed (May 1, 2026)** — live test pulled Reliance's full GST record; `/find-retailers` 2-step wizard GST autofill + anti-spoofing is back to fully operational.
+- ✅ **"Hand-rolled" purged domain-wide (May 1, 2026)** — brochure cover callout, OUR STORY body, pill badges, auto-blog system prompt & topics — all replaced with "SMALL-BATCH". Brand copy now accurate.
+- ✅ **Brochure product count + grouping (May 1, 2026)** — dynamic count reads actual active SKUs ("Eight signature fragrances" today, auto-updates when inventory changes). Products grouped by real DB category: Signature Agarbattis (5), Dhoop Collection (1), Bakhoor & Specialities (2). All 8 SKUs render with no truncation.
+- ✅ **GST modal contrast fix (May 1, 2026)** — the global `.dark input` CSS rule was bleeding into the light-themed partnership modal, painting input text in near-white on white background. Added `!important` overrides on modal inputs. Computed colour went from `rgb(232,234,237)` → `rgb(43,58,74)`.
+- ✅ **Sacred Mappls cheat-sheet (May 1, 2026)** — one-tap reference at `/api/docs/mappls-setup` (HTML) and `/api/docs/mappls-setup.txt` (plain text). Source of truth at `/app/MAPPLS_SETUP.md`.
+- ✅ **Brochure: ₹ symbol + correct registered address (Apr 29, 2026)** — Noto Sans bundled in `backend/fonts/`, correct Dwarka address.
+- ✅ **Mappls scaffolding (Apr 29, 2026)** — env-flag-gated swap of base tile layer; OSM fallback.
+- ✅ **Tri-fold product brochure (Apr 29, 2026)** — `GET /api/brochure/download`.
+- ✅ **`/find-retailers` lands on full India map (Apr 29, 2026)**.
+- ✅ **Real retailer pins on map (Apr 29, 2026)** — Leaflet + pincode fallback + Mappls geocode chain.
 - ✅ **"The Smoke Signal" subscribe component** on `/blog` (Apr 28).
 
 ### 🟢 P0 — Complete

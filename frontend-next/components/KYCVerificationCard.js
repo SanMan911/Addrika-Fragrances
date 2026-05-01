@@ -12,7 +12,10 @@ import {
 import { toast } from 'sonner';
 import { authFetch } from '../app/admin/layout';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  '';
 
 /**
  * Reusable KYC widget — wraps Sandbox API PAN + Aadhaar OTP eKYC.
