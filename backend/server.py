@@ -199,6 +199,14 @@ async def startup_db_client():
     asyncio.create_task(auto_blog_scheduler(db))
     print("Auto-blog scheduler started")
 
+    # Partner cross-site coupon reconciliation (Addrika ↔ Amardeep)
+    try:
+        from services.partner_reconcile import reconcile_scheduler_loop
+        asyncio.create_task(reconcile_scheduler_loop(db))
+        print("Partner coupon reconciliation scheduler started")
+    except Exception as e:
+        print(f"Partner reconciliation scheduler skipped: {e}")
+
 
 # Shutdown event
 @app.on_event("shutdown")

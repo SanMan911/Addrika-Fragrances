@@ -99,3 +99,58 @@ async def reactivate_partner_coupon(
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Partner coupon not found")
     return {"ok": True, "code": code.upper(), "reactivated": True}
+
+
+# ============================================================================
+# Reconciliation: sync-log inspection + manual replay
+# ============================================================================
+@router.get("/admin/partner/sync-log")
+async def admin_partner_sync_log(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    status: Optional[str] = None,
+    limit: int = 100,
+):
+    """Admin-only: list recent outbound partner calls + their status."""
+    await require_admin(request, session_token)
+    query: dict = {}
+    if status in ("sent", "failed", "abandoned"):
+        query["status"] = status
+    cursor = db.partner_sync_log.find(query, {"_id": 0}).sort("last_attempt_at", -1)
+    rows = await cursor.to_list(max(1, min(limit, 500)))
+    counts = {}
+    for s in ("sent", "failed", "abandoned"):
+        counts[s] = await db.partner_sync_log.count_documents({"status": s})
+    return {"counts": counts, "rows": rows}
+
+
+@router.post("/admin/partner/reconcile-now")
+async def admin_partner_reconcile_now(
+    request: Request, session_token: Optional[str] = Cookie(None)
+):
+    """Admin-only: trigger a partner reconciliation sweep on-demand
+    (instead of waiting for the nightly cron)."""
+    await require_admin(request, session_token)
+    from services.partner_reconcile import reconcile_partner_coupons
+
+    return await reconcile_partner_coupons(db)
+
+
+@router.post("/admin/partner/sync-log/{op}/{code}/retry")
+async def admin_partner_retry_row(
+    op: str, code: str, request: Request, session_token: Optional[str] = Cookie(None)
+):
+    """Admin-only: manually retry a single abandoned / failed sync-log row."""
+    await require_admin(request, session_token)
+    row = await db.partner_sync_log.find_one({"op": op, "code": code.upper()})
+    if not row:
+        raise HTTPException(status_code=404, detail="sync-log row not found")
+    # Reset status so the replay path treats it as a fresh attempt
+    await db.partner_sync_log.update_one(
+        {"_id": row["_id"]},
+        {"$set": {"status": "failed", "next_retry_at": None}},
+    )
+    row = await db.partner_sync_log.find_one({"_id": row["_id"]})
+    from services.partner_reconcile import _replay_one
+    ok = await _replay_one(db, row)
+    return {"ok": ok, "code": code.upper(), "op": op}
