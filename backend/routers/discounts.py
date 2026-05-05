@@ -40,7 +40,30 @@ async def validate_discount_code(
     
     code_upper = code.upper()
     is_special_code = code_upper in SPECIAL_MRP_CODES
-    
+
+    # ---- Cross-site partner coupon (AMD-GIFT-*) issued by Amardeep ----
+    # Canonical record lives on Amardeep. Proxy validation to them.
+    from services.partner_coupons import AMD_GIFT_PREFIX, validate_amardeep_coupon
+    if code_upper.startswith(AMD_GIFT_PREFIX):
+        resp = await validate_amardeep_coupon(code_upper)
+        if not resp.get("valid"):
+            raise HTTPException(status_code=400, detail=resp.get("error") or "Invalid partner coupon")
+        partner_coupon = resp.get("coupon") or {}
+        partner_value = float(partner_coupon.get("value_inr") or 0)
+        discount_amount = min(partner_value, subtotal)
+        return {
+            "valid": True,
+            "code": code_upper,
+            "discountType": partner_coupon.get("discount_type") or "fixed",
+            "discountValue": partner_value,
+            "discountAmount": round(discount_amount, 2),
+            "minOrderValue": 0,
+            "usageType": "partner",
+            "isSpecialCode": False,
+            "voucherType": "partner_coupon",
+            "message": partner_coupon.get("label") or "Partner gift coupon applied",
+        }
+
     # Use MRP for special codes, otherwise use subtotal
     base_for_calculation = mrp_total if (is_special_code and mrp_total) else subtotal
     

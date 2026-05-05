@@ -109,7 +109,29 @@ async def validate_and_apply_coupon(
         }
     
     code_upper = coupon_code.upper()
-    
+
+    # ---- Cross-site partner coupon (AMD-GIFT-*) — remote validation ----
+    from services.partner_coupons import AMD_GIFT_PREFIX, validate_amardeep_coupon
+    if code_upper.startswith(AMD_GIFT_PREFIX):
+        resp = await validate_amardeep_coupon(code_upper)
+        if not resp.get("valid"):
+            return {
+                "coupon_discount": 0,
+                "has_coupon_applied": False,
+                "coupon_code": None,
+                "error": resp.get("error") or "Invalid partner coupon",
+            }
+        partner_coupon = resp.get("coupon") or {}
+        partner_value = float(partner_coupon.get("value_inr") or 0)
+        coupon_discount = min(partner_value, mrp_total)
+        return {
+            "coupon_discount": coupon_discount,
+            "has_coupon_applied": True,
+            "coupon_code": code_upper,
+            "voucher_type": "partner_coupon",
+            "partner_source": partner_coupon.get("issued_by") or "amardeep",
+        }
+
     # First, check regular discount codes
     discount_code = await db.discount_codes.find_one({
         "code": code_upper,

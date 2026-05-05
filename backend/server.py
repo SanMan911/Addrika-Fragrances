@@ -54,6 +54,7 @@ from routers.admin.admin_auto_blog import router as admin_auto_blog_router
 from routers.admin.admin_provider_balances import router as admin_provider_balances_router
 from routers.brochure import router as brochure_router
 from routers.docs import router as docs_router
+from routers.partner import router as partner_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -122,6 +123,7 @@ app.include_router(kyc_retailer_router, prefix="/api")
 app.include_router(kyc_admin_router, prefix="/api")
 app.include_router(admin_auto_blog_router, prefix="/api")
 app.include_router(admin_provider_balances_router, prefix="/api")
+app.include_router(partner_router, prefix="/api")
 
 
 # Startup event

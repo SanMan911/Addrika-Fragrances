@@ -3,7 +3,18 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
-### 🆕 Feb 1, 2026 (later) — Floating Retailer CTA · Brochure messaging cleanup + redesign
+### 🆕 Feb 2026 — Cross-site coupon bridge with Amardeep Saanan (numerology)
+- ✅ **HMAC-SHA256 partner bridge shipped** using shared `PARTNER_SHARED_SECRET`:
+  - **Inbound** `POST /api/partner/coupons/issue` (`routers/partner.py`) — HMAC-verifies raw body against `X-Partner-Signature`, upserts incoming `AMD-GIFT-*` coupons into `discount_codes` collection with `partner_source`/`partner_redeemable_on`/`partner_applies_to_sku`/`partner_user_email` metadata so the existing admin discount UI immediately lists them. Idempotent on re-push.
+  - **Outbound** `services/partner_coupons.py::issue_amardeep_voucher` — fires from the retail order `verify_payment` hook on any paid Addrika order ≥ ₹499, posts an `ADRK-GIFT-*` ₹99 voucher (15-day validity) to `{AMARDEEP_API_BASE}/api/partner/coupons/issue`. Runs via `BackgroundTasks` so a partner outage never blocks checkout.
+  - **Outbound** `validate_amardeep_coupon` — intercepts any `AMD-GIFT-*` code in **both** `/api/discount-codes/validate` (public preview) and `services/order_pricing.py::validate_and_apply_coupon` (authoritative server-side checkout path). Canonical record stays on Amardeep; Addrika proxies.
+  - **Outbound** `redeem_amardeep_coupon` — after a successful Addrika order that used an `AMD-GIFT-*` code, marks it redeemed on Amardeep (also via `BackgroundTasks`).
+  - **Admin control**: `GET /api/admin/partner/coupons`, `POST /api/admin/partner/coupons/{code}/suspend`, `POST /api/admin/partner/coupons/{code}/reactivate`. Existing `/admin/discount-codes` list also surfaces them since they share the `discount_codes` collection.
+  - **Safety**: self-pickup still blocks any coupon (including partner ones); minimum-order threshold configurable via `PARTNER_MIN_ORDER_INR` (defaults to 499).
+- ✅ **Env wired** in `backend/.env`: `PARTNER_SHARED_SECRET=<redacted>`, `AMARDEEP_API_BASE=https://amardeep-numerology.preview.emergentagent.com`, `PARTNER_MIN_ORDER_INR=499`.
+- ✅ **Regression**: 16 new pytest cases in `tests/test_partner_coupons.py` covering HMAC helpers, signature rejection paths, persistence idempotency, remote validate happy / 404 / network-failure paths, `validate_and_apply_coupon` delegation, self-pickup short-circuit, and ≥₹499 threshold gating. **All 16 pass** + 25 prior regression = **41/41**.
+
+### Feb 1, 2026 (later) — Floating Retailer CTA · Brochure messaging cleanup + redesign
 - ✅ **Site-wide "Become a Retailer" floating CTA** (`components/RetailerFloatingCTA.js`) — bottom-left pill (gold ring + dark pill, opposite the WhatsApp button), shows on every public page **except** `/find-retailers`, `/admin/**`, `/retailer/**`, `/cart`, `/checkout`. Click → popover with two actions: "Become a Retailer" (opens `RetailerPartnershipModal` GST-first wizard) and "Download Brochure (PDF)" (hits `/api/brochure/download` with toast feedback). Mounted in `app/layout.js`.
 - ✅ **Brochure messaging cleansed** — removed all banned phrases: `100% natural`, `100% organic`, `halmaddi`, `essential oils`, `Hand-Crafted`, `Hand-Rolled`. Replaced with brand-approved language: `Ethical Sourcing`, `60%+ less smoke`, `Zero Charcoal`, `Crafted in Delhi`. Pills updated to `ZERO CHARCOAL · 60%+ LESS SMOKE · SMALL-BATCH · ETHICAL SOURCING · PAN-INDIA SHIPPING`. Front-cover top tag now reads `PREMIUM CHARCOAL-FREE INCENSE`.
 - ✅ **Brochure redesigned for elegance** (`services/brochure_pdf.py`):

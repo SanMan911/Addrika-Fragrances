@@ -675,7 +675,52 @@ async def verify_payment(
             {"code": payment_session["discount_code"].upper()},
             {"$inc": {"times_used": 1}}
         )
-    
+
+    # ============================================================================
+    # PARTNER CROSS-SITE COUPON HOOKS (Addrika ↔ Amardeep Saanan)
+    # - If this Addrika order qualifies (≥ ₹499), push an ADRK-GIFT-* voucher
+    #   to Amardeep so the customer gets ₹99 off a Mobile Number Numerology
+    #   Audit.
+    # - If this Addrika order used an AMD-GIFT-* coupon, mark it redeemed on
+    #   Amardeep's side.
+    # Both calls are best-effort (fire-and-forget style) — a partner outage
+    # must never break a paying customer's checkout.
+    # ============================================================================
+    try:
+        from services.partner_coupons import (
+            AMD_GIFT_PREFIX,
+            issue_amardeep_voucher,
+            redeem_amardeep_coupon,
+        )
+
+        customer_email = (
+            (order.get("billing") or {}).get("email")
+            or (order.get("shipping") or {}).get("email")
+            or ""
+        ).strip().lower()
+        order_total = float(
+            (order.get("pricing") or {}).get("final_total", 0)
+            or payment_session.get("amount_charged", 0)
+        )
+
+        # Outbound: issue ADRK-GIFT on every qualifying retail order.
+        if background_tasks and customer_email:
+            background_tasks.add_task(
+                issue_amardeep_voucher,
+                customer_email=customer_email,
+                source_order_ref=order_number,
+                amount_inr=order_total,
+            )
+
+        # Redeem: if this order consumed an AMD-GIFT-* coupon.
+        used_code = (payment_session.get("discount_code") or "").upper()
+        if used_code.startswith(AMD_GIFT_PREFIX) and background_tasks:
+            background_tasks.add_task(
+                redeem_amardeep_coupon, used_code, order_number,
+            )
+    except Exception as e:  # never block the order flow
+        logger.warning(f"partner coupon hook failed for order {order_number}: {e}")
+
     # ============================================================================
     # MARK RTO VOUCHER AS CLAIMED (if used)
     # ============================================================================
