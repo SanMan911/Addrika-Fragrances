@@ -3,6 +3,16 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🆕 Feb 2026 — Partner-bridge nightly reconciliation cron
+- ✅ **`services/partner_reconcile.py`** — adds a local `partner_sync_log` collection that records every outbound `issue` / `redeem` call (status ∈ `sent / failed / abandoned`). The scheduler loop fires once on boot (after a 60s warm-up) and then every 24h (configurable via `PARTNER_RECONCILE_INTERVAL_SECONDS`), replays every `failed` row whose `next_retry_at` has elapsed, and gives up after `MAX_ATTEMPTS=5` (5m → 30m → 2h → 6h → 24h backoff).
+- ✅ **`partner_coupons.issue_amardeep_voucher` / `redeem_amardeep_coupon`** now optionally accept `db=` and write a sync-log row on every attempt. `routers/orders.py::verify_payment` passes `db` so payment-time issues + redeems are auto-tracked.
+- ✅ **Admin control** — three new admin-gated endpoints:
+  - `GET /api/admin/partner/sync-log?status=failed&limit=100` — list with running counts of `sent / failed / abandoned`.
+  - `POST /api/admin/partner/reconcile-now` — trigger a sweep on demand.
+  - `POST /api/admin/partner/sync-log/{op}/{code}/retry` — manually replay a single row (also rescues `abandoned` rows).
+- ✅ **Regression**: 8 new pytest cases in `tests/test_partner_reconcile.py` (success/failure logging, exponential-backoff scheduling, abandon-threshold, sweep-due-only, future-retry-skip, re-fail-and-reschedule, issue + redeem write log rows). **24/24 partner tests pass** + 16 prior brochure/map/KYC = **40/40 batch**.
+- ✅ **Optional bidirectional probe** stub left in module-doc — when Amardeep ships `GET /api/partner/coupons/list?since=…&issued_by=amardeep` we'll fetch the diff and upsert anything we don't have.
+
 ### 🆕 Feb 2026 — Cross-site coupon bridge with Amardeep Saanan (numerology)
 - ✅ **HMAC-SHA256 partner bridge shipped** using shared `PARTNER_SHARED_SECRET`:
   - **Inbound** `POST /api/partner/coupons/issue` (`routers/partner.py`) — HMAC-verifies raw body against `X-Partner-Signature`, upserts incoming `AMD-GIFT-*` coupons into `discount_codes` collection with `partner_source`/`partner_redeemable_on`/`partner_applies_to_sku`/`partner_user_email` metadata so the existing admin discount UI immediately lists them. Idempotent on re-push.

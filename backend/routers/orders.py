@@ -710,13 +710,14 @@ async def verify_payment(
                 customer_email=customer_email,
                 source_order_ref=order_number,
                 amount_inr=order_total,
+                db=db,
             )
 
         # Redeem: if this order consumed an AMD-GIFT-* coupon.
         used_code = (payment_session.get("discount_code") or "").upper()
         if used_code.startswith(AMD_GIFT_PREFIX) and background_tasks:
             background_tasks.add_task(
-                redeem_amardeep_coupon, used_code, order_number,
+                redeem_amardeep_coupon, used_code, order_number, db,
             )
     except Exception as e:  # never block the order flow
         logger.warning(f"partner coupon hook failed for order {order_number}: {e}")

@@ -78,11 +78,14 @@ async def issue_amardeep_voucher(
     customer_email: str,
     source_order_ref: str,
     amount_inr: float,
+    db=None,
 ) -> Optional[dict]:
     """Push a ₹99-off numerology voucher to Amardeep after a retail Addrika
     order ≥ ₹499. Returns the coupon dict on success, None otherwise.
 
-    Fire-and-forget from the caller's POV — never raises.
+    Fire-and-forget from the caller's POV — never raises. When `db` is
+    provided, every attempt is recorded into `partner_sync_log` so the
+    nightly reconciliation cron can replay failures.
     """
     if not is_configured():
         return None
@@ -112,19 +115,36 @@ async def issue_amardeep_voucher(
         "X-Partner-Signature": partner_signature(body),
     }
     url = f"{_base_url()}/api/partner/coupons/issue"
+
+    success = False
+    http_status: Optional[int] = None
+    error_text: Optional[str] = None
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             r = await client.post(url, content=body, headers=headers)
-        if r.status_code != 200:
+        http_status = r.status_code
+        success = r.status_code == 200
+        if not success:
+            error_text = (r.text or "")[:500]
             logger.warning(
                 "issue_amardeep_voucher non-200 %s body=%s",
-                r.status_code, r.text[:200],
+                r.status_code, error_text,
             )
-            return None
-        return payload
     except Exception as e:
+        error_text = str(e)
         logger.warning("issue_amardeep_voucher failed: %s", e)
-        return None
+
+    if db is not None:
+        try:
+            from services.partner_reconcile import record_outbound_attempt
+            await record_outbound_attempt(
+                db, op="issue", code=code, payload=payload,
+                success=success, http_status=http_status, error=error_text,
+            )
+        except Exception as e:
+            logger.warning("partner_sync_log write failed: %s", e)
+
+    return payload if success else None
 
 
 # ---------- Outbound: validate an AMD-GIFT coupon ----------
@@ -164,29 +184,52 @@ async def validate_amardeep_coupon(
 
 
 # ---------- Outbound: redeem an AMD-GIFT coupon ----------
-async def redeem_amardeep_coupon(code: str, order_ref: str) -> bool:
-    """Mark an AMD-GIFT-* coupon as used on Amardeep. Best-effort."""
+async def redeem_amardeep_coupon(code: str, order_ref: str, db=None) -> bool:
+    """Mark an AMD-GIFT-* coupon as used on Amardeep. Best-effort.
+
+    When `db` is provided, every attempt is logged into `partner_sync_log`
+    so the nightly reconciliation cron can replay failures (this matters
+    a lot for redemption — un-redeemed coupons could be double-spent).
+    """
     if not is_configured():
         return False
-    body = json.dumps({"code": code, "order_ref": order_ref}).encode()
+    payload = {"code": code, "order_ref": order_ref}
+    body = json.dumps(payload).encode()
     headers = {
         "Content-Type": "application/json",
         "X-Partner-Signature": partner_signature(body),
     }
     url = f"{_base_url()}/api/partner/coupons/redeem"
+
+    success = False
+    http_status: Optional[int] = None
+    error_text: Optional[str] = None
     try:
         async with httpx.AsyncClient(timeout=6.0) as client:
             r = await client.post(url, content=body, headers=headers)
-        if r.status_code != 200:
+        http_status = r.status_code
+        success = r.status_code == 200
+        if not success:
+            error_text = (r.text or "")[:500]
             logger.warning(
                 "redeem_amardeep_coupon non-200 %s body=%s",
-                r.status_code, r.text[:200],
+                r.status_code, error_text,
             )
-            return False
-        return True
     except Exception as e:
+        error_text = str(e)
         logger.warning("redeem_amardeep_coupon failed: %s", e)
-        return False
+
+    if db is not None:
+        try:
+            from services.partner_reconcile import record_outbound_attempt
+            await record_outbound_attempt(
+                db, op="redeem", code=code, payload=payload,
+                success=success, http_status=http_status, error=error_text,
+            )
+        except Exception as e:
+            logger.warning("partner_sync_log write failed: %s", e)
+
+    return success
 
 
 # ---------- Local DB helper: persist an incoming AMD-GIFT coupon mirror ----
