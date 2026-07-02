@@ -450,19 +450,21 @@ def _draw_inner_flap(c: canvas.Canvas, x: float, active_count: int):
                         "NotoSans-Bold", 11, GOLD_DARK)
     _draw_ornate_divider(c, cx, PAGE_H - 32 * MM, width=70)
 
-    _draw_centered_text(c, "Built on a refusal", cx, PAGE_H - 46 * MM,
+    _draw_centered_text(c, "Crafted for the ritual,", cx, PAGE_H - 46 * MM,
                         "NotoSans-Bold", 14, INK_BLUE)
-    _draw_centered_text(c, "to settle for ordinary.", cx, PAGE_H - 53 * MM,
+    _draw_centered_text(c, "not the rush.", cx, PAGE_H - 53 * MM,
                         "NotoSans-Bold", 14, INK_BLUE)
 
     body = (
-        "Addrika was born when a third-generation incense family looked at "
-        "the modern agarbatti — choked with charcoal, perfumed with cheap "
-        "synthetics — and decided enough was enough.\n\n"
-        "Every stick is crafted in small batches in our Delhi workshop with "
-        "ethically-sourced ingredients and absolutely zero charcoal. The "
-        "result: a clean, lingering scent that produces over 60% less smoke "
-        "than ordinary agarbattis — gentle on your lungs, gentle on your home.\n\n"
+        "Addrika was born from a simple question: what if the incense you "
+        "light could be as thoughtfully crafted as the intentions behind "
+        "lighting it?\n\n"
+        "That question led our founders on a journey across India, meeting "
+        "master artisans who have perfected the craft over generations. From "
+        "them we learned traditional methods, sourced ethical ingredients, "
+        "and built a workshop in Delhi where every stick is made in small "
+        "batches with absolutely zero charcoal — for over 60% less smoke "
+        "than ordinary agarbattis.\n\n"
         f"{_count_word(active_count).title()} signature fragrances. One "
         "promise: elegance in every scent."
     )

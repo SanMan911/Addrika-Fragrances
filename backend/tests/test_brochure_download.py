@@ -54,11 +54,17 @@ async def test_brochure_no_banned_messaging():
     for banned in (
         "100% natural", "100% organic", "halmaddi", "essential oils",
         "hand-rolled", "hand-crafted",
+        # Origin-story contradictions vs `/our-story` on centraders.com:
+        "third-generation", "third generation",
+        "built on a refusal",
     ):
         assert banned not in text, f"banned phrase {banned!r} found in brochure"
 
     for required in (
         "ethical sourcing", "60%+ less smoke", "zero charcoal",
         "crafted in delhi",
+        # Origin-story alignment with `/our-story`:
+        "crafted for the ritual",
+        "master artisans",
     ):
         assert required in text, f"required phrase {required!r} missing from brochure"
