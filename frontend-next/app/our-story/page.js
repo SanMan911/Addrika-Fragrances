@@ -112,22 +112,27 @@ export default function OurStoryPage() {
                 className="text-2xl sm:text-3xl font-bold mb-6 text-white"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                The Beginning
+                Made by women. Made to give back.
               </h2>
               <div className="space-y-4 text-gray-300 leading-relaxed">
                 <p>
-                  Addrika was born from a simple observation: in our rush through daily life, 
-                  we often overlook the small rituals that ground us. The morning prayer, 
-                  the evening meditation, the quiet moments of reflection.
+                  Addrika was born from a simple belief: incense should carry
+                  more than a fragrance. It should carry livelihoods, dignity,
+                  and a lighter footprint on the earth.
                 </p>
                 <p>
-                  We asked ourselves: what if these moments could be elevated? What if the 
-                  incense we light could be as thoughtfully crafted as the intentions behind them?
+                  Every stick is crafted in small, women-led workshops across
+                  India — where artisans earn fair, transparent wages and set
+                  their own hours around family and community. We buy directly
+                  from them, without middlemen, so the value of every stick
+                  stays close to the hands that shaped it.
                 </p>
                 <p>
-                  This question led us on a journey across India, meeting master artisans who 
-                  have perfected their craft over generations. We learned about traditional 
-                  methods, ethically sourced ingredients, and the art of creating fragrances that touch the soul.
+                  Our formula is deliberately different: zero charcoal,
+                  ethically sourced ingredients, and packaging designed to
+                  compost or recycle — for over 60% less smoke than ordinary
+                  agarbattis, and a supply chain that gives back more than it
+                  takes.
                 </p>
               </div>
             </div>
