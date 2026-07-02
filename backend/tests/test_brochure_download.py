@@ -64,16 +64,23 @@ async def test_brochure_no_banned_messaging():
         "journey across india",
         "traditional methods",
         "crafted for the ritual",
+        # Overclaimed language corrected on Feb 2026 (SHG feedback):
+        "women-led workshops",
+        "fair, transparent wages",
+        "without middlemen",
+        "no middlemen",
     ):
         assert banned not in text, f"banned phrase {banned!r} found in brochure"
 
     for required in (
         "ethical sourcing", "60%+ less smoke", "zero charcoal",
         "crafted in delhi",
-        # Women-empowerment + sustainability alignment with `/our-story`:
+        # Women empowerment + sustainability alignment with `/our-story`:
         "made by women",
-        "women-led workshops",
-        "fair, transparent wages",
-        "compost or recycle",
+        "equal-participation workshops",
+        "self-help groups",
+        "fair, dignified wages",
+        "flexible work-hours",
+        "compost, recycle, or be reused",
     ):
         assert required in text, f"required phrase {required!r} missing from brochure"

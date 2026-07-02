@@ -121,18 +121,19 @@ export default function OurStoryPage() {
                   and a lighter footprint on the earth.
                 </p>
                 <p>
-                  Every stick is crafted in small, women-led workshops across
-                  India — where artisans earn fair, transparent wages and set
-                  their own hours around family and community. We buy directly
-                  from them, without middlemen, so the value of every stick
-                  stays close to the hands that shaped it.
+                  Every stick is crafted in equal-participation workshops
+                  across India — many run in partnership with Women&apos;s
+                  Self-Help Groups (SHGs), where artisans earn fair, dignified
+                  wages and enjoy flexible work-hours around family and
+                  community. Wherever possible we source directly, so more of
+                  the value stays close to the hands that shaped it.
                 </p>
                 <p>
                   Our formula is deliberately different: zero charcoal,
                   ethically sourced ingredients, and packaging designed to
-                  compost or recycle — for over 60% less smoke than ordinary
-                  agarbattis, and a supply chain that gives back more than it
-                  takes.
+                  compost, recycle, or be reused — for over 60% less smoke
+                  than ordinary agarbattis, and a supply chain that gives
+                  back more than it takes.
                 </p>
               </div>
             </div>
