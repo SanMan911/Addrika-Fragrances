@@ -218,18 +218,35 @@ export default function AdminRetailersPage() {
             className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6"
           >
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center shrink-0">
                   <Store size={24} className="text-blue-600 dark:text-blue-400" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-white">
-                    {retailer.store_name || retailer.storeName}
+                <div className="min-w-0">
+                  <h3
+                    className="font-semibold text-slate-800 dark:text-white truncate"
+                    data-testid={`retailer-name-${retailer.retailer_id || retailer.id}`}
+                  >
+                    {retailer.business_name || retailer.trade_name || retailer.store_name || retailer.storeName || 'Unnamed store'}
                   </h3>
-                  <p className="text-sm text-slate-500">{retailer.owner_name || retailer.ownerName}</p>
+                  <p className="text-sm text-slate-500 truncate">
+                    SPOC: {retailer.spoc?.name || retailer.owner_name || retailer.ownerName || <span className="italic text-slate-400">not set</span>}
+                  </p>
+                  {retailer.gst_number && (
+                    <p
+                      className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5"
+                      data-testid={`retailer-gst-${retailer.retailer_id || retailer.id}`}
+                      title="GSTIN — admin-only, never shown on public pages"
+                    >
+                      GSTIN&nbsp;·&nbsp;{retailer.gst_number}
+                      {retailer.gst_verified && (
+                        <span className="ml-1 text-green-600 dark:text-green-400">✓</span>
+                      )}
+                    </p>
+                  )}
                 </div>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[retailer.status] || statusColors.pending}`}>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${statusColors[retailer.status] || statusColors.pending}`}>
                 {(retailer.status || 'pending').toUpperCase()}
               </span>
             </div>
