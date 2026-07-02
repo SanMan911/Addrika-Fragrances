@@ -26,7 +26,7 @@ export default function AdminRetailerActivityPage() {
     try {
       const [activityRes, retailersRes] = await Promise.all([
         authFetch(`${API_URL}/api/admin/retailer-activity${selectedRetailer ? `?retailer_id=${selectedRetailer}` : ''}`),
-        authFetch(`${API_URL}/api/admin/retailers`)
+        authFetch(`${API_URL}/api/retailers/admin/list`)
       ]);
       
       if (activityRes.ok) {

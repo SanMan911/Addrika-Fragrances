@@ -49,7 +49,7 @@ export default function AdminRetailersPage() {
   const fetchRetailers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authFetch(`${API_URL}/api/admin/retailers`);
+      const res = await authFetch(`${API_URL}/api/retailers/admin/list`);
       if (res.ok) {
         const data = await res.json();
         setRetailers(data.retailers || data || []);
@@ -76,10 +76,12 @@ export default function AdminRetailersPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(r =>
-        (r.store_name || r.storeName || '').toLowerCase().includes(query) ||
-        (r.owner_name || r.ownerName || '').toLowerCase().includes(query) ||
+        (r.business_name || r.store_name || r.storeName || '').toLowerCase().includes(query) ||
+        (r.trade_name || '').toLowerCase().includes(query) ||
+        (r.spoc?.name || r.owner_name || r.ownerName || '').toLowerCase().includes(query) ||
         (r.email || '').toLowerCase().includes(query) ||
-        (r.city || '').toLowerCase().includes(query)
+        (r.city || '').toLowerCase().includes(query) ||
+        (r.gst_number || '').toLowerCase().includes(query)
       );
     }
     
@@ -88,8 +90,8 @@ export default function AdminRetailersPage() {
 
   const handleStatusChange = async (retailerId, newStatus) => {
     try {
-      const res = await authFetch(`${API_URL}/api/admin/retailers/${retailerId}/status`, {
-        method: 'PATCH',
+      const res = await authFetch(`${API_URL}/api/retailers/admin/${retailerId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
@@ -97,7 +99,9 @@ export default function AdminRetailersPage() {
       if (res.ok) {
         toast.success(`Retailer status updated to ${newStatus}`);
         setRetailers(prev => prev.map(r =>
-          r.id === retailerId ? { ...r, status: newStatus } : r
+          (r.retailer_id === retailerId || r.id === retailerId)
+            ? { ...r, status: newStatus }
+            : r
         ));
       } else {
         throw new Error('Failed to update status');
@@ -248,7 +252,7 @@ export default function AdminRetailersPage() {
             <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
               {retailer.status !== 'active' && (
                 <button
-                  onClick={() => handleStatusChange(retailer.id, 'active')}
+                  onClick={() => handleStatusChange(retailer.retailer_id || retailer.id, 'active')}
                   className="flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg text-sm hover:bg-green-200"
                 >
                   <CheckCircle size={14} />
@@ -257,7 +261,7 @@ export default function AdminRetailersPage() {
               )}
               {retailer.status === 'active' && (
                 <button
-                  onClick={() => handleStatusChange(retailer.id, 'suspended')}
+                  onClick={() => handleStatusChange(retailer.retailer_id || retailer.id, 'suspended')}
                   className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-lg text-sm hover:bg-red-200"
                 >
                   <XCircle size={14} />

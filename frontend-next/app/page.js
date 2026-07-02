@@ -5,6 +5,7 @@ import FragranceGridServer from '../components/FragranceGridServer';
 import USPSection from '../components/USPSection';
 import PackagingSection from '../components/PackagingSection';
 import CSRSection from '../components/CSRSection';
+import LatestBlogSection from '../components/LatestBlogSection';
 import InstagramFeed from '../components/InstagramFeed';
 import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
@@ -57,6 +58,7 @@ export default async function HomePage() {
       <USPSection />
       <PackagingSection />
       <CSRSection />
+      <LatestBlogSection />
       <InstagramFeed />
       <CTASection />
       <Footer />
