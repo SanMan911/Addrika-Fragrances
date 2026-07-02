@@ -49,7 +49,10 @@ async def test_brochure_no_banned_messaging():
 
     async with httpx.AsyncClient(timeout=60) as client:
         r = await client.get(f"{BASE_URL}/api/brochure/download")
-    text = extract_text(io.BytesIO(r.content)).lower()
+    raw = extract_text(io.BytesIO(r.content)).lower()
+    # Line-wrap in the PDF can break phrases across `\n` — normalise every
+    # run of whitespace to a single space before asserting.
+    text = " ".join(raw.split())
 
     for banned in (
         "100% natural", "100% organic", "halmaddi", "essential oils",
@@ -57,14 +60,20 @@ async def test_brochure_no_banned_messaging():
         # Origin-story contradictions vs `/our-story` on centraders.com:
         "third-generation", "third generation",
         "built on a refusal",
+        # Previous non-women-empowerment narrative (Feb 2026 pivot):
+        "journey across india",
+        "traditional methods",
+        "crafted for the ritual",
     ):
         assert banned not in text, f"banned phrase {banned!r} found in brochure"
 
     for required in (
         "ethical sourcing", "60%+ less smoke", "zero charcoal",
         "crafted in delhi",
-        # Origin-story alignment with `/our-story`:
-        "crafted for the ritual",
-        "master artisans",
+        # Women-empowerment + sustainability alignment with `/our-story`:
+        "made by women",
+        "women-led workshops",
+        "fair, transparent wages",
+        "compost or recycle",
     ):
         assert required in text, f"required phrase {required!r} missing from brochure"

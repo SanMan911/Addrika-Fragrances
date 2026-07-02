@@ -450,23 +450,24 @@ def _draw_inner_flap(c: canvas.Canvas, x: float, active_count: int):
                         "NotoSans-Bold", 11, GOLD_DARK)
     _draw_ornate_divider(c, cx, PAGE_H - 32 * MM, width=70)
 
-    _draw_centered_text(c, "Crafted for the ritual,", cx, PAGE_H - 46 * MM,
+    _draw_centered_text(c, "Made by women.", cx, PAGE_H - 46 * MM,
                         "NotoSans-Bold", 14, INK_BLUE)
-    _draw_centered_text(c, "not the rush.", cx, PAGE_H - 53 * MM,
+    _draw_centered_text(c, "Made to give back.", cx, PAGE_H - 53 * MM,
                         "NotoSans-Bold", 14, INK_BLUE)
 
     body = (
-        "Addrika was born from a simple question: what if the incense you "
-        "light could be as thoughtfully crafted as the intentions behind "
-        "lighting it?\n\n"
-        "That question led our founders on a journey across India, meeting "
-        "master artisans who have perfected the craft over generations. From "
-        "them we learned traditional methods, sourced ethical ingredients, "
-        "and built a workshop in Delhi where every stick is made in small "
-        "batches with absolutely zero charcoal — for over 60% less smoke "
-        "than ordinary agarbattis.\n\n"
+        "Addrika was born from a simple belief: incense should carry more "
+        "than a fragrance — it should carry livelihoods and a lighter "
+        "footprint on the earth.\n\n"
+        "Every stick is crafted in small, women-led workshops across India, "
+        "where artisans earn fair, transparent wages and set their own hours "
+        "around family. We buy directly from them — no middlemen — so the "
+        "value stays close to the hands that shaped it.\n\n"
+        "Zero charcoal. Ethically sourced ingredients. Packaging designed to "
+        "compost or recycle. Over 60% less smoke than ordinary agarbattis — "
+        "a supply chain that gives back more than it takes.\n\n"
         f"{_count_word(active_count).title()} signature fragrances. One "
-        "promise: elegance in every scent."
+        "promise: elegance you can feel good about."
     )
     y = PAGE_H - 70 * MM
     paragraphs = body.split("\n\n")
