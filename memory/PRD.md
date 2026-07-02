@@ -3,6 +3,17 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🆕 Feb 2026 — Landing page journal strip + broken admin retailers list URL
+
+**1. "From the Journal" section on the home page**
+- Auto-blog was generating posts but the landing page never surfaced them, so returning visitors saw no fresh content. Added `components/LatestBlogSection.js` (server component, 5-min ISR) between CSR + Instagram sections in `app/page.js`. Renders the 3 most-recent `/api/blog/posts` as gold-accent cards on a dark gradient panel with a "View all articles →" CTA to `/blog`. Missing cover images fall back to a monogram-A tile so nothing looks broken.
+- data-testids: `home-latest-blog`, `home-blog-view-all`, `home-blog-card-{slug}`.
+
+**2. Admin `/admin/retailers` panel showing "No retailers found" (even though M.G. Shoppie + Mela Stores exist in DB)**
+- Root cause: `app/admin/retailers/page.js` called `GET /api/admin/retailers` and `PATCH /api/admin/retailers/{id}/status` — **both 404** on the backend. The actual endpoints are `GET /api/retailers/admin/list` and `PUT /api/retailers/admin/{id}` (accepts `{status}` in body via `RetailerUpdateRequest`).
+- Fix: repointed both calls in `app/admin/retailers/page.js` + one call in `app/admin/retailer-activity/page.js`. Also expanded the search filter to look at `business_name`, `trade_name`, `spoc.name`, `gst_number` (the real field names) instead of `store_name` / `owner_name`. Buttons now pass `retailer_id || id` so the PUT hits the right document.
+- Verified: `/api/retailers/admin/list` now returns 401 (auth-required, path exists) instead of 404 on both preview and production. Both M.G. Shoppie + Mela Stores are in the prod retailers collection with `status=active, is_verified=true, kyc_grandfathered_at` — they'll render as soon as this deploys.
+
 ### 🆕 Feb 2026 — Fix: GST verification silently failing for new prospective retailers
 - **Root cause**: `RetailerPartnershipModal.js` (line 250) and `app/retailer/login/page.js` (line 162) both did `e.target.value.toUpperCase().slice(0, 15)` in their onChange handlers. When a prospective retailer pasted a GSTIN with a leading space, non-breaking space, tab, or hyphen (extremely common when copying from PDF invoices, registration certificates, or emails), the paste ended up as e.g. ` 27AAACR5055K1Z` — 15 chars but with a leading space, missing the last real character. The regex silently rejected it, no API call was fired, and the user saw a filled input with **no feedback at all**.
 - **Fix** (`lib/formHelpers.js`): new shared `normalizeGstInput(raw)` helper strips **every non-alphanumeric character** (spaces, hyphens, tabs, dots, NBSP) before upper-casing + slicing to 15. Both onChange handlers now use it. Added a clear red "That doesn't look like a valid GSTIN. Expected 15 characters e.g. 22AAAAA0000A1Z5" inline error when the user has filled 15 chars but the regex still fails — no more silent failures.
