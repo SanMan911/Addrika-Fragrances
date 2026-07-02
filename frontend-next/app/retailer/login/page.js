@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Store, Eye, EyeOff, Lock, User, CheckCircle2, ChevronDown } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
-import { titleCase, lowerEmail, COUNTRY_CODES, GST_REGEX } from '../../../lib/formHelpers';
+import { titleCase, lowerEmail, COUNTRY_CODES, GST_REGEX, normalizeGstInput } from '../../../lib/formHelpers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -159,7 +159,7 @@ function WaitlistComingSoon() {
               type="text"
               placeholder="22AAAAA0000A1Z5"
               value={form.gst_number}
-              onChange={(e) => setForm({ ...form, gst_number: e.target.value.toUpperCase().slice(0, 15) })}
+              onChange={(e) => setForm({ ...form, gst_number: normalizeGstInput(e.target.value) })}
               className={`w-full px-3 py-2.5 rounded-lg border-2 focus:border-[#D4AF37] outline-none uppercase font-mono tracking-wider ${
                 gstStatus.state === 'verified' ? 'border-emerald-500 bg-emerald-50' :
                 gstStatus.state === 'failed' ? 'border-amber-400 bg-amber-50' : 'border-gray-300 bg-white'
@@ -197,6 +197,17 @@ function WaitlistComingSoon() {
                 We&apos;ll auto-fill your business name, city &amp; state from GSTN records.
               </p>
             )}
+            {gstStatus.state === 'idle' &&
+              (form.gst_number || '').length >= 15 &&
+              !GST_REGEX.test((form.gst_number || '').toUpperCase()) && (
+                <p
+                  className="mt-1.5 text-xs text-red-600 font-medium"
+                  data-testid="waitlist-gst-invalid"
+                >
+                  ✗ That doesn&apos;t look like a valid GSTIN. Expected 15
+                  characters e.g. <span className="font-mono">22AAAAA0000A1Z5</span>.
+                </p>
+              )}
           </div>
 
           {/* Step 2 — Business details (revealed once a valid GSTIN is entered) */}

@@ -36,3 +36,21 @@ export const COUNTRY_CODES = [
 ];
 
 export const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
+/**
+ * Normalize whatever the user pastes / types into a GSTIN field.
+ *
+ * Real users copy their GSTIN from PDFs, emails and registration
+ * certificates — those sources routinely add leading/trailing whitespace,
+ * non-breaking spaces, tabs, hyphens etc. If we simply `.slice(0, 15)`
+ * a pasted value, one space at the front will silently push the last
+ * real character out of the 15-char window and the regex will fail —
+ * with no user-visible feedback. Strip every non-alphanumeric character
+ * before upper-casing + capping length so paste behaviour is bulletproof.
+ */
+export function normalizeGstInput(raw) {
+  return (raw || '')
+    .replace(/[^0-9A-Za-z]/g, '')
+    .toUpperCase()
+    .slice(0, 15);
+}
