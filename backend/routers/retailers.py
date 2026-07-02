@@ -897,15 +897,31 @@ async def get_retailers_for_pickup():
         is_mappls_enabled,
     )
 
+    # Whitelist projection: never leak GST, SPOC, email, phone, legal
+    # documents or KYC state to the public map / store-picker endpoint.
+    # Admins get the full document via /api/retailers/admin/list.
+    PUBLIC_FIELDS = {
+        "_id": 0,
+        "business_name": 1,
+        "trade_name": 1,
+        "name": 1,
+        "retailer_id": 1,
+        "id": 1,
+        "address": 1,
+        "registered_address": 1,
+        "city": 1,
+        "district": 1,
+        "state": 1,
+        "pincode": 1,
+        "coordinates": 1,
+        "coordinates_source": 1,
+        "is_addrika_verified_partner": 1,
+        "retailer_label": 1,
+    }
+
     retailers = await db.retailers.find(
         {"status": "active", "is_verified": True},
-        {
-            "_id": 0,
-            "password_hash": 0,
-            "legal_documents": 0,
-            "spoc.id_proof_document": 0,
-            "spoc.id_proof_number": 0
-        }
+        PUBLIC_FIELDS,
     ).to_list(100)
 
     mappls_on = is_mappls_enabled()
