@@ -10,9 +10,10 @@ import asyncio
 def test_admin_email_shows_discount_before_gst(tmp_path):
     captured = {}
 
-    async def fake_send(to_email, subject, html_content):
+    async def fake_send(to_email, subject, html_content, attachments=None):
         captured["html"] = html_content
         captured["subject"] = subject
+        captured["attachments"] = attachments
 
     fake = types.ModuleType("services.email_service")
     fake.send_email = fake_send

@@ -149,6 +149,33 @@ class B2BOrderCreate(BaseModel):
     voucher_code: Optional[str] = None  # Retailer voucher code
     credit_note_code: Optional[str] = None  # Credit note code
     notes: Optional[str] = None
+    # New (Feb 2026): allow retailer to include distance-based shipping
+    delivery_pincode: Optional[str] = None
+    include_shipping: bool = True
+
+
+class ShippingQuoteRequest(BaseModel):
+    delivery_pincode: str = Field(..., min_length=6, max_length=6)
+    items: List[B2BOrderItem]
+    cod: bool = False
+
+
+@router.post("/shipping-quote")
+async def b2b_shipping_quote(
+    body: ShippingQuoteRequest,
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Distance-based shipping quote for a B2B cart. Reads Shiprocket
+    creds from the DB-backed admin integrations panel."""
+    await require_b2b_enabled()
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from services.b2b_shipping import get_b2b_shipping_quote
+    return await get_b2b_shipping_quote(
+        body.delivery_pincode, body.items, cod=body.cod
+    )
 
 
 @router.post("/calculate")
@@ -163,7 +190,15 @@ async def calculate_b2b_order(
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    return await calc_b2b_pricing(
+    # Compute distance-based shipping when a delivery pincode is supplied.
+    shipping_quote = None
+    if order_data.include_shipping and order_data.delivery_pincode:
+        from services.b2b_shipping import get_b2b_shipping_quote
+        shipping_quote = await get_b2b_shipping_quote(
+            order_data.delivery_pincode, order_data.items
+        )
+
+    calc = await calc_b2b_pricing(
         db,
         retailer=retailer,
         items=order_data.items,
@@ -171,6 +206,41 @@ async def calculate_b2b_order(
         voucher_code=order_data.voucher_code,
         credit_note_code=order_data.credit_note_code,
     )
+
+    if shipping_quote:
+        ship = float(shipping_quote.get("shipping_charges") or 0)
+        calc["shipping_charges"] = ship
+        calc["shipping_quote"] = shipping_quote
+        calc["grand_total"] = round(float(calc.get("grand_total", 0)) + ship, 2)
+    else:
+        calc["shipping_charges"] = 0.0
+
+    # Project Fragrance Rewards accrual so the UI can show "You'll earn ₹X"
+    try:
+        from services.fragrance_rewards import (
+            QUALIFYING_INVOICE_MIN,
+            _multiplier,
+        )
+        subtotal_for_reward = float(calc.get("subtotal") or 0)
+        shipping_for_reward = float(calc.get("shipping_charges") or 0)
+        profile = await db.rewards_profile.find_one(
+            {"_id": retailer["retailer_id"]}
+        ) or {}
+        streak = int(profile.get("streak", 0)) + 1
+        mult = _multiplier(streak)
+        will_earn = 0.0
+        if subtotal_for_reward >= QUALIFYING_INVOICE_MIN and shipping_for_reward > 0:
+            will_earn = round(shipping_for_reward * mult, 2)
+        calc["rewards_projection"] = {
+            "will_earn_inr": will_earn,
+            "multiplier_pct": int(mult * 100),
+            "streak_after": streak,
+            "qualifying_min_inr": QUALIFYING_INVOICE_MIN,
+        }
+    except Exception:
+        pass
+
+    return calc
 
 
 @router.post("/order")
@@ -216,6 +286,9 @@ async def create_b2b_order(
         "credit_note_code": calculation.get("credit_note_code"),
         "credit_note_discount": calculation.get("credit_note_discount", 0),
         "total_discount": calculation.get("total_discount", 0),
+        "shipping_charges": float(calculation.get("shipping_charges") or 0),
+        "shipping_quote": calculation.get("shipping_quote"),
+        "delivery_pincode": order_data.delivery_pincode,
         "grand_total": calculation["grand_total"],
         "payment_method": "online" if order_data.apply_cash_discount or order_data.voucher_code else "credit",
         "payment_status": "pending",
@@ -445,6 +518,20 @@ async def verify_b2b_payment(
             )
         except Exception as e:
             logger.warning(f"Fragrance rewards accrual failed for {order_id}: {e}")
+
+        # ==================================================================
+        # B2B INVENTORY — auto-deduct pieces from stock on successful payment.
+        # Idempotent: skips if already deducted (b2b_inventory_log entry exists).
+        # ==================================================================
+        try:
+            from services.b2b_inventory import deduct_for_paid_order
+            fresh_order = await db.b2b_orders.find_one(
+                {"order_id": order_id}, {"_id": 0}
+            )
+            if fresh_order:
+                await deduct_for_paid_order(db, fresh_order)
+        except Exception as e:
+            logger.warning(f"B2B inventory deduction failed for {order_id}: {e}")
 
         # Best-effort: record payment in Zoho Books
         try:

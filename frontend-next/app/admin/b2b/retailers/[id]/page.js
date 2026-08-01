@@ -191,6 +191,24 @@ function OrdersPanel({ retailerId }) {
     }
   };
 
+  const emailInvoiceToAdmin = async (orderId) => {
+    if (!confirm(`Email tax invoice PDF for ${orderId} to Addrika ops inbox?`)) return;
+    try {
+      const res = await authFetch(
+        `${API_URL}/api/admin/b2b/orders/${orderId}/email-to-admin`,
+        { method: 'POST' }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.detail || 'Email failed');
+        return;
+      }
+      toast.success(`Invoice PDF emailed to ${data.to}`);
+    } catch {
+      toast.error('Email failed');
+    }
+  };
+
   const resync = async (orderId) => {
     setResyncingId(orderId);
     try {
@@ -298,6 +316,14 @@ function OrdersPanel({ retailerId }) {
                     }
                   >
                     {o.invoice_emailed_at ? '✓ Email' : 'Email'}
+                  </button>
+                  <button
+                    onClick={() => emailInvoiceToAdmin(o.order_id)}
+                    className="px-2 py-0.5 text-[11px] rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                    data-testid={`invoice-email-admin-${o.order_id}`}
+                    title="Re-send invoice PDF to Addrika ops inbox"
+                  >
+                    → Admin
                   </button>
                 </div>
               </td>

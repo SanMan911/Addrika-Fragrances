@@ -122,6 +122,50 @@ async def admin_email_b2b_invoice(
     return {"emailed": True, "to": retailer["email"]}
 
 
+@router.post("/orders/{order_id}/email-to-admin")
+async def admin_email_b2b_invoice_to_admin(
+    order_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Regenerate the tax-invoice PDF and email it to the Addrika ops inbox
+    (contact.us@centraders.com). Useful when the on-order-creation admin
+    notification email fails or the admin wants a fresh copy."""
+    await require_admin(request, session_token)
+    order = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    retailer = await db.retailers.find_one(
+        {"retailer_id": order["retailer_id"]},
+        {"_id": 0, "password_hash": 0},
+    ) or {}
+
+    from services.b2b_invoice_pdf import build_invoice_pdf
+    from services.email_service import send_email
+    from dependencies import NOTIFICATION_EMAIL
+
+    pdf_bytes = build_invoice_pdf(order, retailer)
+    business_name = retailer.get("business_name") or retailer.get("trade_name") or "Retailer"
+
+    html = (
+        f"<p>Attaching a fresh copy of the tax invoice for B2B order "
+        f"<b>{order_id}</b> — retailer <b>{business_name}</b>, "
+        f"GSTIN {retailer.get('gst_number') or 'N/A'}.</p>"
+        f"<p>Contact: {retailer.get('email') or '—'} · "
+        f"{retailer.get('phone') or '—'}</p>"
+        f"<p>Grand Total: <b>₹{float(order.get('grand_total') or 0):,.2f}</b></p>"
+    )
+    sent = await send_email(
+        to_email=NOTIFICATION_EMAIL,
+        subject=f"[B2B] Invoice PDF · {order_id} · {business_name}",
+        html_content=html,
+        attachments=[{"filename": f"invoice-{order_id}.pdf", "content": pdf_bytes}],
+    )
+    if not sent:
+        raise HTTPException(status_code=502, detail="Email service unavailable")
+    return {"emailed": True, "to": NOTIFICATION_EMAIL}
+
+
 # ============================================================================
 # B2B Catalog (Mongo-managed) — admin CRUD
 # ============================================================================

@@ -43,7 +43,7 @@ def _secret() -> bytes:
 def _base_url() -> str:
     return os.environ.get(
         "AMARDEEP_API_BASE",
-        "https://amardeep-numerology.preview.emergentagent.com",
+        "https://shiprocket-shipping.preview.emergentagent.com",
     ).rstrip("/")
 
 
