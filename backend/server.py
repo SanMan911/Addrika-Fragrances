@@ -57,6 +57,8 @@ from routers.docs import router as docs_router
 from routers.partner import router as partner_router
 from routers.impact import router as impact_router
 from routers.admin.admin_social import router as admin_social_router
+from routers.admin.admin_integrations import router as admin_integrations_router
+from routers.fragrance_rewards import router as fragrance_rewards_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -128,6 +130,8 @@ app.include_router(admin_provider_balances_router, prefix="/api")
 app.include_router(partner_router, prefix="/api")
 app.include_router(impact_router, prefix="/api")
 app.include_router(admin_social_router, prefix="/api")
+app.include_router(admin_integrations_router, prefix="/api")
+app.include_router(fragrance_rewards_router, prefix="/api")
 
 
 # Startup event
