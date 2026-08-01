@@ -159,7 +159,25 @@ async def send_b2b_admin_notification_email(order: dict, retailer: dict) -> None
         to_email=NOTIFICATION_EMAIL,
         subject=f"[B2B] New Order {order['order_id']} · {business_name} · ₹{order['grand_total']:,.0f}",
         html_content=html,
+        attachments=_maybe_build_invoice_attachment(order, retailer),
     )
     logger.info(
         f"B2B admin notification sent to {NOTIFICATION_EMAIL} for order {order['order_id']}"
     )
+
+
+def _maybe_build_invoice_attachment(order: dict, retailer: dict):
+    """Attach the tax-invoice PDF to the admin notification email so admin
+    has a downloadable copy right from their inbox. Silently no-ops if
+    reportlab fails so we never block the notification email."""
+    try:
+        from services.b2b_invoice_pdf import build_invoice_pdf
+        pdf = build_invoice_pdf(order, retailer or {})
+        if pdf:
+            return [{
+                "filename": f"invoice-{order.get('order_id')}.pdf",
+                "content": pdf,
+            }]
+    except Exception as e:
+        logger.warning("Skipping admin-notification PDF attach: %s", e)
+    return None

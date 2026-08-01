@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://retailer-locator-map.preview.emergentagent.com/api
+https://shiprocket-shipping.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

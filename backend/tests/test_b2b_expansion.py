@@ -9,7 +9,7 @@ import httpx
 
 BASE = os.environ.get(
     "BACKEND_URL",
-    "https://retailer-locator-map.preview.emergentagent.com",
+    "https://shiprocket-shipping.preview.emergentagent.com",
 )
 
 

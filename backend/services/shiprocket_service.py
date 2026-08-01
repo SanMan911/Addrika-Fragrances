@@ -22,14 +22,32 @@ _token_cache = {
 }
 
 
+async def _resolve_credentials() -> tuple[Optional[str], Optional[str]]:
+    """DB-backed integration keys override env vars. Falls back to env if
+    the admin_integrations module or DB is unavailable (e.g. during tests)."""
+    try:
+        from routers.admin.admin_integrations import get_effective
+        email = await get_effective("shiprocket_email")
+        password = await get_effective("shiprocket_password")
+        if email and password:
+            return email, password
+    except Exception:
+        pass
+    return SHIPROCKET_EMAIL, SHIPROCKET_PASSWORD
+
+
 async def get_shiprocket_token() -> Optional[str]:
     """
     Get or generate ShipRocket authentication token.
     Tokens are valid for 24 hours, we refresh at 20 hours for safety.
+    Credentials are read via the admin integrations panel first so
+    admins can rotate them at runtime.
     """
     global _token_cache
-    
-    if not SHIPROCKET_EMAIL or not SHIPROCKET_PASSWORD:
+
+    email, password = await _resolve_credentials()
+
+    if not email or not password:
         logger.warning("ShipRocket credentials not configured")
         return None
     
@@ -44,8 +62,8 @@ async def get_shiprocket_token() -> Optional[str]:
             response = await client.post(
                 f"{SHIPROCKET_BASE_URL}/auth/login",
                 json={
-                    "email": SHIPROCKET_EMAIL,
-                    "password": SHIPROCKET_PASSWORD
+                    "email": email,
+                    "password": password
                 },
                 timeout=30.0
             )

@@ -119,6 +119,13 @@ export default function AdminB2BPage() {
           <Boxes size={16} /> B2B Catalog
         </Link>
         <Link
+          href="/admin/b2b/inventory"
+          className="px-4 py-2 rounded-lg bg-fuchsia-50 dark:bg-fuchsia-900/20 text-fuchsia-700 hover:bg-fuchsia-100 text-sm font-medium flex items-center gap-2"
+          data-testid="link-b2b-inventory"
+        >
+          <Package size={16} /> Inventory (cartons)
+        </Link>
+        <Link
           href="/admin/b2b/reports"
           className="px-4 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 hover:bg-emerald-100 text-sm font-medium flex items-center gap-2"
           data-testid="link-reports"

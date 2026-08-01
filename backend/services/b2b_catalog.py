@@ -27,6 +27,11 @@ logger = logging.getLogger(__name__)
 # B2B Price is 76.52% of MRP
 B2B_DISCOUNT_RATE = 0.7652
 
+# User spec (Feb 2026): 1 carton = 32 pieces by default. Per-product override
+# via `pieces_per_carton`. Backwards-compat: existing rows without this field
+# still use `units_per_box`, so pricing math is unchanged.
+DEFAULT_PIECES_PER_CARTON = 32
+
 
 def calculate_box_price(units_per_box: int, mrp_per_unit: float) -> int:
     """Calculate B2B box price at 76.52% of MRP."""
@@ -36,6 +41,16 @@ def calculate_box_price(units_per_box: int, mrp_per_unit: float) -> int:
 def calculate_half_box_price(units_per_box: int, mrp_per_unit: float) -> int:
     """Calculate B2B half-box price at 76.52% of MRP."""
     return round((units_per_box / 2) * mrp_per_unit * B2B_DISCOUNT_RATE)
+
+
+def calculate_carton_price(pieces_per_carton: int, mrp_per_unit: float) -> int:
+    """Carton-level B2B price at 76.52% of MRP × pieces_per_carton."""
+    return round(pieces_per_carton * mrp_per_unit * B2B_DISCOUNT_RATE)
+
+
+def calculate_half_carton_price(pieces_per_carton: int, mrp_per_unit: float) -> int:
+    """Half-carton price = pieces_per_carton / 2 × MRP × discount."""
+    return round((pieces_per_carton / 2) * mrp_per_unit * B2B_DISCOUNT_RATE)
 
 
 # ---------------------------------------------------------------------------
@@ -133,17 +148,38 @@ _SEED_PRODUCTS = [
 B2B_PRODUCTS: list[dict] = list(_SEED_PRODUCTS)
 
 
+def _enrich_carton_fields(p: dict) -> dict:
+    """Backfill carton view fields onto a product dict (non-destructive).
+
+    Adds `pieces_per_carton`, `price_per_carton`, `price_per_half_carton`,
+    `price_per_piece_mrp` for consumers that want to display per-piece or
+    per-carton alongside the existing per-box math.
+    """
+    ppc = int(
+        p.get("pieces_per_carton")
+        or DEFAULT_PIECES_PER_CARTON
+    )
+    mrp = float(p.get("mrp_per_unit") or 0)
+    p["pieces_per_carton"] = ppc
+    p["price_per_carton"] = p.get("price_per_carton") or calculate_carton_price(ppc, mrp)
+    p["price_per_half_carton"] = p.get("price_per_half_carton") or calculate_half_carton_price(ppc, mrp)
+    p["price_per_piece"] = round(mrp * B2B_DISCOUNT_RATE, 2)
+    p["mrp_per_piece"] = round(mrp, 2)
+    p.setdefault("stock_pieces", int(p.get("stock_pieces") or 0))
+    return p
+
+
 def find_b2b_product(b2b_product_id: str) -> Optional[dict]:
     """Return the B2B product dict by id, or None. Uses the cache."""
     for p in B2B_PRODUCTS:
         if p["id"] == b2b_product_id:
-            return p
+            return _enrich_carton_fields(dict(p))
     return None
 
 
 def get_b2b_catalog() -> list[dict]:
-    """Public list of B2B products from the cache."""
-    return list(B2B_PRODUCTS)
+    """Public list of B2B products from the cache (carton view enriched)."""
+    return [_enrich_carton_fields(dict(p)) for p in B2B_PRODUCTS]
 
 
 # ---------------------------------------------------------------------------

@@ -3,6 +3,35 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🆕 Feb 2026 (later) — B2B Shipping · Carton Math · Inventory Adjust · Order PDF (P0 batch)
+
+**1. Shiprocket distance-based B2B shipping** (`services/b2b_shipping.py`)
+- New `get_b2b_shipping_quote(delivery_pincode, items)` computes cart weight from carton math (grams-per-piece × pieces × 1.15 packaging overhead, floor 0.5kg) then calls Shiprocket serviceability. Cheapest courier's rate = `shipping_charges`.
+- Graceful fallback: if Shiprocket errors or is unconfigured, returns a transparent linear estimate (₹120 base + ₹25/kg) with `fallback: true` and `courier_name: "Standard (Fallback)"` so checkout NEVER breaks.
+- Credentials are read via `admin_integrations.get_effective("shiprocket_email"/"shiprocket_password"/"shiprocket_pickup_pin")` — DB overrides env vars, so admins can rotate keys without a redeploy (see `services/shiprocket_service.py::_resolve_credentials`).
+- New endpoint `POST /api/retailer-dashboard/b2b/shipping-quote {delivery_pincode, items, cod?}` for the B2B cart to preview the rate. `POST /api/retailer-dashboard/b2b/calculate` now accepts `delivery_pincode` + `include_shipping` and rolls the shipping into `grand_total`.
+- The calc response also carries `rewards_projection: {will_earn_inr, multiplier_pct, streak_after}` so the retailer UI can show "You'll earn ₹X in Fragrance Rewards" alongside shipping.
+
+**2. Carton Math (1 carton = 32 pieces)** (`services/b2b_catalog.py`, `services/b2b_inventory.py`)
+- New `pieces_per_carton` field on `b2b_products` (default 32). Existing legacy `units_per_box` still works — `pieces_for_quantity(product, qty_boxes)` prefers `pieces_per_carton` and falls back to `units_per_box`.
+- `_enrich_carton_fields(product)` backfills `price_per_carton`, `price_per_half_carton`, `price_per_piece`, `mrp_per_piece` on the fly so the B2B catalog response carries BOTH the legacy per-box view AND the new per-carton view (user's "Both toggle" preference).
+- Half-carton always allowed (16 pcs, no minimum) per user's spec.
+
+**3. B2B Inventory Quick-Adjust** (`services/b2b_inventory.py`, `routers/admin/admin_b2b_inventory.py`)
+- Piece-level stock on `b2b_products.stock_pieces`. Every adjustment writes an audit row to `b2b_inventory_log` (`before → after`, reason, admin email, optional note).
+- Reasons whitelist: `restock`, `damage`, `return`, `offline_sale`, `correction`, `manual_adjust`.
+- Auto-deduct on successful Razorpay payment via `deduct_for_paid_order(db, order)` — idempotent via a per-`(order_id, product_id)` guard so re-verifying a payment never double-deducts. Wired into `POST /api/retailer-dashboard/b2b/order/{order_id}/verify-payment`.
+- New admin endpoints: `GET /api/admin/b2b/inventory`, `GET /api/admin/b2b/inventory/{id}`, `POST /api/admin/b2b/inventory/{id}/adjust`, `GET /api/admin/b2b/inventory/{id}/log`.
+- New admin page `/admin/b2b/inventory` with per-product row + Adjust modal (Add / Deduct) + History modal. `data-testid`s wired for testing.
+
+**4. B2B Order PDF regeneration + admin-notification attachment**
+- `services/b2b_emails.py::send_b2b_admin_notification_email` now auto-attaches the reportlab-generated tax invoice PDF to the admin notification email (contact.us@centraders.com). Silent no-op if PDF build fails so notification email always ships.
+- New endpoint `POST /api/admin/b2b/orders/{order_id}/email-to-admin` regenerates the PDF and emails it to the ops inbox on demand.
+- Existing retailer-facing PDF endpoint (`GET /api/admin/b2b/orders/{id}/invoice.pdf`, `GET /api/retailer-dashboard/b2b/orders/{id}/invoice.pdf`) unchanged — includes GST + Name + Address + Contact per user's spec.
+- Admin retailer detail page (`/admin/b2b/retailers/[id]`) now has an "→ Admin" button next to the existing PDF / Email buttons for each order.
+
+**5. Regression** — 19 new pytest tests in `tests/test_b2b_shipping_inventory.py` cover carton math, piece calculation, adjust +/-, negative-delta clamp-to-zero, deduct-idempotent, log filtering, weight parsing, fallback rate scaling, and shiprocket happy/fallback paths. **41/41 pass** (19 new + 7 fragrance rewards + 14 iteration_63 + 1 email layout).
+
 ### 🆕 Feb 2026 — Landing page journal strip + broken admin retailers list URL
 
 **1. "From the Journal" section on the home page**
@@ -37,7 +66,7 @@
   - **Outbound** `redeem_amardeep_coupon` — after a successful Addrika order that used an `AMD-GIFT-*` code, marks it redeemed on Amardeep (also via `BackgroundTasks`).
   - **Admin control**: `GET /api/admin/partner/coupons`, `POST /api/admin/partner/coupons/{code}/suspend`, `POST /api/admin/partner/coupons/{code}/reactivate`. Existing `/admin/discount-codes` list also surfaces them since they share the `discount_codes` collection.
   - **Safety**: self-pickup still blocks any coupon (including partner ones); minimum-order threshold configurable via `PARTNER_MIN_ORDER_INR` (defaults to 499).
-- ✅ **Env wired** in `backend/.env`: `PARTNER_SHARED_SECRET=<redacted>`, `AMARDEEP_API_BASE=https://amardeep-numerology.preview.emergentagent.com`, `PARTNER_MIN_ORDER_INR=499`.
+- ✅ **Env wired** in `backend/.env`: `PARTNER_SHARED_SECRET=<redacted>`, `AMARDEEP_API_BASE=https://shiprocket-shipping.preview.emergentagent.com`, `PARTNER_MIN_ORDER_INR=499`.
 - ✅ **Regression**: 16 new pytest cases in `tests/test_partner_coupons.py` covering HMAC helpers, signature rejection paths, persistence idempotency, remote validate happy / 404 / network-failure paths, `validate_and_apply_coupon` delegation, self-pickup short-circuit, and ≥₹499 threshold gating. **All 16 pass** + 25 prior regression = **41/41**.
 
 ### Feb 1, 2026 (later) — Floating Retailer CTA · Brochure messaging cleanup + redesign
