@@ -2,6 +2,7 @@
 
 import { useTheme } from '../context/ThemeContext';
 import { Heart, Users, TreePine, GraduationCap, HandHeart, Globe, Leaf } from 'lucide-react';
+import TreeCounter from './TreeCounter';
 
 const csrInitiatives = [
   {
@@ -89,6 +90,10 @@ export default function CSRSection() {
             At Addrika, we believe business should be a force for good. Through our voluntary CSR initiatives, 
             we're committed to making a positive impact on communities and the environment.
           </p>
+
+          <div className="mt-8 flex justify-center">
+            <TreeCounter />
+          </div>
         </div>
 
         {/* CSR Cards */}

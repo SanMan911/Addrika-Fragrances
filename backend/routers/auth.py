@@ -1,10 +1,11 @@
 """Authentication routes"""
-from fastapi import APIRouter, HTTPException, Response, Request, Cookie
+from fastapi import APIRouter, HTTPException, Response, Request, Cookie, BackgroundTasks
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel
 import re
 import logging
+import asyncio
 
 from models.users import UserCreate, UserLogin
 from services.auth_service import (
@@ -210,7 +211,10 @@ async def verify_registration_otp(request: OTPVerify):
 
 
 @router.post("/register-with-otp")
-async def register_user_with_otp(user_data: RegisterWithOTP):
+async def register_user_with_otp(
+    user_data: RegisterWithOTP,
+    background_tasks: BackgroundTasks = None,
+):
     """Register a new user after OTP verification"""
     email = user_data.email.lower().strip()
     
@@ -324,7 +328,18 @@ async def register_user_with_otp(user_data: RegisterWithOTP):
     
     # Clean up OTP records
     await db.otp_verifications.delete_many({"email": email})
-    
+
+    # Fire welcome email in the background — never block the response.
+    try:
+        from services.email_service import send_welcome_email
+        if background_tasks is not None:
+            background_tasks.add_task(send_welcome_email, email, user['name'])
+        else:
+            # Fallback when background_tasks isn't available (e.g. from tests)
+            asyncio.create_task(send_welcome_email(email, user['name']))
+    except Exception as e:
+        logger.warning(f"welcome email dispatch failed for {email}: {e}")
+
     # Create session
     session_token = await create_session(db, user['user_id'])
     
