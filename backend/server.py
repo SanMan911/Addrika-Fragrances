@@ -56,6 +56,7 @@ from routers.brochure import router as brochure_router
 from routers.docs import router as docs_router
 from routers.partner import router as partner_router
 from routers.impact import router as impact_router
+from routers.admin.admin_social import router as admin_social_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -126,6 +127,7 @@ app.include_router(admin_auto_blog_router, prefix="/api")
 app.include_router(admin_provider_balances_router, prefix="/api")
 app.include_router(partner_router, prefix="/api")
 app.include_router(impact_router, prefix="/api")
+app.include_router(admin_social_router, prefix="/api")
 
 
 # Startup event

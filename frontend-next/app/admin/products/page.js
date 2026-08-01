@@ -84,7 +84,7 @@ function SizeEditor({ sizes, onChange }) {
               data-testid={`size-price-${idx}`}
             />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <input
               type="text" placeholder="Size Label (optional)"
               value={s.sizeLabel || ''} onChange={(e) => updateSize(idx, 'sizeLabel', e.target.value)}
@@ -94,6 +94,15 @@ function SizeEditor({ sizes, onChange }) {
               type="number" placeholder="Weight (g, optional)"
               value={s.weight || ''} onChange={(e) => updateSize(idx, 'weight', parseInt(e.target.value) || null)}
               className="px-2 py-1.5 text-sm rounded bg-slate-700 border border-slate-600 text-white"
+            />
+            <input
+              type="number" placeholder="In-stock qty"
+              min={0}
+              value={s.stock ?? ''}
+              onChange={(e) => updateSize(idx, 'stock', e.target.value === '' ? null : (parseInt(e.target.value) || 0))}
+              className="px-2 py-1.5 text-sm rounded bg-slate-700 border border-slate-600 text-white"
+              data-testid={`size-stock-${idx}`}
+              title="Units in stock for this size variant"
             />
           </div>
           <textarea

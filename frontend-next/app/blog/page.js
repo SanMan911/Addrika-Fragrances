@@ -24,11 +24,37 @@ async function getBlogPosts() {
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return data.posts || [];
+    // Backend returns { posts: [...] } but we defensively accept a raw
+    // array as well (older mock shape).
+    return Array.isArray(data) ? data : data.posts || [];
   } catch (error) {
     console.error('Error fetching blog posts:', error);
     return [];
   }
+}
+
+/**
+ * Normalise a Mongo date-ish field into a safe locale string. If the
+ * value is missing or invalid, returns an empty string instead of
+ * "Invalid Date" — this prevents a SSR RangeError from `toLocaleDateString`
+ * on an Invalid Date object (which was the root cause of the
+ * "Application error: server-side exception, digest 3506429118" the
+ * blog list page was throwing pre-2026-02-09).
+ */
+function fmtPostDate(post) {
+  const raw =
+    post?.published_at ||
+    post?.publishedAt ||
+    post?.created_at ||
+    post?.createdAt;
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 export default async function BlogPage() {
@@ -116,7 +142,7 @@ export default async function BlogPage() {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {posts.map((post) => (
                   <Link
-                    key={post.slug}
+                    key={post.slug || post.id}
                     href={`/blog/${post.slug}`}
                     className="group rounded-xl overflow-hidden transition-all hover:-translate-y-1"
                     style={{ 
@@ -124,10 +150,10 @@ export default async function BlogPage() {
                       border: '1px solid rgba(255,255,255,0.1)'
                     }}
                   >
-                    {post.featuredImage && (
+                    {(post.featured_image || post.featuredImage) && (
                       <div className="aspect-[16/9] overflow-hidden">
                         <img
-                          src={post.featuredImage}
+                          src={post.featured_image || post.featuredImage}
                           alt={post.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
@@ -137,11 +163,7 @@ export default async function BlogPage() {
                       <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
-                          {new Date(post.createdAt).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
+                          {fmtPostDate(post)}
                         </span>
                         <span className="flex items-center gap-1">
                           <Eye size={14} />

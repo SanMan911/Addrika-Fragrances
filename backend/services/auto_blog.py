@@ -548,6 +548,30 @@ async def run_one_cycle(db, force: bool = False, admin_email: str = "system:auto
             ),
         )
 
+        # 6b) Social cross-post fan-out (all platforms are disabled by
+        # default — see backend/routers/admin/admin_social.py). Never
+        # blocks or crashes the blog creation.
+        try:
+            from services.social_crosspost import cross_post_blog
+            post_dict = {
+                "title": gen["title"],
+                "excerpt": gen["excerpt"],
+                "slug": slug,
+                "featured_image": (
+                    f"{os.environ.get('PUBLIC_FRONTEND_URL', 'https://centraders.com').rstrip('/')}"
+                    f"/api/blog/images/{post_id}/hero"
+                    if hero_path
+                    else None
+                ),
+            }
+            social_results = await cross_post_blog(db, post_dict)
+            logger.info(
+                "Auto-blog: social cross-post results %s",
+                {r["platform"]: r["ok"] for r in social_results},
+            )
+        except Exception as e:
+            logger.warning(f"Auto-blog: cross-post failed (non-fatal): {e}")
+
     return {
         "ok": True,
         "post_id": post_id,
