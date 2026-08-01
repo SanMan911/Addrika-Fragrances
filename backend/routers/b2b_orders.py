@@ -422,6 +422,30 @@ async def verify_b2b_payment(
         
         logger.info(f"B2B order {order_id} payment verified: {razorpay_payment_id}")
 
+        # ==================================================================
+        # FRAGRANCE REWARDS — auto-credit shipping on qualifying orders
+        # (spec: subtotal ≥ ₹1,000 → earn 100/110/125% of shipping as
+        #  90-day trade credit, streak resets after 45 days).
+        # ==================================================================
+        try:
+            from services.fragrance_rewards import maybe_credit_on_order
+            subtotal = float(
+                order.get("subtotal")
+                or order.get("items_subtotal")
+                or (float(order.get("grand_total", 0)) - float(order.get("shipping_charges", 0)))
+            )
+            shipping = float(order.get("shipping_charges", 0))
+            await maybe_credit_on_order(
+                db,
+                retailer_id=retailer["retailer_id"],
+                order_id=order_id,
+                subtotal_inr=subtotal,
+                shipping_inr=shipping,
+                payment_id=razorpay_payment_id,
+            )
+        except Exception as e:
+            logger.warning(f"Fragrance rewards accrual failed for {order_id}: {e}")
+
         # Best-effort: record payment in Zoho Books
         try:
             from services.zoho_books import push_payment, is_configured as _zoho_cfg
