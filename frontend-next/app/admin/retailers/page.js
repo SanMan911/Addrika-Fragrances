@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Store, Search, RefreshCw, MapPin, Phone, Mail, CheckCircle, XCircle, Edit2, Trash2, Plus, X } from 'lucide-react';
+import { Store, Search, RefreshCw, MapPin, Phone, Mail, CheckCircle, XCircle, Edit2, Trash2, Plus, X, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
+import RetailerEditModal from '../../../components/RetailerEditModal';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  '';
 
 // Title case helper - capitalize first letter of every word
 const capitalizeWords = (str) => {
@@ -45,6 +49,7 @@ export default function AdminRetailersPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState(initialRetailerForm);
   const [submitting, setSubmitting] = useState(false);
+  const [editing, setEditing] = useState(null);  // holds the retailer currently being edited
 
   const fetchRetailers = useCallback(async () => {
     setLoading(true);
@@ -286,10 +291,18 @@ export default function AdminRetailersPage() {
                 </button>
               )}
               <button
+                onClick={() => setEditing(retailer)}
+                data-testid={`retailer-edit-btn-${retailer.retailer_id || retailer.id}`}
+                className="flex items-center gap-1 px-3 py-1.5 bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/40 rounded-lg text-sm hover:bg-[#D4AF37]/25"
+              >
+                <Edit2 size={14} />
+                Edit
+              </button>
+              <button
                 onClick={() => setSelectedRetailer(retailer)}
                 className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 rounded-lg text-sm hover:bg-slate-200"
               >
-                <Edit2 size={14} />
+                <Store size={14} />
                 View Details
               </button>
               <a
@@ -532,6 +545,17 @@ export default function AdminRetailersPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Inline edit modal for GST/SPOC/status/verified-partner + GST certificate upload */}
+      {editing && (
+        <RetailerEditModal
+          retailer={editing}
+          authFetch={authFetch}
+          open={!!editing}
+          onClose={() => setEditing(null)}
+          onSaved={fetchRetailers}
+        />
       )}
     </div>
   );

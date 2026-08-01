@@ -294,16 +294,39 @@ export default async function FindRetailersPage() {
                           </h3>
                           
                           {/* Location Badge */}
-                          <span 
-                            className="inline-block px-3 py-1 rounded-full text-xs font-medium mb-4"
-                            style={{ 
-                              background: 'rgba(212,175,55,0.15)', 
-                              color: '#D4AF37',
-                              border: '1px solid rgba(212,175,55,0.3)'
-                            }}
-                          >
-                            {retailer.state}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2 mb-4">
+                            <span 
+                              className="inline-block px-3 py-1 rounded-full text-xs font-medium"
+                              style={{ 
+                                background: 'rgba(212,175,55,0.15)', 
+                                color: '#D4AF37',
+                                border: '1px solid rgba(212,175,55,0.3)'
+                              }}
+                            >
+                              {retailer.state}
+                            </span>
+                            {retailer.is_addrika_verified_partner && (
+                              <span
+                                data-testid={`verified-partner-badge-${retailer.id || index}`}
+                                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
+                                style={{
+                                  background:
+                                    'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
+                                  color: '#1a1a2e',
+                                  boxShadow: '0 2px 10px rgba(212,175,55,0.3)',
+                                }}
+                                title="Verified Addrika partner — certified & audited"
+                              >
+                                <span
+                                  className="inline-block w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                                  style={{ background: '#1a1a2e', color: '#D4AF37' }}
+                                >
+                                  ✓
+                                </span>
+                                Verified Partner
+                              </span>
+                            )}
+                          </div>
                           
                           {/* Address */}
                           <div 

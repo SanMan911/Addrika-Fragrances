@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 67 verification (blog SSR fix, admin products empty, verified partner ribbon, retailer edit modal, social cross-post scaffold, regressions). 12/12 backend pytest cases green. All 6 review items pass on the UI AFTER I rebuilt the Next.js production bundle — the running preview build was stale and had baked-in http://localhost:8001, causing /admin/products & /admin/retailers to show empty states. Source-level fixes are correct; a rebuild was required.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Admin panel (products & retailers)",
+        "issue": "Live preview bundle was serving old code with `const API_URL='http://localhost:8001'` baked in. Browser blocked CORS-to-loopback so /admin/products showed 'No products found — 0 products' and /admin/retailers failed to fetch. Source is fixed (NEXT_PUBLIC_BACKEND_URL || NEXT_PUBLIC_API_URL || ''); simply rebuilding fixed it (`yarn build && supervisorctl restart frontend`). Verified 10 products and 5 retailers render post-rebuild.",
+        "affected_selectors": ["[data-testid=\"add-product-btn\"]", "[data-testid^=\"retailer-edit-btn-\"]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration_67.py",
+    "/app/test_reports/pytest/iteration_67.xml"
+  ],
+  "action_items": [
+    "Make sure the deploy/CI pipeline exports NEXT_PUBLIC_BACKEND_URL at BUILD time and rebuilds .next after any admin/products or admin/retailers page.js edit — a stale bundle otherwise ships hard-coded http://localhost:8001 and CORS-fails the whole admin console.",
+    "Minor: preview DB shows 'Test Retailer Store' with is_addrika_verified_partner=true (verified ribbon visible on /find-retailers). Review spec says ONLY M.G. Shoppie & Mela Stores should be grandfathered verified — either de-verify the test seed or accept it as staging data.",
+    "Minor: product naming discrepancy — review text calls out 'Kesar Kasturi' but DB has 'Kesar Chandan'. Non-blocking."
+  ],
+  "critical_code_review_comments": [
+    "app/admin/products/page.js is 696 lines — recommend splitting SizeEditor, ProductModal, ProductList into separate files (>700 threshold policy).",
+    "admin/layout.js authFetch reads localStorage sessionToken but backend uses HttpOnly cookie 'session_token'; the Bearer header is a no-op for the admin API which relies on Cookie(session_token). Not a functional bug but dead code."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration_67.py",
+    "/app/frontend-next/.next/** (rebuilt via `yarn build`)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100% (after rebuild)"},
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499. OTP is written to db.admin_2fa_tokens (DEV MODE not surfaced in login response). Helper: /tmp/adm_login.py — POSTs initiate, reads OTP from mongo, POSTs verify-otp, prints session_token cookie value.",
+  "seed_data_creation": "None — did NOT create any lingering products; the stock-field test either created & deleted or hit duplicate-slug path. No new retailers, no new blog posts.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend tests live at /app/backend/tests/test_iteration_67.py (12 tests, all pass). The running Next.js frontend build was stale on arrival with `http://localhost:8001` hard-baked into /admin/products & /admin/retailers chunks; I ran `cd /app/frontend-next && rm -rf .next && yarn build && supervisorctl restart frontend` — after that all admin UI works and the size-stock-{0,1,2} + retailer-edit-modal + 9 edit-* testids all render. If admin/products goes empty again check the JS chunk with `curl <preview>/_next/static/chunks/app/admin/products/page-*.js | grep -oE 'localhost:8001|preview\\.emergentagent'`.",
+  "rca of the issue": "Admin console empty-state RCA: production build was compiled without NEXT_PUBLIC_BACKEND_URL being exported to the shell that ran `next build`. `process.env.NEXT_PUBLIC_BACKEND_URL` therefore evaluated to undefined and fell through to whatever NEXT_PUBLIC_API_URL was set to during that build (evidently 'http://localhost:8001'). Fix: rerun `yarn build` from /app/frontend-next with .env.local present, then supervisorctl restart frontend. Verified live preview now hits https://retailer-locator-map.preview.emergentagent.com/api/admin/products and returns 10 products end-to-end."
+}

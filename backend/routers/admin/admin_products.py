@@ -16,6 +16,7 @@ class ProductSizeInput(BaseModel):
     mrp: float = Field(..., gt=0)
     price: float = Field(..., gt=0)
     weight: Optional[int] = None
+    stock: Optional[int] = None  # in-stock qty for this variant (nullable = unlimited)
     includes: Optional[list[str]] = None
     images: list[str] = []
 
