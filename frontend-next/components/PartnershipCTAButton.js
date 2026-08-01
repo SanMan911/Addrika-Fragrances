@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { Mail } from 'lucide-react';
-import { Toaster } from 'sonner';
 import RetailerPartnershipModal from './RetailerPartnershipModal';
 
 /**
  * Client-side button that opens the partnership inquiry modal. Used inside
  * server-rendered pages (like /find-retailers).
+ *
+ * NB: Toast notifications rely on the global <Toaster> mounted in
+ * app/layout.js — never mount a second Toaster here. Doing so would
+ * re-introduce the duplicate-toast bug fixed on 2026-02-08.
  */
 export default function PartnershipCTAButton({
   className = '',
@@ -23,7 +26,6 @@ export default function PartnershipCTAButton({
 
   return (
     <>
-      <Toaster position="top-center" richColors />
       <button
         type="button"
         onClick={() => setOpen(true)}
