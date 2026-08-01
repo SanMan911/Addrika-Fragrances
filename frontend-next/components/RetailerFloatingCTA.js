@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Handshake, Download, X, FileText, ChevronRight } from 'lucide-react';
-import { toast, Toaster } from 'sonner';
+import { toast } from 'sonner';
 import RetailerPartnershipModal from './RetailerPartnershipModal';
 
 const HIDDEN_PREFIXES = [
@@ -12,6 +12,15 @@ const HIDDEN_PREFIXES = [
   '/retailer',
   '/cart',
   '/checkout',
+  // Auth flows — floating CTA + its own Toaster caused a duplicate
+  // "This username is not available" toast on /register (Feb 2026 bug).
+  '/register',
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/forgot-username',
+  '/reset-password',
+  '/verify-email',
 ];
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -67,7 +76,6 @@ export default function RetailerFloatingCTA() {
 
   return (
     <>
-      <Toaster position="top-center" richColors />
       {/* Backdrop when popover is open (mobile) */}
       {open && (
         <div

@@ -1,0 +1,28 @@
+{
+  "summary": "Verified all 5 items in Jan-2026 bug/feature batch: duplicate-toast fix on /register, welcome-email + step-4 thank-you screen wiring, tree-plantation counter (backend endpoint + UI widget), central brand config files (frontend + backend), and admin/products endpoint. All 7 pytest cases pass and UI verification on /register, / (home) and /find-retailers is green.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_impact_and_batch_jan2026.py",
+    "/app/test_reports/pytest/impact_batch.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PartnershipCTAButton.js still ships its own <Toaster position='top-center' richColors />. It is currently NOT imported anywhere (only defined), so it doesn't cause a duplicate today, but if a future page imports this component it will regress the duplicate-toast bug. Recommend removing the per-component Toaster and relying on the global one in app/layout.js.",
+  "auth.py fires send_welcome_email through both BackgroundTasks and asyncio.create_task fallback. The fallback branch (background_tasks is None) is technically unreachable via FastAPI DI but keeps the code defensive — fine, but worth a comment."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_impact_and_batch_jan2026.py (new)"
+  ],
+  "success_rate": { "backend": "100% (7/7)", "frontend": "100% for the 5 items tested" },
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499. OTP is stored in db.admin_2fa_tokens; DEV MODE OTP is NOT surfaced in the /admin/login/initiate response body on this preview — I read it directly from Mongo to complete the flow and confirm /api/admin/products returns 10 products for an authenticated admin.",
+  "seed_data_creation": "None; used existing data. tree_counter settings row auto-seeded by first GET /api/impact/trees call.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The full end-to-end registration flow (send OTP -> verify OTP -> Complete Registration -> step-4 thank-you screen) was NOT clicked through interactively because it requires either a real email delivery or reading OTP from db.otp_verifications. The step-4 markup, toast.success call, and BackgroundTasks(send_welcome_email) code paths were verified by static code review only. If you need to smoke-test the actual UI flow, use the admin_2fa_tokens pattern applied here (read OTP from db.otp_verifications) to complete the registration and screenshot the step-4 screen. Detailed evidence: /register shows 0 duplicate Toasters and 1 inline 'This username is not available' chip when typing 'sanman'; the floating 'Become a Retailer' CTA is correctly hidden on /register but visible on /. Home page shows TreeCounter widget with value '38' and CTA to /csr. /find-retailers loads Leaflet OSM map with the India-border GeoJSON (2 SVG paths in overlay pane) and 3 store pins.",
+  "rca of the issue": "Not applicable — this iteration verified fixes, no new bugs found."
+}

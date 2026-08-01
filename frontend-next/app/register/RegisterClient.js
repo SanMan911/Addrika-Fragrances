@@ -288,9 +288,18 @@ export default function RegisterClient() {
         state: formData.state.trim(),
         pincode: formData.pincode
       });
-      
+
       if (result.success) {
-        router.push('/account');
+        // Thank-you feedback: success toast + a short delay so the user
+        // sees the confirmation before we redirect to their account.
+        toast.success(
+          `Welcome to Addrika, ${formData.salutation || ''} ${formData.name.trim().split(' ')[0]}! Check your inbox for a welcome note.`,
+          { duration: 4000 }
+        );
+        setStep(4);
+        setTimeout(() => {
+          router.push('/account');
+        }, 2500);
       }
     } finally {
       setLoading(false);
@@ -705,7 +714,43 @@ export default function RegisterClient() {
                 </div>
               )}
 
-              {/* Submit Button */}
+              {/* Step 4: Thank-you / success screen */}
+              {step === 4 && (
+                <div className="text-center py-8" data-testid="register-thank-you">
+                  <div
+                    className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
+                    style={{
+                      background:
+                        'linear-gradient(135deg, rgba(212,175,55,0.25), rgba(16,185,129,0.20))',
+                      boxShadow: '0 0 40px rgba(212,175,55,0.35)',
+                    }}
+                  >
+                    <CheckCircle size={44} className="text-emerald-400" />
+                  </div>
+                  <h3
+                    className="text-2xl font-semibold text-white mb-3"
+                    style={{ fontFamily: "'Playfair Display', serif" }}
+                  >
+                    You&apos;re in. Welcome to Addrika.
+                  </h3>
+                  <p className="text-gray-300 mb-2 leading-relaxed">
+                    A welcome note is on its way to{' '}
+                    <span className="text-[#D4AF37] font-semibold">
+                      {formData.email}
+                    </span>
+                    .
+                  </p>
+                  <p className="text-gray-400 text-sm mb-8">
+                    Taking you to your account…
+                  </p>
+                  <div className="flex justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#D4AF37]" />
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Button — hidden on the thank-you screen */}
+              {step !== 4 && (
               <button
                 type="submit"
                 disabled={loading}
@@ -714,6 +759,7 @@ export default function RegisterClient() {
                   background: 'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
                   color: '#1a1a2e'
                 }}
+                data-testid="register-submit-btn"
               >
                 {loading ? (
                   <>
@@ -726,6 +772,7 @@ export default function RegisterClient() {
                   'Complete Registration'
                 )}
               </button>
+              )}
             </form>
 
             {/* Toggle Mode */}
