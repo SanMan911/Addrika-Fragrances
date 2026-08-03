@@ -269,6 +269,25 @@ export default function AdminRetailersPage() {
                 <MapPin size={14} />
                 <span>{retailer.city}, {retailer.state} - {retailer.pincode}</span>
               </p>
+              {retailer.rewards && (
+                <div
+                  className="flex items-center justify-between gap-2 text-sm px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40"
+                  data-testid={`retailer-rewards-${retailer.retailer_id || retailer.id}`}
+                  title={`Streak ${retailer.rewards.streak} · Next multiplier ${retailer.rewards.next_multiplier_pct}%`}
+                >
+                  <span className="text-amber-700 dark:text-amber-400 font-medium">
+                    Fragrance Rewards
+                  </span>
+                  <span className="text-slate-800 dark:text-white font-bold">
+                    ₹{Number(retailer.rewards.balance_inr || 0).toLocaleString('en-IN')}
+                    {retailer.rewards.redeemable && (
+                      <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white">
+                        redeemable
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">

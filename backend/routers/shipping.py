@@ -326,19 +326,15 @@ async def check_pincode(
     """
     Check if a pincode is serviceable for delivery.
     Returns serviceability status along with city/state info.
+    Offline fallback: `state` is resolvable via first-two-digit India-Post
+    PIN mapping even when Shiprocket is unconfigured, so client forms can
+    always auto-fill State (a mandatory field in every Addrika form).
     """
     if not pincode.isdigit():
         raise HTTPException(status_code=400, detail="Invalid pincode format")
-    
-    result = await check_pincode_serviceability(pincode)
-    
-    return {
-        "pincode": pincode,
-        "serviceable": result.get("serviceable", True),
-        "city": result.get("city"),
-        "state": result.get("state"),
-        "cod_available": result.get("cod_available", True)
-    }
+
+    from services.pincode_lookup import lookup_pincode
+    return await lookup_pincode(pincode)
 
 
 # Source warehouse PIN codes for delivery time estimation

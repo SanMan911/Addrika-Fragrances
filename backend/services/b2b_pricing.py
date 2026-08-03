@@ -164,6 +164,40 @@ async def calculate_b2b_order(
                 status_code=404, detail=f"Product {item.product_id} not found"
             )
 
+        # ── Stock guard ────────────────────────────────────────────────
+        # Block orders whose quantity exceeds available pieces, or whose
+        # product is flagged out_of_stock / restocking / manufacturing /
+        # delayed. Admin can override by setting stock_status back to
+        # "in_stock" and topping up stock_pieces.
+        from services.b2b_catalog import pack_size_for
+        ppc = pack_size_for(product)
+        stock_pieces = int(product.get("stock_pieces") or 0)
+        current_status = (product.get("stock_status") or "").lower()
+        if not current_status:
+            current_status = "in_stock" if stock_pieces > 0 else "out_of_stock"
+
+        requested_pieces = int(round(float(item.quantity_boxes) * ppc))
+
+        if current_status != "in_stock" or stock_pieces <= 0:
+            eta = int(product.get("restock_eta_days") or 15)
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"'{product.get('name')}' is currently unavailable "
+                    f"(Restocking in Progress · Available ETA {eta} days)."
+                ),
+            )
+        if requested_pieces > stock_pieces:
+            max_boxes = round(stock_pieces / ppc, 2) if ppc else 0
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Not enough stock for '{product.get('name')}'. "
+                    f"Only {stock_pieces} pieces ({max_boxes} × {product.get('unit_label') or 'carton'}) "
+                    f"available."
+                ),
+            )
+
         line_total_base = calculate_line_total(
             item.quantity_boxes,
             product["price_per_box"],

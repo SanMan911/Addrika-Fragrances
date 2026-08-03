@@ -12,6 +12,8 @@ import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
 import RetailerFirstLoginTour from '../../../components/RetailerFirstLoginTour';
 import KYCVerificationCard from '../../../components/KYCVerificationCard';
+import RewardsBalanceCard from '../../../components/RewardsBalanceCard';
+import PincodeShippingInput from '../../../components/PincodeShippingInput';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -50,6 +52,7 @@ export default function RetailerB2BPage() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [kycGate, setKycGate] = useState(null); // { gate_enabled, fully_kyc_verified, missing, can_order, retailer_id }
   const [showKycCard, setShowKycCard] = useState(false);
+  const [shippingQuote, setShippingQuote] = useState(null); // { shipping_charges, delivery_pincode, courier_name, etd, ... }
   const { fetchWithAuth, retailer: authRetailer } = useRetailerAuth();
 
   // If the URL contains #kyc (deep link from the recovery email), auto-expand
@@ -150,7 +153,9 @@ export default function RetailerB2BPage() {
           items,
           apply_cash_discount: applyCashDiscount && !voucherCode,
           voucher_code: voucherCode || null,
-          credit_note_code: creditNoteCode || null
+          credit_note_code: creditNoteCode || null,
+          delivery_pincode: shippingQuote?.delivery_pincode || null,
+          include_shipping: !!shippingQuote?.delivery_pincode,
         })
       });
       if (response.ok) {
@@ -182,7 +187,9 @@ export default function RetailerB2BPage() {
           items,
           apply_cash_discount: applyCashDiscount && !voucherCode,
           voucher_code: voucherCode || null,
-          credit_note_code: creditNoteCode || null
+          credit_note_code: creditNoteCode || null,
+          delivery_pincode: shippingQuote?.delivery_pincode || null,
+          include_shipping: !!shippingQuote?.delivery_pincode,
         })
       });
       if (response.ok) {
@@ -256,6 +263,9 @@ export default function RetailerB2BPage() {
       </div>
       {activeTab === 'order' ? (
         <>
+          {/* Fragrance Rewards Balance snapshot — always visible above the fold */}
+          <RewardsBalanceCard fetchWithAuth={fetchWithAuth} />
+
           {/* KYC gate nudge — sticky on scroll with per-step progress chips */}
           {kycGate && kycGate.gate_enabled && !kycGate.fully_kyc_verified && (
             <div
@@ -524,6 +534,14 @@ export default function RetailerB2BPage() {
               </div>
             </div>
           )}
+          {/* Distance-based shipping quote (Shiprocket-powered) */}
+          <PincodeShippingInput
+            fetchWithAuth={fetchWithAuth}
+            items={Object.entries(quantities)
+              .filter(([, q]) => q > 0)
+              .map(([product_id, quantity_boxes]) => ({ product_id, quantity_boxes }))}
+            onQuote={setShippingQuote}
+          />
           {/* Cash Discount Toggle */}
           <div className={`p-4 rounded-xl bg-green-50 border border-green-200 flex items-center justify-between ${voucherCode ? 'opacity-50' : ''}`}>
             <div className="flex items-center gap-3">
@@ -699,6 +717,28 @@ export default function RetailerB2BPage() {
                     <div className="flex justify-between text-blue-600">
                       <span>Credit Note ({orderSummary.credit_note_code})</span>
                       <span className="font-medium">-{formatCurrency(orderSummary.credit_note_discount)}</span>
+                    </div>
+                  )}
+                  {orderSummary.shipping_charges > 0 && (
+                    <div className="flex justify-between text-indigo-700" data-testid="summary-shipping">
+                      <span>
+                        Shipping
+                        {orderSummary.shipping_quote?.courier_name && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            ({orderSummary.shipping_quote.courier_name})
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-medium">+{formatCurrency(orderSummary.shipping_charges)}</span>
+                    </div>
+                  )}
+                  {orderSummary.rewards_projection?.will_earn_inr > 0 && (
+                    <div className="flex justify-between text-amber-700 bg-amber-50 -mx-1 px-2 py-1.5 rounded-lg text-sm border border-amber-100"
+                      data-testid="summary-rewards-projection">
+                      <span>
+                        You&apos;ll earn (Fragrance Rewards @ {orderSummary.rewards_projection.multiplier_pct}%)
+                      </span>
+                      <span className="font-semibold">+{formatCurrency(orderSummary.rewards_projection.will_earn_inr)}</span>
                     </div>
                   )}
                   <div className="flex justify-between pt-3 mt-3 border-t text-xl font-bold text-[#2B3A4A]">

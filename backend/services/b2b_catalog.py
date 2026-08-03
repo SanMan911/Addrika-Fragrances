@@ -27,10 +27,49 @@ logger = logging.getLogger(__name__)
 # B2B Price is 76.52% of MRP
 B2B_DISCOUNT_RATE = 0.7652
 
-# User spec (Feb 2026): 1 carton = 32 pieces by default. Per-product override
-# via `pieces_per_carton`. Backwards-compat: existing rows without this field
-# still use `units_per_box`, so pricing math is unchanged.
+# User spec (Feb 2026): pack size varies by category.
+#   ▸ Dhoop, Bakhoor            → 1 carton  = 32 pieces (half = 16)
+#   ▸ Agarbatti Jar (200g)      → 1 carton  = 16 pieces (half = 8)
+#   ▸ Agarbatti (50g / 100g)    → 1 packet  = 12 pieces (half = 6)
+# Backwards-compat: existing rows without `category` fall back to
+# `units_per_box` so historical pricing math is unchanged.
 DEFAULT_PIECES_PER_CARTON = 32
+
+CATEGORY_PACK_SIZE = {
+    "dhoop": 32,
+    "bakhoor": 32,
+    "agarbatti_jar": 16,   # 200g jars
+    "agarbatti": 12,       # 50g / 100g dozen packets
+}
+
+CATEGORY_UNIT_LABEL = {
+    "dhoop": "carton",
+    "bakhoor": "carton",
+    "agarbatti_jar": "carton",
+    "agarbatti": "packet",
+}
+
+
+def pack_size_for(product: dict) -> int:
+    """Return pieces per selling unit (carton/packet) for a b2b_product.
+
+    Order of precedence: explicit `pieces_per_carton` → category default →
+    legacy `units_per_box` → 32 (system default). Never returns 0.
+    """
+    ppc = product.get("pieces_per_carton")
+    if ppc:
+        return int(ppc)
+    cat = (product.get("category") or "").lower()
+    if cat in CATEGORY_PACK_SIZE:
+        return CATEGORY_PACK_SIZE[cat]
+    if product.get("units_per_box"):
+        return int(product["units_per_box"])
+    return DEFAULT_PIECES_PER_CARTON
+
+
+def unit_label_for(product: dict) -> str:
+    cat = (product.get("category") or "").lower()
+    return CATEGORY_UNIT_LABEL.get(cat, "carton")
 
 
 def calculate_box_price(units_per_box: int, mrp_per_unit: float) -> int:
@@ -59,85 +98,113 @@ def calculate_half_carton_price(pieces_per_carton: int, mrp_per_unit: float) -> 
 _SEED_PRODUCTS = [
     {
         "id": "kesar-chandan-b2b", "product_id": "kesar-chandan",
-        "name": "Kesar Chandan",
+        "name": "Kesar Chandan", "category": "agarbatti",
         "image": "https://customer-assets.emergentagent.com/job_premium-incense-2/artifacts/kuzvgiue_KC_50%20gms_1.jpg",
         "net_weight": "50g", "units_per_box": 12, "mrp_per_unit": 110,
+        "pieces_per_carton": 12,  # agarbatti dozen packet
         "price_per_box": calculate_box_price(12, 110),
         "price_per_half_box": calculate_half_box_price(12, 110),
         "min_order": 0.5, "gst_rate": 5, "hsn_code": "33074100",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
     {
         "id": "kesar-chandan-200-b2b", "product_id": "kesar-chandan",
-        "name": "Kesar Chandan",
+        "name": "Kesar Chandan", "category": "agarbatti_jar",
         "image": "https://customer-assets.emergentagent.com/job_premium-incense-2/artifacts/42b0wrdd_KC_200%20gms_1.jpg",
         "net_weight": "200g", "units_per_box": 16, "mrp_per_unit": 402,
+        "pieces_per_carton": 16,  # jars, 16/carton
         "price_per_box": calculate_box_price(16, 402),
         "price_per_half_box": calculate_half_box_price(16, 402),
         "min_order": 0.5, "gst_rate": 5, "hsn_code": "33074100",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
     {
         "id": "regal-rose-b2b", "product_id": "regal-rose", "name": "Regal Rose",
+        "category": "agarbatti",
         "image": "https://customer-assets.emergentagent.com/job_premium-incense-2/artifacts/0a7ncpnf_KC_50%20gms_2.jpg",
         "net_weight": "50g", "units_per_box": 12, "mrp_per_unit": 110,
+        "pieces_per_carton": 12,
         "price_per_box": calculate_box_price(12, 110),
         "price_per_half_box": calculate_half_box_price(12, 110),
         "min_order": 0.5, "gst_rate": 5, "hsn_code": "33074100",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
     {
         "id": "regal-rose-200-b2b", "product_id": "regal-rose", "name": "Regal Rose",
+        "category": "agarbatti_jar",
         "image": "https://customer-assets.emergentagent.com/job_premium-incense-2/artifacts/0a7ncpnf_KC_50%20gms_2.jpg",
         "net_weight": "200g", "units_per_box": 16, "mrp_per_unit": 402,
+        "pieces_per_carton": 16,
         "price_per_box": calculate_box_price(16, 402),
         "price_per_half_box": calculate_half_box_price(16, 402),
         "min_order": 0.5, "gst_rate": 5, "hsn_code": "33074100",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
     {
         "id": "oriental-oudh-b2b", "product_id": "oriental-oudh", "name": "Oriental Oudh",
+        "category": "agarbatti",
         "image": "https://images.unsplash.com/photo-1600369671738-fa4e8244d49d?w=400",
         "net_weight": "50g", "units_per_box": 12, "mrp_per_unit": 110,
+        "pieces_per_carton": 12,
         "price_per_box": calculate_box_price(12, 110),
         "price_per_half_box": calculate_half_box_price(12, 110),
         "min_order": 0.5, "gst_rate": 5, "hsn_code": "33074100",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
     {
         "id": "oriental-oudh-200-b2b", "product_id": "oriental-oudh", "name": "Oriental Oudh",
+        "category": "agarbatti_jar",
         "image": "https://images.unsplash.com/photo-1600369671738-fa4e8244d49d?w=400",
         "net_weight": "200g", "units_per_box": 16, "mrp_per_unit": 402,
+        "pieces_per_carton": 16,
         "price_per_box": calculate_box_price(16, 402),
         "price_per_half_box": calculate_half_box_price(16, 402),
         "min_order": 0.5, "gst_rate": 5, "hsn_code": "33074100",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
     {
         "id": "bold-bakhoor-b2b", "product_id": "bold-bakhoor", "name": "Bold Bakhoor",
+        "category": "bakhoor",
         "image": "https://customer-assets.emergentagent.com/job_434d883a-a02c-48ab-b964-a5cf2e94edda/artifacts/w49zefo9_Bakhoor%20Packet%20%231.png",
         "net_weight": "50g", "units_per_box": 12, "mrp_per_unit": 110,
-        "price_per_box": calculate_box_price(12, 110),
-        "price_per_half_box": calculate_half_box_price(12, 110),
+        "pieces_per_carton": 32,  # bakhoor cartons — 32/pcs
+        "price_per_box": calculate_carton_price(32, 110),
+        "price_per_half_box": calculate_half_carton_price(32, 110),
         "min_order": 0.5, "gst_rate": 18, "hsn_code": "33074900",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
     {
         "id": "bold-bakhoor-200-b2b", "product_id": "bold-bakhoor", "name": "Bold Bakhoor",
+        "category": "bakhoor",
         "image": "https://customer-assets.emergentagent.com/job_434d883a-a02c-48ab-b964-a5cf2e94edda/artifacts/w49zefo9_Bakhoor%20Packet%20%231.png",
         "net_weight": "200g", "units_per_box": 16, "mrp_per_unit": 402,
-        "price_per_box": calculate_box_price(16, 402),
-        "price_per_half_box": calculate_half_box_price(16, 402),
+        "pieces_per_carton": 32,
+        "price_per_box": calculate_carton_price(32, 402),
+        "price_per_half_box": calculate_half_carton_price(32, 402),
         "min_order": 0.5, "gst_rate": 18, "hsn_code": "33074900",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
     {
         "id": "mogra-magic-b2b", "product_id": "mogra-magic", "name": "Mogra Magic",
+        "category": "agarbatti",
         "image": "https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?w=400",
         "net_weight": "50g", "units_per_box": 12, "mrp_per_unit": 110,
+        "pieces_per_carton": 12,
         "price_per_box": calculate_box_price(12, 110),
         "price_per_half_box": calculate_half_box_price(12, 110),
         "min_order": 0.5, "gst_rate": 5, "hsn_code": "33074100",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
     {
         "id": "mogra-magic-200-b2b", "product_id": "mogra-magic", "name": "Mogra Magic",
+        "category": "agarbatti_jar",
         "image": "https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?w=400",
         "net_weight": "200g", "units_per_box": 16, "mrp_per_unit": 402,
+        "pieces_per_carton": 16,
         "price_per_box": calculate_box_price(16, 402),
         "price_per_half_box": calculate_half_box_price(16, 402),
         "min_order": 0.5, "gst_rate": 5, "hsn_code": "33074100",
+        "stock_pieces": 0, "stock_status": "out_of_stock", "restock_eta_days": 15,
     },
 ]
 
@@ -149,24 +216,58 @@ B2B_PRODUCTS: list[dict] = list(_SEED_PRODUCTS)
 
 
 def _enrich_carton_fields(p: dict) -> dict:
-    """Backfill carton view fields onto a product dict (non-destructive).
+    """Backfill carton view + stock status fields onto a product dict.
 
-    Adds `pieces_per_carton`, `price_per_carton`, `price_per_half_carton`,
-    `price_per_piece_mrp` for consumers that want to display per-piece or
-    per-carton alongside the existing per-box math.
+    Adds `pieces_per_carton` (category-aware), `unit_label`
+    (carton|packet), `price_per_carton`, `price_per_half_carton`,
+    `price_per_piece`, and a `stock_status_display` block the frontend
+    can render as an "Out of Stock — ETA 15 days" pill.
     """
-    ppc = int(
-        p.get("pieces_per_carton")
-        or DEFAULT_PIECES_PER_CARTON
-    )
+    ppc = pack_size_for(p)
     mrp = float(p.get("mrp_per_unit") or 0)
     p["pieces_per_carton"] = ppc
+    p["unit_label"] = unit_label_for(p)
     p["price_per_carton"] = p.get("price_per_carton") or calculate_carton_price(ppc, mrp)
     p["price_per_half_carton"] = p.get("price_per_half_carton") or calculate_half_carton_price(ppc, mrp)
     p["price_per_piece"] = round(mrp * B2B_DISCOUNT_RATE, 2)
     p["mrp_per_piece"] = round(mrp, 2)
-    p.setdefault("stock_pieces", int(p.get("stock_pieces") or 0))
+    stock_pieces = int(p.get("stock_pieces") or 0)
+    p["stock_pieces"] = stock_pieces
+    p["stock_cartons"] = round(stock_pieces / ppc, 2) if ppc else 0
+    p["max_order_boxes"] = round(stock_pieces / ppc, 2) if ppc else 0
+    # Compose stock status display for the storefront
+    status = (p.get("stock_status") or "").lower() or ("in_stock" if stock_pieces > 0 else "out_of_stock")
+    eta_days = int(p.get("restock_eta_days") or 15)
+    note = p.get("restock_note") or ""
+    p["stock_status"] = status
+    p["stock_status_display"] = _stock_status_message(status, eta_days, note, stock_pieces, ppc)
     return p
+
+
+def _stock_status_message(status: str, eta_days: int, note: str, stock_pieces: int, ppc: int) -> dict:
+    """Return `{label, tone, is_orderable, subtext}` for UI rendering."""
+    if status == "in_stock" and stock_pieces > 0:
+        low = stock_pieces < ppc
+        return {
+            "label": "Low Stock" if low else "In Stock",
+            "tone": "amber" if low else "emerald",
+            "is_orderable": True,
+            "subtext": (f"Only {stock_pieces} pieces left" if low else None),
+        }
+    # Any non-in-stock status blocks orders and surfaces the ETA
+    map_ = {
+        "out_of_stock":  ("Out of Stock", "Restocking in Progress"),
+        "restocking":    ("Restocking",   "Restocking in Progress"),
+        "manufacturing": ("Manufacturing", "Manufacturing in Progress"),
+        "delayed":       ("Delayed",      "Delay in production/shipment"),
+    }
+    label, reason = map_.get(status, ("Out of Stock", "Restocking in Progress"))
+    return {
+        "label": label,
+        "tone": "rose",
+        "is_orderable": False,
+        "subtext": f"{reason} · Available ETA {eta_days} days" + (f" · {note}" if note else ""),
+    }
 
 
 def find_b2b_product(b2b_product_id: str) -> Optional[dict]:
