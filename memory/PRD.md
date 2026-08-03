@@ -3,6 +3,40 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🆕 Feb 2026 (later still) — Category carton math · Stock status · Rewards card · Nightly low-stock digest · Pincode auto-fill
+
+**1. Category-based carton math** (`services/b2b_catalog.py::CATEGORY_PACK_SIZE`)
+- `dhoop` + `bakhoor` → **32 pcs/carton** (half = 16)
+- `agarbatti_jar` (200g) → **16 pcs/carton** (half = 8)
+- `agarbatti` (50g/100g) → **12 pcs/packet dozen** (half = 6)
+- New `pack_size_for(product)` + `unit_label_for(product)` helpers; explicit `pieces_per_carton` on a product row still wins over category defaults. Seed data updated so every SKU carries the right `category` + pack size.
+- Enriched catalog response now carries `price_per_carton`, `price_per_half_carton`, `unit_label` ("carton" or "packet") so the frontend can render category-appropriate labels without any client-side branching.
+
+**2. Stock status + admin-editable ETA** (`services/b2b_inventory.py::set_stock_status`)
+- Five states: `in_stock`, `out_of_stock`, `restocking`, `manufacturing`, `delayed`.
+- `restock_eta_days` (0-365) + `restock_note` on every SKU. Catalog auto-composes `stock_status_display: {label, tone, is_orderable, subtext}` so the storefront can render *"Out of Stock — Restocking in Progress · Available ETA 15 days"*.
+- **Orders are blocked server-side** in `services/b2b_pricing.py::calculate_b2b_order` when a SKU's status is not `in_stock` OR when requested pieces > `stock_pieces`. Error surfaces the shortfall + eta_days.
+- Admin endpoints: `POST /api/admin/b2b/inventory/{id}/status {status, eta_days, note}` + status pill / modal wired on the admin inventory page.
+
+**3. Fragrance Rewards Balance card** (`components/RewardsBalanceCard.js`)
+- Rendered above the fold on `/retailer/b2b` — shows current balance, next-multiplier (100/110/125 %), streak count, days until streak reset (45-day window), and a redeemable badge once balance ≥ ₹2,500.
+- Balance snapshot also added to `GET /api/retailers/admin/list` payload so `/admin/retailers` cards now show *"Fragrance Rewards · ₹X · redeemable"* per retailer without an extra roundtrip.
+
+**4. Distance-based shipping input on B2B cart** (`components/PincodeShippingInput.js`)
+- 6-digit pincode input → `GET /api/shipping/check-pincode` auto-fills City + State (**both read-only** — user cannot override the auto-fetched values). Uses Shiprocket serviceability first, falls back to an **offline India-Post 2-digit → state mapping** (`services/pincode_lookup.py`) so state auto-fills even when Shiprocket creds aren't set yet.
+- Once pincode is 6 digits, calls `POST /api/retailer-dashboard/b2b/shipping-quote` and surfaces courier + ETD + rate inline. The quote is forwarded to the calculate/place-order endpoints so shipping rolls into `grand_total`.
+- Titlecase applied to city/state via existing `formHelpers.titleCase`.
+
+**5. Nightly low-stock digest** (`services/b2b_low_stock.py`)
+- Scheduler task fires 60s after boot + every 24h. Scans every active b2b_product with `stock_pieces < pack_size` and emails Addrika ops a table (product · category · stock · status · ETA · admin note). Throttled to once per 20h; forced-send via `POST /api/admin/b2b/inventory/low-stock/send-digest`. Admin inventory page has a "Send Low-Stock Digest" button.
+
+**6. Admin retailers list — rewards column**
+- Every retailer card now shows a Fragrance Rewards row with balance, streak-hint tooltip, and a "redeemable" pill once ≥ ₹2,500 available. Zero extra queries per row (batched inside the existing `/admin/list` handler).
+
+**7. Regression**
+- 23 new tests in `tests/test_b2b_category_stock.py` (category pack sizes, stock display messaging, offline PIN → state map, low-stock scan, status setter/audit).
+- Combined **64/64 pass** across new + prior B2B + rewards + iter63 + email layout suites.
+
 ### 🆕 Feb 2026 (later) — B2B Shipping · Carton Math · Inventory Adjust · Order PDF (P0 batch)
 
 **1. Shiprocket distance-based B2B shipping** (`services/b2b_shipping.py`)

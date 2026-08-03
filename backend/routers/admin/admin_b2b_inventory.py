@@ -113,3 +113,60 @@ async def admin_inventory_log(
         "product_id": product_id,
         "entries": await get_log(db, product_id, limit=limit),
     }
+
+
+class StockStatusBody(BaseModel):
+    status: str = Field(..., description="in_stock | out_of_stock | restocking | manufacturing | delayed")
+    eta_days: Optional[int] = Field(None, ge=0, le=365)
+    note: Optional[str] = None
+
+
+@router.post("/low-stock/send-digest")
+async def admin_trigger_low_stock_digest(
+    request: Request, session_token: Optional[str] = Cookie(None),
+):
+    """Manually trigger the low-stock digest email to Addrika ops (bypasses
+    the 20h throttle). Useful when a batch just finished production and
+    admin wants a fresh view."""
+    await require_admin(request, session_token)
+    from services.b2b_low_stock import send_low_stock_digest
+    return await send_low_stock_digest(db, force=True)
+
+
+@router.get("/low-stock/preview")
+async def admin_preview_low_stock(
+    request: Request, session_token: Optional[str] = Cookie(None),
+):
+    """List SKUs below one carton — for the admin inventory dashboard."""
+    await require_admin(request, session_token)
+    from services.b2b_inventory import find_low_stock
+    return {"items": await find_low_stock(db)}
+
+
+@router.post("/{product_id}/status")
+async def admin_set_stock_status(
+    product_id: str,
+    body: StockStatusBody,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Update a SKU's stock status + ETA + admin note. Shown as a pill
+    on the storefront ("Out of Stock · ETA 15 days") and controls order
+    eligibility server-side."""
+    admin = await require_admin(request, session_token)
+    from services.b2b_inventory import set_stock_status
+    from services.b2b_catalog import refresh_b2b_catalog
+    try:
+        result = await set_stock_status(
+            db,
+            product_id=product_id,
+            status=body.status,
+            eta_days=body.eta_days,
+            note=body.note,
+            admin_email=(admin or {}).get("email"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    # Refresh the in-memory cache so the next catalog read reflects the change
+    await refresh_b2b_catalog(db)
+    return result

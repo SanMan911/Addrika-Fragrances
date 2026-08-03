@@ -27,15 +27,14 @@ def _now() -> str:
 def pieces_for_quantity(product: dict, quantity_boxes: float) -> int:
     """Given a b2b_product doc + quantity_boxes (0.5 increments), return pieces.
 
-    Preference order:
-      1. product.pieces_per_carton × quantity_boxes  (new carton model)
-      2. product.units_per_box × quantity_boxes      (legacy box model)
+    Uses category-aware pack size:
+      ▸ dhoop, bakhoor         → 32/carton
+      ▸ agarbatti_jar (200g)   → 16/carton
+      ▸ agarbatti (dozen)      → 12/packet
+      ▸ else                   → explicit pieces_per_carton or units_per_box
     """
-    ppc = int(
-        product.get("pieces_per_carton")
-        or product.get("units_per_box")
-        or DEFAULT_PIECES_PER_CARTON
-    )
+    from services.b2b_catalog import pack_size_for
+    ppc = pack_size_for(product)
     return int(round(float(quantity_boxes) * ppc))
 
 
@@ -172,3 +171,87 @@ async def get_log(db, product_id: Optional[str] = None, limit: int = 50) -> list
     return await db.b2b_inventory_log.find(
         query, {"_id": 0}
     ).sort("created_at", -1).limit(limit).to_list(limit)
+
+
+# ---------------------------------------------------------------------------
+# Stock status (out-of-stock / restocking / delayed with admin-editable ETA)
+# ---------------------------------------------------------------------------
+
+VALID_STOCK_STATUSES = {
+    "in_stock",       # orderable
+    "out_of_stock",   # not orderable, generic
+    "restocking",     # not orderable, ETA showing restock
+    "manufacturing",  # not orderable, in production
+    "delayed",        # not orderable, delayed
+}
+
+
+async def set_stock_status(
+    db,
+    *,
+    product_id: str,
+    status: str,
+    eta_days: Optional[int] = None,
+    note: Optional[str] = None,
+    admin_email: Optional[str] = None,
+) -> dict:
+    if status not in VALID_STOCK_STATUSES:
+        raise ValueError(f"Invalid status. Must be one of: {sorted(VALID_STOCK_STATUSES)}")
+    prod = await db.b2b_products.find_one({"id": product_id}, {"_id": 0})
+    if not prod:
+        raise ValueError(f"Product {product_id} not found")
+    updates = {"stock_status": status, "stock_status_updated_at": _now()}
+    if eta_days is not None:
+        updates["restock_eta_days"] = max(int(eta_days), 0)
+    if note is not None:
+        updates["restock_note"] = str(note)[:200]
+    await db.b2b_products.update_one({"id": product_id}, {"$set": updates})
+    # Audit row
+    await db.b2b_inventory_log.insert_one({
+        "id": f"INV-{uuid.uuid4().hex[:10].upper()}",
+        "product_id": product_id,
+        "delta_pieces": 0,
+        "before": int(prod.get("stock_pieces") or 0),
+        "after": int(prod.get("stock_pieces") or 0),
+        "reason": "status_change",
+        "note": (
+            f"status={status}"
+            + (f", eta={eta_days}d" if eta_days is not None else "")
+            + (f", note={note}" if note else "")
+        ),
+        "admin_email": admin_email,
+        "created_at": _now(),
+    })
+    logger.info(
+        "b2b-inventory: %s stock_status → %s (eta=%s)", product_id, status, eta_days,
+    )
+    return {"product_id": product_id, **updates}
+
+
+async def find_low_stock(db, threshold_multiple: float = 1.0) -> list[dict]:
+    """Return every SKU whose remaining pieces is below `threshold_multiple × pack_size`.
+
+    Default threshold = 1 × pack_size (i.e. below one carton). Used by the
+    nightly admin email so restocking is never a surprise.
+    """
+    from services.b2b_catalog import pack_size_for
+    docs = await db.b2b_products.find(
+        {"is_active": {"$ne": False}}, {"_id": 0}
+    ).to_list(500)
+    low = []
+    for d in docs:
+        ppc = pack_size_for(d)
+        stock = int(d.get("stock_pieces") or 0)
+        if stock < ppc * threshold_multiple:
+            low.append({
+                "id": d["id"],
+                "name": d.get("name"),
+                "category": d.get("category"),
+                "net_weight": d.get("net_weight"),
+                "pieces_per_carton": ppc,
+                "stock_pieces": stock,
+                "stock_status": d.get("stock_status") or ("in_stock" if stock > 0 else "out_of_stock"),
+                "restock_eta_days": d.get("restock_eta_days"),
+                "restock_note": d.get("restock_note"),
+            })
+    return low

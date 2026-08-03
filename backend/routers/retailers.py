@@ -596,7 +596,8 @@ async def admin_list_retailers(
         {"_id": 0, "password_hash": 0}
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
-    # Add compliance summary to each
+    # Add compliance summary + Fragrance Rewards balance snapshot to each retailer
+    from services.fragrance_rewards import get_balance as _fr_balance
     for r in retailers:
         legal_docs = r.get('legal_documents', {})
         spoc = r.get('spoc', {})
@@ -607,6 +608,16 @@ async def admin_list_retailers(
             "gst_verified": r.get('gst_verified', False),
             "documents_complete": r.get('documents_complete', False)
         }
+        try:
+            bal = await _fr_balance(db, r.get('retailer_id'))
+            r['rewards'] = {
+                "balance_inr": bal.get('balance_inr', 0),
+                "streak": bal.get('streak', 0),
+                "next_multiplier_pct": bal.get('next_multiplier_pct', 100),
+                "redeemable": bal.get('redeemable', False),
+            }
+        except Exception:
+            r['rewards'] = {"balance_inr": 0, "streak": 0, "next_multiplier_pct": 100, "redeemable": False}
     
     total = await db.retailers.count_documents(query)
     

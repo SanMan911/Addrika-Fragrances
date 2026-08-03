@@ -217,6 +217,14 @@ async def startup_db_client():
     except Exception as e:
         print(f"Partner reconciliation scheduler skipped: {e}")
 
+    # Nightly B2B low-stock digest email
+    try:
+        from services.b2b_low_stock import low_stock_scheduler_loop
+        asyncio.create_task(low_stock_scheduler_loop(db))
+        print("B2B low-stock digest scheduler started")
+    except Exception as e:
+        print(f"B2B low-stock scheduler skipped: {e}")
+
 
 # Shutdown event
 @app.on_event("shutdown")

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Boxes, Plus, Minus, RefreshCw, History, Package } from 'lucide-react';
+import { ArrowLeft, Boxes, Plus, Minus, RefreshCw, History, Package, AlertTriangle, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../../layout';
 
@@ -17,13 +17,23 @@ const REASONS = [
   { key: 'manual_adjust', label: 'Manual adjust' },
 ];
 
+const STOCK_STATUSES = [
+  { key: 'in_stock', label: 'In Stock', tone: 'emerald' },
+  { key: 'out_of_stock', label: 'Out of Stock — Restocking in Progress', tone: 'rose' },
+  { key: 'restocking', label: 'Restocking in Progress', tone: 'rose' },
+  { key: 'manufacturing', label: 'Manufacturing in Progress', tone: 'amber' },
+  { key: 'delayed', label: 'Delayed', tone: 'amber' },
+];
+
 export default function AdminB2BInventoryPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [defaultPpc, setDefaultPpc] = useState(32);
   const [activeAdjust, setActiveAdjust] = useState(null); // product id being adjusted
+  const [activeStatus, setActiveStatus] = useState(null); // product id being status-edited
   const [historyFor, setHistoryFor] = useState(null);
   const [historyRows, setHistoryRows] = useState([]);
+  const [sendingDigest, setSendingDigest] = useState(false);
 
   const fetchInventory = useCallback(async () => {
     setLoading(true);
@@ -53,9 +63,23 @@ export default function AdminB2BInventoryPage() {
     }
   };
 
+  const sendDigest = async () => {
+    setSendingDigest(true);
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/b2b/inventory/low-stock/send-digest`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.detail || 'Failed');
+      if (data.sent) toast.success(`Low-stock digest emailed (${data.count} SKUs)`);
+      else toast.info(data.skipped_reason ? `Skipped: ${data.skipped_reason}` : 'Nothing to send');
+    } catch (e) {
+      toast.error(e.message || 'Digest failed');
+    }
+    setSendingDigest(false);
+  };
+
   return (
     <div className="space-y-6" data-testid="admin-b2b-inventory">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <Link href="/admin/b2b" className="text-slate-500 hover:text-slate-800 dark:text-slate-400" data-testid="link-back-b2b">
             <ArrowLeft size={20} />
@@ -65,10 +89,20 @@ export default function AdminB2BInventoryPage() {
               <Boxes size={24} className="text-purple-600" /> B2B Inventory
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Piece-level stock &middot; 1 carton = {defaultPpc} pieces &middot; deducts on paid orders, quick-adjust for offline reconciliation
+              Piece-level stock &middot; Bakhoor/Dhoop 32/carton &middot; Agarbatti Jar 16/carton &middot; Agarbatti packets 12/dozen &middot; deducts on paid orders
             </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+        <button
+          onClick={sendDigest}
+          disabled={sendingDigest}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 hover:bg-amber-200 disabled:opacity-50"
+          data-testid="send-digest-btn"
+          title="Email low-stock digest to Addrika ops now"
+        >
+          <Send size={14} /> {sendingDigest ? 'Sending…' : 'Send Low-Stock Digest'}
+        </button>
         <button
           onClick={fetchInventory}
           className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -76,6 +110,7 @@ export default function AdminB2BInventoryPage() {
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
+        </div>
       </div>
 
       {loading ? (
@@ -111,6 +146,13 @@ export default function AdminB2BInventoryPage() {
                   <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-300">{it.stock_cartons}</td>
                   <td className="px-4 py-3 text-right">
                     <button
+                      onClick={() => setActiveStatus(it)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-100 text-xs font-medium mr-2"
+                      data-testid={`status-btn-${it.id}`}
+                    >
+                      <AlertTriangle size={12} /> Status
+                    </button>
+                    <button
                       onClick={() => setActiveAdjust(it)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 hover:bg-purple-100 text-xs font-medium mr-2"
                       data-testid={`adjust-btn-${it.id}`}
@@ -140,6 +182,14 @@ export default function AdminB2BInventoryPage() {
             setActiveAdjust(null);
             fetchInventory();
           }}
+        />
+      )}
+
+      {activeStatus && (
+        <StatusModal
+          product={activeStatus}
+          onClose={() => setActiveStatus(null)}
+          onSaved={() => { setActiveStatus(null); fetchInventory(); }}
         />
       )}
 
@@ -303,6 +353,107 @@ function HistoryModal({ productId, rows, onClose }) {
             </tbody>
           </table>
         )}
+      </div>
+    </div>
+  );
+}
+
+
+function StatusModal({ product, onClose, onSaved }) {
+  const [status, setStatus] = useState(product.stock_status || (product.stock_pieces > 0 ? 'in_stock' : 'out_of_stock'));
+  const [etaDays, setEtaDays] = useState(product.restock_eta_days || 15);
+  const [note, setNote] = useState(product.restock_note || '');
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/b2b/inventory/${product.id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status,
+          eta_days: status === 'in_stock' ? null : parseInt(etaDays, 10) || 0,
+          note: note || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || 'Failed');
+      toast.success(`Status updated to "${status}"`);
+      onSaved();
+    } catch (e) {
+      toast.error(e.message || 'Failed to update status');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="status-modal"
+      >
+        <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
+          <AlertTriangle size={18} /> Stock Status · {product.name}
+        </h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Controls whether retailers can order this SKU. Shown on the storefront as a pill (e.g. &quot;Out of Stock · ETA 15 days&quot;).
+        </p>
+
+        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Status</label>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white mb-3"
+          data-testid="status-select"
+        >
+          {STOCK_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+        </select>
+
+        {status !== 'in_stock' && (
+          <>
+            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              Available ETA (days)
+            </label>
+            <input
+              type="number" min="0" max="365"
+              value={etaDays}
+              onChange={(e) => setEtaDays(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white mb-3"
+              data-testid="status-eta-input"
+            />
+          </>
+        )}
+
+        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Note (optional)</label>
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="e.g. Batch #B12 in press · dispatch by 25 Feb"
+          className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white mb-5"
+          data-testid="status-note-input"
+        />
+
+        <div className="flex gap-2">
+          <button
+            disabled={saving}
+            onClick={save}
+            className="flex-1 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium disabled:opacity-50"
+            data-testid="status-save-btn"
+          >
+            {saving ? 'Saving…' : 'Save Status'}
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            data-testid="status-cancel-btn"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );
