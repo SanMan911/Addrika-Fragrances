@@ -45,26 +45,18 @@ def _read_keys() -> tuple[str, str]:
 def _shape_appyflow(payload: dict, gst_number: str) -> dict:
     """Convert Appyflow's `taxpayerInfo` payload into our internal shape."""
     # Appyflow returns HTTP 200 for upstream errors, with `error:true` + message.
-    # Surface a clear, human-readable reason so retailers/admin see the truth.
     if payload.get("error"):
-        raw = str(payload.get("message") or "").lower()
-        if "maintenance" in raw or "503" in raw or "under maintenance" in raw:
-            reason = "GST verification service is temporarily under maintenance. Please try again in a few minutes."
-        elif "credit" in raw or "limit" in raw or "insufficient" in raw:
-            reason = "GST verification credits exhausted. Please contact Addrika support to top up."
-        elif "invalid" in raw and "key" in raw:
-            reason = "GST verification key invalid. Admin: update the Appyflow key in Integrations."
-        elif "not found" in raw or "invalid gstin" in raw or "invalid gst" in raw:
-            reason = "GSTIN not found in the GSTN database. Please check the number and try again."
-        else:
-            reason = (payload.get("message") or "GST verification failed").strip()
-        return {"verified": False, "error": reason, "upstream": payload.get("message")}
+        return {
+            "verified": False,
+            "error": _friendly_upstream_error(payload.get("message") or "GST verification failed"),
+            "upstream": payload.get("message"),
+        }
 
     info = payload.get("taxpayerInfo") or {}
     if not info:
         return {
             "verified": False,
-            "error": payload.get("message") or "GST number not found",
+            "error": _friendly_upstream_error(payload.get("message") or "GST number not found"),
         }
     addr = (info.get("pradr") or {}).get("addr") or {}
     addr_parts = [
@@ -93,12 +85,28 @@ def _shape_appyflow(payload: dict, gst_number: str) -> dict:
     }
 
 
+def _friendly_upstream_error(raw: str) -> str:
+    """Map raw upstream GST-provider error strings to human-readable one-liners.
+    Shared by both Appyflow and gstincheck legacy so the retailer/admin UI
+    never sees dumps like "Credit Expire." or 503 JSON blobs."""
+    r = (raw or "").lower()
+    if "maintenance" in r or "503" in r or "under maintenance" in r:
+        return "GST verification service is temporarily under maintenance. Please try again in a few minutes."
+    if "credit" in r or "limit" in r or "insufficient" in r or "expire" in r:
+        return "GST verification credits exhausted. Please contact Addrika support to top up."
+    if "invalid" in r and "key" in r:
+        return "GST verification key invalid. Admin: update the Appyflow key in Integrations."
+    if "not found" in r or "invalid gstin" in r or "invalid gst" in r:
+        return "GSTIN not found in the GSTN database. Please check the number and try again."
+    return (raw or "GST verification failed").strip()
+
+
 def _shape_legacy(payload: dict, gst_number: str) -> dict:
     """Convert gstincheck payload into our internal shape."""
     if not payload.get("flag"):
         return {
             "verified": False,
-            "error": payload.get("message", "GST number not found"),
+            "error": _friendly_upstream_error(payload.get("message", "GST number not found")),
         }
     taxpayer = payload.get("data", {}) or {}
     addr = (taxpayer.get("pradr") or {}).get("addr", {})
@@ -173,6 +181,12 @@ async def verify_gst_number(gst_number: str) -> dict:
                 logger.info(
                     f"Appyflow non-verified for {gst_number}: {shaped.get('error')}"
                 )
+                # If Appyflow actually spoke to us and gave a meaningful reason
+                # (not just a transient network hiccup), keep that friendly
+                # reason instead of falling through to the legacy provider
+                # which surfaces raw upstream strings like "Credit Expire.".
+                if shaped.get("error"):
+                    return shaped
             else:
                 _aio.create_task(_log_provider(
                     "appyflow", endpoint="verifyGST",

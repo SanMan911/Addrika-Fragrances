@@ -207,7 +207,8 @@ async def broadcast_custom_nudge(
                 broadcast_id=broadcast_id,
                 retailer_id=r["retailer_id"],
             )
-        except Exception:
+        except Exception as _tracking_err:
+            logger.exception("nudge tracking wire-in failed: %s", _tracking_err)
             html = _wrap_email(subject, body_html, first_name)
 
         # Email
