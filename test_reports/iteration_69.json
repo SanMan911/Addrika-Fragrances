@@ -1,0 +1,44 @@
+{
+  "summary": "Focused backend retest of the residual gap from iteration_68: raw 'Credit Expire.' leak from /api/retailer-auth/waitlist/gst-lookup/{gst}. Verified fix: endpoint now returns a friendly one-liner from _friendly_upstream_error() and does NOT leak raw upstream text. Also spot-checked previously-green items (PAN friendly error, blog SSR).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verification_details": {
+    "gst_lookup_27AABCU9603R1ZM": {
+      "http": 200,
+      "response": {
+        "verified": false,
+        "gst_number": "27AABCU9603R1ZM",
+        "state": "Maharashtra",
+        "error": "GST verification service is temporarily under maintenance. Please try again in a few minutes."
+      },
+      "raw_upstream_now": "503 - {status_cd:0,error:{error_cd:GEN5008,message:'API Under Maintenance in DC2'}}",
+      "assessment": "PASS. Raw upstream string ('503 - ...API Under Maintenance in DC2') is NOT leaked. _friendly_upstream_error() correctly maps 'maintenance'/'503' to the friendly maintenance one-liner. Note: request expected 'credits exhausted' text, but upstream Appyflow currently emits a 503/Maintenance response (not 'Credit Expire.') — the friendly mapper handles both branches, so behaviour is correct. Verified in code at services/gst_verification.py:88-101 that 'credit'/'expire'/'limit' branch would also map to 'credits exhausted' if upstream returns that string."
+    },
+    "pan_verify": {
+      "http": 200,
+      "response": {"verified": false, "error": "Sandbox eKYC subscription has expired. Please contact Addrika support to renew."},
+      "assessment": "PASS — friendly Sandbox message intact."
+    },
+    "blog_ssr": {"http": 200, "share_toolbar_present": true, "assessment": "PASS"}
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "services/gst_verification.py:174-189 — verify_gst_number now correctly returns the shaped Appyflow error early when shaped.get('error') is set, preventing fall-through to legacy provider. Good.",
+    "_friendly_upstream_error() ordering places 'maintenance/503' before 'credit/expire', which is intentional and correct (a '503 credit expire' would map to maintenance, which is a safer user-facing message).",
+    "Minor: file is 291 lines — still within limit, no action needed."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "n/a"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The residual GST raw-error leak flagged in iteration_68 is resolved. Upstream Appyflow currently returns a 503/Maintenance response (not 'Credit Expire.') at the time of testing — the friendly mapper handles both. If Appyflow later returns to emitting 'Credit Expire.', the same endpoint will surface 'GST verification credits exhausted. Please contact Addrika support to top up.' (code path verified). No frontend changes tested; scope was backend-only per request."
+}
