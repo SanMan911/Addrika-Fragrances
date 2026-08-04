@@ -143,6 +143,18 @@ async def admin_preview_low_stock(
     return {"items": await find_low_stock(db)}
 
 
+@router.post("/restock-nudges/run")
+async def admin_run_restock_nudges(
+    request: Request, session_token: Optional[str] = Cookie(None),
+):
+    """Trigger the restock ETA nudge cycle now (email + optional WhatsApp)
+    to every historical buyer whose favourite SKU is 1-2 days from
+    coming back. Cooldown-guarded so retailers are never spammed."""
+    await require_admin(request, session_token)
+    from services.b2b_restock_nudge import run_restock_nudges
+    return await run_restock_nudges(db)
+
+
 @router.post("/{product_id}/status")
 async def admin_set_stock_status(
     product_id: str,

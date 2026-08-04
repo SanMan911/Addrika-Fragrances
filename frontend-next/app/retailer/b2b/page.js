@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import RetailerFirstLoginTour from '../../../components/RetailerFirstLoginTour';
 import KYCVerificationCard from '../../../components/KYCVerificationCard';
 import RewardsBalanceCard from '../../../components/RewardsBalanceCard';
+import RewardsRedeemToggle from '../../../components/RewardsRedeemToggle';
 import PincodeShippingInput from '../../../components/PincodeShippingInput';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const formatCurrency = (amount) => {
@@ -53,6 +54,8 @@ export default function RetailerB2BPage() {
   const [kycGate, setKycGate] = useState(null); // { gate_enabled, fully_kyc_verified, missing, can_order, retailer_id }
   const [showKycCard, setShowKycCard] = useState(false);
   const [shippingQuote, setShippingQuote] = useState(null); // { shipping_charges, delivery_pincode, courier_name, etd, ... }
+  const [redeemAmount, setRedeemAmount] = useState(0);
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const { fetchWithAuth, retailer: authRetailer } = useRetailerAuth();
 
   // If the URL contains #kyc (deep link from the recovery email), auto-expand
@@ -156,6 +159,7 @@ export default function RetailerB2BPage() {
           credit_note_code: creditNoteCode || null,
           delivery_pincode: shippingQuote?.delivery_pincode || null,
           include_shipping: !!shippingQuote?.delivery_pincode,
+          redeem_rewards_inr: redeemAmount || null,
         })
       });
       if (response.ok) {
@@ -190,6 +194,7 @@ export default function RetailerB2BPage() {
           credit_note_code: creditNoteCode || null,
           delivery_pincode: shippingQuote?.delivery_pincode || null,
           include_shipping: !!shippingQuote?.delivery_pincode,
+          redeem_rewards_inr: redeemAmount || null,
         })
       });
       if (response.ok) {
@@ -421,6 +426,47 @@ export default function RetailerB2BPage() {
               )}
             </div>
           )}
+          {/* Category Filter Chips */}
+          {!loading && catalog.length > 0 && (() => {
+            const CATEGORY_META = [
+              { key: 'all', label: 'All' },
+              { key: 'agarbatti', label: 'Agarbatti' },
+              { key: 'agarbatti_jar', label: 'Agarbatti Jars' },
+              { key: 'bakhoor', label: 'Bakhoor' },
+              { key: 'dhoop', label: 'Dhoop' },
+            ];
+            const counts = catalog.reduce((acc, p) => {
+              const k = p.category || 'other';
+              acc[k] = (acc[k] || 0) + 1;
+              return acc;
+            }, {});
+            return (
+              <div className="flex flex-wrap gap-2 mb-2" data-testid="b2b-category-chips">
+                {CATEGORY_META.map((c) => {
+                  const count = c.key === 'all' ? catalog.length : (counts[c.key] || 0);
+                  if (c.key !== 'all' && count === 0) return null;
+                  const active = categoryFilter === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      onClick={() => setCategoryFilter(c.key)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                        active
+                          ? 'bg-[#2B3A4A] text-white border-[#2B3A4A] shadow-md'
+                          : 'bg-white text-[#2B3A4A] border-gray-200 hover:border-[#D4AF37] hover:text-[#D4AF37]'
+                      }`}
+                      data-testid={`category-chip-${c.key}`}
+                    >
+                      {c.label}
+                      <span className={`ml-2 text-xs ${active ? 'text-white/70' : 'text-gray-400'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
           {/* Product Table */}
           {loading ? (
             <div className="space-y-3">
@@ -441,7 +487,9 @@ export default function RetailerB2BPage() {
               </div>
               {/* Table Body */}
               <div className="divide-y divide-gray-100">
-                {catalog.map((product) => (
+                {catalog
+                  .filter((p) => categoryFilter === 'all' || p.category === categoryFilter)
+                  .map((product) => (
                   <div 
                     key={product.id}
                     className="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-gray-50 transition-colors"
@@ -542,6 +590,21 @@ export default function RetailerB2BPage() {
               .map(([product_id, quantity_boxes]) => ({ product_id, quantity_boxes }))}
             onQuote={setShippingQuote}
           />
+          {/* Fragrance Rewards redemption toggle */}
+          {(() => {
+            const currentSubtotal = orderSummary?.subtotal
+              || Object.entries(quantities).reduce((s, [pid, q]) => {
+                const p = catalog.find((x) => x.id === pid);
+                return s + (p ? (p.price_per_box || 0) * (q || 0) : 0);
+              }, 0);
+            return (
+              <RewardsRedeemToggle
+                subtotal={currentSubtotal}
+                onAmountChange={setRedeemAmount}
+                fetchWithAuth={fetchWithAuth}
+              />
+            );
+          })()}
           {/* Cash Discount Toggle */}
           <div className={`p-4 rounded-xl bg-green-50 border border-green-200 flex items-center justify-between ${voucherCode ? 'opacity-50' : ''}`}>
             <div className="flex items-center gap-3">
@@ -730,6 +793,12 @@ export default function RetailerB2BPage() {
                         )}
                       </span>
                       <span className="font-medium">+{formatCurrency(orderSummary.shipping_charges)}</span>
+                    </div>
+                  )}
+                  {orderSummary.rewards_redeemed_inr > 0 && (
+                    <div className="flex justify-between text-amber-700" data-testid="summary-rewards-redeemed">
+                      <span>Fragrance Rewards applied</span>
+                      <span className="font-medium">-{formatCurrency(orderSummary.rewards_redeemed_inr)}</span>
                     </div>
                   )}
                   {orderSummary.rewards_projection?.will_earn_inr > 0 && (
