@@ -3,6 +3,46 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🐞 Feb 2026 (later still⁴) — 3 P0 bug fixes + Broadcast Analytics
+
+**1. Blog SSR crash** (Digest 3506429118) — FIXED
+- Root cause: `/app/frontend-next/app/blog/[slug]/page.js` used `<BlogShareToolbar>` component and `SITE_URL` constant without imports → React ReferenceError during Node SSR → generic Application-Error page for every blog post.
+- Fix: added `import BlogShareToolbar from '../../../components/BlogShareToolbar'` and `const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://centraders.com'`. Blog list + post pages now serve 200 with the share toolbar rendered. **Verified live by testing_agent iteration_69.**
+
+**2. Appyflow GST — raw upstream error leak** — FIXED
+- Root cause: `verify_gst_number()` was falling through to the legacy gstincheck provider on ANY Appyflow non-verified response, discarding the friendly reason and surfacing gstincheck's raw upstream text ('Credit Expire.' / '503 - API Under Maintenance in DC2') to retailers and admin.
+- Fix (`services/gst_verification.py`):
+  1. Extracted shared `_friendly_upstream_error(raw)` helper — maps maintenance/503/credit/expire/limit/invalid-key/not-found upstream strings to human one-liners.
+  2. `_shape_appyflow` and `_shape_legacy` BOTH use it, so raw upstream text never reaches the client from either provider.
+  3. `verify_gst_number()` returns the shaped Appyflow error immediately when Appyflow actually spoke — no more fall-through discarding the friendly reason.
+- Also: `_read_keys_async()` prefers DB-backed integration keys via `admin_integrations.get_effective('appyflow_api_key')` — admin can rotate keys via the panel without a redeploy.
+- **Verified live by testing_agent iteration_69**: endpoint returns `error: "GST verification service is temporarily under maintenance. Please try again in a few minutes."` when upstream 503s.
+
+**3. Sandbox eKYC subscription-expired error UX** — FIXED
+- Root cause: Sandbox account subscription is EXPIRED at the account level (HTTP 401 'Subscription has expired'). Not fixable in code — admin must renew. But error UX was generic 'Sandbox authentication failed'.
+- Fix (`services/kyc_sandbox.py`):
+  - `_authenticate()` catches HTTP 401/403 + subscription-expired string and stores a friendly message in `_token_cache["last_error"]`.
+  - New `last_auth_error()` public helper — bubbled through PAN verify + Aadhaar OTP generate + Aadhaar OTP verify paths.
+  - New `_read_creds_async()` + `_auth_headers_async()` — DB-backed keys via `admin_integrations.get_effective('sandbox_api_key'/'sandbox_api_secret')`.
+- **Verified live by testing_agent iteration_69**: PAN verify endpoint now returns `error: "Sandbox eKYC subscription has expired. Please contact Addrika support to renew."`
+
+**4. Broadcast Analytics — NEW FEATURE**
+- New `services/b2b_nudge_analytics.py`:
+  - `pixel_bytes()` — 1x1 transparent GIF89a.
+  - `append_open_pixel(html, api_base, broadcast_id, retailer_id)` — injects the pixel before `</body>`.
+  - `rewrite_links_for_tracking(html, api_base, broadcast_id, retailer_id)` — rewrites every `<a href="http(s)://…">` to route through the click-tracking endpoint. `mailto:` / `#anchor` / relative links are left alone.
+  - `record_open` / `record_click` — bumps `opens` / `clicks` on every hit; only bumps `unique_opens` / `unique_clicks` on first-per-retailer / first-per-(retailer,url).
+  - `summarise_broadcast()` — returns funnel with `open_rate_pct`, `click_rate_pct`, `ctr_pct`.
+- New public router `routers/nudge_tracking.py`:
+  - `GET /api/nudges/track/open/{broadcast_id}/{retailer_id}.gif` — always 200 GIF with no-cache headers.
+  - `GET /api/nudges/track/click/{broadcast_id}/{retailer_id}?url=…` — 302 redirect. Rejects non-http URLs by redirecting to `/`.
+- `broadcast_custom_nudge()` now wires pixel + link rewrite into every recipient's HTML (per-retailer personalisation).
+- Admin endpoints:
+  - `GET /api/admin/b2b/inventory/nudges/history` — every broadcast row now carries `opens`, `unique_opens`, `clicks`, `unique_clicks`, `open_rate_pct`, `click_rate_pct`, `ctr_pct`.
+  - `GET /api/admin/b2b/inventory/nudges/{broadcast_id}/analytics` — funnel drilldown + `top_urls` aggregation.
+- Composer sidebar shows three chips per broadcast: **Opens · Clicks · CTR%** so admin sees what actually drives orders.
+- **11 new pytest cases** in `tests/test_nudge_analytics.py` — HTML rewrite, pixel bytes, open/click de-dup, rate math, top URLs. **81/81 pass** across the whole B2B suite.
+
 ### 🆕 Feb 2026 (later still³) — Redemption History Card · Admin Nudge Composer
 
 **1. Retailer Redemption History Card** (`/retailer/b2b/rewards`)
