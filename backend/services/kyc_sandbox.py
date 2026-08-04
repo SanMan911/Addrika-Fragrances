@@ -34,11 +34,28 @@ BASE_URL = "https://api.sandbox.co.in"
 TOKEN_REFRESH_BUFFER = timedelta(minutes=5)
 
 # In-process token cache. Single-tenant — fine for our scale.
-_token_cache: Dict[str, Any] = {"access_token": None, "expires_at": None}
+_token_cache: Dict[str, Any] = {"access_token": None, "expires_at": None, "last_error": None}
+
+
+async def _read_creds_async() -> tuple[str, str, str]:
+    """Prefer DB-backed integration keys (admin panel) — fall back to env."""
+    key, sec = "", ""
+    try:
+        from routers.admin.admin_integrations import get_effective
+        key = (await get_effective("sandbox_api_key") or "").strip()
+        sec = (await get_effective("sandbox_api_secret") or "").strip()
+    except Exception:
+        pass
+    if not key:
+        key = os.environ.get("SANDBOX_API_KEY", "").strip()
+    if not sec:
+        sec = os.environ.get("SANDBOX_API_SECRET", "").strip()
+    ver = os.environ.get("SANDBOX_API_VERSION", "1.0").strip() or "1.0"
+    return key, sec, ver
 
 
 def _read_creds() -> tuple[str, str, str]:
-    """Read credentials at call time so reloads pick up env changes."""
+    """Sync variant — used when we're not inside an event loop."""
     return (
         os.environ.get("SANDBOX_API_KEY", "").strip(),
         os.environ.get("SANDBOX_API_SECRET", "").strip(),
@@ -53,7 +70,7 @@ def is_configured() -> bool:
 
 async def _authenticate() -> Optional[str]:
     """Get a fresh access_token. Caches in-memory until expiry-buffer."""
-    api_key, api_secret, api_version = _read_creds()
+    api_key, api_secret, api_version = await _read_creds_async()
     if not (api_key and api_secret):
         return None
 
@@ -75,24 +92,62 @@ async def _authenticate() -> Optional[str]:
         async with httpx.AsyncClient(timeout=15.0) as client:
             r = await client.post(f"{BASE_URL}/authenticate", headers=headers)
         if r.status_code != 200:
-            logger.error(f"Sandbox auth HTTP {r.status_code}: {r.text[:200]}")
+            # Surface friendly reasons for the common failures so retailers
+            # + admin see the truth in the UI instead of a generic 500.
+            body_text = ""
+            try:
+                body = r.json()
+                if isinstance(body, dict):
+                    body_text = str(body.get("message") or body.get("error") or "")
+            except Exception:
+                body_text = r.text or ""
+            lower = body_text.lower()
+            if "subscription" in lower and "expired" in lower:
+                _token_cache["last_error"] = "Sandbox eKYC subscription has expired. Please contact Addrika support to renew."
+            elif r.status_code in (401, 403):
+                _token_cache["last_error"] = "Sandbox eKYC credentials invalid. Admin: update the keys in Integrations."
+            else:
+                _token_cache["last_error"] = f"Sandbox eKYC service returned HTTP {r.status_code}. Please try again in a few minutes."
+            logger.error(f"Sandbox auth HTTP {r.status_code}: {body_text[:200]}")
             return None
         data = r.json()
         token = data.get("access_token")
         if not token:
+            _token_cache["last_error"] = "Sandbox eKYC did not return an access token."
             logger.error(f"Sandbox auth missing access_token: {data}")
             return None
-        # Sandbox tokens are typically valid 24h; we refresh after ~23h55m.
         _token_cache["access_token"] = token
         _token_cache["expires_at"] = now + timedelta(hours=24)
+        _token_cache["last_error"] = None
         return token
     except Exception as e:
+        _token_cache["last_error"] = f"Sandbox eKYC unreachable: {type(e).__name__}"
         logger.error(f"Sandbox authenticate error: {e}")
         return None
 
 
+def last_auth_error() -> Optional[str]:
+    """Public helper — surfaces the most recent authenticate() failure so
+    upstream code (verify_pan / verify_aadhaar) can bubble a clear reason
+    to the user instead of a generic 'service unavailable' message."""
+    return _token_cache.get("last_error")
+
+
 def _auth_headers(token: str) -> Dict[str, str]:
     api_key, _, api_version = _read_creds()
+    return {
+        "Authorization": token,
+        "x-api-key": api_key,
+        "x-api-version": api_version,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+
+async def _auth_headers_async(token: str) -> Dict[str, str]:
+    """DB-first variant — used in async request paths so admin-panel key
+    rotations take effect without a redeploy."""
+    api_key, _, api_version = await _read_creds_async()
     return {
         "Authorization": token,
         "x-api-key": api_key,
@@ -135,7 +190,8 @@ async def verify_pan(pan_number: str, name_to_match: str = "") -> Dict[str, Any]
 
     token = await _authenticate()
     if not token:
-        return {"verified": False, "error": "Sandbox authentication failed"}
+        err = last_auth_error() or "Sandbox authentication failed"
+        return {"verified": False, "error": err}
 
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
@@ -144,7 +200,7 @@ async def verify_pan(pan_number: str, name_to_match: str = "") -> Dict[str, Any]
                 params["name_as_per_pan_match"] = name_to_match
             r = await client.get(
                 f"{BASE_URL}/pans/{pan}/verify",
-                headers=_auth_headers(token),
+                headers=await _auth_headers_async(token),
                 params=params,
             )
         if r.status_code != 200:
@@ -208,13 +264,13 @@ async def aadhaar_generate_otp(aadhaar_number: str) -> Dict[str, Any]:
 
     token = await _authenticate()
     if not token:
-        return {"ok": False, "error": "Sandbox authentication failed"}
+        return {"ok": False, "error": last_auth_error() or "Sandbox authentication failed"}
 
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
             r = await client.post(
                 f"{BASE_URL}/kyc/aadhaar/okyc/otp",
-                headers=_auth_headers(token),
+                headers=await _auth_headers_async(token),
                 json={
                     "aadhaar_number": aadhaar,
                     "consent": "y",
@@ -263,13 +319,13 @@ async def aadhaar_verify_otp(reference_id: str, otp: str) -> Dict[str, Any]:
 
     token = await _authenticate()
     if not token:
-        return {"verified": False, "error": "Sandbox authentication failed"}
+        return {"verified": False, "error": last_auth_error() or "Sandbox authentication failed"}
 
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
             r = await client.post(
                 f"{BASE_URL}/kyc/aadhaar/okyc/otp/verify",
-                headers=_auth_headers(token),
+                headers=await _auth_headers_async(token),
                 json={"reference_id": ref_id, "otp": otp_value},
             )
         if r.status_code != 200:

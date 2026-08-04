@@ -200,11 +200,56 @@ async def admin_nudge_history(
     session_token: Optional[str] = Cookie(None),
     limit: int = 50,
 ):
-    """Recent custom-nudge broadcasts for the admin dashboard."""
+    """Recent custom-nudge broadcasts with open/click funnel metrics for
+    the admin dashboard."""
     await require_admin(request, session_token)
     rows = await db.custom_nudges_log.find({}, {"_id": 0}) \
         .sort("sent_at", -1).limit(min(limit, 200)).to_list(min(limit, 200))
-    return {"entries": rows, "count": len(rows)}
+    # Enrich each row with open/click rates
+    enriched = []
+    for row in rows:
+        audience = int(row.get("audience_size") or 0)
+        email_sent = int(row.get("email_sent") or 0)
+        opens = int(row.get("opens") or 0)
+        unique_opens = int(row.get("unique_opens") or 0)
+        clicks = int(row.get("clicks") or 0)
+        unique_clicks = int(row.get("unique_clicks") or 0)
+        denom = email_sent or audience
+        row["open_rate_pct"] = round((unique_opens / denom) * 100, 1) if denom else 0.0
+        row["click_rate_pct"] = round((unique_clicks / denom) * 100, 1) if denom else 0.0
+        row["ctr_pct"] = round((unique_clicks / unique_opens) * 100, 1) if unique_opens else 0.0
+        row["opens"] = opens
+        row["unique_opens"] = unique_opens
+        row["clicks"] = clicks
+        row["unique_clicks"] = unique_clicks
+        enriched.append(row)
+    return {"entries": enriched, "count": len(enriched)}
+
+
+@router.get("/nudges/{broadcast_id}/analytics")
+async def admin_nudge_analytics(
+    broadcast_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Per-broadcast open + click funnel drilldown."""
+    await require_admin(request, session_token)
+    from services.b2b_nudge_analytics import summarise_broadcast
+    summary = await summarise_broadcast(db, broadcast_id)
+    if not summary:
+        raise HTTPException(status_code=404, detail="Broadcast not found")
+    # Top-clicked URLs for this broadcast
+    pipeline = [
+        {"$match": {"broadcast_id": broadcast_id}},
+        {"$group": {"_id": "$url", "clicks": {"$sum": 1},
+                    "unique_retailers": {"$addToSet": "$retailer_id"}}},
+        {"$project": {"_id": 0, "url": "$_id", "clicks": 1,
+                      "unique_retailers": {"$size": "$unique_retailers"}}},
+        {"$sort": {"clicks": -1}},
+        {"$limit": 20},
+    ]
+    top_urls = await db.nudges_click_log.aggregate(pipeline).to_list(20)
+    return {"summary": summary, "top_urls": top_urls}
 
 
 @router.post("/{product_id}/status")

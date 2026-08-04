@@ -282,7 +282,8 @@ export default function NudgeComposerModal({ open, onClose, products = [] }) {
                 <p className="text-xs text-slate-500">No broadcasts yet.</p>
               )}
               {history.map((h) => (
-                <div key={h.broadcast_id} className="text-xs border border-slate-100 dark:border-slate-700 rounded-lg p-2">
+                <div key={h.broadcast_id} className="text-xs border border-slate-100 dark:border-slate-700 rounded-lg p-2"
+                  data-testid={`nudge-history-row-${h.broadcast_id}`}>
                   <div className="font-medium text-slate-800 dark:text-white truncate">{h.subject}</div>
                   <div className="text-slate-500 mt-0.5">
                     {new Date(h.sent_at).toLocaleString('en-IN')} · {h.kind} · {h.audience}
@@ -290,6 +291,17 @@ export default function NudgeComposerModal({ open, onClose, products = [] }) {
                   <div className="text-[10px] text-slate-500 mt-0.5">
                     {h.audience_size} recipients · {h.email_sent} email · {h.whatsapp_sent} whatsapp
                     {h.failed > 0 && <span className="text-rose-600"> · {h.failed} failed</span>}
+                  </div>
+                  <div className="mt-1 grid grid-cols-3 gap-1 text-[10px]" data-testid={`nudge-analytics-${h.broadcast_id}`}>
+                    <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded" title="Unique opens / delivered">
+                      Opens {h.unique_opens || 0} · {h.open_rate_pct || 0}%
+                    </span>
+                    <span className="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded" title="Unique clicks / delivered">
+                      Clicks {h.unique_clicks || 0} · {h.click_rate_pct || 0}%
+                    </span>
+                    <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded" title="Click-through: clicks / opens">
+                      CTR {h.ctr_pct || 0}%
+                    </span>
                   </div>
                 </div>
               ))}

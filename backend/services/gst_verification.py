@@ -19,8 +19,23 @@ APPYFLOW_URL = "https://appyflow.in/api/verifyGST"
 LEGACY_GST_API_BASE = "https://sheet.gstincheck.co.in/check"
 
 
+async def _read_keys_async() -> tuple[str, str]:
+    """Prefer DB-backed integration keys (admin panel) — fall back to env."""
+    appy, legacy = "", ""
+    try:
+        from routers.admin.admin_integrations import get_effective
+        appy = (await get_effective("appyflow_api_key") or "").strip()
+    except Exception:
+        pass
+    if not appy:
+        appy = os.environ.get("APPYFLOW_API_KEY", "").strip()
+    legacy = os.environ.get("GST_VERIFICATION_API_KEY", "").strip()
+    return appy, legacy
+
+
 def _read_keys() -> tuple[str, str]:
-    """Read keys at call time so reloads pick up env changes."""
+    """Read keys at call time so reloads pick up env changes. Sync
+    variant used only when we're not inside an event loop (rare)."""
     return (
         os.environ.get("APPYFLOW_API_KEY", "").strip(),
         os.environ.get("GST_VERIFICATION_API_KEY", "").strip(),
@@ -29,6 +44,22 @@ def _read_keys() -> tuple[str, str]:
 
 def _shape_appyflow(payload: dict, gst_number: str) -> dict:
     """Convert Appyflow's `taxpayerInfo` payload into our internal shape."""
+    # Appyflow returns HTTP 200 for upstream errors, with `error:true` + message.
+    # Surface a clear, human-readable reason so retailers/admin see the truth.
+    if payload.get("error"):
+        raw = str(payload.get("message") or "").lower()
+        if "maintenance" in raw or "503" in raw or "under maintenance" in raw:
+            reason = "GST verification service is temporarily under maintenance. Please try again in a few minutes."
+        elif "credit" in raw or "limit" in raw or "insufficient" in raw:
+            reason = "GST verification credits exhausted. Please contact Addrika support to top up."
+        elif "invalid" in raw and "key" in raw:
+            reason = "GST verification key invalid. Admin: update the Appyflow key in Integrations."
+        elif "not found" in raw or "invalid gstin" in raw or "invalid gst" in raw:
+            reason = "GSTIN not found in the GSTN database. Please check the number and try again."
+        else:
+            reason = (payload.get("message") or "GST verification failed").strip()
+        return {"verified": False, "error": reason, "upstream": payload.get("message")}
+
     info = payload.get("taxpayerInfo") or {}
     if not info:
         return {
@@ -102,7 +133,7 @@ async def verify_gst_number(gst_number: str) -> dict:
         return {"verified": False, "error": "Invalid GST number format"}
     gst_number = gst_number.upper().strip()
 
-    appyflow_key, legacy_key = _read_keys()
+    appyflow_key, legacy_key = await _read_keys_async()
     if not appyflow_key and not legacy_key:
         logger.warning("Neither APPYFLOW_API_KEY nor GST_VERIFICATION_API_KEY set")
         return {

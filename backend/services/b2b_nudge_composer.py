@@ -184,7 +184,31 @@ async def broadcast_custom_nudge(
             or "there"
         )
         first_name = str(display_name).split(" ")[0].strip() or "there"
-        html = _wrap_email(subject, body_html, first_name)
+
+        # Wire open-pixel + click-tracking into the per-recipient HTML
+        try:
+            from services.b2b_nudge_analytics import (
+                append_open_pixel, rewrite_links_for_tracking,
+            )
+            import os as _os
+            api_base = _os.environ.get(
+                "PUBLIC_BASE_URL", "https://centraders.com"
+            ).rstrip("/")
+            personalised_body = rewrite_links_for_tracking(
+                body_html,
+                api_base=api_base,
+                broadcast_id=broadcast_id,
+                retailer_id=r["retailer_id"],
+            )
+            html = _wrap_email(subject, personalised_body, first_name)
+            html = append_open_pixel(
+                html,
+                api_base=api_base,
+                broadcast_id=broadcast_id,
+                retailer_id=r["retailer_id"],
+            )
+        except Exception:
+            html = _wrap_email(subject, body_html, first_name)
 
         # Email
         if "email" in ch and email_ok and r.get("email"):
