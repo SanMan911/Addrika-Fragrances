@@ -8,7 +8,7 @@ Endpoints:
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Cookie, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -153,6 +153,58 @@ async def admin_run_restock_nudges(
     await require_admin(request, session_token)
     from services.b2b_restock_nudge import run_restock_nudges
     return await run_restock_nudges(db)
+
+
+class CustomNudgeBody(BaseModel):
+    subject: str = Field(..., min_length=3, max_length=140)
+    body_html: str = Field(..., min_length=10, max_length=8000)
+    whatsapp_body: Optional[str] = Field(None, max_length=1024)
+    channels: List[str] = Field(default_factory=lambda: ["email"])
+    audience: str = Field("all", description="all | verified | product | pincode | retailer_ids")
+    product_id: Optional[str] = None
+    pincode_prefix: Optional[str] = None
+    retailer_ids: Optional[List[str]] = None
+    kind: str = Field("promo", description="promo | drop | price_drop | festive | announcement")
+
+
+@router.post("/nudges/broadcast")
+async def admin_broadcast_nudge(
+    body: CustomNudgeBody,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Admin composer — pushes a custom Email + optional WhatsApp message
+    to a targeted retailer audience for special drops, festive re-launches,
+    price drops, or promotional schemes. Every send is logged to
+    `db.custom_nudges_log` for audit + de-dupe."""
+    admin = await require_admin(request, session_token)
+    from services.b2b_nudge_composer import broadcast_custom_nudge
+    return await broadcast_custom_nudge(
+        db,
+        subject=body.subject,
+        body_html=body.body_html,
+        whatsapp_body=body.whatsapp_body,
+        channels=body.channels,
+        audience=body.audience,
+        product_id=body.product_id,
+        pincode_prefix=body.pincode_prefix,
+        retailer_ids=body.retailer_ids,
+        kind=body.kind,
+        admin_email=(admin or {}).get("email"),
+    )
+
+
+@router.get("/nudges/history")
+async def admin_nudge_history(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    limit: int = 50,
+):
+    """Recent custom-nudge broadcasts for the admin dashboard."""
+    await require_admin(request, session_token)
+    rows = await db.custom_nudges_log.find({}, {"_id": 0}) \
+        .sort("sent_at", -1).limit(min(limit, 200)).to_list(min(limit, 200))
+    return {"entries": rows, "count": len(rows)}
 
 
 @router.post("/{product_id}/status")
