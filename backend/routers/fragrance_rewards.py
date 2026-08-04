@@ -72,6 +72,22 @@ async def admin_view_balance(
     return await get_balance(db, retailer_id)
 
 
+@router.get("/ledger")
+async def retailer_view_ledger(request: Request, limit: int = 100):
+    """Retailer-facing ledger — earns, redeems, adjustments, expirations
+    sorted newest-first for the Rewards History card."""
+    rid = await _current_retailer_id(request)
+    cursor = db.rewards_ledger.find(
+        {"retailer_id": rid}, {"_id": 0}
+    ).sort("earned_at", -1).limit(min(limit, 500))
+    rows = await cursor.to_list(min(limit, 500))
+    return {
+        "retailer_id": rid,
+        "entries": rows,
+        "count": len(rows),
+    }
+
+
 @router.get("/admin/{retailer_id}/ledger")
 async def admin_view_ledger(
     retailer_id: str, request: Request, session_token: Optional[str] = Cookie(None)

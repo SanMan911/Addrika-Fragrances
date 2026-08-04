@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Boxes, Plus, Minus, RefreshCw, History, Package, AlertTriangle, Send } from 'lucide-react';
+import { ArrowLeft, Boxes, Plus, Minus, RefreshCw, History, Package, AlertTriangle, Send, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../../layout';
+import NudgeComposerModal from '../../../../components/NudgeComposerModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -34,6 +35,7 @@ export default function AdminB2BInventoryPage() {
   const [historyFor, setHistoryFor] = useState(null);
   const [historyRows, setHistoryRows] = useState([]);
   const [sendingDigest, setSendingDigest] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
 
   const fetchInventory = useCallback(async () => {
     setLoading(true);
@@ -94,6 +96,14 @@ export default function AdminB2BInventoryPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+        <button
+          onClick={() => setComposerOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-fuchsia-100 dark:bg-fuchsia-900/40 text-fuchsia-800 dark:text-fuchsia-300 hover:bg-fuchsia-200"
+          data-testid="open-nudge-composer-btn"
+          title="Compose a promotional/festive/price-drop nudge"
+        >
+          <Sparkles size={14} /> Compose Nudge
+        </button>
         <button
           onClick={sendDigest}
           disabled={sendingDigest}
@@ -200,6 +210,12 @@ export default function AdminB2BInventoryPage() {
           onClose={() => { setHistoryFor(null); setHistoryRows([]); }}
         />
       )}
+
+      <NudgeComposerModal
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        products={items}
+      />
     </div>
   );
 }

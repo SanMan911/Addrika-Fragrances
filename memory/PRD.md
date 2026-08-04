@@ -3,6 +3,25 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🆕 Feb 2026 (later still³) — Redemption History Card · Admin Nudge Composer
+
+**1. Retailer Redemption History Card** (`/retailer/b2b/rewards`)
+- New retailer-facing endpoint `GET /api/fragrance-rewards/ledger` returns every earn / redeem / adjust / expire row for the signed-in retailer, sorted newest-first (500 row cap).
+- New page renders a KPI strip (Total Earned / Redeemed / Adjustments / Expired), 5 filter chips (All / Earned / Redeemed / Adjustments / Expired), and a row-per-entry ledger with icon + tone by kind, order-id link, multiplier %, and validity date. Empty-state guides new retailers to place a qualifying ₹1,000 order.
+- `<RewardsBalanceCard />` now has a "View history →" link so the history page is one tap away from the main dashboard.
+
+**2. Admin Nudge Composer** (`/admin/b2b/inventory` → "Compose Nudge")
+- `services/b2b_nudge_composer.py` exposes `broadcast_custom_nudge()` that resolves the audience server-side, wraps the admin's HTML in the Addrika template, and dispatches emails + optional WhatsApp. Every send is logged to `db.custom_nudges_log` with counters (`audience_size`, `email_sent`, `whatsapp_sent`, `failed`, `broadcast_id`, `admin_email`).
+- Audience selectors (server-derived so admin can't leak PII by mis-typing): **all**, **verified**, **product** (paid buyers of a SKU in the last 180d), **pincode** (prefix), **retailer_ids** (explicit list). 2,000-recipient hard cap.
+- Five nudge templates auto-fill subject/body/WhatsApp text: **Drop · Price Drop · Festive Re-launch · Promo Scheme · Announcement**. Free-form edits allowed on all three fields.
+- New endpoints:
+  - `POST /api/admin/b2b/inventory/nudges/broadcast` — send the compiled nudge.
+  - `GET  /api/admin/b2b/inventory/nudges/history` — recent broadcasts with per-broadcast counters, shown as a live sidebar on the composer modal.
+- Full-featured composer modal (`components/NudgeComposerModal.js`): template chips · subject · HTML body · WhatsApp text (1,000-char clamp) · channel checkboxes · audience picker with contextual sub-selectors (SKU dropdown for `product`, pincode-prefix input for `pincode`) · live email preview iframe · recent-broadcasts sidebar. Every interactive element has a `data-testid`.
+
+**3. Regression**
+- 10 new pytest tests in `tests/test_nudge_composer.py` cover audience resolution (all / verified / pincode / product / retailer_ids), full broadcast counters, empty-audience handling, e164 normalisation. **70/70 pass** across the new + prior B2B / rewards / iter63 / email-layout suites.
+
 ### 🆕 Feb 2026 (later still²) — Redeem at Checkout · Category Chips · Restock ETA Nudges
 
 **1. Fragrance Rewards Redemption at B2B checkout**

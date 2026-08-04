@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Award, TrendingUp, Clock, Info } from 'lucide-react';
+import Link from 'next/link';
+import { Award, TrendingUp, Clock, Info, ArrowRight } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -72,6 +73,13 @@ export default function RewardsBalanceCard({ fetchWithAuth }) {
 
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-1">
         <Award size={14} /> Fragrance Rewards
+        <Link
+          href="/retailer/b2b/rewards"
+          className="ml-auto inline-flex items-center gap-1 text-[10px] normal-case tracking-normal text-amber-700 dark:text-amber-300 hover:underline"
+          data-testid="rewards-card-history-link"
+        >
+          View history <ArrowRight size={11} />
+        </Link>
       </div>
 
       <div className="text-3xl sm:text-4xl font-bold text-slate-800 dark:text-white" data-testid="rewards-balance-value">
