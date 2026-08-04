@@ -184,6 +184,35 @@ async def maybe_credit_on_order(
     return {"credited": amount, "streak": streak, "multiplier": mult}
 
 
+async def preview_credit(
+    db, retailer_id: str, invoice_subtotal_inr: float, requested_amount: float,
+) -> dict:
+    """Non-destructive dry-run of `apply_credit` — used by the calculate
+    endpoint so the retailer can see the discount before placing the order.
+
+    Same eligibility rules as `apply_credit` but does not touch the ledger.
+    """
+    if float(invoice_subtotal_inr) < REDEMPTION_THRESHOLD:
+        return {"applicable": 0, "eligible": False, "reason":
+                f"Invoice must be at least ₹{REDEMPTION_THRESHOLD} to redeem"}
+    balance_data = await get_balance(db, retailer_id)
+    balance = balance_data["balance_inr"]
+    if balance < REDEMPTION_THRESHOLD:
+        return {"applicable": 0, "eligible": False, "reason":
+                f"Balance must be at least ₹{REDEMPTION_THRESHOLD} to redeem",
+                "balance_inr": balance}
+    consumable = min(float(requested_amount), balance, float(invoice_subtotal_inr))
+    if consumable <= 0:
+        return {"applicable": 0, "eligible": True, "reason": "Nothing to redeem",
+                "balance_inr": balance}
+    return {
+        "applicable": round(consumable, 2),
+        "eligible": True,
+        "balance_inr": balance,
+        "remaining_balance_after": round(balance - consumable, 2),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Redeem — called from B2B checkout when retailer opts to apply credit
 # ---------------------------------------------------------------------------

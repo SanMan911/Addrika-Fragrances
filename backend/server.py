@@ -225,6 +225,14 @@ async def startup_db_client():
     except Exception as e:
         print(f"B2B low-stock scheduler skipped: {e}")
 
+    # Restock ETA nudges (email + WhatsApp best-effort)
+    try:
+        from services.b2b_restock_nudge import restock_nudge_scheduler_loop
+        asyncio.create_task(restock_nudge_scheduler_loop(db))
+        print("B2B restock-nudge scheduler started")
+    except Exception as e:
+        print(f"B2B restock-nudge scheduler skipped: {e}")
+
 
 # Shutdown event
 @app.on_event("shutdown")

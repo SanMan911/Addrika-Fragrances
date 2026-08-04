@@ -152,6 +152,8 @@ class B2BOrderCreate(BaseModel):
     # New (Feb 2026): allow retailer to include distance-based shipping
     delivery_pincode: Optional[str] = None
     include_shipping: bool = True
+    # Fragrance Rewards redemption (₹). Server clamps to eligible amount.
+    redeem_rewards_inr: Optional[float] = None
 
 
 class ShippingQuoteRequest(BaseModel):
@@ -214,6 +216,34 @@ async def calculate_b2b_order(
         calc["grand_total"] = round(float(calc.get("grand_total", 0)) + ship, 2)
     else:
         calc["shipping_charges"] = 0.0
+
+    # ── Fragrance Rewards redemption preview ─────────────────────────
+    # Redemption is applied against the invoice subtotal (excludes shipping
+    # + GST). Server clamps to the eligible amount using the same rules as
+    # `apply_credit` — safe to trust.
+    redeem_requested = float(order_data.redeem_rewards_inr or 0)
+    rewards_applied = 0.0
+    if redeem_requested > 0:
+        try:
+            from services.fragrance_rewards import preview_credit
+            preview = await preview_credit(
+                db,
+                retailer["retailer_id"],
+                float(calc.get("subtotal") or 0),
+                redeem_requested,
+            )
+            calc["rewards_redemption"] = preview
+            if preview.get("eligible") and preview.get("applicable"):
+                rewards_applied = float(preview["applicable"])
+                calc["rewards_redeemed_inr"] = rewards_applied
+                calc["grand_total"] = round(
+                    max(float(calc.get("grand_total", 0)) - rewards_applied, 0.0), 2,
+                )
+        except Exception as e:
+            logger.warning(f"rewards preview_credit failed: {e}")
+            calc["rewards_redemption"] = {"applicable": 0, "eligible": False, "reason": "internal_error"}
+    else:
+        calc["rewards_redeemed_inr"] = 0.0
 
     # Project Fragrance Rewards accrual so the UI can show "You'll earn ₹X"
     try:
@@ -289,6 +319,8 @@ async def create_b2b_order(
         "shipping_charges": float(calculation.get("shipping_charges") or 0),
         "shipping_quote": calculation.get("shipping_quote"),
         "delivery_pincode": order_data.delivery_pincode,
+        "rewards_redeemed_inr": float(calculation.get("rewards_redeemed_inr") or 0),
+        "rewards_redemption_preview": calculation.get("rewards_redemption"),
         "grand_total": calculation["grand_total"],
         "payment_method": "online" if order_data.apply_cash_discount or order_data.voucher_code else "credit",
         "payment_status": "pending",
@@ -518,6 +550,39 @@ async def verify_b2b_payment(
             )
         except Exception as e:
             logger.warning(f"Fragrance rewards accrual failed for {order_id}: {e}")
+
+        # ==================================================================
+        # FRAGRANCE REWARDS — actually consume the redemption ledger entries
+        # for the amount the retailer opted to apply at checkout.
+        # Idempotent: guarded by a "redeem" ledger row for this order_id.
+        # ==================================================================
+        try:
+            redeem_amt = float(order.get("rewards_redeemed_inr") or 0)
+            if redeem_amt > 0:
+                already = await db.rewards_ledger.find_one(
+                    {"source_order_id": order_id, "kind": "redeem"}
+                )
+                if not already:
+                    from services.fragrance_rewards import apply_credit
+                    subtotal = float(order.get("subtotal") or 0)
+                    result = await apply_credit(
+                        db,
+                        retailer_id=retailer["retailer_id"],
+                        order_id=order_id,
+                        invoice_subtotal_inr=subtotal,
+                        requested_amount=redeem_amt,
+                    )
+                    if result.get("error"):
+                        logger.warning(
+                            f"Rewards redemption for {order_id} failed: {result['error']}"
+                        )
+                    else:
+                        logger.info(
+                            f"Rewards redemption for {order_id}: applied ₹{result['applied']}, "
+                            f"remaining ₹{result['remaining_balance']}"
+                        )
+        except Exception as e:
+            logger.warning(f"Fragrance rewards redemption failed for {order_id}: {e}")
 
         # ==================================================================
         # B2B INVENTORY — auto-deduct pieces from stock on successful payment.

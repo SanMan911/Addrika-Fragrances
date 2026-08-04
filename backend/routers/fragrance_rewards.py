@@ -14,6 +14,7 @@ from dependencies import db, require_admin
 from services.fragrance_rewards import (
     apply_credit,
     get_balance,
+    preview_credit,
 )
 
 router = APIRouter(prefix="/fragrance-rewards", tags=["Fragrance Rewards (B2B)"])
@@ -37,6 +38,21 @@ class ApplyRequest(BaseModel):
     order_id: str
     invoice_subtotal_inr: float = Field(..., gt=0)
     amount_to_apply: float = Field(..., gt=0)
+
+
+class PreviewRequest(BaseModel):
+    invoice_subtotal_inr: float = Field(..., gt=0)
+    requested_amount: float = Field(..., gt=0)
+
+
+@router.post("/preview")
+async def retailer_preview_credit(body: PreviewRequest, request: Request):
+    """Non-destructive dry-run — same clamps as `/apply` but leaves the
+    ledger untouched. Used by the checkout redemption slider."""
+    rid = await _current_retailer_id(request)
+    return await preview_credit(
+        db, rid, body.invoice_subtotal_inr, body.requested_amount
+    )
 
 
 @router.post("/apply")

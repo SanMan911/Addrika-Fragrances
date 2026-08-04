@@ -3,6 +3,25 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🆕 Feb 2026 (later still²) — Redeem at Checkout · Category Chips · Restock ETA Nudges
+
+**1. Fragrance Rewards Redemption at B2B checkout**
+- New `services/fragrance_rewards.py::preview_credit` — non-destructive dry-run (same clamps as `apply_credit`) surfaced as `POST /api/fragrance-rewards/preview`.
+- `B2BOrderCreate` gained `redeem_rewards_inr` field. The `/calculate` endpoint enforces the rules (invoice ≥ ₹2,500, balance ≥ ₹2,500, credit only offsets invoice value not shipping/GST) and clamps to eligible amount, returning `rewards_redemption` + `rewards_redeemed_inr` in the response so the UI can show the discount line live.
+- `POST /order/{order_id}/verify-payment` now actually consumes ledger entries via FIFO (`apply_credit`) after the earn hook fires. Idempotency guard checks for existing `kind=redeem` row.
+- Frontend `<RewardsRedeemToggle />` component: checkbox + slider (max = min(balance, subtotal)), server-side preview call debounced 300ms, gracefully disabled when invoice < ₹2,500. Injected below the shipping input on `/retailer/b2b`.
+
+**2. B2B Catalog Category Filter Chips**
+- Filter chips (All · Agarbatti · Agarbatti Jars · Bakhoor · Dhoop) render above the product table with live per-category counts, driven by the `category` field already on each SKU. Chips auto-hide when a category has zero SKUs.
+
+**3. Auto-Restock ETA Nudge** (`services/b2b_restock_nudge.py`)
+- Scheduler task runs 90s after boot + every 12h. Scans SKUs whose ETA window is 1-2 days from expiring, finds retailers who ordered that SKU in the last 90 days, and pushes an email nudge (Resend). WhatsApp Business Cloud API fallback lands the same message on the retailer's number if the `whatsapp` platform integration is enabled — otherwise silently no-ops.
+- Persists every send to `db.restock_nudges` with a 20-day cooldown per SKU × retailer, so retailers are never spammed.
+- Manual force-trigger via `POST /api/admin/b2b/inventory/restock-nudges/run` for admins who want to fire the cycle immediately after a batch is confirmed.
+
+**4. Regression**
+- 13 new pytest tests in `tests/test_redeem_and_nudge.py` cover preview_credit clamping, FIFO burn, sub-threshold rejects, due-SKU selection window, past-buyer lookup, cooldown de-dup, e164 phone normalisation, end-to-end nudge cycle. **77/77 pass** across the whole B2B suite.
+
 ### 🆕 Feb 2026 (later still) — Category carton math · Stock status · Rewards card · Nightly low-stock digest · Pincode auto-fill
 
 **1. Category-based carton math** (`services/b2b_catalog.py::CATEGORY_PACK_SIZE`)
