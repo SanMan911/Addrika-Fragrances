@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 68 verification of bug fixes (Blog SSR, Sandbox eKYC error UX, Appyflow error UX) + new Broadcast Analytics feature. Blog SSR now renders cleanly for /blog/elevate-festive-spirit-natural-agarbatti-dhoop — no more 'Application error / Digest 3506429118'. Sandbox eKYC now surfaces the friendly 'Sandbox eKYC subscription has expired…' message on PAN + Aadhaar OTP endpoints. Broadcast Analytics endpoints (open pixel, click redirect, admin history, per-broadcast analytics) all work end-to-end with correct de-dup + rate math + top_urls aggregation. 11/11 nudge-analytics pytest cases pass (review claimed 12 — only 11 exist in test_nudge_analytics.py). One residual gap: the GSTIN verify surface still leaks the raw upstream 'Credit Expire.' message when Appyflow errors and the code falls through to the gstincheck legacy fallback — the friendly Appyflow reason is computed but then discarded because verify_gst_number() unconditionally tries the legacy provider on non-verified appyflow results.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/retailer-auth/waitlist/gst-lookup/{gst}",
+        "issue": "Live response for 27AABCU9603R1ZM is {verified:false, error:'Credit Expire.'} — raw upstream text, not friendly. Root cause: services/gst_verification.py::verify_gst_number() computes a friendly reason inside _shape_appyflow (e.g. 'GST verification credits exhausted…') but only returns it when shaped.verified is True (line 165). On non-verified appyflow results it falls through to the gstincheck legacy provider, whose _shape_legacy just passes payload.message straight back (line 101). Fix: when appyflow returns a shaped error, return it immediately instead of falling through — OR apply the same friendly-mapping heuristic inside _shape_legacy."
+      },
+      {
+        "endpoint": "tests/test_nudge_analytics.py",
+        "issue": "Review request states '12 tests pass' but the file contains 11 pytest cases (all pass). Not a bug, just a doc drift."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_nudge_analytics.py",
+    "/app/test_reports/pytest/iteration_68_nudge_analytics.xml"
+  ],
+  "action_items": [
+    "In services/gst_verification.py::verify_gst_number, on a non-verified Appyflow response, return the shaped friendly reason instead of falling through to gstincheck — or add the same maintenance/credit/key/not-found heuristic to _shape_legacy so raw upstream strings like 'Credit Expire.' never reach the client.",
+    "Correct the endpoint paths in the release notes: the actual routes are POST /api/retailer-auth/kyc/pan/verify, POST /api/retailer-auth/kyc/aadhaar/otp, POST /api/retailer-auth/kyc/aadhaar/verify, GET /api/retailer-auth/waitlist/gst-lookup/{gst} — there is no /api/gst/verify or /api/kyc/pan/verify.",
+    "Doc/count fix: review says '12 pytest cases' but tests/test_nudge_analytics.py only has 11."
+  ],
+  "critical_code_review_comments": [
+    "gst_verification.verify_gst_number always falls through from Appyflow-non-verified to gstincheck legacy, discarding the carefully-shaped friendly Appyflow error. This defeats the whole point of _shape_appyflow's maintenance/credit/key mapping.",
+    "_shape_legacy (services/gst_verification.py:96) surfaces raw payload.message verbatim. Any upstream error string (e.g. 'Credit Expire.') is passed to the retailer/admin UI unchanged.",
+    "b2b_nudge_composer.py wraps pixel+link rewrite in a bare try/except Exception (line 210) that swallows all errors and silently sends the un-tracked HTML — should at least logger.exception so we know when tracking is broken in prod.",
+    "Nudge tracking endpoints /api/nudges/track/open/{bid}/{rid}.gif and /click/{bid}/{rid} are anonymous by design but there is no per-IP or per-broadcast rate limit — bots hitting the pixel URL would inflate the opens counter (unique_opens still safe since it dedupes by retailer_id)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "95% (5/6 review items green; 1 minor GST surface gap)", "frontend": "100% (blog SSR fix confirmed live)"},
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499 — helper /tmp/adm_login.py POSTs initiate, pulls OTP from db.admin_2fa_tokens by token_id, POSTs verify-otp, writes session_token cookie to /tmp/adm_cookie.txt.",
+  "seed_data_creation": "Broadcast row NUD-VERIFY-ITER68 created in db.custom_nudges_log to verify analytics wiring end-to-end; deleted at the end of the check. No lingering rows.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 4 bug/feature items in review verified live. Live GSTIN 27AABCU9603R1ZM returns 'Credit Expire.' via gstincheck legacy fallback — evidence that Appyflow credits are actually exhausted in prod (not just a maintenance blip). The Appyflow friendly-mapping fix is in place but bypassed because verify_gst_number() falls through to legacy on Appyflow error. Sandbox eKYC fix is fully working — PAN endpoint returns {verified:false, error:'Sandbox eKYC subscription has expired. Please contact Addrika support to renew.'} and Aadhaar OTP endpoint returns 400 with same detail. Broadcast Analytics end-to-end confirmed: opens=3/unique_opens=2, clicks=3/unique_clicks=2, open_rate 20%, click_rate 20%, ctr 100%, top_urls returned. Admin auth via cookie session_token. 11/11 pytest analytics tests pass.",
+  "rca_of_the_issue": "For the residual 'Credit Expire.' leak: Appyflow upstream is currently returning error:true with message 'Credit Expire.' (credits exhausted on the account). services/gst_verification.py::_shape_appyflow correctly maps 'credit' to the friendly 'GST verification credits exhausted…' string, BUT verify_gst_number() at line 165 only returns shaped when shaped.verified is True. On the non-verified branch it logs and falls through to the gstincheck legacy provider (line 197 onward), whose _shape_legacy simply returns payload.message verbatim. So the friendly Appyflow message is computed and thrown away, and the legacy raw 'Credit Expire.' string is surfaced to the retailer/admin instead. Two-line fix: on Appyflow non-verified with a meaningful shaped.error (or when the Appyflow key is present at all), return shaped immediately rather than trying gstincheck — OR add the same substring heuristic to _shape_legacy."
+}

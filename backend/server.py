@@ -59,6 +59,7 @@ from routers.impact import router as impact_router
 from routers.admin.admin_social import router as admin_social_router
 from routers.admin.admin_integrations import router as admin_integrations_router
 from routers.admin.admin_b2b_inventory import router as admin_b2b_inventory_router
+from routers.nudge_tracking import router as nudge_tracking_router
 from routers.fragrance_rewards import router as fragrance_rewards_router
 
 # MongoDB connection
@@ -133,6 +134,7 @@ app.include_router(impact_router, prefix="/api")
 app.include_router(admin_social_router, prefix="/api")
 app.include_router(admin_integrations_router, prefix="/api")
 app.include_router(admin_b2b_inventory_router, prefix="/api")
+app.include_router(nudge_tracking_router, prefix="/api")
 app.include_router(fragrance_rewards_router, prefix="/api")
 
 

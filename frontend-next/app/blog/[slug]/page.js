@@ -1,8 +1,10 @@
 import Link from 'next/link';
-import { Calendar, Eye, ArrowLeft, Share2 } from 'lucide-react';
+import { Calendar, Eye, ArrowLeft } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import BlogShareToolbar from '../../../components/BlogShareToolbar';
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://centraders.com';
 
 async function getBlogPost(slug) {
   try {
