@@ -3,6 +3,46 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🔗 Feb 2026 (Iteration 74) — Refactor · Batch Allocation · Pre-Order Badge · **Unified Product/Inventory Model** + "Mogra Magic" bug fix
+
+**1. Refactor (pricing engine split)**
+- `services/b2b_pricing_extras.py` (NEW) — pulled the pre-order/shipping/rewards/projection augmentations out of `routers/b2b_orders.py` into four composable helpers (`apply_preorder_terms`, `apply_shipping`, `apply_rewards_redemption`, `add_rewards_projection`).
+- `services/b2b_payment_hooks.py` (NEW) — bundled the four post-payment side-effects (rewards accrual + redemption consumption + inventory deduction + Zoho payment sync), each guarded independently.
+- `services/b2b_emails.py` gained `send_b2b_order_confirmation_email` (retailer-facing HTML, moved out of the router).
+- `routers/b2b_orders.py` shrank from **951 → 714 lines**.
+
+**2. Batch Allocation Dashboard (P2 done)**
+- Admin endpoint `GET /api/admin/b2b/preorders/batch-allocation` groups every outstanding paid pre-order by SKU with proportional token/balance attribution (line_total/subtotal weight), sorted by pieces booked desc so production can prioritize.
+- Drill-down `GET /api/admin/b2b/preorders/by-sku/{product_id}` returns every retailer + contact per SKU.
+- New page `/admin/b2b/preorders` with 5 summary cards, expandable rows and per-retailer drill-down.
+
+**3. Pre-Order Available badge (P3 done)**
+- New helper `isPreorderAvailable(product)` on `/retailer/b2b` page; renders an amber-outlined **PRE-ORDER AVAILABLE** pill next to out-of-stock / restocking / manufacturing / delayed SKUs on both mobile and desktop layouts.
+
+**4. Bug fix: "Royal Kewda" showing as "Mogra Magic"**
+- Root cause: `_SEED_PRODUCTS` in `b2b_catalog.py` seeded a phantom "Mogra Magic" SKU that never existed on the B2C storefront. Royal Kewda (which DID exist on B2C) was never mirrored to B2B.
+- Fix: Swapped Mogra Magic out for Royal Kewda 50g + 200g in the seed. One-off migration purged 2 lingering Mogra Magic rows from `db.b2b_products`. Static grep confirms zero `mogra magic` references anywhere in the codebase.
+
+**5. Missing Ready-to-Use Dhoop SKUs added**
+- `mystical-meharishi-b2b` (100g Dhoop + Ceramic Stand + Safety Matchbox) — B2B mirror of the existing B2C `mystical-meharishi` product.
+- `belpatra-dhoop-b2b` (100g Dhoop + Ceramic Stand + Safety Matchbox) — B2B mirror of the existing B2C `bilvapatra-fragrance`.
+- Both stamped with `ready_to_use=True`, category `dhoop`, 32 pieces per carton, GST 18%, HSN 33074900.
+
+**6. Unified Product / Inventory Model** *(the big one)*
+- `services/product_sync.py` (NEW) — bidirectional linkage between the B2C `products` collection and the B2B `b2b_products` collection.
+    - `mirror_b2c_product(db, product)` — one B2B SKU per B2C size, matched by `product_id + net_weight` so legacy IDs (`kesar-chandan-200-b2b`) are reused, never duplicated. Existing `stock_pieces` is preserved on updates.
+    - `deduct_stock_for_b2c_order(db, order)` — B2C paid orders now decrement the same `stock_pieces` counter used by the B2B panel. Idempotent via `b2b_inventory_log` guard row per order+SKU.
+    - `enrich_b2c_products_with_stock(products, b2b_rows)` — `GET /api/products` and `GET /api/products/{id}` now surface the shared stock number on each size (via product_id + net_weight lookup).
+- `admin/admin_products.py` — POST/PUT now call `mirror_b2c_product` after saving to `products`. A new **`opening_stock`** field on `ProductSizeInput` seeds the linked B2B SKU on creation (ignored on updates — live stock is edited from the Inventory panel).
+- Frontend `/admin/products` gained an **Opening Stock (pieces)** input per size (`data-testid="size-opening-stock-{idx}"`).
+- One-off migration re-mirrored every B2C product into `b2b_products` so the two catalogs are now in lockstep. Brochure PDF continues to render from `db.products` — so every new product added via the admin form auto-appears in the retailer catalog + brochure with no manual intervention.
+
+**7. Testing**
+- iteration_74.json: **100% backend (8/8 new integration cases in `tests/test_iter74_unified_products.py`)**. Regression: 63/63 legacy pytest pass (`test_b2b_shipping_inventory`, `test_b2b_category_stock`, `test_fragrance_rewards`, `test_order_pricing_refactor`).
+- Frontend UI walk was blocked because the Emergent preview URL was in "Wake up servers" state — testing agent verified via static grep that the string `Mogra Magic` is nowhere in `/app/frontend-next/**`.
+
+
+
 ### 📦 Feb 2026 (later still⁷) — Pre-Order · CSV Filters · Monthly Rewards Digest
 
 **1. Pre-Order flow (out-of-stock SKUs)** — NEW
