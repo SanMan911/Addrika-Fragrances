@@ -235,6 +235,14 @@ async def startup_db_client():
     except Exception as e:
         print(f"B2B restock-nudge scheduler skipped: {e}")
 
+    # Monthly Fragrance Rewards statement digest — fires on the 1st of each month
+    try:
+        from services.monthly_rewards_digest import monthly_rewards_scheduler_loop
+        asyncio.create_task(monthly_rewards_scheduler_loop(db))
+        print("Monthly rewards digest scheduler started")
+    except Exception as e:
+        print(f"Monthly rewards digest scheduler skipped: {e}")
+
 
 # Shutdown event
 @app.on_event("shutdown")

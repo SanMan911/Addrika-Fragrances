@@ -358,12 +358,15 @@ async def send_email(
     subject: str,
     html_content: str,
     attachments: list = None,
+    cc: str | list | None = None,
 ) -> bool:
     """Send an email using Resend.
 
     `attachments`, if provided, must be a list of dicts with keys
     `filename` (str) and `content` (bytes or base64 str). Resend accepts
     base64-encoded content directly.
+    `cc`, if provided, is a single email or a list — used for platform-wide
+    accountant CC on monthly rewards digests.
     """
     api_key = _get_resend_key()
     sender_email = _get_sender_email()
@@ -382,6 +385,8 @@ async def send_email(
             "subject": subject,
             "html": html_content,
         }
+        if cc:
+            params["cc"] = [cc] if isinstance(cc, str) else list(cc)
         if attachments:
             import base64 as _b64
             payload_attachments = []

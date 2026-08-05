@@ -247,6 +247,18 @@ async def admin_run_restock_nudges(
     return await run_restock_nudges(db)
 
 
+@router.post("/rewards-digest/send-now")
+async def admin_send_monthly_rewards_digest(
+    request: Request, session_token: Optional[str] = Cookie(None),
+):
+    """Manually trigger the monthly rewards statement digest. Emails every
+    retailer their PDF statement + CCs the platform accountant if configured
+    via `admin_integrations.get('accountant_email')`."""
+    await require_admin(request, session_token)
+    from services.monthly_rewards_digest import run_monthly_digest
+    return await run_monthly_digest(db, force=True)
+
+
 class CustomNudgeBody(BaseModel):
     subject: str = Field(..., min_length=3, max_length=140)
     body_html: str = Field(..., min_length=10, max_length=8000)
