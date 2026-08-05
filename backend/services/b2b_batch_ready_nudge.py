@@ -14,6 +14,7 @@ Idempotency: uses a `db.batch_ready_nudges` guard row per (order_id, product_id)
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -61,7 +62,7 @@ async def _record_nudge(db, order_id, product_id, retailer_id, channels, meta=No
 def _balance_link(order_id: str, retailer_id: Optional[str]) -> str:
     # The retailer portal shows an "Outstanding Balance" CTA on any paid
     # pre-order whose order_status is not fulfilled — deep-link straight to it.
-    base = "https://addrika.com"  # public retailer portal domain
+    base = os.environ.get("PUBLIC_APP_URL", "https://addrika.com").rstrip("/")
     return f"{base}/retailer/b2b/orders/{order_id}?balance=1"
 
 

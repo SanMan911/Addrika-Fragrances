@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Package, Plus, Edit2, Trash2, Eye, EyeOff, Clock, Check,
-  ChevronDown, ChevronUp, X, Save, Loader2, AlertTriangle
+  ChevronDown, ChevronUp, X, Save, Loader2, AlertTriangle, Upload, Rocket
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
@@ -406,7 +406,7 @@ function ProductFormModal({ product, onClose, onSaved }) {
 }
 
 // ===================== Product Row =====================
-function ProductRow({ product, onEdit, onDelete, onToggle }) {
+function ProductRow({ product, onEdit, onDelete, onToggle, onLaunch, launching }) {
   const [expanded, setExpanded] = useState(false);
   const lowestPrice = Math.min(...(product.sizes || []).map(s => s.price));
 
@@ -436,6 +436,15 @@ function ProductRow({ product, onEdit, onDelete, onToggle }) {
             {!product.isActive && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">
                 Inactive
+              </span>
+            )}
+            {product.early_access_until && new Date(product.early_access_until) > new Date() && (
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium flex items-center gap-1"
+                data-testid={`early-access-badge-${product.id}`}
+                title={`Founding Retailer early access until ${new Date(product.early_access_until).toLocaleString('en-IN')}`}
+              >
+                <Rocket size={10} /> Early Access
               </span>
             )}
           </div>
@@ -477,6 +486,15 @@ function ProductRow({ product, onEdit, onDelete, onToggle }) {
             data-testid={`delete-product-${product.id}`}
           >
             <Trash2 size={16} />
+          </button>
+          <button
+            onClick={() => onLaunch(product)}
+            disabled={launching === product.id}
+            className="p-2 rounded-lg hover:bg-amber-900/30 text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
+            title={product.launched_at ? 'Re-broadcast launch' : 'Launch this SKU (Founding Retailer 24h early access + broadcast)'}
+            data-testid={`launch-product-${product.id}`}
+          >
+            {launching === product.id ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />}
           </button>
           <button
             onClick={() => setExpanded(!expanded)}
@@ -531,6 +549,65 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [launching, setLaunching] = useState(null);
+  const bulkInputRef = useRef(null);
+
+  const bulkImport = async (file) => {
+    if (!file) return;
+    setBulkImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await authFetch(`${API_URL}/api/admin/products/bulk-import`, {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      const cnt = (data.created?.length || 0) + (data.updated?.length || 0);
+      if (data.row_errors?.length) {
+        toast.warning(`${cnt} SKUs imported · ${data.row_errors.length} row(s) skipped (check CSV format).`);
+      } else {
+        toast.success(data.message || `${cnt} SKUs imported.`);
+      }
+      fetchProducts();
+    } catch (e) {
+      toast.error(e.message || 'Bulk import failed.');
+    } finally {
+      setBulkImporting(false);
+      if (bulkInputRef.current) bulkInputRef.current.value = '';
+    }
+  };
+
+  const launchProduct = async (product) => {
+    if (!window.confirm(
+      `Launch "${product.name}" as a Founding Retailer exclusive for the next 24 hours?\n\n` +
+      `• Hidden from the public storefront for 24h\n` +
+      `• Broadcast to every active retailer (email + WhatsApp) with the preview link\n` +
+      `• Platform accountant CC'd about the new revenue line`,
+    )) return;
+    setLaunching(product.id);
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/products/${product.id}/launch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hidden_hours: 24, broadcast: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      const l = data.launch || {};
+      toast.success(
+        `Launched! ${l.recipients || 0} retailer(s) notified. Preview URL: ${l.preview_url || ''}`,
+        { duration: 8000 },
+      );
+      fetchProducts();
+    } catch (e) {
+      toast.error(e.message || 'Launch failed.');
+    } finally {
+      setLaunching(null);
+    }
+  };
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -605,14 +682,38 @@ export default function AdminProductsPage() {
             Manage your product catalog — {stats.total} products
           </p>
         </div>
-        <button
-          onClick={() => { setEditingProduct(null); setShowForm(true); }}
-          className="px-4 py-2.5 rounded-xl bg-amber-500 text-slate-900 font-semibold hover:bg-amber-400 transition-colors flex items-center gap-2"
-          data-testid="add-product-btn"
-        >
-          <Plus size={18} />
-          Add Product
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            ref={bulkInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => bulkImport(e.target.files?.[0])}
+          />
+          <a
+            href={`${API_URL}/api/admin/products/bulk-import/template.csv`}
+            className="text-xs text-slate-400 hover:text-amber-300 underline"
+            data-testid="bulk-template-link"
+          >
+            CSV template
+          </a>
+          <button
+            onClick={() => bulkInputRef.current?.click()}
+            disabled={bulkImporting}
+            className="px-3 py-2.5 rounded-xl border border-slate-600 hover:border-amber-400 text-slate-200 hover:text-amber-300 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+            data-testid="bulk-import-btn"
+          >
+            <Upload size={16} /> {bulkImporting ? 'Importing…' : 'Bulk Import CSV'}
+          </button>
+          <button
+            onClick={() => { setEditingProduct(null); setShowForm(true); }}
+            className="px-4 py-2.5 rounded-xl bg-amber-500 text-slate-900 font-semibold hover:bg-amber-400 transition-colors flex items-center gap-2"
+            data-testid="add-product-btn"
+          >
+            <Plus size={18} />
+            Add Product
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -658,6 +759,8 @@ export default function AdminProductsPage() {
               onEdit={handleEdit}
               onDelete={(id, name) => setDeleteConfirm({ id, name })}
               onToggle={handleToggle}
+              onLaunch={launchProduct}
+              launching={launching}
             />
           ))}
         </div>

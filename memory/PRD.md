@@ -3,6 +3,37 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🚀 Feb 2026 (Iteration 76) — Launch SKU Toggle · Balance Payment Link · Bulk CSV Upload · Founding Retailer Early-Access
+
+**1. Balance Payment Link (closes the Batch-Ready loop)**
+- Two new B2B endpoints under `/api/retailer-dashboard/b2b/order/{id}`:
+    - `POST /create-balance-payment` — mints a Razorpay order for the remaining 50%, refuses non-preorders / already-settled balances.
+    - `POST /verify-balance-payment` — verifies signature, marks `balance_paid_at`, pushes the order to `confirmed`, then re-runs the shared `run_post_payment_hooks` pipeline (rewards + inventory + Zoho) so the balance settlement behaves identically to a full-price payment.
+- Frontend: NEW `/retailer/b2b/orders/[order_id]` page. When landed with `?balance=1` from the Batch-Ready nudge it auto-opens Razorpay checkout for the outstanding amount. Shows token paid / balance due / status pills + a confirmation banner once settled.
+- `services/b2b_batch_ready_nudge.py` now reads `PUBLIC_APP_URL` from env for the deep-link base.
+
+**2. Bulk CSV Product Upload**
+- NEW `POST /api/admin/products/bulk-import` — multipart CSV → parses `name, description, type, size, mrp, price, opening_stock, image`. Rows sharing a `name` are collapsed into a single product with multiple sizes. Each new product runs through `mirror_b2c_product` so B2B SKUs auto-populate.
+- NEW `GET /api/admin/products/bulk-import/template.csv` — downloadable starter CSV with 3 example rows.
+- Frontend: `/admin/products` gains a **Bulk Import CSV** button next to Add Product + a "CSV template" quick-download link. Shows per-row error summary if any rows are malformed.
+
+**3. Founding Retailer Early-Access + One-Click SKU Launch**
+- NEW `services/product_launch.py`:
+    - `sign_preview_token(product_id, expires_at)` / `verify_preview_token(token)` — HMAC-SHA256 signed, self-verifying tokens (no DB round-trip needed for validation).
+    - `launch_sku(db, product, admin_email, hidden_hours=24, broadcast=True)` — stamps `early_access_until`, `launched_at`, `preview_token` on the product; broadcasts the launch via `broadcast_custom_nudge` (email + WhatsApp with the product image); emails the platform accountant CC that a new revenue line went live.
+- `GET /api/products` + `GET /api/products/{id}` now respect the early-access window:
+    - Hidden products are stripped from the public list (a coming-soon teaser stub with `coming_soon: true` is stitched onto the tail).
+    - A `?preview={token}` query reveals the SKU end-to-end (both endpoints).
+- NEW `GET /api/preview/resolve/{token}` — exchanges a signed token for the full product payload (used by the preview landing page).
+- Frontend:
+    - NEW `/preview/[token]` page — private "Founding Retailer Early Access" landing with the product image, sizes, and CTAs to `/retailer/b2b` + `/collection`. Shows a graceful "link expired" state.
+    - `/admin/products` — every product row now has a 🚀 **Launch** button (`data-testid="launch-product-{id}"`). Confirms + kicks off the launch sequence, shows the preview URL + broadcast recipient count in a toast.
+    - Row pill: 🚀 **Early Access** badge (`data-testid="early-access-badge-{id}"`) while the SKU is inside the 24h window.
+
+**4. Testing** — `tests/test_iter76_features.py` — **10/10 passing** (balance payment endpoint shape + non-preorder rejection, bulk CSV create+merge+B2B mirror + missing-column rejection + template download, HMAC token sign/verify/expiry/tamper roundtrip, launch hides from public, preview reveals it, invalid token → 404). Full regression across iter74 + iter75 + iter76 + legacy B2B: **78/78 green**.
+
+
+
 ### 🎯 Feb 2026 (Iteration 75) — Product Image Uploader · Sync Health Dot · Batch-Ready Nudge · Per-Retailer Accountant CC
 
 **1. Product Image Uploader (drop-and-go)**
