@@ -36,6 +36,91 @@ async def admin_list_inventory(
     }
 
 
+@router.get("/log")
+async def admin_inventory_log_all(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    limit: int = 500,
+):
+    """Full audit log across every SKU — for the export CSV."""
+    await require_admin(request, session_token)
+    return {"entries": await get_log(db, None, limit=min(limit, 2000))}
+
+
+@router.get("/log/export.csv")
+async def admin_inventory_log_csv(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    product_id: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+):
+    """Downloadable CSV of the b2b_inventory_log for accountants + physical
+    stock audits. Filterable by product_id and ISO-8601 date range."""
+    from datetime import datetime
+    from fastapi.responses import StreamingResponse
+    from io import StringIO
+    import csv
+
+    await require_admin(request, session_token)
+
+    query: dict = {}
+    if product_id:
+        query["product_id"] = product_id
+    if from_date or to_date:
+        rng: dict = {}
+        if from_date:
+            rng["$gte"] = from_date
+        if to_date:
+            rng["$lte"] = to_date
+        query["created_at"] = rng
+
+    cursor = db.b2b_inventory_log.find(query, {"_id": 0}).sort("created_at", -1).limit(10000)
+    rows = await cursor.to_list(10000)
+
+    # Enrich with product name for the accountant view
+    product_names: dict = {}
+    if rows:
+        pids = list({r["product_id"] for r in rows if r.get("product_id")})
+        async for p in db.b2b_products.find(
+            {"id": {"$in": pids}}, {"_id": 0, "id": 1, "name": 1, "net_weight": 1}
+        ):
+            product_names[p["id"]] = f"{p.get('name')} ({p.get('net_weight')})"
+
+    buf = StringIO()
+    w = csv.writer(buf)
+    w.writerow([
+        "Date (UTC)", "Product ID", "Product Name", "Reason",
+        "Δ Pieces", "Before", "After", "Order ID", "Admin", "Note", "Entry ID",
+    ])
+    for r in rows:
+        w.writerow([
+            (r.get("created_at") or "").split("T")[0] + " " + (r.get("created_at") or "").split("T")[1][:8] if r.get("created_at") else "",
+            r.get("product_id") or "",
+            product_names.get(r.get("product_id"), ""),
+            r.get("reason") or "",
+            r.get("delta_pieces") or 0,
+            r.get("before") or 0,
+            r.get("after") or 0,
+            r.get("source_order_id") or "",
+            r.get("admin_email") or "",
+            (r.get("note") or "").replace("\n", " ").replace("\r", " "),
+            r.get("id") or "",
+        ])
+
+    csv_bytes = buf.getvalue().encode("utf-8")
+    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"addrika-inventory-log-{stamp}.csv"
+    return StreamingResponse(
+        iter([csv_bytes]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(csv_bytes)),
+        },
+    )
+
+
 @router.get("/{product_id}")
 async def admin_get_inventory(
     product_id: str,

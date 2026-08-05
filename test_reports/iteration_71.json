@@ -1,0 +1,41 @@
+{
+  "summary": "Iter 71 verification of (1) Admin Inventory-Log CSV export and (2) Retailer Rewards-Statement PDF. Backend: 10/10 pytest cases green (4 pre-existing unit + 6 new integration in test_iter71_csv_pdf_integration.py). Endpoints validated end-to-end via UI as well. Fixed one FastAPI route-ordering bug that caused GET /api/admin/b2b/inventory/log to return 404 ('Product not found') because it was being captured by the earlier-declared /{product_id} route. Reordered so /log and /log/export.csv are declared before /{product_id}. Also flagged a spec-violation UX bug in the retailer rewards page: the Download-Statement button is disabled when the ledger is empty, which contradicts the spec (empty ledger must still yield a valid PDF with '— No ledger entries yet —' row). Backend supports empty ledger correctly (validated via test_statement_returns_valid_pdf_bytes_for_empty_ledger + direct hit with a fresh retailer session that has 0 entries — got a 3.4 kB %PDF/%%EOF file). Frontend end-to-end flow works when at least one ledger entry exists (3474-byte PDF downloaded via UI click). Admin CSV UI works: header row matches spec exactly, filename addrika-inventory-log-<stamp>.csv, at least one data row present, ProductName column enriched with 'Name (weight)' pattern (e.g. 'Bold Bakhoor (50g)'). Anonymous callers get 401 on both endpoints as expected.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/admin/b2b/inventory/log", "issue": "Was shadowed by GET /{product_id} due to declaration order — returned 404 'Product not found'. FIXED by moving the /log and /log/export.csv route definitions above /{product_id} in routers/admin/admin_b2b_inventory.py. Note: /log/export.csv accidentally worked because /{product_id} only captures single-segment paths."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "app/retailer/b2b/rewards/page.js", "issue": "Download-Statement button is disabled={downloading || entries.length === 0}. Empty-ledger retailers cannot download a statement, contradicting the spec ('Empty ledger should still produce a valid PDF'). Backend/renderer already handle 0-entry ledger correctly. Fix: drop the `entries.length === 0` clause so the button stays enabled once auth+data have loaded.", "selector": "[data-testid=\"rewards-download-statement-btn\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter71_csv_pdf_integration.py",
+    "/app/backend/tests/test_stock_csv_rewards_pdf.py",
+    "/app/test_reports/pytest/iter71_results.xml"
+  ],
+  "action_items": [
+    "Frontend: remove `|| entries.length === 0` from the disabled expression on the rewards-download-statement-btn so empty-ledger retailers can still generate a PDF (per spec).",
+    "(Done by tester) Backend route reordering in admin_b2b_inventory.py — no further action needed but review the diff."
+  ],
+  "critical_code_review_comments": [
+    "FastAPI route ordering is fragile — recommend moving static segments (/log, /export.csv, /low-stock/*, /nudges/*, /restock-nudges/*) above any /{path_param} routes as a codebase-wide convention. Currently /{product_id}/status and /{product_id}/log still work because they have a second segment, but adding a future top-level /status or /log/<x> could regress.",
+    "The datetime split in admin_inventory_log_csv (line ~163: `(r.get('created_at') or '').split('T')[0] + ' ' + (r.get('created_at') or '').split('T')[1][:8]`) will IndexError on any log row whose created_at is not ISO-8601 with a 'T'. Guard with a try/except or use datetime.fromisoformat.",
+    "Rewards-statement PDF endpoint sorts ledger newest-first (`sort('earned_at', -1)`), but the spec calls for a 'full chronological ledger table with running balance column'. Chronological usually means oldest→newest so the running balance can accumulate. Confirm intent with main agent — if oldest-first is expected, the renderer needs to reverse the list or the query direction needs to flip."
+  ],
+  "updated_files": [
+    "/app/backend/routers/admin/admin_b2b_inventory.py (reordered /log routes above /{product_id})",
+    "/app/backend/tests/test_iter71_csv_pdf_integration.py (new — 6 integration cases)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "90% (button correctly renders and streams the PDF, but disabled for empty-ledger case per UI bug above)"},
+  "test_credentials": "Admin: contact.us@centraders.com / PIN 050499 (2FA OTP fetched from db.admin_2fa_tokens). Retailer: minted a direct session for RTL_DELHI001 (active retailer already in DB) by inserting into db.retailer_sessions — retailer login flow via password is out-of-scope; the endpoint-under-test only cares about the retailer_session cookie.",
+  "seed_data_creation": "Cleaned up: inserted one temp rewards_ledger row (retailer=RTL_DELHI001, kind=earn, amount=250, note='iter71 UI test seed') to bypass the button-disabled bug and verify the E2E download; deleted after test. Also deleted the temp retailer_session. No persistent test data left behind.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The two new endpoints (GET /api/admin/b2b/inventory/log/export.csv and GET /api/fragrance-rewards/statement.pdf) are green. If retest is required after main agent flips the button-disabled logic, just repeat the E2E flow with an empty-ledger retailer and confirm the button is clickable and returns a >500 B PDF (renderer emits '— No ledger entries yet —' row). Admin auth: POST /api/admin/login/initiate then /api/admin/login/verify-otp (OTP from db.admin_2fa_tokens). Retailer auth: mint db.retailer_sessions row directly (retailer login via password is disabled without a bcrypt hash in DB).",
+  "rca of the issue": "FastAPI resolves routes in registration order. `/{product_id}` was registered before `/log`, so any GET /log request matched the parameter route with product_id='log' → 404 Product not found. This only affected /log (list); /log/export.csv accidentally escaped because a two-segment path can't match a single-segment `/{product_id}` template. Mitigation: static path segments must be declared before parameterized ones. Applied fix in admin_b2b_inventory.py."
+}

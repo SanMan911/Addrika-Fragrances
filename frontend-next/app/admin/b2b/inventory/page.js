@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Boxes, Plus, Minus, RefreshCw, History, Package, AlertTriangle, Send, Sparkles } from 'lucide-react';
+import { ArrowLeft, Boxes, Plus, Minus, RefreshCw, History, Package, AlertTriangle, Send, Sparkles, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../../layout';
 import NudgeComposerModal from '../../../../components/NudgeComposerModal';
@@ -79,6 +79,26 @@ export default function AdminB2BInventoryPage() {
     setSendingDigest(false);
   };
 
+  const downloadLogCsv = async () => {
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/b2b/inventory/log/export.csv`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.download = `addrika-inventory-log-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Inventory log downloaded');
+    } catch (e) {
+      toast.error(e.message || 'Export failed');
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="admin-b2b-inventory">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -96,6 +116,14 @@ export default function AdminB2BInventoryPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+        <button
+          onClick={downloadLogCsv}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:opacity-90 text-sm"
+          data-testid="export-inventory-csv-btn"
+          title="Download the full change-log for accountants + audits"
+        >
+          <Download size={14} /> Export Log (CSV)
+        </button>
         <button
           onClick={() => setComposerOpen(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-fuchsia-100 dark:bg-fuchsia-900/40 text-fuchsia-800 dark:text-fuchsia-300 hover:bg-fuchsia-200"
