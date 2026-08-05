@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Award, ArrowUpRight, ArrowDownLeft, Sparkles, Info, Clock } from 'lucide-react';
+import { ArrowLeft, Award, ArrowUpRight, ArrowDownLeft, Sparkles, Info, Clock, Download } from 'lucide-react';
 import { useRetailerAuth } from '../../../../context/RetailerAuthContext';
 import RewardsBalanceCard from '../../../../components/RewardsBalanceCard';
 
@@ -24,6 +24,28 @@ export default function RetailerRewardsHistoryPage() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadStatement = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/fragrance-rewards/statement.pdf`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `addrika-rewards-statement.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('statement download failed', e);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (authLoading || !retailer) return;
@@ -56,18 +78,28 @@ export default function RetailerRewardsHistoryPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8 px-4" data-testid="rewards-history-page">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <Link href="/retailer/b2b" className="text-slate-500 hover:text-slate-800" data-testid="link-back-b2b">
-            <ArrowLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <Award size={24} className="text-amber-600" /> Fragrance Rewards
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Every earn, redeem, adjustment and expiration on your account.
-            </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link href="/retailer/b2b" className="text-slate-500 hover:text-slate-800" data-testid="link-back-b2b">
+              <ArrowLeft size={20} />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <Award size={24} className="text-amber-600" /> Fragrance Rewards
+              </h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Every earn, redeem, adjustment and expiration on your account.
+              </p>
+            </div>
           </div>
+          <button
+            onClick={downloadStatement}
+            disabled={downloading || entries.length === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2B3A4A] hover:bg-[#1e3a52] text-white text-sm font-medium disabled:opacity-50"
+            data-testid="rewards-download-statement-btn"
+          >
+            <Download size={14} /> {downloading ? 'Preparing…' : 'Download Statement (PDF)'}
+          </button>
         </div>
 
         {/* Balance card */}

@@ -88,6 +88,39 @@ async def retailer_view_ledger(request: Request, limit: int = 100):
     }
 
 
+@router.get("/statement.pdf")
+async def retailer_download_statement(request: Request):
+    """Downloadable PDF statement of every earn / redeem / adjust / expire
+    line item with a running balance — for the retailer's bookkeeping."""
+    from fastapi.responses import StreamingResponse
+    rid = await _current_retailer_id(request)
+
+    retailer = await db.retailers.find_one(
+        {"retailer_id": rid},
+        {"_id": 0, "password_hash": 0},
+    ) or {"retailer_id": rid}
+
+    cursor = db.rewards_ledger.find(
+        {"retailer_id": rid}, {"_id": 0}
+    ).sort("earned_at", -1).limit(2000)
+    ledger = await cursor.to_list(2000)
+
+    from services.b2b_rewards_pdf import build_rewards_statement_pdf
+    pdf_bytes = build_rewards_statement_pdf(retailer, ledger)
+
+    from datetime import datetime as _dt
+    stamp = _dt.utcnow().strftime("%Y%m%d")
+    filename = f"addrika-rewards-{rid}-{stamp}.pdf"
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(pdf_bytes)),
+        },
+    )
+
+
 @router.get("/admin/{retailer_id}/ledger")
 async def admin_view_ledger(
     retailer_id: str, request: Request, session_token: Optional[str] = Cookie(None)
