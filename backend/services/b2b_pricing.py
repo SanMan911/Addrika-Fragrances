@@ -134,6 +134,7 @@ async def calculate_b2b_order(
     apply_cash_discount: bool = False,
     voucher_code: Optional[str] = None,
     credit_note_code: Optional[str] = None,
+    is_preorder: bool = False,
 ) -> dict:
     """Compute the full price breakdown for a B2B order.
 
@@ -179,15 +180,22 @@ async def calculate_b2b_order(
         requested_pieces = int(round(float(item.quantity_boxes) * ppc))
 
         if current_status != "in_stock" or stock_pieces <= 0:
-            eta = int(product.get("restock_eta_days") or 15)
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"'{product.get('name')}' is currently unavailable "
-                    f"(Restocking in Progress · Available ETA {eta} days)."
-                ),
-            )
-        if requested_pieces > stock_pieces:
+            # Pre-order flow: OK to book against out-of-stock SKUs — retailer
+            # pays 50% token and is added to the Next Production Batch queue.
+            if is_preorder:
+                pass  # skip the block
+            else:
+                eta = int(product.get("restock_eta_days") or 15)
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"'{product.get('name')}' is currently unavailable "
+                        f"(Restocking in Progress · Available ETA {eta} days)."
+                    ),
+                )
+        elif requested_pieces > stock_pieces:
+            # In-stock path only — pre-orders don't hit this branch since
+            # there's no stock to compare against.
             max_boxes = round(stock_pieces / ppc, 2) if ppc else 0
             raise HTTPException(
                 status_code=400,

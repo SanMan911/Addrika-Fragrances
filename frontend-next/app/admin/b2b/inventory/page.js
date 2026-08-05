@@ -36,6 +36,10 @@ export default function AdminB2BInventoryPage() {
   const [historyRows, setHistoryRows] = useState([]);
   const [sendingDigest, setSendingDigest] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [csvFilterOpen, setCsvFilterOpen] = useState(false);
+  const [csvProductId, setCsvProductId] = useState('');
+  const [csvFrom, setCsvFrom] = useState('');
+  const [csvTo, setCsvTo] = useState('');
 
   const fetchInventory = useCallback(async () => {
     setLoading(true);
@@ -81,7 +85,12 @@ export default function AdminB2BInventoryPage() {
 
   const downloadLogCsv = async () => {
     try {
-      const res = await authFetch(`${API_URL}/api/admin/b2b/inventory/log/export.csv`);
+      const qs = new URLSearchParams();
+      if (csvProductId) qs.set('product_id', csvProductId);
+      if (csvFrom) qs.set('from_date', csvFrom);
+      if (csvTo) qs.set('to_date', csvTo);
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      const res = await authFetch(`${API_URL}/api/admin/b2b/inventory/log/export.csv${suffix}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -94,6 +103,7 @@ export default function AdminB2BInventoryPage() {
       a.remove();
       URL.revokeObjectURL(url);
       toast.success('Inventory log downloaded');
+      setCsvFilterOpen(false);
     } catch (e) {
       toast.error(e.message || 'Export failed');
     }
@@ -117,7 +127,7 @@ export default function AdminB2BInventoryPage() {
         </div>
         <div className="flex items-center gap-2">
         <button
-          onClick={downloadLogCsv}
+          onClick={() => setCsvFilterOpen((v) => !v)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:opacity-90 text-sm"
           data-testid="export-inventory-csv-btn"
           title="Download the full change-log for accountants + audits"
@@ -150,6 +160,61 @@ export default function AdminB2BInventoryPage() {
         </button>
         </div>
       </div>
+
+      {csvFilterOpen && (
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4"
+          data-testid="csv-filter-panel">
+          <div className="text-sm font-semibold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+            <Download size={14} /> Slice the audit trail before download
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                Product (optional)
+              </label>
+              <select
+                value={csvProductId}
+                onChange={(e) => setCsvProductId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-sm"
+                data-testid="csv-filter-product"
+              >
+                <option value="">All products</option>
+                {items.map((it) => (
+                  <option key={it.id} value={it.id}>{it.name} · {it.net_weight}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">From (date)</label>
+              <input
+                type="date" value={csvFrom} onChange={(e) => setCsvFrom(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-sm"
+                data-testid="csv-filter-from"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">To (date)</label>
+              <input
+                type="date" value={csvTo} onChange={(e) => setCsvTo(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-sm"
+                data-testid="csv-filter-to"
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={downloadLogCsv}
+                className="w-full px-4 py-2 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium hover:opacity-90"
+                data-testid="csv-download-btn"
+              >
+                Download CSV
+              </button>
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-2">
+            Tip: leave filters blank for the full log. Dates use YYYY-MM-DD (server compares against `created_at` ISO strings).
+          </p>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-16 text-slate-500">Loading inventory…</div>

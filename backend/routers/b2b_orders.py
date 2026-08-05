@@ -154,6 +154,10 @@ class B2BOrderCreate(BaseModel):
     include_shipping: bool = True
     # Fragrance Rewards redemption (₹). Server clamps to eligible amount.
     redeem_rewards_inr: Optional[float] = None
+    # Pre-order flow — retailer books an out-of-stock SKU with 50% token.
+    # Server validates: at least one item is preorder-eligible + terms accepted.
+    is_preorder: bool = False
+    accept_preorder_terms: bool = False
 
 
 class ShippingQuoteRequest(BaseModel):
@@ -207,7 +211,22 @@ async def calculate_b2b_order(
         apply_cash_discount=order_data.apply_cash_discount,
         voucher_code=order_data.voucher_code,
         credit_note_code=order_data.credit_note_code,
+        is_preorder=order_data.is_preorder,
     )
+
+    # Pre-order flow — validate terms + compute 50% token
+    if order_data.is_preorder:
+        if not order_data.accept_preorder_terms:
+            raise HTTPException(
+                status_code=400,
+                detail="Pre-Order terms must be accepted (non-refundable, non-cancellable, no CNs, seal-intact exchange only, damage-at-delivery-only).",
+            )
+        from services.b2b_preorder import token_amount_for, TERMS_VERSION, TERMS_TEXT
+        calc["is_preorder"] = True
+        calc["token_amount_inr"] = token_amount_for(float(calc.get("grand_total", 0)))
+        calc["balance_due_inr"] = round(float(calc.get("grand_total", 0)) - calc["token_amount_inr"], 2)
+        calc["terms_version"] = TERMS_VERSION
+        calc["terms_text"] = TERMS_TEXT
 
     if shipping_quote:
         ship = float(shipping_quote.get("shipping_charges") or 0)
@@ -322,6 +341,13 @@ async def create_b2b_order(
         "rewards_redeemed_inr": float(calculation.get("rewards_redeemed_inr") or 0),
         "rewards_redemption_preview": calculation.get("rewards_redemption"),
         "grand_total": calculation["grand_total"],
+        # Pre-order fields (only meaningful if is_preorder=True)
+        "is_preorder": bool(calculation.get("is_preorder")),
+        "token_amount_inr": float(calculation.get("token_amount_inr") or 0),
+        "balance_due_inr": float(calculation.get("balance_due_inr") or 0),
+        "terms_version": calculation.get("terms_version"),
+        "terms_text": calculation.get("terms_text"),
+        "terms_accepted_at": now.isoformat() if calculation.get("is_preorder") else None,
         "payment_method": "online" if order_data.apply_cash_discount or order_data.voucher_code else "credit",
         "payment_status": "pending",
         "razorpay_order_id": None,
@@ -339,27 +365,35 @@ async def create_b2b_order(
     
     # Create Razorpay order if payment required
     razorpay_order = None
-    if calculation["grand_total"] > 0 and order["payment_method"] == "online":
+    # For pre-orders we charge ONLY the 50% token, not the full grand_total.
+    charge_amount = (
+        float(order.get("token_amount_inr") or 0)
+        if order.get("is_preorder")
+        else float(calculation["grand_total"])
+    )
+    if charge_amount > 0 and (order["payment_method"] == "online" or order.get("is_preorder")):
         try:
             import razorpay
             import os
-            
+
             client = razorpay.Client(auth=(
                 os.environ.get("RAZORPAY_KEY_ID"),
                 os.environ.get("RAZORPAY_KEY_SECRET")
             ))
-            
+
             razorpay_order = client.order.create({
-                "amount": int(calculation["grand_total"] * 100),  # Razorpay expects paise
+                "amount": int(round(charge_amount * 100)),  # Razorpay expects paise
                 "currency": "INR",
                 "receipt": order_id,
                 "notes": {
                     "order_id": order_id,
                     "retailer_id": retailer["retailer_id"],
-                    "order_type": "B2B"
+                    "order_type": "B2B-PREORDER" if order.get("is_preorder") else "B2B",
+                    "charge_type": "token" if order.get("is_preorder") else "full",
                 }
             })
             order["razorpay_order_id"] = razorpay_order["id"]
+            order["razorpay_charge_amount"] = charge_amount
         except Exception as e:
             logger.error(f"Razorpay order creation failed: {str(e)}")
             # Continue without online payment
@@ -880,5 +914,38 @@ async def retailer_download_invoice(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f'inline; filename="invoice-{order_id}.pdf"'
+        },
+    )
+
+
+@router.get("/orders/{order_id}/preorder-receipt.pdf")
+async def retailer_download_preorder_receipt(
+    order_id: str,
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Downloadable Pre-Order receipt (token acknowledgement + legal terms
+    + signature line). Only pre-orders qualify — regular invoices ship
+    via `/invoice.pdf`."""
+    await require_b2b_enabled()
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    order = await db.b2b_orders.find_one(
+        {"order_id": order_id, "retailer_id": retailer["retailer_id"]},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if not order.get("is_preorder"):
+        raise HTTPException(status_code=400, detail="This order is not a pre-order")
+
+    from services.b2b_preorder_pdf import build_preorder_receipt_pdf
+    pdf_bytes = build_preorder_receipt_pdf(order, retailer)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="preorder-receipt-{order_id}.pdf"'
         },
     )

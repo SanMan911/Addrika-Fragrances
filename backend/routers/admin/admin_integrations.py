@@ -28,6 +28,7 @@ SLOTS = {
     "shiprocket_email":      ("SHIPROCKET_EMAIL",       "Shiprocket login email",           "shipping"),
     "shiprocket_password":   ("SHIPROCKET_PASSWORD",    "Shiprocket password",              "shipping"),
     "shiprocket_pickup_pin": ("SHIPROCKET_PICKUP_PIN",  "Default pickup pincode",           "shipping"),
+    "accountant_email":      ("ACCOUNTANT_EMAIL",       "Accountant CC for monthly rewards digest (optional)", "bookkeeping"),
 
     # Payments
     "razorpay_key_id":       ("RAZORPAY_KEY_ID",        "Razorpay key ID",                  "payments"),
