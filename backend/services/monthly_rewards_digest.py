@@ -20,13 +20,22 @@ def _now() -> datetime:
 
 
 async def _accountant_email(db) -> str | None:
-    """Platform-wide accountant CC configured via the admin integrations panel."""
+    """Platform-wide accountant CC configured via the admin integrations panel.
+    Used as a fallback when a retailer has not set a per-account accountant."""
     try:
         from routers.admin.admin_integrations import get_effective
         e = (await get_effective("accountant_email") or "").strip()
         return e or None
     except Exception:
         return None
+
+
+def _accountant_email_for_retailer(retailer: dict, platform_default: str | None) -> str | None:
+    """Prefer the retailer's own accountant email; fall back to platform default."""
+    personal = str(retailer.get("accountant_email") or "").strip()
+    if personal and "@" in personal:
+        return personal
+    return platform_default
 
 
 async def send_statement_to_retailer(db, retailer: dict) -> dict:
@@ -66,7 +75,7 @@ async def send_statement_to_retailer(db, retailer: dict) -> dict:
     </body></html>
     """
 
-    cc = await _accountant_email(db)
+    cc = _accountant_email_for_retailer(retailer, await _accountant_email(db))
     ok = await send_email(
         to_email=retailer["email"],
         subject=f"Addrika · Fragrance Rewards Statement · {month_label}",
@@ -100,7 +109,8 @@ async def run_monthly_digest(db, *, force: bool = False) -> dict:
     cursor = db.retailers.find(
         {}, {"_id": 0, "retailer_id": 1, "email": 1, "business_name": 1,
              "trade_name": 1, "gst_number": 1, "phone": 1,
-             "address_line1": 1, "city": 1, "state": 1, "pincode": 1}
+             "address_line1": 1, "city": 1, "state": 1, "pincode": 1,
+             "accountant_email": 1}
     )
     total = 0
     failed = 0

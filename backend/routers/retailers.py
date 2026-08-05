@@ -246,6 +246,9 @@ class RetailerUpdateRequest(BaseModel):
     is_addrika_verified_partner: Optional[bool] = None  # "Addrika Verified Partner" badge
     retailer_label: Optional[str] = None  # "top_retailer_month", "star_retailer_quarter", etc.
     label_period: Optional[str] = None  # e.g., "March 2026", "Q1 2026"
+
+    # Bookkeeping — per-retailer accountant CC for the Monthly Rewards Digest
+    accountant_email: Optional[str] = None
     
     @field_validator('business_name', 'trade_name', 'city', 'district', 'state', 'spoc_name', 'spoc_designation', mode='before')
     @classmethod
@@ -286,7 +289,8 @@ async def admin_update_retailer(
         'business_name', 'trade_name', 'gst_number', 'email', 'phone', 'whatsapp',
         'registered_address', 'city', 'district', 'state', 'pincode', 'coordinates',
         'status', 'suspended_reason', 'is_verified', 'gst_verified',
-        'is_addrika_verified_partner', 'retailer_label', 'label_period'
+        'is_addrika_verified_partner', 'retailer_label', 'label_period',
+        'accountant_email',
     ]
     
     for field in direct_fields:

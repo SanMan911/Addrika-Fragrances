@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Boxes, Plus, Minus, RefreshCw, History, Package, AlertTriangle, Send, Sparkles, Download } from 'lucide-react';
+import { ArrowLeft, Boxes, Plus, Minus, RefreshCw, History, Package, AlertTriangle, Send, Sparkles, Download, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../../layout';
 import NudgeComposerModal from '../../../../components/NudgeComposerModal';
@@ -40,6 +40,16 @@ export default function AdminB2BInventoryPage() {
   const [csvProductId, setCsvProductId] = useState('');
   const [csvFrom, setCsvFrom] = useState('');
   const [csvTo, setCsvTo] = useState('');
+  const [syncHealth, setSyncHealth] = useState(null);
+  const [syncPanelOpen, setSyncPanelOpen] = useState(false);
+
+  const fetchSyncHealth = useCallback(async () => {
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/b2b/inventory/sync-health`);
+      if (!res.ok) return;
+      setSyncHealth(await res.json());
+    } catch (e) { /* silent */ }
+  }, []);
 
   const fetchInventory = useCallback(async () => {
     setLoading(true);
@@ -56,7 +66,7 @@ export default function AdminB2BInventoryPage() {
     }
   }, []);
 
-  useEffect(() => { fetchInventory(); }, [fetchInventory]);
+  useEffect(() => { fetchInventory(); fetchSyncHealth(); }, [fetchInventory, fetchSyncHealth]);
 
   const openHistory = async (id) => {
     setHistoryFor(id);
@@ -119,6 +129,26 @@ export default function AdminB2BInventoryPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
               <Boxes size={24} className="text-purple-600" /> B2B Inventory
+              {syncHealth && (
+                <button
+                  type="button"
+                  onClick={() => setSyncPanelOpen(true)}
+                  className={`ml-1 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${
+                    syncHealth.healthy
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                      : 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300 animate-pulse'
+                  }`}
+                  data-testid="sync-health-pill"
+                  title={
+                    syncHealth.healthy
+                      ? 'Every B2C size has a linked B2B SKU. Storefront and wholesale inventory are in lock-step.'
+                      : `${syncHealth.counts.drifted} product(s) with missing B2B SKUs. Click for details.`
+                  }
+                >
+                  {syncHealth.healthy ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                  {syncHealth.healthy ? 'Sync OK' : `${syncHealth.counts.drifted} drifted`}
+                </button>
+              )}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Piece-level stock &middot; Bakhoor/Dhoop 32/carton &middot; Agarbatti Jar 16/carton &middot; Agarbatti packets 12/dozen &middot; deducts on paid orders
@@ -309,6 +339,72 @@ export default function AdminB2BInventoryPage() {
         onClose={() => setComposerOpen(false)}
         products={items}
       />
+
+      {syncPanelOpen && syncHealth && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setSyncPanelOpen(false)}>
+          <div
+            className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="sync-health-panel"
+          >
+            <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  {syncHealth.healthy ? (
+                    <><CheckCircle2 size={20} className="text-emerald-600" /> Storefront ↔ Wholesale sync is healthy</>
+                  ) : (
+                    <><XCircle size={20} className="text-rose-600" /> Sync drift detected</>
+                  )}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  {syncHealth.counts.b2c_products} B2C products · {syncHealth.counts.b2b_skus} B2B SKUs · {syncHealth.counts.in_sync} in sync
+                </p>
+              </div>
+              <button onClick={() => setSyncPanelOpen(false)} className="text-slate-400 hover:text-slate-600">
+                ✕
+              </button>
+            </div>
+            <div className="p-5 space-y-4 text-sm">
+              {syncHealth.drift.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-rose-700 dark:text-rose-300 mb-2">Missing B2B SKUs ({syncHealth.drift.length})</h4>
+                  <ul className="space-y-2">
+                    {syncHealth.drift.map((d) => (
+                      <li key={d.product_id} className="bg-rose-50 dark:bg-rose-900/20 rounded p-2">
+                        <div className="font-medium text-slate-800 dark:text-white">{d.name}</div>
+                        <div className="text-xs text-slate-500">Missing size(s): {d.missing_sizes.join(', ')}</div>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Fix: open <b>Admin → Products</b>, edit the product and hit Save. The linked B2B SKU is auto-created from the B2C definition.
+                  </p>
+                </div>
+              )}
+              {syncHealth.orphaned.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-amber-700 dark:text-amber-300 mb-2">Orphaned B2B SKUs ({syncHealth.orphaned.length})</h4>
+                  <p className="text-xs text-slate-500 mb-2">
+                    These wholesale SKUs have no matching B2C product. Usually harmless (wholesale-only variants like the Ready-to-Use Dhoop packs) — flagged so you can spot true leftovers.
+                  </p>
+                  <ul className="space-y-1 text-xs">
+                    {syncHealth.orphaned.map((o) => (
+                      <li key={o.id} className="text-slate-600 dark:text-slate-300">
+                        <span className="font-mono">{o.id}</span> — {o.name} · {o.net_weight}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {syncHealth.healthy && (
+                <p className="text-emerald-700 dark:text-emerald-300 text-sm">
+                  Every B2C storefront size has a matching wholesale SKU. New sales on either channel deduct from the same pool.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

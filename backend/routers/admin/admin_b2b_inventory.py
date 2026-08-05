@@ -8,6 +8,7 @@ Endpoints:
 """
 from __future__ import annotations
 
+import logging
 from typing import Optional, List
 
 from fastapi import APIRouter, Cookie, HTTPException, Request
@@ -22,6 +23,8 @@ from services.b2b_inventory import (
     DEFAULT_PIECES_PER_CARTON,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/admin/b2b/inventory", tags=["Admin B2B Inventory"])
 
 
@@ -34,6 +37,73 @@ async def admin_list_inventory(
         "default_pieces_per_carton": DEFAULT_PIECES_PER_CARTON,
         "items": await list_stock(db),
     }
+
+
+@router.get("/sync-health")
+async def admin_inventory_sync_health(
+    request: Request, session_token: Optional[str] = Cookie(None),
+):
+    """Cross-check every B2C `products` size against `b2b_products` and
+    flag drift so the admin knows immediately when a B2C SKU is missing
+    from the wholesale catalog (which would silently break the shared
+    inventory pool and the brochure PDF).
+
+    Returns per-product buckets:
+        ok        — every B2C size has a matching B2B SKU
+        drift     — one or more sizes have NO linked B2B SKU
+        orphaned  — B2B SKUs whose product_id no longer exists in B2C
+    """
+    await require_admin(request, session_token)
+
+    b2c = await db.products.find({}, {"_id": 0}).to_list(500)
+    b2b = await db.b2b_products.find(
+        {}, {"_id": 0, "id": 1, "product_id": 1, "name": 1, "net_weight": 1}
+    ).to_list(1000)
+
+    b2b_lookup: dict[str, set[str]] = {}
+    for row in b2b:
+        b2b_lookup.setdefault(
+            (row.get("product_id") or "").lower(), set()
+        ).add((row.get("net_weight") or "").lower().strip())
+
+    ok, drift = [], []
+    for p in b2c:
+        pid = p["id"]
+        sizes = p.get("sizes") or []
+        missing = [
+            s.get("size") for s in sizes
+            if (s.get("size") or "").lower().strip()
+            not in b2b_lookup.get(pid.lower(), set())
+        ]
+        entry = {
+            "product_id": pid, "name": p.get("name"),
+            "b2c_sizes": [s.get("size") for s in sizes],
+            "missing_sizes": missing,
+        }
+        (drift if missing else ok).append(entry)
+
+    b2c_ids = {p["id"].lower() for p in b2c}
+    orphaned = [
+        {"id": r["id"], "product_id": r.get("product_id"),
+         "name": r.get("name"), "net_weight": r.get("net_weight")}
+        for r in b2b
+        if (r.get("product_id") or "").lower() not in b2c_ids
+    ]
+
+    return {
+        "healthy": len(drift) == 0 and len(orphaned) == 0,
+        "counts": {
+            "b2c_products": len(b2c),
+            "b2b_skus": len(b2b),
+            "in_sync": len(ok),
+            "drifted": len(drift),
+            "orphaned": len(orphaned),
+        },
+        "ok": ok,
+        "drift": drift,
+        "orphaned": orphaned,
+    }
+
 
 
 @router.get("/log")
@@ -420,6 +490,9 @@ async def admin_set_stock_status(
     admin = await require_admin(request, session_token)
     from services.b2b_inventory import set_stock_status
     from services.b2b_catalog import refresh_b2b_catalog
+    # Snapshot the previous status so we can detect the out→in_stock flip
+    prev = await db.b2b_products.find_one({"id": product_id}, {"_id": 0, "stock_status": 1})
+    prev_status = (prev or {}).get("stock_status")
     try:
         result = await set_stock_status(
             db,
@@ -433,4 +506,12 @@ async def admin_set_stock_status(
         raise HTTPException(status_code=400, detail=str(e))
     # Refresh the in-memory cache so the next catalog read reflects the change
     await refresh_b2b_catalog(db)
+    # Fire "Batch Ready" nudge when the SKU comes BACK into stock
+    if body.status == "in_stock" and prev_status and prev_status != "in_stock":
+        try:
+            from services.b2b_batch_ready_nudge import notify_batch_ready
+            nudge_result = await notify_batch_ready(db, product_id)
+            result["batch_ready_nudge"] = nudge_result
+        except Exception as e:
+            logger.warning("batch-ready nudge failed for %s: %s", product_id, e)
     return result

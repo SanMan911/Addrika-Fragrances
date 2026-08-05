@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
+import ImageDropUploader from '../../../components/ImageDropUploader';
 
 const API_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -106,11 +107,21 @@ function SizeEditor({ sizes, onChange }) {
             />
           </div>
           <textarea
-            placeholder="Image URLs (one per line)"
+            placeholder="Image URLs (one per line — or drop images below)"
             value={(s.images || []).join('\n')}
             onChange={(e) => updateSizeImages(idx, e.target.value)}
             rows={2}
             className="w-full px-2 py-1.5 text-sm rounded bg-slate-700 border border-slate-600 text-white resize-none"
+          />
+          <ImageDropUploader
+            compact
+            label="Drop an image for this variant"
+            testid={`size-image-drop-${idx}`}
+            onUploaded={(url) => {
+              if (!url) return;
+              const current = s.images || [];
+              updateSize(idx, 'images', [...current, url]);
+            }}
           />
         </div>
       ))}
@@ -294,12 +305,18 @@ function ProductFormModal({ product, onClose, onSaved }) {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-300 mb-1 block">Primary Image URL</label>
+              <label className="text-sm font-medium text-slate-300 mb-1 block">Primary Image</label>
+              <ImageDropUploader
+                initial={form.image}
+                testid="product-image-dropzone"
+                onUploaded={(url) => setForm({ ...form, image: url })}
+                label="Drop the hero shot or click to browse"
+              />
               <input
                 value={form.image}
                 onChange={(e) => setForm({ ...form, image: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white"
-                placeholder="https://..."
+                className="w-full mt-2 px-3 py-1.5 text-xs rounded-lg bg-slate-700/60 border border-slate-600 text-slate-300"
+                placeholder="…or paste a URL"
                 data-testid="product-image-input"
               />
             </div>

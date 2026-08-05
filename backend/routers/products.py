@@ -1,5 +1,6 @@
 """Products and cart routes — reads from MongoDB with in-memory cache"""
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 from datetime import datetime, timezone
 
 from models.ecommerce import CartItem
@@ -608,3 +609,29 @@ async def clear_cart(session_id: str):
         "pricing": calculate_pricing([]),
         "message": "Cart cleared"
     }
+
+
+
+# ---------------------------------------------------------------------------
+# Product image proxy — pulled from Emergent object storage.
+# Kept public so <img src="/api/products/asset/{id}"> just works from any
+# surface (storefront, brochure, retailer catalog).
+# ---------------------------------------------------------------------------
+@router.get("/products/asset/{asset_id}")
+async def get_product_asset(asset_id: str):
+    from services.object_storage import get_object
+
+    record = await db.product_assets.find_one(
+        {"id": asset_id, "is_deleted": False}, {"_id": 0}
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    fetched = await get_object(record["storage_path"])
+    if not fetched:
+        raise HTTPException(status_code=502, detail="Failed to fetch asset")
+    data, ctype = fetched
+    return Response(
+        content=data,
+        media_type=record.get("content_type") or ctype,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
