@@ -94,8 +94,15 @@ async def admin_inventory_log_csv(
         "Δ Pieces", "Before", "After", "Order ID", "Admin", "Note", "Entry ID",
     ])
     for r in rows:
+        # Guard against non-ISO created_at rows so we never IndexError on a
+        # malformed audit entry — accountants must always get the full export.
+        ts_raw = r.get("created_at") or ""
+        if "T" in ts_raw:
+            ts_disp = ts_raw.split("T")[0] + " " + ts_raw.split("T")[1][:8]
+        else:
+            ts_disp = ts_raw
         w.writerow([
-            (r.get("created_at") or "").split("T")[0] + " " + (r.get("created_at") or "").split("T")[1][:8] if r.get("created_at") else "",
+            ts_disp,
             r.get("product_id") or "",
             product_names.get(r.get("product_id"), ""),
             r.get("reason") or "",
