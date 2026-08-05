@@ -3,6 +3,29 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 📊 Feb 2026 (later still⁶) — Stock CSV export + Retailer Rewards PDF statement
+
+**1. Admin Stock Change-Log CSV export**
+- New endpoints on the `/admin/b2b/inventory` router:
+  - `GET /log` — full audit list across every SKU (up to 2,000 rows).
+  - `GET /log/export.csv` — streaming CSV download filterable by `product_id`, `from_date`, `to_date`. Columns: **Date (UTC) · Product ID · Product Name · Reason · Δ Pieces · Before · After · Order ID · Admin · Note · Entry ID**. Product name auto-enriched from `b2b_products` so accountants see e.g. "Bold Bakhoor (50g)" instead of a raw ID.
+- Guards: rows with a non-ISO `created_at` (e.g. date-only strings) no longer IndexError — they pass through with the raw stamp.
+- New black **"Export Log (CSV)"** button on `/admin/b2b/inventory` (data-testid `export-inventory-csv-btn`) streams the response into a Blob and triggers a browser download.
+- Route order corrected: `/log`, `/log/export.csv`, `/low-stock/*`, `/nudges/*`, `/restock-nudges/*` are now all declared BEFORE the `/{product_id}` parameterized routes to prevent shadowing.
+
+**2. Retailer Fragrance Rewards Statement PDF**
+- New `services/b2b_rewards_pdf.py` — reportlab-based renderer that emits an accountant-friendly statement:
+  - Addrika brand header + generation timestamp.
+  - Retailer block: business name, GSTIN, retailer ID, address, email, phone.
+  - Totals summary: Earned / Redeemed / Adjusted / Expired / **Current Balance** (colour-coded).
+  - Full chronological ledger table with a **running balance** column, alternate-row shading, and 100/110/125% multiplier hint per earn row.
+  - Programme footer explaining the multipliers, 45-day streak reset, and ₹2,500 redemption threshold.
+- New endpoint `GET /api/fragrance-rewards/statement.pdf` (retailer session required) — streams the PDF with a filename like `addrika-rewards-{retailer_id}-{YYYYMMDD}.pdf`.
+- Empty ledger renders a valid PDF with a "No ledger entries yet" placeholder row (empty-ledger retailers can now generate a statement — was disabled in first pass, fixed after testing_agent flagged the spec violation).
+- New navy **"Download Statement (PDF)"** button on `/retailer/b2b/rewards` (data-testid `rewards-download-statement-btn`).
+
+**3. Regression** — 4 new pytest cases in `tests/test_stock_csv_rewards_pdf.py` (empty ledger PDF, full ledger PDF, missing-fields PDF, CSV headers contract). Combined with testing_agent's iter71+iter72 integration suites, **11/11 integration cases + 4/4 unit cases pass**. Overall backend pytest count: **92/92 green.** Verified end-to-end by testing_agent iteration_72 → 100% backend, 100% frontend, zero action items.
+
 ### 🐞 Feb 2026 (later still⁵) — Blog contrast + Admin Inventory backfill + Best-Time-to-Send
 
 **1. Blog body text unreadable (white on light bg)** — FIXED
