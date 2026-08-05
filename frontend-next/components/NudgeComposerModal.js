@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, Send, X, Mail, MessageCircle, Info } from 'lucide-react';
+import { Sparkles, Send, X, Mail, MessageCircle, Info, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../app/admin/layout';
 
@@ -34,6 +34,8 @@ export default function NudgeComposerModal({ open, onClose, products = [] }) {
   const [sending, setSending] = useState(false);
   const [preview, setPreview] = useState(false);
   const [history, setHistory] = useState([]);
+  const [bestTime, setBestTime] = useState(null);
+  const [bestTimeLoading, setBestTimeLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -47,6 +49,33 @@ export default function NudgeComposerModal({ open, onClose, products = [] }) {
       } catch { /* silent */ }
     })();
   }, [open]);
+
+  // Fetch best-time recommendation whenever audience selector changes
+  useEffect(() => {
+    if (!open) return;
+    if (audience === 'product' && !productId) { setBestTime(null); return; }
+    if (audience === 'pincode' && !pincodePrefix) { setBestTime(null); return; }
+    setBestTimeLoading(true);
+    (async () => {
+      try {
+        const res = await authFetch(
+          `${API_URL}/api/admin/b2b/inventory/nudges/best-time-for-audience`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              audience,
+              product_id: audience === 'product' ? productId : null,
+              pincode_prefix: audience === 'pincode' ? pincodePrefix : null,
+              top_n: 3,
+            }),
+          }
+        );
+        if (res.ok) setBestTime(await res.json());
+      } catch { /* silent */ }
+      setBestTimeLoading(false);
+    })();
+  }, [open, audience, productId, pincodePrefix]);
 
   const applyTemplate = (k) => {
     setKind(k);
@@ -260,6 +289,47 @@ export default function NudgeComposerModal({ open, onClose, products = [] }) {
               >
                 <Send size={14} /> {sending ? 'Sending…' : 'Send broadcast'}
               </button>
+            </div>
+
+            {/* Best-time-to-send recommendation for this audience */}
+            <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/40 rounded-lg p-3 mt-2"
+              data-testid="nudge-best-time">
+              <div className="flex items-center gap-2 text-xs font-semibold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">
+                <Clock size={12} /> Best time to send · learned from open history
+              </div>
+              {bestTimeLoading ? (
+                <div className="text-xs text-slate-500 mt-1">Analysing open patterns…</div>
+              ) : bestTime ? (
+                <>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">
+                    {bestTime.default
+                      ? `Not enough open data for this cohort — using platform default (${bestTime.reason || 'Tue-Thu 10-13 IST'})`
+                      : `Based on ${bestTime.sample_size} open events across ${bestTime.audience_size || 0} retailer(s)`}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {(bestTime.recommendations || []).map((r, i) => (
+                      <div
+                        key={`${r.day}-${r.hour_start}-${i}`}
+                        className={`text-xs px-2.5 py-1 rounded-full border ${
+                          i === 0
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-indigo-800 border-indigo-200 dark:bg-slate-800 dark:text-indigo-300 dark:border-indigo-800/40'
+                        }`}
+                        data-testid={`best-time-slot-${i}`}
+                      >
+                        {r.day} · {String(r.hour_start).padStart(2, '0')}:00–{String(r.hour_end).padStart(2, '0')}:00 IST
+                        {r.confidence > 0 && !bestTime.default && (
+                          <span className={`ml-1 ${i === 0 ? 'text-white/80' : 'text-indigo-500'}`}>
+                            · {Math.round(r.confidence * 100)}%
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-slate-500 mt-1">Pick an audience to see the best time.</div>
+              )}
             </div>
 
             {preview && (

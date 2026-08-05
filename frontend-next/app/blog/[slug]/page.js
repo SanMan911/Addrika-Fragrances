@@ -189,7 +189,8 @@ export default async function BlogPostPage({ params }) {
 
           {/* Content */}
           <div 
-            className="prose prose-lg max-w-none prose-headings:text-[#2B3A4A] prose-a:text-[#D4AF37]"
+            className="prose prose-lg max-w-none prose-headings:text-[#2B3A4A] prose-a:text-[#D4AF37] prose-p:text-[#2B3A4A] prose-li:text-[#2B3A4A] prose-strong:text-[#2B3A4A] prose-blockquote:text-[#2B3A4A]/80 text-[#2B3A4A]"
+            style={{ color: '#2B3A4A' }}
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 

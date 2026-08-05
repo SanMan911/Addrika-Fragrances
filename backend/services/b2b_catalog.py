@@ -303,16 +303,47 @@ async def refresh_b2b_catalog(db) -> int:
 
 
 async def seed_b2b_catalog(db) -> int:
-    """Idempotent first-run seed of the b2b_products collection."""
+    """Idempotent first-run seed of the b2b_products collection.
+
+    Also backfills newly-introduced fields (`category`, `stock_pieces`,
+    `stock_status`, `pieces_per_carton`) on rows that were seeded before
+    the carton-math + stock-status model existed — so existing deployments
+    show up correctly in the admin inventory dashboard after an upgrade.
+    """
     count = await db.b2b_products.count_documents({})
-    if count > 0:
-        logger.info(f"B2B catalog already seeded ({count} products)")
-        return 0
-    if not _SEED_PRODUCTS:
-        return 0
-    await db.b2b_products.insert_many([dict(p) for p in _SEED_PRODUCTS])
-    logger.info(f"Seeded {len(_SEED_PRODUCTS)} B2B products into MongoDB")
-    return len(_SEED_PRODUCTS)
+    if count == 0 and _SEED_PRODUCTS:
+        await db.b2b_products.insert_many([dict(p) for p in _SEED_PRODUCTS])
+        logger.info(f"Seeded {len(_SEED_PRODUCTS)} B2B products into MongoDB")
+        return len(_SEED_PRODUCTS)
+
+    # Backfill missing fields on existing rows (idempotent — sets only if unset)
+    backfilled = 0
+    for seed in _SEED_PRODUCTS:
+        updates: dict = {}
+        existing = await db.b2b_products.find_one({"id": seed["id"]}, {"_id": 0})
+        if not existing:
+            # Row not in DB — insert the whole seed row
+            await db.b2b_products.insert_one(dict(seed))
+            backfilled += 1
+            continue
+        # Fields that must exist for the admin inventory list + stock guards
+        for field in ("category", "pieces_per_carton", "stock_pieces",
+                      "stock_status", "restock_eta_days", "is_active"):
+            if existing.get(field) in (None, ""):
+                updates[field] = seed.get(field, 0 if field == "stock_pieces"
+                                         else "out_of_stock" if field == "stock_status"
+                                         else 15 if field == "restock_eta_days"
+                                         else True if field == "is_active"
+                                         else None)
+        if updates:
+            await db.b2b_products.update_one({"id": seed["id"]}, {"$set": updates})
+            backfilled += 1
+
+    if backfilled:
+        logger.info(f"Backfilled {backfilled} B2B products with carton/stock fields")
+    else:
+        logger.info(f"B2B catalog already fully seeded ({count} products)")
+    return backfilled
 
 
 async def upsert_b2b_product(db, product: dict) -> dict:

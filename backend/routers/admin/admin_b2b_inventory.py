@@ -252,6 +252,57 @@ async def admin_nudge_analytics(
     return {"summary": summary, "top_urls": top_urls}
 
 
+@router.get("/nudges/best-time/{retailer_id}")
+async def admin_best_send_time(
+    retailer_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    top_n: int = 3,
+):
+    """Recommend send-time slots for a single retailer based on their
+    open-history pattern (IST-aware). Falls back to the platform default
+    (Tue-Thu 10-13 IST) when the retailer hasn't opened enough emails yet."""
+    await require_admin(request, session_token)
+    from services.b2b_nudge_send_time import recommend_send_time
+    return await recommend_send_time(db, retailer_id=retailer_id, top_n=top_n)
+
+
+class BestTimeAudienceBody(BaseModel):
+    audience: str = Field("all", description="all | verified | product | pincode | retailer_ids")
+    product_id: Optional[str] = None
+    pincode_prefix: Optional[str] = None
+    retailer_ids: Optional[List[str]] = None
+    top_n: int = Field(3, ge=1, le=8)
+
+
+@router.post("/nudges/best-time-for-audience")
+async def admin_best_send_time_for_audience(
+    body: BestTimeAudienceBody,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Composer helper — for the exact audience the admin is about to
+    broadcast to, recommend the top send-slots so the campaign lands
+    when this cohort actually reads their mail."""
+    await require_admin(request, session_token)
+    from services.b2b_nudge_composer import _resolve_audience
+    from services.b2b_nudge_send_time import recommend_send_time_for_audience
+
+    retailers = await _resolve_audience(
+        db,
+        audience=body.audience,
+        product_id=body.product_id,
+        pincode_prefix=body.pincode_prefix,
+        retailer_ids=body.retailer_ids,
+    )
+    rids = [r["retailer_id"] for r in retailers if r.get("retailer_id")]
+    result = await recommend_send_time_for_audience(
+        db, retailer_ids=rids, top_n=body.top_n,
+    )
+    result["audience_size"] = len(rids)
+    return result
+
+
 @router.post("/{product_id}/status")
 async def admin_set_stock_status(
     product_id: str,
