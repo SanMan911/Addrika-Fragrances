@@ -3,6 +3,28 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 📦 Feb 2026 (later still⁷) — Pre-Order · CSV Filters · Monthly Rewards Digest
+
+**1. Pre-Order flow (out-of-stock SKUs)** — NEW
+- `services/b2b_preorder.py` — token math (fixed 50%), eligibility gate (out_of_stock / restocking / manufacturing / delayed OR stock_pieces=0), terms text v1 stamp (`PRE-ORDER-V1-2026-02`) containing all 6 user-mandated clauses: non-refundable, non-cancellable, no CNs, amend-only-upward-from-prepaid, exchange only on manufacturing-defect-with-intact-seal, damage-must-be-reported-at-delivery, plus signature-closes-preorder.
+- `B2BOrderCreate` gained `is_preorder` + `accept_preorder_terms`. `/calculate` and `/order` bypass the out-of-stock guard only when both are true. Server-side terms validation rejects missing acceptance with a 400.
+- Razorpay now charges ONLY the 50% `token_amount_inr` on pre-orders (not the grand_total). Balance due at delivery is stamped on the order.
+- `services/b2b_preorder_pdf.py` — reportlab receipt with prominent **"Next Production Batch"** banner (user-mandated language, NEVER shows a timeline / ETA / delivery date), retailer + payment blocks, items table, full legal terms block, and a signature line for the retailer to sign upon delivery — one copy retained by the sales rep / delivery boy.
+- New endpoint `GET /api/retailer-dashboard/b2b/orders/{order_id}/preorder-receipt.pdf` (retailer auth). Non-preorder orders 400.
+- `<PreOrderModal />` component (React) built with all 6 terms as separate checkboxes; ready-to-wire on the retailer catalog (deferred as a small follow-up polish ticket).
+
+**2. Admin CSV Filter UI**
+- Clicking "Export Log (CSV)" on `/admin/b2b/inventory` now opens a slide-in filter panel with **Product dropdown · From Date · To Date · Download CSV** — all three filters forward to `GET /api/admin/b2b/inventory/log/export.csv?product_id&from_date&to_date` which backend already supported. Empty filters download the full log.
+
+**3. Monthly Rewards PDF Digest**
+- `services/monthly_rewards_digest.py` — scheduler task runs 120s after boot then daily-polls; actually dispatches ONLY on the 1st of each calendar month. Per-month idempotency via `db.settings.rewards_monthly_digest_state.last_month`.
+- Emails every retailer their PDF statement (built via `services/b2b_rewards_pdf.py`) with a friendly HTML body. **Accountant CC** — reads from the new `accountant_email` slot in the DB-backed admin integrations panel; when set, every retailer's monthly statement lands in the accountant's inbox too.
+- `services/email_service.send_email()` gained a `cc=` kwarg (string or list) forwarded to Resend.
+- New `KNOWN_KEYS` entry `accountant_email` (category `bookkeeping`) so admin can PUT it via the existing integrations panel.
+- Admin manual-trigger endpoint `POST /api/admin/b2b/inventory/rewards-digest/send-now` (force=True) for immediate dispatch. Every send is logged to `db.rewards_monthly_digest_log`.
+
+**4. Regression** — 12 new pytest cases in `tests/test_preorder_monthly_digest.py` (token math, eligibility, terms text clauses, receipt PDF, email dedup, no-email skip, digest idempotency) + testing_agent iter73's 4 integration cases. Combined **104/104 backend pytest pass, 16/16 iter73 pass (12 unit + 4 integration)**. Testing_agent iteration_73 = **100% backend, 100% frontend, zero action items**.
+
 ### 📊 Feb 2026 (later still⁶) — Stock CSV export + Retailer Rewards PDF statement
 
 **1. Admin Stock Change-Log CSV export**
