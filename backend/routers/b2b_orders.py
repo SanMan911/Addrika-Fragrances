@@ -426,6 +426,152 @@ async def create_b2b_order(
 
 
 
+
+# ---------------------------------------------------------------------------
+# Pre-Order Balance Payment
+# ---------------------------------------------------------------------------
+# When a pre-order SKU comes back into stock, the retailer receives a
+# "Batch Ready" nudge with a link that lands at /retailer/b2b/orders/{id}?balance=1.
+# That page calls these two endpoints:
+#     ▸ POST /order/{id}/create-balance-payment → mint a Razorpay order for the
+#       remaining 50%.
+#     ▸ POST /order/{id}/verify-balance-payment → verify signature and mark the
+#       pre-order fully paid.
+# ---------------------------------------------------------------------------
+@router.post("/order/{order_id}/create-balance-payment")
+async def create_b2b_balance_payment(
+    order_id: str,
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    await require_b2b_enabled()
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    order = await db.b2b_orders.find_one(
+        {"order_id": order_id, "retailer_id": retailer["retailer_id"]},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if not order.get("is_preorder"):
+        raise HTTPException(status_code=400, detail="This order is not a pre-order.")
+    if order.get("balance_paid_at"):
+        raise HTTPException(status_code=400, detail="Balance already paid.")
+    balance = float(order.get("balance_due_inr") or 0)
+    if balance <= 0:
+        raise HTTPException(status_code=400, detail="No outstanding balance on this order.")
+
+    try:
+        import razorpay
+        import os as _os
+        client = razorpay.Client(auth=(
+            _os.environ.get("RAZORPAY_KEY_ID"),
+            _os.environ.get("RAZORPAY_KEY_SECRET"),
+        ))
+        razorpay_order = client.order.create({
+            "amount": int(round(balance * 100)),
+            "currency": "INR",
+            "receipt": f"{order_id}-bal",
+            "notes": {
+                "order_id": order_id,
+                "retailer_id": retailer["retailer_id"],
+                "order_type": "B2B-PREORDER",
+                "charge_type": "balance",
+            },
+        })
+        await db.b2b_orders.update_one(
+            {"order_id": order_id},
+            {"$set": {
+                "balance_razorpay_order_id": razorpay_order["id"],
+                "balance_charge_amount": balance,
+            }},
+        )
+        return {
+            "razorpay_order_id": razorpay_order["id"],
+            "razorpay_key": _os.environ.get("RAZORPAY_KEY_ID"),
+            "amount_inr": balance,
+            "currency": "INR",
+            "order_id": order_id,
+        }
+    except Exception as e:
+        logger.error(f"Balance Razorpay order creation failed for {order_id}: {e}")
+        raise HTTPException(status_code=502, detail="Could not initiate balance payment. Please retry.")
+
+
+@router.post("/order/{order_id}/verify-balance-payment")
+async def verify_b2b_balance_payment(
+    order_id: str,
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    await require_b2b_enabled()
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    body = await request.json()
+    rpay_payment_id = body.get("razorpay_payment_id")
+    rpay_order_id = body.get("razorpay_order_id")
+    rpay_signature = body.get("razorpay_signature")
+    if not all([rpay_payment_id, rpay_order_id, rpay_signature]):
+        raise HTTPException(status_code=400, detail="Missing payment verification data")
+
+    order = await db.b2b_orders.find_one(
+        {"order_id": order_id, "retailer_id": retailer["retailer_id"]},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.get("balance_paid_at"):
+        return {"message": "Balance already paid", "order_id": order_id}
+
+    try:
+        import razorpay
+        import os as _os
+        client = razorpay.Client(auth=(
+            _os.environ.get("RAZORPAY_KEY_ID"),
+            _os.environ.get("RAZORPAY_KEY_SECRET"),
+        ))
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": rpay_order_id,
+            "razorpay_payment_id": rpay_payment_id,
+            "razorpay_signature": rpay_signature,
+        })
+        now = datetime.now(timezone.utc)
+        await db.b2b_orders.update_one(
+            {"order_id": order_id},
+            {
+                "$set": {
+                    "balance_paid_at": now.isoformat(),
+                    "balance_razorpay_payment_id": rpay_payment_id,
+                    "order_status": "confirmed",
+                    "updated_at": now.isoformat(),
+                },
+                "$push": {
+                    "status_history": {
+                        "status": "confirmed",
+                        "timestamp": now.isoformat(),
+                        "note": f"Balance payment verified: {rpay_payment_id}",
+                    }
+                },
+            },
+        )
+        fresh = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0})
+        # Reuse post-payment hook pipeline (rewards + inventory + Zoho)
+        await run_post_payment_hooks(db, fresh, retailer, rpay_payment_id)
+        return {
+            "message": "Balance payment verified — your batch will be dispatched shortly.",
+            "order_id": order_id,
+            "status": "confirmed",
+        }
+    except Exception as e:
+        logger.error(f"Balance payment verification failed for {order_id}: {e}")
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+
+
+
 @router.post("/order/{order_id}/verify-payment")
 async def verify_b2b_payment(
     order_id: str,

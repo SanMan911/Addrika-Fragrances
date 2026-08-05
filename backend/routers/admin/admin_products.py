@@ -241,3 +241,169 @@ async def admin_upload_product_image(
         "size": doc["size"],
         "content_type": content_type,
     }
+
+
+
+# ---------------------------------------------------------------------------
+# One-click SKU launch — flags an early-access window + broadcasts the SKU
+# to every active retailer + CCs the platform accountant. See
+# services/product_launch.py for the full playbook.
+# ---------------------------------------------------------------------------
+class LaunchInput(BaseModel):
+    hidden_hours: int = Field(
+        default=24, ge=1, le=168,
+        description="How long the SKU stays hidden from the public storefront "
+        "while Founding Retailers get their exclusive preview. Max 7 days.",
+    )
+    broadcast: bool = True
+
+
+@router.post("/products/{product_id}/launch")
+async def admin_launch_product(
+    product_id: str, body: LaunchInput, admin=Depends(require_admin),
+):
+    from services.product_launch import launch_sku
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    summary = await launch_sku(
+        db, product,
+        admin_email=(admin or {}).get("email") or "admin",
+        hidden_hours=body.hidden_hours,
+        broadcast=body.broadcast,
+    )
+    # Refresh in-memory catalog so /api/products reflects the hidden window
+    from routers.products import refresh_products_cache
+    await refresh_products_cache()
+    return {"message": "Launch initiated", "launch": summary}
+
+
+# ---------------------------------------------------------------------------
+# Bulk CSV upload — ingest a spreadsheet of new SKUs in one request.
+# CSV columns (headers are case-insensitive):
+#     name              (required)
+#     description       (optional)
+#     type              (agarbatti|dhoop|bakhoor — default: agarbatti)
+#     size              (e.g. "50g"; multiple rows per name = multiple sizes)
+#     mrp               (required, ₹)
+#     price             (optional, ₹ — defaults to mrp)
+#     opening_stock     (optional, pieces to seed the linked B2B SKU)
+#     image             (optional URL)
+# Rows sharing a `name` are collapsed into a single product with multiple
+# sizes. Uses the same mirror_b2c_product hook as the single-product form
+# so every uploaded row ends up in B2B + brochure automatically.
+# ---------------------------------------------------------------------------
+@router.post("/products/bulk-import")
+async def admin_bulk_import_products(
+    file: UploadFile = File(...), admin=Depends(require_admin),
+):
+    import csv
+    import io as _io
+    from services.product_sync import mirror_b2c_product
+    from routers.products import refresh_products_cache
+
+    raw = (await file.read()).decode("utf-8-sig", errors="replace")
+    reader = csv.DictReader(_io.StringIO(raw))
+    # Normalise headers to lowercase for forgiving matches
+    reader.fieldnames = [(h or "").strip().lower() for h in (reader.fieldnames or [])]
+    required = {"name", "size", "mrp"}
+    if not required.issubset(set(reader.fieldnames or [])):
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV is missing required column(s): {', '.join(sorted(required - set(reader.fieldnames or [])))}. "
+                   "Required: name, size, mrp. Optional: description, type, price, opening_stock, image.",
+        )
+
+    # Collect rows by product name (case-insensitive slug key)
+    groups: dict[str, dict] = {}
+    row_errors: list[dict] = []
+    for line_no, row in enumerate(reader, start=2):
+        name = (row.get("name") or "").strip()
+        size = (row.get("size") or "").strip()
+        mrp_raw = (row.get("mrp") or "").strip()
+        if not name or not size or not mrp_raw:
+            row_errors.append({"line": line_no, "reason": "name/size/mrp is required"})
+            continue
+        try:
+            mrp = float(mrp_raw)
+            price = float(row.get("price") or mrp)
+        except ValueError:
+            row_errors.append({"line": line_no, "reason": "mrp/price must be numeric"})
+            continue
+        opening = 0
+        if row.get("opening_stock"):
+            try:
+                opening = max(0, int(row["opening_stock"]))
+            except ValueError:
+                pass
+        key = slugify(name)
+        entry = groups.setdefault(key, {
+            "name": name,
+            "description": (row.get("description") or "").strip(),
+            "type": (row.get("type") or "agarbatti").strip().lower() or "agarbatti",
+            "image": (row.get("image") or "").strip(),
+            "sizes": [],
+        })
+        # Rows further down can overwrite blank description/image on the same product
+        if not entry["description"] and row.get("description"):
+            entry["description"] = row["description"].strip()
+        if not entry["image"] and row.get("image"):
+            entry["image"] = row["image"].strip()
+        entry["sizes"].append({
+            "size": size,
+            "mrp": mrp,
+            "price": price,
+            "opening_stock": opening,
+            "images": [row["image"].strip()] if row.get("image") else [],
+        })
+
+    now = datetime.now(timezone.utc).isoformat()
+    created, updated, skipped = [], [], []
+    for slug, payload in groups.items():
+        existing = await db.products.find_one({"id": slug})
+        payload["id"] = slug
+        payload["category"] = payload["type"]
+        payload["updated_at"] = now
+        if existing:
+            # Merge sizes by size label — new rows extend, existing rows update
+            existing_sizes = {s.get("size"): s for s in (existing.get("sizes") or [])}
+            for s in payload["sizes"]:
+                existing_sizes[s["size"]] = {**existing_sizes.get(s["size"], {}), **s}
+            payload["sizes"] = list(existing_sizes.values())
+            await db.products.update_one({"id": slug}, {"$set": payload})
+            updated.append(slug)
+        else:
+            payload["created_at"] = now
+            await db.products.insert_one(payload)
+            created.append(slug)
+        # Mirror into B2B catalog + reset the in-memory cache
+        try:
+            await mirror_b2c_product(db, payload)
+        except Exception as e:
+            logger.warning("Bulk import: mirror failed for %s: %s", slug, e)
+            skipped.append({"product_id": slug, "reason": str(e)})
+
+    await refresh_products_cache()
+    return {
+        "message": f"Bulk import complete. {len(created)} created, {len(updated)} updated.",
+        "created": created,
+        "updated": updated,
+        "row_errors": row_errors,
+        "skipped_mirror": skipped,
+    }
+
+
+@router.get("/products/bulk-import/template.csv")
+async def admin_bulk_import_template(admin=Depends(require_admin)):
+    """Downloadable CSV template with example rows so admins can copy/paste
+    from their catalog spreadsheet."""
+    csv_body = (
+        "name,description,type,size,mrp,price,opening_stock,image\n"
+        "Sample Bakhoor,Woody amber blend,bakhoor,20g,399,399,50,https://example.com/hero.jpg\n"
+        "Sample Bakhoor,Woody amber blend,bakhoor,50g,899,899,30,\n"
+        "Rose Petal Dhoop,Floral Ready-to-Use dhoop,dhoop,100g,149,149,100,\n"
+    )
+    return Response(
+        content=csv_body, media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="addrika-products-template.csv"'},
+    )
