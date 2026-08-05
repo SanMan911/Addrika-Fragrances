@@ -19,10 +19,20 @@ from services.b2b_settings import (
 )
 from services.b2b_loyalty import get_retailer_loyalty_state
 from services.b2b_catalog import B2B_PRODUCTS
-from services.b2b_emails import send_b2b_admin_notification_email
+from services.b2b_emails import (
+    send_b2b_admin_notification_email,
+    send_b2b_order_confirmation_email,
+)
 from services.b2b_pricing import (
     calculate_b2b_order as calc_b2b_pricing,
 )
+from services.b2b_pricing_extras import (
+    apply_preorder_terms,
+    apply_shipping,
+    apply_rewards_redemption,
+    add_rewards_projection,
+)
+from services.b2b_payment_hooks import run_post_payment_hooks
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/retailer-dashboard/b2b", tags=["B2B Orders"])
@@ -214,80 +224,17 @@ async def calculate_b2b_order(
         is_preorder=order_data.is_preorder,
     )
 
-    # Pre-order flow — validate terms + compute 50% token
-    if order_data.is_preorder:
-        if not order_data.accept_preorder_terms:
-            raise HTTPException(
-                status_code=400,
-                detail="Pre-Order terms must be accepted (non-refundable, non-cancellable, no CNs, seal-intact exchange only, damage-at-delivery-only).",
-            )
-        from services.b2b_preorder import token_amount_for, TERMS_VERSION, TERMS_TEXT
-        calc["is_preorder"] = True
-        calc["token_amount_inr"] = token_amount_for(float(calc.get("grand_total", 0)))
-        calc["balance_due_inr"] = round(float(calc.get("grand_total", 0)) - calc["token_amount_inr"], 2)
-        calc["terms_version"] = TERMS_VERSION
-        calc["terms_text"] = TERMS_TEXT
-
-    if shipping_quote:
-        ship = float(shipping_quote.get("shipping_charges") or 0)
-        calc["shipping_charges"] = ship
-        calc["shipping_quote"] = shipping_quote
-        calc["grand_total"] = round(float(calc.get("grand_total", 0)) + ship, 2)
-    else:
-        calc["shipping_charges"] = 0.0
-
-    # ── Fragrance Rewards redemption preview ─────────────────────────
-    # Redemption is applied against the invoice subtotal (excludes shipping
-    # + GST). Server clamps to the eligible amount using the same rules as
-    # `apply_credit` — safe to trust.
-    redeem_requested = float(order_data.redeem_rewards_inr or 0)
-    rewards_applied = 0.0
-    if redeem_requested > 0:
-        try:
-            from services.fragrance_rewards import preview_credit
-            preview = await preview_credit(
-                db,
-                retailer["retailer_id"],
-                float(calc.get("subtotal") or 0),
-                redeem_requested,
-            )
-            calc["rewards_redemption"] = preview
-            if preview.get("eligible") and preview.get("applicable"):
-                rewards_applied = float(preview["applicable"])
-                calc["rewards_redeemed_inr"] = rewards_applied
-                calc["grand_total"] = round(
-                    max(float(calc.get("grand_total", 0)) - rewards_applied, 0.0), 2,
-                )
-        except Exception as e:
-            logger.warning(f"rewards preview_credit failed: {e}")
-            calc["rewards_redemption"] = {"applicable": 0, "eligible": False, "reason": "internal_error"}
-    else:
-        calc["rewards_redeemed_inr"] = 0.0
-
-    # Project Fragrance Rewards accrual so the UI can show "You'll earn ₹X"
-    try:
-        from services.fragrance_rewards import (
-            QUALIFYING_INVOICE_MIN,
-            _multiplier,
-        )
-        subtotal_for_reward = float(calc.get("subtotal") or 0)
-        shipping_for_reward = float(calc.get("shipping_charges") or 0)
-        profile = await db.rewards_profile.find_one(
-            {"_id": retailer["retailer_id"]}
-        ) or {}
-        streak = int(profile.get("streak", 0)) + 1
-        mult = _multiplier(streak)
-        will_earn = 0.0
-        if subtotal_for_reward >= QUALIFYING_INVOICE_MIN and shipping_for_reward > 0:
-            will_earn = round(shipping_for_reward * mult, 2)
-        calc["rewards_projection"] = {
-            "will_earn_inr": will_earn,
-            "multiplier_pct": int(mult * 100),
-            "streak_after": streak,
-            "qualifying_min_inr": QUALIFYING_INVOICE_MIN,
-        }
-    except Exception:
-        pass
+    # Layer pre-order token, shipping, rewards redemption and projection on top
+    apply_preorder_terms(
+        calc,
+        is_preorder=order_data.is_preorder,
+        accept_terms=order_data.accept_preorder_terms,
+    )
+    apply_shipping(calc, shipping_quote)
+    await apply_rewards_redemption(
+        db, calc, retailer, float(order_data.redeem_rewards_inr or 0)
+    )
+    await add_rewards_projection(db, calc, retailer)
 
     return calc
 
@@ -554,115 +501,17 @@ async def verify_b2b_payment(
         
         # Send confirmation email
         try:
-            from services.email_service import send_email
             await send_b2b_order_confirmation_email(order, retailer)
         except Exception as e:
             logger.error(f"Failed to send B2B order confirmation email: {str(e)}")
-        
+
         logger.info(f"B2B order {order_id} payment verified: {razorpay_payment_id}")
 
-        # ==================================================================
-        # FRAGRANCE REWARDS — auto-credit shipping on qualifying orders
-        # (spec: subtotal ≥ ₹1,000 → earn 100/110/125% of shipping as
-        #  90-day trade credit, streak resets after 45 days).
-        # ==================================================================
-        try:
-            from services.fragrance_rewards import maybe_credit_on_order
-            subtotal = float(
-                order.get("subtotal")
-                or order.get("items_subtotal")
-                or (float(order.get("grand_total", 0)) - float(order.get("shipping_charges", 0)))
-            )
-            shipping = float(order.get("shipping_charges", 0))
-            await maybe_credit_on_order(
-                db,
-                retailer_id=retailer["retailer_id"],
-                order_id=order_id,
-                subtotal_inr=subtotal,
-                shipping_inr=shipping,
-                payment_id=razorpay_payment_id,
-            )
-        except Exception as e:
-            logger.warning(f"Fragrance rewards accrual failed for {order_id}: {e}")
-
-        # ==================================================================
-        # FRAGRANCE REWARDS — actually consume the redemption ledger entries
-        # for the amount the retailer opted to apply at checkout.
-        # Idempotent: guarded by a "redeem" ledger row for this order_id.
-        # ==================================================================
-        try:
-            redeem_amt = float(order.get("rewards_redeemed_inr") or 0)
-            if redeem_amt > 0:
-                already = await db.rewards_ledger.find_one(
-                    {"source_order_id": order_id, "kind": "redeem"}
-                )
-                if not already:
-                    from services.fragrance_rewards import apply_credit
-                    subtotal = float(order.get("subtotal") or 0)
-                    result = await apply_credit(
-                        db,
-                        retailer_id=retailer["retailer_id"],
-                        order_id=order_id,
-                        invoice_subtotal_inr=subtotal,
-                        requested_amount=redeem_amt,
-                    )
-                    if result.get("error"):
-                        logger.warning(
-                            f"Rewards redemption for {order_id} failed: {result['error']}"
-                        )
-                    else:
-                        logger.info(
-                            f"Rewards redemption for {order_id}: applied ₹{result['applied']}, "
-                            f"remaining ₹{result['remaining_balance']}"
-                        )
-        except Exception as e:
-            logger.warning(f"Fragrance rewards redemption failed for {order_id}: {e}")
-
-        # ==================================================================
-        # B2B INVENTORY — auto-deduct pieces from stock on successful payment.
-        # Idempotent: skips if already deducted (b2b_inventory_log entry exists).
-        # ==================================================================
-        try:
-            from services.b2b_inventory import deduct_for_paid_order
-            fresh_order = await db.b2b_orders.find_one(
-                {"order_id": order_id}, {"_id": 0}
-            )
-            if fresh_order:
-                await deduct_for_paid_order(db, fresh_order)
-        except Exception as e:
-            logger.warning(f"B2B inventory deduction failed for {order_id}: {e}")
-
-        # Best-effort: record payment in Zoho Books
-        try:
-            from services.zoho_books import push_payment, is_configured as _zoho_cfg
-            zoho_pmt = await push_payment(
-                order, retailer, float(order.get("grand_total", 0)), razorpay_payment_id
-            )
-            if zoho_pmt:
-                await db.b2b_orders.update_one(
-                    {"order_id": order_id},
-                    {"$set": {
-                        "zoho_payment_id": zoho_pmt.get("payment_id"),
-                        "zoho_payment_synced_at": datetime.now(timezone.utc).isoformat(),
-                    }},
-                )
-            elif await _zoho_cfg():
-                from services.zoho_errors import record_error
-                await record_error(
-                    "payment",
-                    order_id,
-                    retailer["retailer_id"],
-                    "push_payment returned None (Zoho API likely rejected the payload — see server logs).",
-                )
-        except Exception as e:
-            logger.error(f"Zoho payment sync failed for {order_id}: {e}")
-            try:
-                from services.zoho_errors import record_error
-                await record_error(
-                    "payment", order_id, retailer["retailer_id"], str(e)
-                )
-            except Exception:
-                pass
+        # Run all post-payment side-effects (rewards accrual + redemption
+        # consumption + inventory deduction + Zoho payment sync). Each hook
+        # is independently guarded so partial failures don't cascade.
+        fresh_order = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0}) or order
+        await run_post_payment_hooks(db, fresh_order, retailer, razorpay_payment_id)
 
         return {
             "message": "Payment verified successfully",
@@ -673,92 +522,6 @@ async def verify_b2b_payment(
     except Exception as e:
         logger.error(f"Payment verification failed for {order_id}: {str(e)}")
         raise HTTPException(status_code=400, detail="Payment verification failed")
-
-
-async def send_b2b_order_confirmation_email(order: dict, retailer: dict):
-    """Send B2B order confirmation email"""
-    from services.email_service import send_email
-    
-    items_html = ""
-    for item in order.get("items", []):
-        items_html += f"""
-        <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">{item['name']} ({item['net_weight']})</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">{item['quantity_boxes']}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₹{item['line_total']:,.2f}</td>
-        </tr>
-        """
-    
-    html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head><meta charset="utf-8"></head>
-    <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-            <tr>
-                <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
-                    <p style="color: #ffffff; margin: 5px 0 0 0;">B2B Order Confirmation</p>
-                </td>
-            </tr>
-            <tr>
-                <td style="padding: 30px;">
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <div style="width: 60px; height: 60px; background-color: #16a34a; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
-                            <span style="color: white; font-size: 30px;">✓</span>
-                        </div>
-                        <h2 style="color: #1e3a52; margin: 0;">Payment Successful!</h2>
-                        <p style="color: #666; margin-top: 10px;">Order ID: <strong>{order['order_id']}</strong></p>
-                    </div>
-                    
-                    <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eee; border-radius: 8px;">
-                        <thead>
-                            <tr style="background-color: #f9f7f4;">
-                                <th style="padding: 12px; text-align: left;">Product</th>
-                                <th style="padding: 12px; text-align: center;">Boxes</th>
-                                <th style="padding: 12px; text-align: right;">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>{items_html}</tbody>
-                    </table>
-                    
-                    <div style="margin-top: 20px; padding: 15px; background-color: #f9f7f4; border-radius: 8px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span>Subtotal:</span><span>₹{order['subtotal']:,.2f}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span>GST (18%):</span><span>₹{order['gst_total']:,.2f}</span>
-                        </div>
-                        {"<div style='display: flex; justify-content: space-between; margin-bottom: 8px; color: #16a34a;'><span>Discount:</span><span>-₹" + f"{order.get('total_discount', 0):,.2f}" + "</span></div>" if order.get('total_discount', 0) > 0 else ""}
-                        <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #1e3a52; padding-top: 10px; border-top: 2px solid #d4af37;">
-                            <span>Total Paid:</span><span style="color: #d4af37;">₹{order['grand_total']:,.2f}</span>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top: 20px; padding: 15px; background-color: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe;">
-                        <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                            <strong>What's Next?</strong><br>
-                            Our team will process your order and arrange delivery. You will receive updates via email and SMS.
-                        </p>
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0;">ADDRIKA - Premium Agarbattis</p>
-                    <p style="color: #999; font-size: 12px; margin: 10px 0 0 0;">Questions? Contact contact.us@centraders.com</p>
-                </td>
-            </tr>
-        </table>
-    </body>
-    </html>
-    """
-    
-    await send_email(
-        to_email=retailer["email"],
-        subject=f"B2B Order Confirmed: {order['order_id']} | Addrika",
-        html_content=html
-    )
 
 
 @router.get("/orders")

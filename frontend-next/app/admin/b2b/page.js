@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Briefcase, Search, RefreshCw, Package, Check, X, Eye, DollarSign, UserPlus, BarChart3, Boxes } from 'lucide-react';
+import { Briefcase, Search, RefreshCw, Package, Check, X, Eye, DollarSign, UserPlus, BarChart3, Boxes, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 
@@ -124,6 +124,13 @@ export default function AdminB2BPage() {
           data-testid="link-b2b-inventory"
         >
           <Package size={16} /> Inventory (cartons)
+        </Link>
+        <Link
+          href="/admin/b2b/preorders"
+          className="px-4 py-2 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-700 hover:bg-rose-100 text-sm font-medium flex items-center gap-2"
+          data-testid="link-b2b-preorders"
+        >
+          <TrendingUp size={16} /> Batch Allocation
         </Link>
         <Link
           href="/admin/b2b/reports"

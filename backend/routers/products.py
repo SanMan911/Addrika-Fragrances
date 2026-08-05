@@ -352,17 +352,34 @@ async def ensure_products_loaded():
 
 @router.get("/products")
 async def get_products():
-    """Get all active products"""
+    """Get all active products with unified stock from the B2B inventory pool."""
     await ensure_products_loaded()
-    return [p for p in PRODUCTS if p.get("isActive", True)]
+    active = [p for p in PRODUCTS if p.get("isActive", True)]
+    # Enrich with the shared stock number so B2C storefront and B2B
+    # inventory panels always agree.
+    try:
+        from services.product_sync import enrich_b2c_products_with_stock
+        b2b_rows = await db.b2b_products.find({}, {"_id": 0}).to_list(500)
+        enrich_b2c_products_with_stock(active, b2b_rows)
+    except Exception:
+        pass
+    return active
 
 
 @router.get("/products/{product_id}")
 async def get_product(product_id: str):
-    """Get a single product by ID"""
+    """Get a single product by ID with unified stock enrichment."""
     await ensure_products_loaded()
     for product in PRODUCTS:
         if product["id"] == product_id:
+            try:
+                from services.product_sync import enrich_b2c_products_with_stock
+                b2b_rows = await db.b2b_products.find(
+                    {"product_id": product_id}, {"_id": 0}
+                ).to_list(50)
+                enrich_b2c_products_with_stock([product], b2b_rows)
+            except Exception:
+                pass
             return product
     raise HTTPException(status_code=404, detail="Product not found")
 
