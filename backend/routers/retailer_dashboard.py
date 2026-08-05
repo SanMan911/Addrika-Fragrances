@@ -1386,3 +1386,56 @@ async def get_retailer_badges(
         },
         "member_since": retailer_data.get('created_at')
     }
+
+
+
+# ---------------------------------------------------------------------------
+# Per-retailer accountant CC (Monthly Rewards Digest recipient)
+# ---------------------------------------------------------------------------
+class AccountantEmailIn(BaseModel):
+    accountant_email: Optional[str] = Field(
+        default="",
+        description="Email that will be CC'd on every Monthly Rewards "
+        "Statement. Set to an empty string to remove.",
+        max_length=200,
+    )
+
+
+@router.get("/accountant-email")
+async def get_accountant_email(
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Return the retailer's saved accountant CC for the Monthly Rewards Digest."""
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"accountant_email": retailer.get("accountant_email") or ""}
+
+
+@router.put("/accountant-email")
+async def set_accountant_email(
+    body: AccountantEmailIn,
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Retailer self-service update of the accountant CC address.
+    Empty string clears the value and falls back to the platform default."""
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    val = (body.accountant_email or "").strip()
+    if val and ("@" not in val or "." not in val.split("@")[-1]):
+        raise HTTPException(status_code=400, detail="Please enter a valid email address.")
+    await db.retailers.update_one(
+        {"retailer_id": retailer["retailer_id"]},
+        {"$set": {
+            "accountant_email": val or None,
+            "accountant_email_updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    logger.info(
+        "Retailer %s updated accountant CC (%s)",
+        retailer["retailer_id"], "cleared" if not val else val,
+    )
+    return {"accountant_email": val, "message": "Saved. Your accountant will be CC'd on the next monthly statement."}

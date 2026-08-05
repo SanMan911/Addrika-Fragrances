@@ -3,6 +3,31 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🎯 Feb 2026 (Iteration 75) — Product Image Uploader · Sync Health Dot · Batch-Ready Nudge · Per-Retailer Accountant CC
+
+**1. Product Image Uploader (drop-and-go)**
+- New public asset proxy: `GET /api/products/asset/{asset_id}` streams from Emergent object storage with a 1-year immutable cache header — makes URLs safe to bake into brochures / share with retailers.
+- New admin upload: `POST /api/admin/products/upload-image` (multipart) — 8 MB cap, image/* only (415 on other MIME types), returns `{asset_id, url, size, content_type}`. Uses the pre-existing `services/object_storage.py` (EMERGENT_LLM_KEY-driven).
+- Frontend: NEW `components/ImageDropUploader.js` (drag/drop + click-to-pick + preview + Replace/Remove actions). Wired into `/admin/products` for the **Primary Image** and each **per-size gallery** (URL textarea still available as fallback).
+
+**2. Stock Sync Health Dot**
+- New admin endpoint `GET /api/admin/b2b/inventory/sync-health` returns `{healthy, counts, ok, drift, orphaned}`. Drift = a B2C size with no matching B2B SKU (by `product_id + net_weight`). Orphaned = B2B SKU whose `product_id` no longer exists in B2C (usually wholesale-only variants like the Ready-to-Use Dhoop packs).
+- Frontend: green **Sync OK** / red **N drifted** pill next to the "B2B Inventory" title on `/admin/b2b/inventory` (`data-testid="sync-health-pill"`). Clicking opens a modal (`data-testid="sync-health-panel"`) with the drift + orphaned breakdown and a "Save the product to auto-mirror" hint.
+
+**3. Auto Restock ETA Nudge — Batch Ready**
+- NEW `services/b2b_batch_ready_nudge.py` — every outstanding paid pre-order (`is_preorder=True`, `payment_status='paid'`, not fulfilled/shipped/cancelled) for the flipped SKU receives an Email + WhatsApp "🎉 Your Batch Is Ready" nudge containing the balance amount + deep-link (`/retailer/b2b/orders/{order_id}?balance=1`).
+- Wired into `POST /api/admin/b2b/inventory/{product_id}/status` — the endpoint now snapshots the previous status, and only fires the nudge on a real out→in flip. Response includes `batch_ready_nudge: {sent, skipped, product_id}`.
+- Idempotent per `(order_id, product_id)` via a new `db.batch_ready_nudges` guard collection.
+
+**4. Per-Retailer Accountant CC**
+- Retailer-side: NEW `GET/PUT /api/retailer-dashboard/accountant-email`. UI: `AccountantEmailCard` (`data-testid="accountant-email-card"`) on `/retailer/b2b/rewards`.
+- Admin-side: `accountant_email` added to `RetailerUpdateRequest` + `direct_fields` so `PUT /api/retailers/admin/{retailer_id}` can update it too.
+- Monthly Rewards Digest: NEW `_accountant_email_for_retailer(retailer, platform_default)` resolver — retailer's personal CC wins, platform default is the fallback. The digest cursor now projects `accountant_email` for every recipient.
+
+**5. Testing** — `tests/test_iter75_features.py` — **11/11 passing** (image upload roundtrip, 415 rejection, admin gate, sync-health shape, batch-ready nudge fires + is idempotent, "no outstanding preorders" skip path, retailer accountant CRUD + validation + auth gate, resolver unit test, regression on `/api/products` stock enrichment + batch-allocation).
+
+
+
 ### 🔗 Feb 2026 (Iteration 74) — Refactor · Batch Allocation · Pre-Order Badge · **Unified Product/Inventory Model** + "Mogra Magic" bug fix
 
 **1. Refactor (pricing engine split)**

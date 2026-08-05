@@ -1,13 +1,26 @@
 """Admin product management CRUD endpoints"""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Request, Cookie
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, timezone
+import logging
 import re
+import uuid
 
 from dependencies import db, require_admin
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(tags=["Admin Products"])
+
+
+# Supported image types for the product uploader.
+_IMAGE_MIME = {
+    "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
+    "image/webp": "webp", "image/gif": "gif",
+}
+_MAX_UPLOAD_BYTES = 8 * 1024 * 1024  # 8 MB — plenty for a hero shot
 
 
 class ProductSizeInput(BaseModel):
@@ -164,3 +177,67 @@ async def admin_toggle_coming_soon(product_id: str, admin=Depends(require_admin)
     await refresh_products_cache()
 
     return {"message": f"Product marked as {'Coming Soon' if new_status else 'Available'}", "comingSoon": new_status}
+
+
+
+# ---------------------------------------------------------------------------
+# Product image uploader — drop-and-go from the Add Product form.
+# Stores originals in Emergent object storage; DB row tracks the reference.
+# Served back via `/api/products/asset/{asset_id}` so any <img src> works.
+# ---------------------------------------------------------------------------
+@router.post("/products/upload-image")
+async def admin_upload_product_image(
+    file: UploadFile = File(...),
+    admin=Depends(require_admin),
+):
+    from services.object_storage import put_object, is_configured, make_path
+
+    if not is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Object storage is not configured on this environment. "
+            "Set EMERGENT_LLM_KEY in backend/.env to enable image uploads.",
+        )
+
+    content_type = (file.content_type or "").lower()
+    if content_type not in _IMAGE_MIME:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported image type '{content_type}'. Use JPG, PNG, WEBP or GIF.",
+        )
+
+    data = await file.read()
+    if len(data) == 0:
+        raise HTTPException(status_code=400, detail="Empty file.")
+    if len(data) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Image too large. Max size is {_MAX_UPLOAD_BYTES // (1024*1024)} MB.",
+        )
+
+    ext = _IMAGE_MIME[content_type]
+    path = make_path("products", "images", ext)
+    result = await put_object(path, data, content_type)
+    if not result:
+        raise HTTPException(status_code=502, detail="Upload failed. Please retry.")
+
+    asset_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": asset_id,
+        "storage_path": result["path"],
+        "content_type": content_type,
+        "size": result.get("size") or len(data),
+        "original_filename": file.filename or "",
+        "uploaded_by": (admin or {}).get("email") or "admin",
+        "is_deleted": False,
+        "created_at": now,
+    }
+    await db.product_assets.insert_one(dict(doc))
+
+    return {
+        "asset_id": asset_id,
+        "url": f"/api/products/asset/{asset_id}",
+        "size": doc["size"],
+        "content_type": content_type,
+    }

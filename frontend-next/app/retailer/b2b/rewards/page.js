@@ -105,6 +105,9 @@ export default function RetailerRewardsHistoryPage() {
         {/* Balance card */}
         <RewardsBalanceCard fetchWithAuth={fetchWithAuth} />
 
+        {/* Accountant CC for the Monthly Rewards Digest */}
+        <AccountantEmailCard fetchWithAuth={fetchWithAuth} />
+
         {/* Totals row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="rewards-history-totals">
           <TotalCell label="Total Earned"   value={totals.earned}   tone="text-emerald-700 bg-emerald-50" />
@@ -200,6 +203,94 @@ function TotalCell({ label, value, tone }) {
       <div className={`mt-1 text-lg font-bold ${tone.split(' ')[0]}`}>
         {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value || 0)}
       </div>
+    </div>
+  );
+}
+
+
+
+function AccountantEmailCard({ fetchWithAuth }) {
+  const [email, setEmail] = useState('');
+  const [initial, setInitial] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/accountant-email`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setEmail(data.accountant_email || '');
+        setInitial(data.accountant_email || '');
+      } catch { /* silent */ }
+    })();
+  }, [fetchWithAuth]);
+
+  const save = async () => {
+    setSaving(true);
+    setStatus(null);
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/accountant-email`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountant_email: email.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+      setInitial(email.trim());
+      setStatus({ ok: true, msg: data.message || 'Saved.' });
+    } catch (e) {
+      setStatus({ ok: false, msg: e.message || 'Failed to save.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const dirty = email.trim() !== (initial || '').trim();
+
+  return (
+    <div
+      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5"
+      data-testid="accountant-email-card"
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-sm font-semibold text-slate-800 dark:text-white">Accountant CC · Monthly Rewards Statement</span>
+      </div>
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+        Every 1st of the month we email you the PDF of your Fragrance Rewards ledger.
+        Add your accountant&apos;s email here and they&apos;ll be CC&apos;d automatically —
+        keep it in sync with your books without lifting a finger.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="accountant@your-firm.com"
+          className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-white"
+          data-testid="accountant-email-input"
+        />
+        <button
+          onClick={save}
+          disabled={saving || !dirty}
+          className="px-4 py-2 rounded-lg bg-[#2B3A4A] hover:bg-[#1e3a52] text-white text-sm font-medium disabled:opacity-50"
+          data-testid="accountant-email-save-btn"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+      {status && (
+        <p
+          className={`text-xs mt-2 ${status.ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}
+          data-testid="accountant-email-status"
+        >
+          {status.msg}
+        </p>
+      )}
+      <p className="text-[10px] text-slate-500 mt-2">
+        Leave blank to remove — the digest will be sent to you only.
+      </p>
     </div>
   );
 }
