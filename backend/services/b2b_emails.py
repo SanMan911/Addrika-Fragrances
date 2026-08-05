@@ -166,6 +166,100 @@ async def send_b2b_admin_notification_email(order: dict, retailer: dict) -> None
     )
 
 
+async def send_b2b_order_confirmation_email(order: dict, retailer: dict) -> None:
+    """Retailer-facing payment confirmation email (fires after Razorpay
+    signature verification)."""
+    from services.email_service import send_email
+
+    items_html = ""
+    for item in order.get("items", []):
+        items_html += f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">{item['name']} ({item['net_weight']})</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">{item['quantity_boxes']}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₹{item['line_total']:,.2f}</td>
+        </tr>
+        """
+
+    discount_row = ""
+    if order.get('total_discount', 0) > 0:
+        discount_row = (
+            "<div style='display: flex; justify-content: space-between; margin-bottom: 8px; color: #16a34a;'>"
+            f"<span>Discount:</span><span>-₹{order.get('total_discount', 0):,.2f}</span></div>"
+        )
+
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            <tr>
+                <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
+                    <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
+                    <p style="color: #ffffff; margin: 5px 0 0 0;">B2B Order Confirmation</p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 30px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <div style="width: 60px; height: 60px; background-color: #16a34a; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
+                            <span style="color: white; font-size: 30px;">✓</span>
+                        </div>
+                        <h2 style="color: #1e3a52; margin: 0;">Payment Successful!</h2>
+                        <p style="color: #666; margin-top: 10px;">Order ID: <strong>{order['order_id']}</strong></p>
+                    </div>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eee; border-radius: 8px;">
+                        <thead>
+                            <tr style="background-color: #f9f7f4;">
+                                <th style="padding: 12px; text-align: left;">Product</th>
+                                <th style="padding: 12px; text-align: center;">Boxes</th>
+                                <th style="padding: 12px; text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>{items_html}</tbody>
+                    </table>
+
+                    <div style="margin-top: 20px; padding: 15px; background-color: #f9f7f4; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>Subtotal:</span><span>₹{order['subtotal']:,.2f}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>GST (18%):</span><span>₹{order['gst_total']:,.2f}</span>
+                        </div>
+                        {discount_row}
+                        <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #1e3a52; padding-top: 10px; border-top: 2px solid #d4af37;">
+                            <span>Total Paid:</span><span style="color: #d4af37;">₹{order['grand_total']:,.2f}</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background-color: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe;">
+                        <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                            <strong>What's Next?</strong><br>
+                            Our team will process your order and arrange delivery. You will receive updates via email and SMS.
+                        </p>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
+                    <p style="color: #d4af37; margin: 0;">ADDRIKA - Premium Agarbattis</p>
+                    <p style="color: #999; font-size: 12px; margin: 10px 0 0 0;">Questions? Contact contact.us@centraders.com</p>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    await send_email(
+        to_email=retailer["email"],
+        subject=f"B2B Order Confirmed: {order['order_id']} | Addrika",
+        html_content=html,
+    )
+
+
 def _maybe_build_invoice_attachment(order: dict, retailer: dict):
     """Attach the tax-invoice PDF to the admin notification email so admin
     has a downloadable copy right from their inbox. Silently no-ops if

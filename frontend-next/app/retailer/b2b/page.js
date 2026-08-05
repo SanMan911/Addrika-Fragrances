@@ -35,6 +35,17 @@ const formatDate = (dateStr) => {
     return 'N/A';
   }
 };
+
+// Pre-order eligibility: SKU is out-of-stock / restocking / manufacturing /
+// delayed, or has zero pieces available. Matches server-side
+// `is_preorder_eligible` in `services/b2b_preorder.py`.
+const PREORDER_STATUSES = new Set(['out_of_stock', 'restocking', 'manufacturing', 'delayed']);
+const isPreorderAvailable = (product) => {
+  if (!product) return false;
+  const status = String(product.stock_status || '').toLowerCase();
+  if (PREORDER_STATUSES.has(status)) return true;
+  return Number(product.stock_pieces || 0) <= 0;
+};
 export default function RetailerB2BPage() {
   const [catalog, setCatalog] = useState([]);
   const [quantities, setQuantities] = useState({});
@@ -507,6 +518,15 @@ export default function RetailerB2BPage() {
                           <p className="font-semibold text-[#2B3A4A]">{product.name}</p>
                           <p className="text-xs text-gray-500">{product.units_per_box} units/box • {product.net_weight}</p>
                           <p className="text-sm font-medium text-[#D4AF37]">{formatCurrency(product.price_per_box)}/box</p>
+                          {isPreorderAvailable(product) && (
+                            <span
+                              className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300"
+                              data-testid={`preorder-badge-mobile-${product.id}`}
+                              title="This SKU is currently out of stock but bookable via a 50% token pre-order — you'll be prioritized in the Next Production Batch."
+                            >
+                              PRE-ORDER AVAILABLE
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -538,6 +558,15 @@ export default function RetailerB2BPage() {
                       <div className="col-span-3">
                         <p className="font-semibold text-[#2B3A4A]">{product.name}</p>
                         <p className="text-xs text-gray-500">{product.units_per_box} units/box</p>
+                        {isPreorderAvailable(product) && (
+                          <span
+                            className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300"
+                            data-testid={`preorder-badge-${product.id}`}
+                            title="Out of stock — bookable via 50% token pre-order. You'll be prioritized in the Next Production Batch."
+                          >
+                            PRE-ORDER AVAILABLE
+                          </span>
+                        )}
                         {product.pricing_tiers?.length > 0 && (
                           <p className="text-[11px] text-green-700 mt-1 font-medium" data-testid={`tiers-${product.id}`}>
                             {product.pricing_tiers

@@ -17,6 +17,11 @@ class ProductSizeInput(BaseModel):
     price: float = Field(..., gt=0)
     weight: Optional[int] = None
     stock: Optional[int] = None  # in-stock qty for this variant (nullable = unlimited)
+    opening_stock: Optional[int] = Field(
+        default=None,
+        description="Initial pieces to seed the linked B2B SKU with on creation. "
+        "Ignored on updates — use the Inventory panel to adjust live stock.",
+    )
     includes: Optional[list[str]] = None
     images: list[str] = []
 
@@ -56,8 +61,11 @@ async def admin_list_products(admin=Depends(require_admin)):
 
 @router.post("/products")
 async def admin_create_product(product: ProductInput, admin=Depends(require_admin)):
-    """Create a new product."""
+    """Create a new product. Also mirrors matching B2B SKUs so the same
+    product appears in the retailer catalog + brochure with a shared
+    stock pool."""
     from routers.products import refresh_products_cache
+    from services.product_sync import mirror_b2c_product
 
     slug = slugify(product.name)
     existing = await db.products.find_one({"id": slug})
@@ -74,14 +82,19 @@ async def admin_create_product(product: ProductInput, admin=Depends(require_admi
     await db.products.insert_one(doc)
     await refresh_products_cache()
 
+    # Mirror into B2B catalog (retailer portal + brochure use these)
+    b2b_rows = await mirror_b2c_product(db, doc)
+
     doc.pop("_id", None)
-    return {"message": "Product created", "product": doc}
+    return {"message": "Product created", "product": doc, "b2b_skus_created": len(b2b_rows)}
 
 
 @router.put("/products/{product_id}")
 async def admin_update_product(product_id: str, product: ProductInput, admin=Depends(require_admin)):
-    """Update an existing product."""
+    """Update an existing product + re-mirror the linked B2B SKUs.
+    Stock is preserved on the B2B side — this only refreshes name/price/images."""
     from routers.products import refresh_products_cache
+    from services.product_sync import mirror_b2c_product
 
     existing = await db.products.find_one({"id": product_id})
     if not existing:
@@ -97,7 +110,9 @@ async def admin_update_product(product_id: str, product: ProductInput, admin=Dep
     await db.products.update_one({"id": product_id}, {"$set": update})
     await refresh_products_cache()
 
-    return {"message": "Product updated", "product": update}
+    b2b_rows = await mirror_b2c_product(db, update)
+
+    return {"message": "Product updated", "product": update, "b2b_skus_synced": len(b2b_rows)}
 
 
 @router.delete("/products/{product_id}")

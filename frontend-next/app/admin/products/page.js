@@ -96,13 +96,13 @@ function SizeEditor({ sizes, onChange }) {
               className="px-2 py-1.5 text-sm rounded bg-slate-700 border border-slate-600 text-white"
             />
             <input
-              type="number" placeholder="In-stock qty"
+              type="number" placeholder="Opening Stock (pieces)"
               min={0}
-              value={s.stock ?? ''}
-              onChange={(e) => updateSize(idx, 'stock', e.target.value === '' ? null : (parseInt(e.target.value) || 0))}
+              value={s.opening_stock ?? ''}
+              onChange={(e) => updateSize(idx, 'opening_stock', e.target.value === '' ? null : (parseInt(e.target.value) || 0))}
               className="px-2 py-1.5 text-sm rounded bg-slate-700 border border-slate-600 text-white"
-              data-testid={`size-stock-${idx}`}
-              title="Units in stock for this size variant"
+              data-testid={`size-opening-stock-${idx}`}
+              title="Pieces to seed the linked B2B SKU with (used on create only). Live stock is edited from the Inventory panel."
             />
           </div>
           <textarea

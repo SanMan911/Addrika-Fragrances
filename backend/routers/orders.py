@@ -656,6 +656,15 @@ async def verify_payment(
     # Insert the actual order into the orders collection
     result = await db.orders.insert_one(order)
     order["_id"] = result.inserted_id
+
+    # Deduct from the unified inventory pool so B2C sales are visible in
+    # the B2B stock counter (and vice-versa). Best-effort — never blocks
+    # a paying customer's checkout.
+    try:
+        from services.product_sync import deduct_stock_for_b2c_order
+        await deduct_stock_for_b2c_order(db, order)
+    except Exception as e:
+        print(f"Unified stock deduction failed for {order_number}: {e}")
     
     # Mark payment session as completed
     await db.payment_sessions.update_one(
