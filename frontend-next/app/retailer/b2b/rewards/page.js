@@ -94,7 +94,7 @@ export default function RetailerRewardsHistoryPage() {
           </div>
           <button
             onClick={downloadStatement}
-            disabled={downloading || entries.length === 0}
+            disabled={downloading}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2B3A4A] hover:bg-[#1e3a52] text-white text-sm font-medium disabled:opacity-50"
             data-testid="rewards-download-statement-btn"
           >
