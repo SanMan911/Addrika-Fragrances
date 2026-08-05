@@ -3,6 +3,31 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🐞 Feb 2026 (later still⁵) — Blog contrast + Admin Inventory backfill + Best-Time-to-Send
+
+**1. Blog body text unreadable (white on light bg)** — FIXED
+- Root cause: `/app/frontend-next/app/blog/[slug]/page.js` used `prose prose-lg` but only styled headings + links. Global dark-mode CSS was bleeding into body text making it white on the light hero background.
+- Fix: added `prose-p:text-[#2B3A4A] prose-li:text-[#2B3A4A] prose-strong:text-[#2B3A4A] prose-blockquote:text-[#2B3A4A]/80 text-[#2B3A4A]` classes + inline `style={{color: '#2B3A4A'}}` on the content div so every text node inherits the brand navy. **Verified live by testing_agent iteration_70**: body text now renders in `rgb(43,58,74)` on paragraphs, list items, and strong tags.
+
+**2. Admin Inventory tab shows empty list** — FIXED
+- Root cause: `services/b2b_catalog.py::seed_b2b_catalog` only ran when `count_documents({})` was 0. Existing production had 10 legacy rows without the newly-introduced `category`, `pieces_per_carton`, `stock_pieces`, `stock_status`, `restock_eta_days`, `is_active` fields → `list_stock` returned rows with all-zero stock and no category, and the UI filtered them out visually.
+- Fix: `seed_b2b_catalog` is now a two-mode helper:
+  - **First-run**: bulk-insert every row from `_SEED_PRODUCTS`.
+  - **Upgrade path**: for every seed row already in DB, `$set` the fields that are `None`/empty (idempotent — never touches fields that were manually adjusted).
+- Runs automatically on backend boot. **Verified live by testing_agent iteration_70**: all 10 SKUs now show with correct per-category carton sizes (Bakhoor/Dhoop 32, Agarbatti Jar 16, Agarbatti packet 12); Adjust +100 pieces persists and reflects in the list.
+
+**3. Nudge Best-Time-to-Send — NEW FEATURE**
+- New `services/b2b_nudge_send_time.py`:
+  - IST-aware bucketing — every open event's UTC timestamp is converted to `UTC+5:30` before slotting into 3-hour buckets across the 7-day week (56 slots total).
+  - Weighted scoring — score = `opens + 2 × recent_opens` where recent = last 30 days, so freshly active retailers move the recommendation faster than stale history does.
+  - `recommend_send_time(db, retailer_id)` → returns top 3 slots; **falls back to platform default (Tue-Thu, 10-13 IST)** when the retailer has fewer than 3 opens on file.
+  - `recommend_send_time_for_audience(db, retailer_ids)` → aggregates opens across a broadcast audience so the composer can suggest a single send-slot for the entire cohort.
+- New admin endpoints:
+  - `GET /api/admin/b2b/inventory/nudges/best-time/{retailer_id}?top_n=3` — single-retailer recommendation.
+  - `POST /api/admin/b2b/inventory/nudges/best-time-for-audience` — audience-wide recommendation. Reuses the composer's `_resolve_audience` selector so the recommendation always matches the exact cohort the admin is about to broadcast to.
+- Composer modal (`components/NudgeComposerModal.js`) now shows a blue "Best time to send · learned from open history" panel with three slot chips (first is highlighted with confidence %). Auto-refreshes whenever the audience selector, product, or pincode-prefix changes.
+- **7 new pytest cases** in `tests/test_best_send_time.py` (hour → slot mapping, UTC → IST conversion, recency 2× weighting, empty-history default, real-history ranking, audience-wide aggregation). **88/88 pass** across the whole B2B suite.
+
 ### 🐞 Feb 2026 (later still⁴) — 3 P0 bug fixes + Broadcast Analytics
 
 **1. Blog SSR crash** (Digest 3506429118) — FIXED
