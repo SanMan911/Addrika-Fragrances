@@ -4,6 +4,7 @@ import { CartProvider } from '../context/CartContext';
 import { AuthProvider } from '../context/AuthContext';
 import { WishlistProvider } from '../context/WishlistContext';
 import { ThemeProvider } from '../context/ThemeContext';
+import { ImpactProvider } from '../context/ImpactContext';
 import CartSidebar from '../components/CartSidebar';
 import WhatsAppButton from '../components/WhatsAppButton';
 import RetailerFloatingCTA from '../components/RetailerFloatingCTA';
@@ -247,11 +248,13 @@ export default function RootLayout({ children }) {
           <AuthProvider>
             <CartProvider>
               <WishlistProvider>
-                {children}
-                <CartSidebar />
-                <WhatsAppButton />
-                <RetailerFloatingCTA />
-                <CookieConsentAndGA />
+                <ImpactProvider>
+                  {children}
+                  <CartSidebar />
+                  <WhatsAppButton />
+                  <RetailerFloatingCTA />
+                  <CookieConsentAndGA />
+                </ImpactProvider>
               </WishlistProvider>
             </CartProvider>
           </AuthProvider>

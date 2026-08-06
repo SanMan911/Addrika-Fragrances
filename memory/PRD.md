@@ -3,6 +3,37 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 📱 Feb 2026 (Iteration 78) — ImpactProvider single-source + Mobile-app foundation
+
+**1. `ImpactContext` single-source refactor**
+- NEW `context/ImpactContext.js` — one fetch, one provider, one truth. `<ImpactProvider>` wraps the app in `layout.js` and every consumer (`useImpact()`) reads the same in-memory state.
+- Background refresh every 5 min so long-lived tabs stay in lockstep.
+- Graceful degradation: `useImpact()` returns safe defaults if a component is rendered outside the provider — no crashes, ever.
+- `TreeCounter.js` and `CSRSection.js` now BOTH consume `useImpact()` — dropped their independent `/api/impact/trees` fetches (was two round-trips + a theoretical drift window; now zero drift by construction).
+
+**2. Mobile / iOS / Android foundation** *(all made stable so a native client can be built later without more backend work)*
+- NEW `routers/app_config.py` — the ONE endpoint a mobile app hits at boot:
+    - `GET /api/app/config` — brand tokens (colors, fonts, logo), contact info, social links, deep-link routes, feature flags, live impact snapshot (`trees_planted`), catalog counts, compatibility check (`must_upgrade`), deep-link scheme, public web URL.
+    - `GET /api/app/manifest` — points at `/openapi.json` + lists the stable public endpoints so SDK generators (`openapi-generator -g dart / swift5 / kotlin`) can auto-scaffold typed clients.
+- DB-driven overrides: the `platform_config` MongoDB doc can override `brand`, `contact`, `social`, `routes`, `features` — ops can flip a feature flag without a deploy.
+- Impact snapshot inside `/api/app/config` uses the same `_compute_trees()` helper as `/api/impact/trees` — verified via test that the two never diverge.
+- Backwards compatibility guaranteed via `schema_version` + `min_supported_app_version` + additive-only field policy. Old clients continue to work when new fields are added.
+- FastAPI's built-in `/openapi.json` (344KB) and `/docs` (Swagger UI) already expose the full typed contract — **regenerates automatically on every backend change**. That's the "always-in-sync source" the user asked for.
+
+**3. Testing** — `tests/test_iter78_app_config.py` — **8/8 passing**:
+- Impact endpoint stability (no race between two calls)
+- App config shape (all required keys, brand/routes/features/impact/catalog present)
+- Feature flags are `bool` (safe for `if features['x']` on mobile)
+- `must_upgrade` toggle: old client (v=0) sees `True`, new client (v=999) sees `False`
+- DB override merges on top of defaults (feature toggle, contact edit)
+- Manifest points at OpenAPI + lists stable endpoints
+- OpenAPI 3.x served with all new paths discoverable
+- Swagger `/docs` UI reachable
+
+**Regression**: 86/86 backend tests green (iter74-78 + legacy B2B). Frontend production build succeeds (56.7s).
+
+
+
 ### 🌿 Feb 2026 (Iteration 77) — Blog in header · Tree-count sync · Frontend build unblocked
 
 **1. Blog nav in the site header** — `components/Header.js` now renders **Blog** as a top-level nav item between *Sustainability* and *Find Retailers*, so the auto-blog pipeline surface is one click from every page.
