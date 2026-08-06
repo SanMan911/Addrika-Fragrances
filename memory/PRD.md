@@ -3,6 +3,26 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🌿 Feb 2026 (Iteration 77) — Blog in header · Tree-count sync · Frontend build unblocked
+
+**1. Blog nav in the site header** — `components/Header.js` now renders **Blog** as a top-level nav item between *Sustainability* and *Find Retailers*, so the auto-blog pipeline surface is one click from every page.
+
+**2. Tree-count mismatch bug fix** — `/` "Giving Back to Society" section had two divergent numbers:
+- Live pill (`data-testid="tree-counter-value"`): **39** (from `/api/impact/trees`, authoritative)
+- "Environmental Conservation" card badge: **50+ trees planted** (hard-coded string in `csrInitiatives`)
+
+Fix: `CSRSection.js` now fetches `/api/impact/trees` and renders the exact live count on the badge (`{liveTrees} trees planted`). Both figures now share a single source of truth and always agree. Fallback to "Growing every day" if the API is unreachable — never a hard-coded number again. Verified by testing agent (iter77): DOM shows `39 == 39 == API` with zero drift, "50+ trees planted" string completely gone.
+
+**3. Frontend production build unblocked** *(critical, pre-existing regression from iter74)*
+- Root cause: `app/admin/b2b/preorders/page.js` was importing `authFetch` from `'../../../layout'` — from that depth `../../../` resolves to `app/` (the ROOT server layout that exports `metadata`), not `app/admin/`. Bundling then flagged the "cannot export metadata from a `use client` component" and killed `yarn build`.
+- Fix: corrected the import to `'../../layout'` (which correctly points to `app/admin/layout.js` — the client layout that owns `authFetch`).
+- `yarn build` now completes cleanly (41.85s, all routes emitted). Supervisor `frontend` service back to **RUNNING**.
+
+**4. Preview URL `/api` 404 — flagged (env/infra, not code)**
+`NEXT_PUBLIC_BACKEND_URL` in `.env.local` points to the preview URL, but the preview ingress doesn't forward `/api/*` to the backend — so client-side fetches from the deployed preview 404. Recommended env fix (safer than an ingress change): set `NEXT_PUBLIC_BACKEND_URL=''` so client code uses relative URLs which the Next.js rewrite in `next.config.js` proxies to the backend at the server layer. Deliberately not changed in this iteration because the deployment target may rely on the current value — leaving as an ops note.
+
+
+
 ### 🚀 Feb 2026 (Iteration 76) — Launch SKU Toggle · Balance Payment Link · Bulk CSV Upload · Founding Retailer Early-Access
 
 **1. Balance Payment Link (closes the Batch-Ready loop)**
