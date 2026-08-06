@@ -693,11 +693,28 @@ SCHEDULER_INTERVAL_SECONDS = 3600  # 1 hour
 
 async def scheduler_loop(db):
     """Long-running background task started on FastAPI startup. Cheap — only
-    fires generation calls when actually due (2-3 times/week by default)."""
+    fires generation calls when actually due (2-3 times/week by default).
+
+    Also opportunistically kicks off the monthly Constant Companion
+    shout-out on the 1st of each month (idempotent — no-ops thereafter).
+    """
+    from services.leaderboard_shoutout import run_monthly_shoutout
     logger.info("Auto-blog scheduler started")
     while True:
         try:
             await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
+            # Constant Companion shout-out (idempotent per calendar month)
+            try:
+                now_utc = datetime.now(timezone.utc)
+                if now_utc.day == 1:
+                    res = await run_monthly_shoutout(db)
+                    if res.get("post_id"):
+                        logger.info(
+                            "Constant Companion shout-out result: %s", res,
+                        )
+            except Exception as se:
+                logger.warning(f"Constant Companion shout-out tick error: {se}")
+
             cfg = await get_settings(db)
             if not cfg["enabled"]:
                 continue

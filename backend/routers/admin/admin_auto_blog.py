@@ -13,6 +13,10 @@ from services.auto_blog import (
     get_recent_log,
     DEFAULTS,
 )
+from services.leaderboard_shoutout import (
+    run_monthly_shoutout,
+    has_run_this_month,
+)
 
 router = APIRouter(prefix="/admin/auto-blog", tags=["Admin Auto-Blog"])
 
@@ -69,3 +73,38 @@ async def auto_blog_log(
     await require_admin(request, session_token)
     items = await get_recent_log(db, limit=max(1, min(limit, 100)))
     return {"items": items, "count": len(items)}
+
+
+@router.post("/constant-companion/run-now")
+async def run_constant_companion_shoutout(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    force: bool = False,
+):
+    """Manually trigger this month's Constant Companion shout-out post.
+    Idempotent per calendar month unless `force=true` is passed."""
+    await require_admin(request, session_token)
+    return await run_monthly_shoutout(db, force=force)
+
+
+@router.get("/constant-companion/status")
+async def constant_companion_status(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Reports whether this month's Constant Companion shout-out has run."""
+    await require_admin(request, session_token)
+    already = await has_run_this_month(db)
+    log = await db.constant_companion_shoutout_log.find_one(
+        {}, {"_id": 1, "post_slug": 1, "streak_months": 1, "ran_at": 1},
+        sort=[("ran_at", -1)],
+    )
+    latest = None
+    if log:
+        latest = {
+            "month": log.get("_id"),
+            "post_slug": log.get("post_slug"),
+            "streak_months": log.get("streak_months"),
+            "ran_at": log.get("ran_at"),
+        }
+    return {"already_run_this_month": already, "latest": latest}

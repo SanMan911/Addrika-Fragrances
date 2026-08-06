@@ -973,6 +973,7 @@ const STAT_UNIT_LABEL = {
 function CompactPatronProgress({ fetchWithAuth }) {
   const [next, setNext] = useState(null);
   const [current, setCurrent] = useState(null);
+  const [tier, setTier] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -982,6 +983,7 @@ function CompactPatronProgress({ fetchWithAuth }) {
         const data = await res.json();
         setNext(data.next_milestone || null);
         setCurrent(data.current_patron_tag || null);
+        setTier(data.tier || null);
       } catch { /* silent */ }
     })();
   }, [fetchWithAuth]);
@@ -994,16 +996,36 @@ function CompactPatronProgress({ fetchWithAuth }) {
     ? STAT_UNIT_LABEL[next.stat](remaining)
     : (next ? `${remaining} more` : '');
 
+  const tierRing = tier
+    ? ({ gold: 'ring-2 ring-amber-400', silver: 'ring-2 ring-slate-400', bronze: 'ring-2 ring-orange-400', novice: '' }[tier.id] || '')
+    : '';
+  const tierMedal = tier
+    ? ({ gold: '🥇', silver: '🥈', bronze: '🥉', novice: '' }[tier.id] || '')
+    : '';
+
   return (
     <div
-      className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4"
+      className={`rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4 ${tierRing}`}
       data-testid="catalog-patron-progress"
     >
       <div className="flex items-center justify-between gap-2 flex-wrap text-sm">
         <div className="flex items-center gap-2 flex-wrap">
           {current && (
-            <span className="text-[#2B3A4A] font-semibold" data-testid="catalog-current-tag">
-              🏅 {current}
+            <span className="text-[#2B3A4A] font-semibold flex items-center gap-1" data-testid="catalog-current-tag">
+              {tierMedal && <span data-testid="catalog-tier-medal">{tierMedal}</span>}
+              {current}
+            </span>
+          )}
+          {tier && tier.id !== 'novice' && (
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                tier.id === 'gold' ? 'bg-amber-400 text-amber-950'
+                : tier.id === 'silver' ? 'bg-slate-300 text-slate-900'
+                : 'bg-orange-400 text-orange-950'
+              }`}
+              data-testid={`catalog-tier-${tier.id}`}
+            >
+              {tier.label}
             </span>
           )}
           {next && (
@@ -1021,6 +1043,11 @@ function CompactPatronProgress({ fetchWithAuth }) {
           See journey →
         </a>
       </div>
+      {tier?.next_tier && tier.next_tier.tags_to_go > 0 && (
+        <div className="mt-1 text-[10px] text-amber-700 font-semibold" data-testid="catalog-tier-hint">
+          {tier.next_tier.tags_to_go} more tag{tier.next_tier.tags_to_go === 1 ? '' : 's'} to reach {tier.next_tier.label}
+        </div>
+      )}
       {next && (
         <div className="mt-2 h-1.5 w-full bg-amber-100 rounded-full overflow-hidden">
           <div
