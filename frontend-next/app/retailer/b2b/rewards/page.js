@@ -310,6 +310,30 @@ const AROMA_TONES = {
   rose: 'bg-pink-100 text-pink-900 border-pink-300 dark:bg-pink-900/40 dark:text-pink-100 dark:border-pink-700',
 };
 
+// Aroma Ranking Tiers — visual ring + pill treatment
+const TIER_STYLE = {
+  gold:   { ring: 'ring-4 ring-amber-400 shadow-amber-200',   pill: 'bg-amber-400 text-amber-950',          medal: '🥇' },
+  silver: { ring: 'ring-4 ring-slate-400 shadow-slate-200',   pill: 'bg-slate-300 text-slate-900',          medal: '🥈' },
+  bronze: { ring: 'ring-4 ring-orange-400 shadow-orange-200', pill: 'bg-orange-400 text-orange-950',        medal: '🥉' },
+  novice: { ring: 'ring-2 ring-slate-300 ring-dashed',        pill: 'bg-slate-200 text-slate-700',          medal: '✨' },
+};
+
+function TierBadge({ tier, size = 'md' }) {
+  if (!tier) return null;
+  const style = TIER_STYLE[tier.id] || TIER_STYLE.novice;
+  const sizing = size === 'sm' ? 'text-[10px] px-2 py-0.5' : 'text-xs px-2.5 py-1';
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full font-bold ${style.pill} ${sizing}`}
+      title={`${tier.label} tier · ${tier.achievements_count || 0} patron tag${(tier.achievements_count || 0) === 1 ? '' : 's'} earned`}
+      data-testid={`tier-badge-${tier.id}`}
+    >
+      <span>{style.medal}</span>
+      <span className="uppercase tracking-wider">{tier.label}</span>
+    </span>
+  );
+}
+
 function PatronStatusCard({ fetchWithAuth }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -326,15 +350,27 @@ function PatronStatusCard({ fetchWithAuth }) {
   }, [fetchWithAuth]);
 
   if (loading || !status) return null;
+  const tier = status.tier || null;
+  const tierStyle = tier ? (TIER_STYLE[tier.id] || TIER_STYLE.novice) : TIER_STYLE.novice;
+
   if (!status.achievements?.length && !status.honors?.length) {
     return (
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5" data-testid="patron-card-empty">
-        <div className="flex items-center gap-2 text-slate-800 dark:text-white mb-1">
-          <span className="text-lg font-semibold">Your Patron Journey</span>
+      <div
+        className={`rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 ${tierStyle.ring} shadow-md`}
+        data-testid="patron-card-empty"
+      >
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+          <span className="text-lg font-semibold text-slate-800 dark:text-white">Your Patron Journey</span>
+          {tier && <TierBadge tier={tier} />}
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Keep ordering with Addrika and you&apos;ll earn aroma-themed patron tags — Cedar Patron, Sandalwood Sage, Oudh Master and more. Every tag is dated the moment you cross the threshold and stays with you forever.
         </p>
+        {tier?.next_tier && tier.next_tier.tags_to_go > 0 && (
+          <p className="text-xs text-amber-700 dark:text-amber-300 font-semibold mt-2" data-testid="tier-progress-hint">
+            {tier.next_tier.tags_to_go} more tag{tier.next_tier.tags_to_go === 1 ? '' : 's'} to reach {tier.next_tier.label}
+          </p>
+        )}
         {status.next_milestone && (
           <div className="mt-4">
             <NextMilestoneProgress next={status.next_milestone} />
@@ -346,15 +382,23 @@ function PatronStatusCard({ fetchWithAuth }) {
 
   return (
     <div
-      className="rounded-xl border border-amber-200 dark:border-amber-800/50 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 p-5"
+      className={`rounded-xl border border-amber-200 dark:border-amber-800/50 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 p-5 ${tierStyle.ring} shadow-md`}
       data-testid="patron-card"
     >
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div>
-          <div className="text-xs uppercase tracking-wider text-amber-700 dark:text-amber-300 font-semibold">Your Patron Tag</div>
+          <div className="flex items-center gap-2">
+            <div className="text-xs uppercase tracking-wider text-amber-700 dark:text-amber-300 font-semibold">Your Patron Tag</div>
+            {tier && <TierBadge tier={tier} size="sm" />}
+          </div>
           <div className="text-2xl font-bold text-slate-800 dark:text-white" data-testid="patron-current-tag">
             {status.current_patron_tag || 'On your way…'}
           </div>
+          {tier?.next_tier && tier.next_tier.tags_to_go > 0 && (
+            <div className="text-xs text-amber-800 dark:text-amber-200 mt-1" data-testid="tier-progress-hint">
+              {tier.next_tier.tags_to_go} more tag{tier.next_tier.tags_to_go === 1 ? '' : 's'} to reach <b>{tier.next_tier.label}</b>
+            </div>
+          )}
         </div>
         {status.honors?.length > 0 && (
           <div className="flex flex-wrap gap-2">

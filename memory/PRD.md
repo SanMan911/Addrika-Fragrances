@@ -3,6 +3,22 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🏆 Feb 2026 (Iteration 82) — Aroma Ranking Tiers · Monthly Constant Companion Auto-Blog
+
+**1. Aroma Ranking Tiers — Bronze / Silver / Gold rings**
+- Backend (`services/retailer_milestones.py`): `compute_tier(n)` returns `{id, label, min_achievements, color, ring_class, achievements_count, next_tier{tags_to_go}}`. Novice (0), Bronze (1-2), Silver (3-4), Gold (5+). Exposed via existing `/api/retailer-dashboard/patron` and `/api/admin/retailers/{id}/patron` under key `tier`.
+- Frontend: `PatronStatusCard` on `/retailer/b2b/rewards` now wears a colored **ring** matching the tier (amber-400 gold / slate-400 silver / orange-400 bronze / dashed slate-300 novice) plus a bold medal-pill (🥇🥈🥉). Card also shows "N more tag(s) to reach Silver" motivational hint when a next tier exists.
+- `CompactPatronProgress` on `/retailer/b2b` catalog wears a slim `ring-2` in the same tier color + inline tier pill + tier-progress hint. Both surfaces read the same `tier` block so they never disagree.
+
+**2. Leaderboard Prize Cadence — Monthly Constant Companion shout-out**
+- NEW `services/leaderboard_shoutout.py` (`run_monthly_shoutout`, `has_run_this_month`, `_month_key`). Reads the top of `leaderboard_cache`, respects `leaderboard_opt_in` (anonymises if opted-out), skips silently when streak < 2 months or leaderboard empty. Idempotent per `YYYY-MM` via `constant_companion_shoutout_log` collection.
+- Publishes a full `blog_posts` doc (community-authored, is_published=True) with hand-crafted template — NO Gemini call, so it's free, fast, and reliable. Includes FAQ block + social caption + best-effort social cross-post fan-out.
+- Wired into `services/auto_blog.py::scheduler_loop` — fires opportunistically on day-1-of-month ticks. Also exposed via admin endpoints:
+  - `POST /api/admin/auto-blog/constant-companion/run-now` (`?force=true` to override monthly gate)
+  - `GET  /api/admin/auto-blog/constant-companion/status` (reports `already_run_this_month` + latest run summary)
+
+**3. Testing** — NEW `tests/test_iter82_tiers_shoutout.py` (**9/9 passing**): tier boundaries + next-tier progression, `/api/retailer-dashboard/patron` returns tier, shout-out publishes for opted-in leader, anonymises when opted-out, skips streak-too-short, skips no-leader, admin auth gate + idempotent re-run + force. Runs alongside all previous iter74-81 suites.
+
 ### 🎊 Feb 2026 (Iteration 81) — Milestone Unlock Notifications · Retailer Progress Widget · Public Community Leaderboard · Scheduled Weekly Refresh
 
 **1. Milestone Unlock Notifications (Email + WhatsApp)**
