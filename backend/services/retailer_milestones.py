@@ -192,7 +192,101 @@ async def sync_achievements(db, retailer_id: str) -> list[dict]:
             await db.retailer_achievements.insert_one(dict(row))
             newly_unlocked.append(row)
 
+    # Fire the celebration nudge for each freshly-earned milestone. Guarded
+    # so a notification failure never rolls back the achievement.
+    if newly_unlocked:
+        try:
+            await _notify_milestone_unlocked(db, retailer_id, newly_unlocked)
+        except Exception as e:
+            logger.warning(
+                "Milestone unlock notification failed for %s: %s",
+                retailer_id, e,
+            )
+
     return newly_unlocked
+
+
+async def _notify_milestone_unlocked(
+    db, retailer_id: str, rows: list[dict],
+) -> None:
+    """Send retailer a 🎉 email + WhatsApp when they unlock a new patron tag."""
+    from services.email_service import send_email, is_email_service_available
+
+    retailer = await db.retailers.find_one({"retailer_id": retailer_id}, {"_id": 0}) or {}
+    first_name = str(
+        (retailer.get("spoc") or {}).get("name")
+        or retailer.get("business_name") or "there"
+    ).split(" ")[0].strip() or "there"
+
+    for row in rows:
+        tag = row.get("milestone_name_at_time", "a new patron tag")
+        aroma = row.get("aroma_tag") or "sandalwood"
+
+        # Email
+        try:
+            if is_email_service_available() and retailer.get("email"):
+                await send_email(
+                    to_email=retailer["email"],
+                    subject=f"🎉 You just earned {tag} · Addrika Patron Journey",
+                    html_content=_milestone_email_html(first_name, tag, aroma, row),
+                )
+        except Exception as e:
+            logger.debug("milestone email failed: %s", e)
+
+        # WhatsApp
+        try:
+            from services.b2b_restock_nudge import _e164, _send_whatsapp_impl
+            to = _e164(
+                retailer.get("whatsapp") or retailer.get("phone"),
+                retailer.get("whatsapp_country_code"),
+            )
+            if to:
+                await _send_whatsapp_impl(to, _milestone_whatsapp_body(first_name, tag))
+        except Exception as e:
+            logger.debug("milestone whatsapp failed: %s", e)
+
+
+def _milestone_email_html(name: str, tag: str, aroma: str, row: dict) -> str:
+    achieved_at = str(row.get("achieved_at", ""))[:10]
+    return f"""
+    <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
+      <div style='max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;'>
+        <div style='background:linear-gradient(135deg,#D4AF37,#B8860B);padding:32px;text-align:center;color:#1e3a52;'>
+          <div style='font-size:44px;margin-bottom:6px;'>🎉</div>
+          <div style='font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:0.75;'>Addrika Patron Journey</div>
+          <div style='font-size:28px;font-weight:700;margin-top:6px;'>{tag}</div>
+        </div>
+        <div style='padding:26px;'>
+          <p style='font-size:15px;margin:0 0 12px;'>Namaste {name},</p>
+          <p style='font-size:14px;color:#333;margin:0 0 12px;'>
+            You&apos;ve just unlocked <b>{tag}</b> — a permanent aroma-themed patron
+            tag in your Addrika journey. Earned on {achieved_at} · this timestamp
+            is set in stone, immutable in our audit history.
+          </p>
+          <p style='font-size:13px;color:#666;margin:16px 0 4px;'>
+            Your tag now shows on your rewards page and in the admin&apos;s partner directory.
+          </p>
+          <a href='https://centraders.com/retailer/b2b/rewards' style='display:inline-block;
+            background:#1e3a52;color:#D4AF37;padding:12px 22px;border-radius:6px;
+            font-weight:600;text-decoration:none;margin-top:12px;'>
+            See your Patron Journey
+          </a>
+          <p style='font-size:11px;color:#999;margin-top:20px;'>
+            Aroma family: <b>{aroma}</b>. More tags await as you grow with us.
+          </p>
+        </div>
+      </div>
+    </body></html>
+    """
+
+
+def _milestone_whatsapp_body(name: str, tag: str) -> str:
+    return (
+        f"🎉 Congrats {name}! You just earned *{tag}* — a permanent patron tag on your Addrika journey.\n\n"
+        f"Every tag you earn is dated the moment you crossed the threshold and stays with you forever.\n\n"
+        f"See it 👉 https://centraders.com/retailer/b2b/rewards"
+    )
+
 
 
 async def get_retailer_patron_status(db, retailer_id: str) -> dict:

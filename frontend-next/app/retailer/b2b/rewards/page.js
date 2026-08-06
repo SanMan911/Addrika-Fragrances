@@ -396,6 +396,58 @@ function PatronStatusCard({ fetchWithAuth }) {
       </div>
 
       {status.next_milestone && <NextMilestoneProgress next={status.next_milestone} />}
+      <LeaderboardOptInToggle fetchWithAuth={fetchWithAuth} />
+    </div>
+  );
+}
+
+function LeaderboardOptInToggle({ fetchWithAuth }) {
+  const [optIn, setOptIn] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/leaderboard-opt-in`);
+        if (r.ok) setOptIn((await r.json()).opt_in);
+      } catch { /* silent */ }
+    })();
+  }, [fetchWithAuth]);
+
+  const toggle = async () => {
+    if (optIn === null) return;
+    setSaving(true);
+    try {
+      const r = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/leaderboard-opt-in`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ opt_in: !optIn }),
+      });
+      const d = await r.json();
+      if (r.ok) setOptIn(d.opt_in);
+    } finally { setSaving(false); }
+  };
+
+  if (optIn === null) return null;
+  return (
+    <div className="mt-4 pt-4 border-t border-amber-200/40 dark:border-slate-700 flex items-center justify-between gap-3 flex-wrap" data-testid="leaderboard-optin-toggle">
+      <div className="text-xs text-slate-600 dark:text-slate-400 flex-1 min-w-0">
+        <div className="font-semibold text-slate-800 dark:text-white mb-0.5">Community Leaderboard</div>
+        <div>
+          Show your business name + city on the public <a href="/community" className="text-amber-700 dark:text-amber-300 underline hover:no-underline">/community</a> page if you make the top-3 streak.
+          <span className="text-slate-500"> Your streak count is public if opted in.</span>
+        </div>
+      </div>
+      <button
+        onClick={toggle}
+        disabled={saving}
+        className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+          optIn ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+        } disabled:opacity-50`}
+        data-testid="leaderboard-optin-btn"
+      >
+        {saving ? '…' : optIn ? 'Opted In · click to opt out' : 'Opt in'}
+      </button>
     </div>
   );
 }

@@ -53,7 +53,84 @@ class MilestoneUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
-# ── ADMIN: milestone CRUD ────────────────────────────────────────────────
+@router.get("/community/leaderboard",
+            summary="Public top-streak retailers (opt-in only)")
+async def public_leaderboard():
+    """Marketing surface for `/community` — returns the top-3 opted-in
+    retailers by monthly ordering streak. Reads from the streak cache so
+    it's O(1) even under heavy traffic."""
+    from services.retailer_milestones import _get_streak_leader  # ensures cache
+    await _get_streak_leader(db)
+    cache = await db.leaderboard_cache.find_one(
+        {"_id": "streak_leaderboard"}, {"_id": 0}
+    ) or {}
+    entries = []
+    for row in (cache.get("top") or []):
+        retailer = await db.retailers.find_one(
+            {"retailer_id": row["retailer_id"],
+             "leaderboard_opt_in": True,
+             "status": {"$ne": "suspended"}},
+            {"_id": 0, "business_name": 1, "city": 1, "trade_name": 1},
+        )
+        if not retailer:
+            continue
+        entries.append({
+            "display_name": retailer.get("business_name") or retailer.get("trade_name"),
+            "city": retailer.get("city"),
+            "streak_months": int(row.get("streak_months") or 0),
+        })
+        if len(entries) >= 3:
+            break
+    return {
+        "top": entries,
+        "as_of": cache.get("updated_at"),
+        "note": "Only retailers who have opted in appear here. Toggle from your rewards page.",
+    }
+
+
+class LeaderboardOptIn(BaseModel):
+    opt_in: bool
+
+
+@router.put("/retailer-dashboard/leaderboard-opt-in",
+            summary="Retailer opts in/out of the public community leaderboard")
+async def retailer_leaderboard_opt_in(
+    body: LeaderboardOptIn,
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    from routers.retailer_dashboard import get_current_retailer
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from datetime import datetime as _dt, timezone as _tz
+    await db.retailers.update_one(
+        {"retailer_id": retailer["retailer_id"]},
+        {"$set": {
+            "leaderboard_opt_in": bool(body.opt_in),
+            "leaderboard_opt_in_at": _dt.now(_tz.utc).isoformat(),
+        }},
+    )
+    return {"opt_in": bool(body.opt_in),
+            "message": ("You'll now appear on the Community Leaderboard when you're in the top 3."
+                        if body.opt_in
+                        else "You've been removed from the public Community Leaderboard.")}
+
+
+@router.get("/retailer-dashboard/leaderboard-opt-in",
+            summary="Retailer reads current opt-in flag")
+async def retailer_get_leaderboard_opt_in(
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    from routers.retailer_dashboard import get_current_retailer
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"opt_in": bool(retailer.get("leaderboard_opt_in", False))}
+
+
+# ── Admin: milestone CRUD ────────────────────────────────────────────────
 @router.post("/admin/milestones/refresh-streak-leaderboard",
              summary="Force-refresh the streak leaderboard cache (admin, ops-only)")
 async def admin_refresh_streak_leaderboard(admin=Depends(require_admin)):

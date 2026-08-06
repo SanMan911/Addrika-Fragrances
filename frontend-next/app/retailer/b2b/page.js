@@ -250,6 +250,10 @@ export default function RetailerB2BPage() {
           </div>
         )}
       </div>
+
+      {/* Compact Patron Progress — same source as the /rewards page card,
+          so retailers see their next milestone every time they shop. */}
+      <CompactPatronProgress fetchWithAuth={fetchWithAuth} />
       {/* Tabs */}
       <div className="flex gap-2">
         <button
@@ -957,3 +961,76 @@ export default function RetailerB2BPage() {
     </div>
   );
 }
+
+
+const STAT_UNIT_LABEL = {
+  lifetime_orders: (n) => `${n} more order${n === 1 ? '' : 's'}`,
+  lifetime_gmv_inr: (n) => `₹${Number(n).toLocaleString('en-IN')} more`,
+  monthly_order_streak: (n) => `${n} more month${n === 1 ? '' : 's'} in a row`,
+  active_months: (n) => `${n} more active month${n === 1 ? '' : 's'}`,
+};
+
+function CompactPatronProgress({ fetchWithAuth }) {
+  const [next, setNext] = useState(null);
+  const [current, setCurrent] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/patron`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setNext(data.next_milestone || null);
+        setCurrent(data.current_patron_tag || null);
+      } catch { /* silent */ }
+    })();
+  }, [fetchWithAuth]);
+
+  if (!next && !current) return null;
+
+  const remaining = next ? Math.ceil(Number(next.remaining || 0)) : 0;
+  const pct = next ? Math.min(100, Math.max(0, Number(next.progress_pct || 0))) : 100;
+  const label = next && STAT_UNIT_LABEL[next.stat]
+    ? STAT_UNIT_LABEL[next.stat](remaining)
+    : (next ? `${remaining} more` : '');
+
+  return (
+    <div
+      className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4"
+      data-testid="catalog-patron-progress"
+    >
+      <div className="flex items-center justify-between gap-2 flex-wrap text-sm">
+        <div className="flex items-center gap-2 flex-wrap">
+          {current && (
+            <span className="text-[#2B3A4A] font-semibold" data-testid="catalog-current-tag">
+              🏅 {current}
+            </span>
+          )}
+          {next && (
+            <span className="text-slate-600 text-xs sm:text-sm">
+              Next: <b className="text-[#2B3A4A]">{next.name}</b>
+              <span className="text-slate-400"> · {label} to go</span>
+            </span>
+          )}
+        </div>
+        <a
+          href="/retailer/b2b/rewards"
+          className="text-xs text-[#D4AF37] hover:underline font-semibold whitespace-nowrap"
+          data-testid="catalog-patron-link"
+        >
+          See journey →
+        </a>
+      </div>
+      {next && (
+        <div className="mt-2 h-1.5 w-full bg-amber-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-700"
+            style={{ width: `${pct}%` }}
+            data-testid="catalog-patron-progress-bar"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+

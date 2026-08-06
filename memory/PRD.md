@@ -3,6 +3,34 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🎊 Feb 2026 (Iteration 81) — Milestone Unlock Notifications · Retailer Progress Widget · Public Community Leaderboard · Scheduled Weekly Refresh
+
+**1. Milestone Unlock Notifications (Email + WhatsApp)**
+- `sync_achievements()` now calls `_notify_milestone_unlocked` whenever it inserts new achievement rows.
+- Email template: gold-gradient hero, retailer first-name greeting, tag + immutable earn-date, CTA button → `/retailer/b2b/rewards`.
+- WhatsApp template: "🎉 Congrats Priya! You just earned *Cedar Patron*…" with a deep-link to the rewards page.
+- Both channels are best-effort with per-channel try/except — a delivery failure never rolls back the achievement row.
+
+**2. Retailer-facing Progress Widget on `/retailer/b2b` catalog**
+- NEW `CompactPatronProgress` component pinned right below the "B2B Wholesale Orders" header. Reads from `/api/retailer-dashboard/patron` (same source as the full journey card so both surfaces always agree).
+- Shows current tag + next milestone + human-readable "N more orders to X" copy + a slim amber-orange progress bar + a "See journey →" link that jumps to `/retailer/b2b/rewards`.
+- Gracefully hides itself if the retailer has no progress AND no current tag yet.
+
+**3. Public Community Leaderboard (`/community`)**
+- NEW `GET /api/community/leaderboard` — returns the top-3 opted-in retailers straight from the streak cache (O(1) reads, no scan at request time).
+- NEW `PUT/GET /api/retailer-dashboard/leaderboard-opt-in` — self-service opt-in toggle. Default is **opt-out** (privacy-first).
+- Frontend:
+    - NEW `/community` marketing page — Trophy hero, gold-silver-bronze cards with business name + city + streak count. Empty state when no one has opted in yet.
+    - NEW `LeaderboardOptInToggle` on the Patron Journey card — retailers can flip their public visibility with one click, with a clear preview of exactly what becomes public.
+
+**4. Scheduled Weekly Refresh**
+- NEW `streak_leaderboard_weekly_loop(db)` in `services/monthly_rewards_digest.py` — polls every `CHECK_INTERVAL_SECONDS`, fires the O(N) `refresh_streak_leaderboard` **once every Sunday between 00:00 and 00:59 UTC**. Guarded by an `%Y-%W` run key so a container restart mid-window doesn't double-fire.
+- Wired into `server.py` startup alongside the monthly digest scheduler. Together with iter80's lazy fallback, retailers now see a fresh leaderboard within a week + never eat a stale-cache slow read.
+
+**5. Testing** — `tests/test_iter81_progress_leaderboard.py` — **9/9 passing** (email/whatsapp body content, opt-out hides retailer, opt-in shows correctly with city + streak, retailer opt-in CRUD, auth gate, weekly loop importable, refresh updates timestamp, next_milestone key present on retailer status). Full regression **83/83 across iter74-81**. Frontend `yarn build` succeeds in 43s.
+
+
+
 ### 📈 Feb 2026 (Iteration 80) — Milestone Progress Bar · Streak Leaderboard Cache
 
 **1. Milestone Progress Bar — turns silent progress into active motivation**
