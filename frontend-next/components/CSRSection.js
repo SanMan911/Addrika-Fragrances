@@ -1,15 +1,24 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { Heart, Users, TreePine, GraduationCap, HandHeart, Globe, Leaf } from 'lucide-react';
 import TreeCounter from './TreeCounter';
 
-const csrInitiatives = [
+const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  '';
+
+const baseInitiatives = [
   {
     icon: TreePine,
+    key: 'trees',
     title: 'Environmental Conservation',
     description: 'We plant a tree for every 25 orders, contributing to reforestation efforts across India.',
-    impact: '50+ trees planted',
+    // impact string is set dynamically from /api/impact/trees so the badge
+    // never drifts from the live counter above.
+    impact: 'trees planted',
     color: '#10B981'
   },
   {
@@ -37,6 +46,35 @@ const csrInitiatives = [
 
 export default function CSRSection() {
   const { isDarkMode } = useTheme();
+  const [liveTrees, setLiveTrees] = useState(null);
+
+  // Pull the authoritative tree count from the same endpoint the counter
+  // widget uses. Fetching here (not in the child card) keeps a single
+  // network round-trip and guarantees the two numbers stay in lockstep.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`${API_URL}/api/impact/trees`, { cache: 'no-store' });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (!cancelled) setLiveTrees(Number(j.trees) || 0);
+      } catch { /* silent — badge just falls back to its default */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const csrInitiatives = baseInitiatives.map((item) => {
+    if (item.key === 'trees') {
+      return {
+        ...item,
+        impact: liveTrees !== null
+          ? `${liveTrees.toLocaleString('en-IN')} trees planted`
+          : 'Growing every day',
+      };
+    }
+    return item;
+  });
 
   return (
     <section 
@@ -88,7 +126,7 @@ export default function CSRSection() {
             style={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'var(--text-subtle)' }}
           >
             At Addrika, we believe business should be a force for good. Through our voluntary CSR initiatives, 
-            we're committed to making a positive impact on communities and the environment.
+            we&apos;re committed to making a positive impact on communities and the environment.
           </p>
 
           <div className="mt-8 flex justify-center">
@@ -185,7 +223,7 @@ export default function CSRSection() {
               color: isDarkMode ? '#ffffff' : 'var(--japanese-indigo)'
             }}
           >
-            "Every fragrance we create carries the essence of our commitment to people and planet."
+            &ldquo;Every fragrance we create carries the essence of our commitment to people and planet.&rdquo;
           </blockquote>
           <p 
             className="text-sm"
