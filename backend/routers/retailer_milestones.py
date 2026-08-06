@@ -54,6 +54,17 @@ class MilestoneUpdate(BaseModel):
 
 
 # ── ADMIN: milestone CRUD ────────────────────────────────────────────────
+@router.post("/admin/milestones/refresh-streak-leaderboard",
+             summary="Force-refresh the streak leaderboard cache (admin, ops-only)")
+async def admin_refresh_streak_leaderboard(admin=Depends(require_admin)):
+    """Manual override for the weekly Constant Companion cache. Useful when
+    ops need to see an immediate leader change after major data corrections."""
+    from services.retailer_milestones import refresh_streak_leaderboard
+    doc = await refresh_streak_leaderboard(db)
+    doc.pop("_id", None)
+    return {"leaderboard": doc}
+
+
 @router.get("/admin/milestones", summary="List all patron milestones (admin)")
 async def admin_list_milestones(
     include_inactive: bool = True,
