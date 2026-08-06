@@ -335,6 +335,11 @@ function PatronStatusCard({ fetchWithAuth }) {
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Keep ordering with Addrika and you&apos;ll earn aroma-themed patron tags — Cedar Patron, Sandalwood Sage, Oudh Master and more. Every tag is dated the moment you cross the threshold and stays with you forever.
         </p>
+        {status.next_milestone && (
+          <div className="mt-4">
+            <NextMilestoneProgress next={status.next_milestone} />
+          </div>
+        )}
       </div>
     );
   }
@@ -389,6 +394,60 @@ function PatronStatusCard({ fetchWithAuth }) {
           </div>
         ))}
       </div>
+
+      {status.next_milestone && <NextMilestoneProgress next={status.next_milestone} />}
+    </div>
+  );
+}
+
+const STAT_UNIT_LABEL = {
+  lifetime_orders: (n) => `${n} more order${n === 1 ? '' : 's'}`,
+  lifetime_gmv_inr: (n) => `₹${Number(n).toLocaleString('en-IN')} more in purchases`,
+  monthly_order_streak: (n) => `${n} more month${n === 1 ? '' : 's'} in a row`,
+  active_months: (n) => `${n} more active month${n === 1 ? '' : 's'}`,
+};
+
+function NextMilestoneProgress({ next }) {
+  const remaining = Math.ceil(Number(next.remaining || 0));
+  const pct = Math.min(100, Math.max(0, Number(next.progress_pct || 0)));
+  const label = STAT_UNIT_LABEL[next.stat]
+    ? STAT_UNIT_LABEL[next.stat](remaining)
+    : `${remaining} more`;
+
+  return (
+    <div
+      className="mt-4 pt-4 border-t border-amber-200/40 dark:border-slate-700"
+      data-testid="next-milestone-progress"
+    >
+      <div className="flex items-center justify-between text-sm mb-2 flex-wrap gap-1">
+        <div className="text-slate-700 dark:text-slate-200">
+          <span className="text-slate-500 dark:text-slate-400">Next up:</span>{' '}
+          <span
+            className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold border ${AROMA_TONES[next.aroma_tag] || 'bg-slate-100 text-slate-800 border-slate-300'}`}
+            data-testid="next-milestone-name"
+          >
+            {next.name}
+          </span>
+        </div>
+        <div className="text-xs font-semibold text-amber-700 dark:text-amber-300" data-testid="next-milestone-remaining">
+          {remaining > 0 ? `${label} to go` : 'Almost there!'}
+        </div>
+      </div>
+      <div className="h-2 w-full bg-amber-100 dark:bg-slate-700 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-700"
+          style={{ width: `${pct}%` }}
+          data-testid="next-milestone-progress-bar"
+        />
+      </div>
+      <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 flex justify-between">
+        <span>{Number(next.current_value).toLocaleString('en-IN')}</span>
+        <span>{pct}%</span>
+        <span>{Number(next.threshold).toLocaleString('en-IN')}</span>
+      </div>
+      {next.description && (
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 italic">{next.description}</p>
+      )}
     </div>
   );
 }

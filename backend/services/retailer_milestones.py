@@ -197,7 +197,7 @@ async def sync_achievements(db, retailer_id: str) -> list[dict]:
 
 async def get_retailer_patron_status(db, retailer_id: str) -> dict:
     """Assemble the retailer's full patron status: current tag(s),
-    achievement history + honor badges."""
+    achievement history, honor badges, AND the next milestone in progress."""
     await seed_default_milestones(db)
     await sync_achievements(db, retailer_id)
 
@@ -229,6 +229,7 @@ async def get_retailer_patron_status(db, retailer_id: str) -> dict:
     highest = enriched[-1] if enriched else None
 
     honors = await _compute_honors(db, retailer_id)
+    next_milestone = await _compute_next_milestone(db, retailer_id, milestone_ids)
 
     return {
         "retailer_id": retailer_id,
@@ -236,7 +237,109 @@ async def get_retailer_patron_status(db, retailer_id: str) -> dict:
         "current_aroma": highest["aroma_tag"] if highest else None,
         "achievements": enriched,
         "honors": honors,
+        "next_milestone": next_milestone,
     }
+
+
+async def _compute_next_milestone(
+    db, retailer_id: str, earned_ids: set[str]
+) -> Optional[dict]:
+    """Return the closest un-earned active milestone with the retailer's
+    current progress + delta so the UI can render a motivational
+    "N more orders to X" progress bar."""
+    stats = await _retailer_stats(db, retailer_id)
+    candidates = await db.retailer_milestones.find(
+        {"is_active": True, "id": {"$nin": list(earned_ids)}}, {"_id": 0},
+    ).to_list(200)
+    if not candidates:
+        return None
+
+    def _remaining(m: dict) -> float:
+        current = float(stats.get(m["stat"], 0))
+        return max(0.0, float(m["threshold"]) - current)
+
+    # Sort by absolute distance to threshold. If a stat is uncomparable
+    # to another (orders vs GMV), pick the "closest to 100%" normalised.
+    def _pct(m: dict) -> float:
+        current = float(stats.get(m["stat"], 0))
+        return min(1.0, current / float(m["threshold"])) if m["threshold"] else 0.0
+
+    candidates.sort(key=lambda m: (-_pct(m), m.get("order") or 100))
+    closest = candidates[0]
+    current = float(stats.get(closest["stat"], 0))
+    threshold = float(closest["threshold"])
+    return {
+        "milestone_id": closest["id"],
+        "name": closest["name"],
+        "aroma_tag": closest.get("aroma_tag"),
+        "description": closest.get("description"),
+        "stat": closest["stat"],
+        "threshold": threshold,
+        "current_value": current,
+        "remaining": max(0.0, threshold - current),
+        "progress_pct": round(_pct(closest) * 100, 1),
+    }
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Streak leaderboard cache
+# ────────────────────────────────────────────────────────────────────────────
+#
+# The `Constant Companion` honor needs to know which retailer holds the
+# longest active monthly streak. A naive live scan is O(N-retailers) and
+# was flagged by the testing agent as a scale concern at iter79. Solution:
+# recompute the leaderboard on a slow cadence (weekly by default, easily
+# bumped to fortnightly/monthly) and cache the result. Live reads become
+# O(1). If the cache is missing or stale, `_compute_honors` falls back to
+# a scan the FIRST time — subsequent reads use the cache.
+STREAK_CACHE_ID = "streak_leaderboard"
+STREAK_CACHE_TTL_DAYS = 7  # weekly refresh; bump to 14 or 30 if scans get costly
+
+
+async def refresh_streak_leaderboard(db, top_n: int = 3) -> dict:
+    """Recompute the top-N streak leaderboard and cache it. Safe to call
+    from a scheduler, an admin endpoint, or on-demand from `_compute_honors`
+    when the cache is stale."""
+    all_retailers = await db.retailers.find(
+        {"status": {"$ne": "suspended"}}, {"_id": 0, "retailer_id": 1},
+    ).to_list(50000)
+    scores: list[dict] = []
+    for r in all_retailers:
+        stats = await _retailer_stats(db, r["retailer_id"])
+        streak = stats.get(STAT_MONTHLY_STREAK, 0)
+        if streak > 0:
+            scores.append({"retailer_id": r["retailer_id"], "streak_months": streak})
+    scores.sort(key=lambda s: s["streak_months"], reverse=True)
+    top = scores[:top_n]
+    doc = {
+        "_id": STREAK_CACHE_ID,
+        "updated_at": _now().isoformat(),
+        "top": top,
+        "top_streak_retailer_id": top[0]["retailer_id"] if top else None,
+        "top_streak_months": top[0]["streak_months"] if top else 0,
+    }
+    await db.leaderboard_cache.update_one(
+        {"_id": STREAK_CACHE_ID}, {"$set": doc}, upsert=True,
+    )
+    return doc
+
+
+async def _get_streak_leader(db) -> tuple[Optional[str], int]:
+    """Read the current Constant Companion holder from the cache. Refreshes
+    the cache lazily if it's missing or older than STREAK_CACHE_TTL_DAYS."""
+    from datetime import timedelta
+    doc = await db.leaderboard_cache.find_one({"_id": STREAK_CACHE_ID}, {"_id": 0})
+    now = _now()
+    is_fresh = False
+    if doc and doc.get("updated_at"):
+        try:
+            age = now - datetime.fromisoformat(str(doc["updated_at"]).replace("Z", "+00:00"))
+            is_fresh = age < timedelta(days=STREAK_CACHE_TTL_DAYS)
+        except (ValueError, TypeError):
+            is_fresh = False
+    if not is_fresh:
+        doc = await refresh_streak_leaderboard(db)
+    return doc.get("top_streak_retailer_id"), int(doc.get("top_streak_months") or 0)
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -244,8 +347,8 @@ async def get_retailer_patron_status(db, retailer_id: str) -> dict:
 # ────────────────────────────────────────────────────────────────────────────
 async def _compute_honors(db, retailer_id: str) -> list[dict]:
     """Return the honorary badges (Trailblazer / Constant Companion) this
-    retailer currently holds. Freshly computed on every read so the crown
-    passes correctly the moment someone else overtakes them."""
+    retailer currently holds. Trailblazer is fully live (small set), streak
+    leader reads from the weekly-refreshed cache above."""
     honors: list[dict] = []
 
     # Trailblazer: whoever hit the highest-order milestone fastest.
@@ -253,8 +356,6 @@ async def _compute_honors(db, retailer_id: str) -> list[dict]:
         {"is_active": True}, {"_id": 0}, sort=[("order", -1)],
     )
     if top_ms:
-        # For every retailer who has this milestone, compute
-        # (achieved_at - retailer.created_at) and pick the smallest.
         rows = await db.retailer_achievements.find(
             {"milestone_id": top_ms["id"]}, {"_id": 0},
         ).to_list(1000)
@@ -282,15 +383,8 @@ async def _compute_honors(db, retailer_id: str) -> list[dict]:
                 "days_to_earn": round(best_days, 1) if best_days is not None else None,
             })
 
-    # Constant Companion: longest active monthly streak.
-    all_retailers = await db.retailers.find(
-        {"status": {"$ne": "suspended"}}, {"_id": 0, "retailer_id": 1},
-    ).to_list(5000)
-    top_streak, top_id = 0, None
-    for r in all_retailers:
-        stats = await _retailer_stats(db, r["retailer_id"])
-        if stats[STAT_MONTHLY_STREAK] > top_streak:
-            top_streak, top_id = stats[STAT_MONTHLY_STREAK], r["retailer_id"]
+    # Constant Companion: cache-backed, refreshed weekly.
+    top_id, top_streak = await _get_streak_leader(db)
     if top_id == retailer_id and top_streak >= 3:
         honors.append({
             "id": "constant_companion",

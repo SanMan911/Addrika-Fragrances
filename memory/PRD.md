@@ -3,6 +3,29 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 📈 Feb 2026 (Iteration 80) — Milestone Progress Bar · Streak Leaderboard Cache
+
+**1. Milestone Progress Bar — turns silent progress into active motivation**
+- Backend: `get_retailer_patron_status` now returns a `next_milestone` payload — the closest un-earned active milestone with `{name, aroma_tag, stat, threshold, current_value, remaining, progress_pct}`. Chosen by "closest to 100%" so the retailer always sees the milestone they're most likely to hit next.
+- Returns `null` once every active milestone is earned (verified by test).
+- Frontend: NEW `NextMilestoneProgress` component on `/retailer/b2b/rewards`:
+    - Amber-orange gradient progress bar (`data-testid="next-milestone-progress-bar"`).
+    - Human-readable remaining copy: "2 more orders to Cedar Patron", "₹40,000 more in purchases to Musk Maven", "3 more months in a row to Amber Guardian".
+    - Shows current value, percentage, and threshold below the bar.
+    - Rendered on both the populated Patron Journey card AND the empty state so new retailers see their first milestone immediately.
+
+**2. Streak Leaderboard Cache — O(1) reads for Constant Companion**
+- NEW `db.leaderboard_cache` collection with a single `streak_leaderboard` doc holding the top-3 streak retailers + timestamp.
+- `refresh_streak_leaderboard()` scans all non-suspended retailers and stores the top 3. Called from:
+    - `_get_streak_leader()` lazily whenever the cache is missing or older than **STREAK_CACHE_TTL_DAYS (default 7)**.
+    - NEW admin endpoint `POST /api/admin/milestones/refresh-streak-leaderboard` for on-demand rebuilds.
+- `_compute_honors` no longer scans every retailer — it reads the cached top holder in O(1). The O(N) scan runs at most once per week per environment.
+- TTL is a single constant — bump to 14 or 30 if scans get costly (per user's guidance).
+
+**3. Testing** — `tests/test_iter80_progress_cache.py` — **6/6 passing** (next_milestone progress math, null when all earned, cache creation + within-TTL reuse, stale-cache rebuild, admin refresh endpoint, iter79 immutability regression). Full regression **74/74** across iter74-80. Frontend `yarn build` succeeds in 43s.
+
+
+
 ### 🏅 Feb 2026 (Iteration 79) — Patron Milestones · CI SDK Generation · Standalone-App Foundation
 
 **1. Retailer Patron Milestones — aroma-themed loyalty tags**
