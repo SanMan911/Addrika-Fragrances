@@ -35,6 +35,7 @@ export default function Header() {
     { label: 'Fragrances', href: '#fragrances', type: 'scroll' },
     { label: 'Our Story', href: '/our-story', type: 'route' },
     { label: 'Sustainability', href: '/sustainability', type: 'route' },
+    { label: 'Blog', href: '/blog', type: 'route' },
     { label: 'Find Retailers', href: '/find-retailers', type: 'route' },
     { label: 'Track Order', href: '/track-order', type: 'route' },
     { label: 'Contact', href: '#contact', type: 'scroll' }
