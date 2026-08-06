@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -146,4 +147,31 @@ async def monthly_rewards_scheduler_loop(db):
                 await run_monthly_digest(db)
         except Exception as e:
             logger.warning("monthly rewards digest scheduler failed: %s", e)
+        await asyncio.sleep(CHECK_INTERVAL_SECONDS)
+
+
+async def streak_leaderboard_weekly_loop(db):
+    """Rebuild the top-streak leaderboard every Sunday midnight (UTC).
+    Keeps the `Constant Companion` honor + `/community/leaderboard` API
+    O(1) even under heavy traffic — the O(N) scan runs at most once
+    per week, off the hot path (see iter80 for the lazy fallback path)."""
+    from services.retailer_milestones import refresh_streak_leaderboard
+    await asyncio.sleep(180)  # let boot settle
+    last_run_key: Optional[str] = None
+    while True:
+        try:
+            now = _now()
+            # Sunday = weekday()==6. Refresh once between 00:00 and 00:59 UTC.
+            if now.weekday() == 6 and now.hour == 0:
+                run_key = now.strftime("%Y-%W")
+                if run_key != last_run_key:
+                    logger.info("Weekly streak leaderboard refresh starting…")
+                    doc = await refresh_streak_leaderboard(db)
+                    last_run_key = run_key
+                    logger.info(
+                        "Weekly streak leaderboard refresh done: %d rows",
+                        len(doc.get("top") or []),
+                    )
+        except Exception as e:
+            logger.warning("weekly streak refresh failed: %s", e)
         await asyncio.sleep(CHECK_INTERVAL_SECONDS)

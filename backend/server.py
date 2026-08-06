@@ -243,8 +243,12 @@ async def startup_db_client():
 
     # Monthly Fragrance Rewards statement digest — fires on the 1st of each month
     try:
-        from services.monthly_rewards_digest import monthly_rewards_scheduler_loop
+        from services.monthly_rewards_digest import (
+            monthly_rewards_scheduler_loop,
+            streak_leaderboard_weekly_loop,
+        )
         asyncio.create_task(monthly_rewards_scheduler_loop(db))
+        asyncio.create_task(streak_leaderboard_weekly_loop(db))
         print("Monthly rewards digest scheduler started")
     except Exception as e:
         print(f"Monthly rewards digest scheduler skipped: {e}")
