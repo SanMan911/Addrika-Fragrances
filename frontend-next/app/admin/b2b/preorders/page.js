@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Boxes, RefreshCw, TrendingUp, ChevronDown, ChevronRight, Users, Wallet, Package } from 'lucide-react';
 import { toast } from 'sonner';
-import { authFetch } from '../../../layout';
+import { authFetch } from '../../layout';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
