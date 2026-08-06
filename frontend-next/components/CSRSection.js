@@ -1,14 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useImpact } from '../context/ImpactContext';
 import { Heart, Users, TreePine, GraduationCap, HandHeart, Globe, Leaf } from 'lucide-react';
 import TreeCounter from './TreeCounter';
-
-const API_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  '';
 
 const baseInitiatives = [
   {
@@ -16,8 +11,8 @@ const baseInitiatives = [
     key: 'trees',
     title: 'Environmental Conservation',
     description: 'We plant a tree for every 25 orders, contributing to reforestation efforts across India.',
-    // impact string is set dynamically from /api/impact/trees so the badge
-    // never drifts from the live counter above.
+    // impact string is set dynamically from the shared ImpactProvider so the
+    // badge never drifts from the live counter above.
     impact: 'trees planted',
     color: '#10B981'
   },
@@ -46,29 +41,13 @@ const baseInitiatives = [
 
 export default function CSRSection() {
   const { isDarkMode } = useTheme();
-  const [liveTrees, setLiveTrees] = useState(null);
-
-  // Pull the authoritative tree count from the same endpoint the counter
-  // widget uses. Fetching here (not in the child card) keeps a single
-  // network round-trip and guarantees the two numbers stay in lockstep.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const r = await fetch(`${API_URL}/api/impact/trees`, { cache: 'no-store' });
-        if (!r.ok) return;
-        const j = await r.json();
-        if (!cancelled) setLiveTrees(Number(j.trees) || 0);
-      } catch { /* silent — badge just falls back to its default */ }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const { trees: liveTrees } = useImpact();
 
   const csrInitiatives = baseInitiatives.map((item) => {
     if (item.key === 'trees') {
       return {
         ...item,
-        impact: liveTrees !== null
+        impact: liveTrees !== null && liveTrees !== undefined
           ? `${liveTrees.toLocaleString('en-IN')} trees planted`
           : 'Growing every day',
       };

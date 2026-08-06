@@ -3,54 +3,26 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Trees, ArrowRight } from 'lucide-react';
-
-const API_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  '';
+import { useImpact } from '../context/ImpactContext';
 
 /**
  * Slow-ticking tree-plantation counter.
  *
- * The **authoritative** value comes from `/api/impact/trees` — the
- * backend derives it from a start date + rate + admin-set manual
- * boost (see `backend/routers/impact.py`). Once we know that value
- * we count from 0 up to it visually (spring easing), so returning
- * visitors always feel the number growing.
+ * The **authoritative** value comes from the shared <ImpactProvider> —
+ * a single `/api/impact/trees` fetch feeds every impact widget on the
+ * page (see /app/frontend-next/context/ImpactContext.js).
  *
- * On every fresh page load we re-fetch and re-animate — no localStorage
- * caching, so admins can tweak the rate and see the number reflect
- * live without asking anyone to hard-refresh.
+ * Once we know the target we count from 0 up to it visually (spring
+ * easing), so returning visitors always feel the number growing.
  */
 export default function TreeCounter() {
-  const [target, setTarget] = useState(null);
+  const { trees: target, note, ctaHref } = useImpact();
   const [displayed, setDisplayed] = useState(0);
-  const [note, setNote] = useState(null);
-  const [ctaHref, setCtaHref] = useState('/csr');
   const rafRef = useRef(null);
-
-  // fetch once on mount
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const r = await fetch(`${API_URL}/api/impact/trees`, { cache: 'no-store' });
-        if (!r.ok) return;
-        const j = await r.json();
-        if (cancelled) return;
-        setTarget(Number(j.trees) || 0);
-        setNote(j.note || null);
-        setCtaHref(j.cta_href || '/csr');
-      } catch {
-        /* silent — widget just doesn't render */
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   // count-up animation
   useEffect(() => {
-    if (target === null) return;
+    if (target === null || target === undefined) return;
     const duration = 2400;
     const start = performance.now();
     const initial = 0;
@@ -67,7 +39,7 @@ export default function TreeCounter() {
     return () => rafRef.current && cancelAnimationFrame(rafRef.current);
   }, [target]);
 
-  if (target === null) return null;
+  if (target === null || target === undefined) return null;
 
   return (
     <div
