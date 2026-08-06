@@ -105,6 +105,9 @@ export default function RetailerRewardsHistoryPage() {
         {/* Balance card */}
         <RewardsBalanceCard fetchWithAuth={fetchWithAuth} />
 
+        {/* Patron milestones */}
+        <PatronStatusCard fetchWithAuth={fetchWithAuth} />
+
         {/* Accountant CC for the Monthly Rewards Digest */}
         <AccountantEmailCard fetchWithAuth={fetchWithAuth} />
 
@@ -291,6 +294,101 @@ function AccountantEmailCard({ fetchWithAuth }) {
       <p className="text-[10px] text-slate-500 mt-2">
         Leave blank to remove — the digest will be sent to you only.
       </p>
+    </div>
+  );
+}
+
+
+
+const AROMA_TONES = {
+  cedar: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-700',
+  sandalwood: 'bg-orange-100 text-orange-900 border-orange-300 dark:bg-orange-900/40 dark:text-orange-100 dark:border-orange-700',
+  oudh: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-900/40 dark:text-purple-100 dark:border-purple-700',
+  musk: 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-900/40 dark:text-rose-100 dark:border-rose-700',
+  amber: 'bg-yellow-100 text-yellow-900 border-yellow-300 dark:bg-yellow-900/40 dark:text-yellow-100 dark:border-yellow-700',
+  kewda: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-100 dark:border-emerald-700',
+  rose: 'bg-pink-100 text-pink-900 border-pink-300 dark:bg-pink-900/40 dark:text-pink-100 dark:border-pink-700',
+};
+
+function PatronStatusCard({ fetchWithAuth }) {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/patron`);
+        if (!res.ok) return;
+        setStatus(await res.json());
+      } catch { /* silent */ }
+      finally { setLoading(false); }
+    })();
+  }, [fetchWithAuth]);
+
+  if (loading || !status) return null;
+  if (!status.achievements?.length && !status.honors?.length) {
+    return (
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5" data-testid="patron-card-empty">
+        <div className="flex items-center gap-2 text-slate-800 dark:text-white mb-1">
+          <span className="text-lg font-semibold">Your Patron Journey</span>
+        </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Keep ordering with Addrika and you&apos;ll earn aroma-themed patron tags — Cedar Patron, Sandalwood Sage, Oudh Master and more. Every tag is dated the moment you cross the threshold and stays with you forever.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-xl border border-amber-200 dark:border-amber-800/50 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 p-5"
+      data-testid="patron-card"
+    >
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-amber-700 dark:text-amber-300 font-semibold">Your Patron Tag</div>
+          <div className="text-2xl font-bold text-slate-800 dark:text-white" data-testid="patron-current-tag">
+            {status.current_patron_tag || 'On your way…'}
+          </div>
+        </div>
+        {status.honors?.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {status.honors.map((h) => (
+              <span
+                key={h.id}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-900 dark:text-amber-100 text-xs font-semibold"
+                title={h.reason}
+                data-testid={`honor-${h.id}`}
+              >
+                🏆 {h.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {status.achievements.slice().reverse().map((a) => (
+          <div
+            key={a.milestone_id}
+            className="flex items-center justify-between gap-3 py-2 border-t border-amber-200/40 dark:border-slate-700 first:border-t-0"
+            data-testid={`patron-achievement-${a.milestone_id}`}
+          >
+            <div className="flex-1 min-w-0">
+              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold border ${AROMA_TONES[a.aroma_tag] || 'bg-slate-100 text-slate-800 border-slate-300'}`}>
+                {a.name}
+              </span>
+              {a.description && (
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{a.description}</p>
+              )}
+            </div>
+            <div className="text-right text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              earned<br/>
+              <span className="font-mono">{new Date(a.achieved_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

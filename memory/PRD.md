@@ -3,6 +3,39 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🏅 Feb 2026 (Iteration 79) — Patron Milestones · CI SDK Generation · Standalone-App Foundation
+
+**1. Retailer Patron Milestones — aroma-themed loyalty tags**
+- NEW `services/retailer_milestones.py`:
+    - Milestone schema: `name`, `aroma_tag` (cedar / sandalwood / oudh / musk / amber / kewda / rose), `stat` (lifetime_orders / lifetime_gmv_inr / monthly_order_streak / active_months), `threshold`, `description`, `order`, `is_active`.
+    - Default seed on first read: **Cedar Patron (5 orders)** → **Sandalwood Sage (20)** → **Oudh Master (50)** → **Musk Maven (₹1L GMV)** → **Amber Guardian (12 active months)**.
+    - **IMMUTABLE `achieved_at` timestamps** — `retailer_achievements` rows are insert-only. Threshold edits, renames, and even deactivation never rewrite an earned achievement (verified by tests).
+    - `sync_achievements()` runs automatically after every paid B2B order via the post-payment hook pipeline — tags appear the moment they're earned.
+- NEW live-computed **Honor badges**:
+    - **Aroma Trailblazer** — whichever retailer reached the top milestone fastest (days from `retailer.created_at` to `achievement.achieved_at`).
+    - **Constant Companion** — longest unbroken monthly ordering streak (≥ 3 months).
+    - Never stored — freshly computed on read so the crown correctly passes the moment someone else overtakes.
+- NEW `routers/retailer_milestones.py`:
+    - Admin CRUD: `GET/POST/PUT/DELETE /api/admin/milestones` (soft-delete only — preserves audit history).
+    - Admin viewer: `GET /api/admin/retailers/{id}/patron`.
+    - Retailer self-service: `GET /api/retailer-dashboard/patron`.
+- Frontend:
+    - NEW `/admin/milestones` — full CRUD UI with aroma-themed pill previews, threshold picker, description field, active/retired toggle. Deactivation dialog reminds the admin that earned achievements are immutable.
+    - Retailer `/retailer/b2b/rewards` page gains a **Patron Journey** card: current aroma-themed tag, honor badges, and every earned milestone with its immutable earned-on date.
+
+**2. CI SDK Generation — `.dart` / `.swift` / `.kt` / `.ts` clients**
+- NEW `scripts/generate-sdks.sh` — fetches `/openapi.json` and runs `openapi-generator-cli` for Flutter (Dart), iOS (Swift 5), Android (Kotlin) and TypeScript-Axios (shared web/RN). Outputs to `clients/`.
+- NEW `.github/workflows/generate-sdks.yml` — triggers on every push to `main` that touches `backend/**`. Regenerates the SDKs and commits them back to the repo so mobile teams pull typed clients that never drift from the backend. `PROD_BACKEND_URL` is a repo secret.
+- Backend already exposes a rich 344 KB OpenAPI schema at `/openapi.json` — nothing else needed.
+
+**3. Standalone e-commerce app foundation**
+- Extended `/api/app/manifest.stable_endpoints` with the surfaces a native storefront needs: `cart_add`, `cart_update`, `cart_remove`, `cart_clear`, `checkout_create_order`, `checkout_verify_payment`, `customer_orders`, `product_asset`, `retailer_patron`. A Flutter/Swift/Kotlin generator now sees every endpoint required for a full-fat storefront app (not just a WebView wrapper).
+- Docs baked into the script + workflow explaining how to add the SDK as a Gradle module / SwiftPM package / `pub` dep.
+
+**4. Testing** — `tests/test_iter79_milestones.py` — **5/5 passing** (CRUD flow, invalid stat rejection, achievement timestamp immutability under re-runs AND threshold hikes, Trailblazer honor to the fastest retailer, manifest exposes all e-commerce endpoints, admin can read any retailer's patron status). Full regression **68/68 across iter74-79 + legacy B2B**. Frontend `yarn build` succeeds in 35s.
+
+
+
 ### 📱 Feb 2026 (Iteration 78) — ImpactProvider single-source + Mobile-app foundation
 
 **1. `ImpactContext` single-source refactor**
