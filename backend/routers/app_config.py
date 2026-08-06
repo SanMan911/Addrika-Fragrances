@@ -198,6 +198,16 @@ async def get_app_manifest() -> dict:
             "preview_resolve": "/api/preview/resolve/{token}",
             "b2b_catalog": "/api/retailer-dashboard/b2b/catalog",
             "b2b_orders": "/api/retailer-dashboard/b2b/orders",
+            "retailer_patron": "/api/retailer-dashboard/patron",
+            # Standalone e-commerce app surfaces
+            "cart_add": "/api/cart",
+            "cart_update": "/api/cart/{item_id}",
+            "cart_remove": "/api/cart/{item_id}",
+            "cart_clear": "/api/cart",
+            "checkout_create_order": "/api/orders",
+            "checkout_verify_payment": "/api/orders/verify-payment",
+            "customer_orders": "/api/orders",
+            "product_asset": "/api/products/asset/{asset_id}",
         },
         "notes": "Every schema shape can be regenerated as typed models via `openapi-generator -i https://<host>/openapi.json -g dart` (Flutter) or `-g swift5` / `-g kotlin`.",
     }

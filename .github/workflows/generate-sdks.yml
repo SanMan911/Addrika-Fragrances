@@ -1,0 +1,56 @@
+name: Generate + Publish Mobile SDKs
+
+# Regenerates Flutter (Dart), iOS (Swift), Android (Kotlin) and
+# TypeScript SDKs from the live OpenAPI schema on every push to main.
+# Commits the fresh SDKs back into the `clients/` directory so mobile
+# teams pull the latest via `git pull` — no manual model copy-paste
+# ever, no drift between backend and mobile.
+#
+# Wire this into your production backend host by exporting
+# BACKEND_URL as a repo secret (e.g. https://api.centraders.com).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # Only regenerate when something that could change the API surface changed
+      - 'backend/**'
+      - 'scripts/generate-sdks.sh'
+      - '.github/workflows/generate-sdks.yml'
+  workflow_dispatch:  # let ops trigger it manually too
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Node (for npx openapi-generator)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run SDK generator
+        env:
+          BACKEND_URL: ${{ secrets.PROD_BACKEND_URL || 'https://api.centraders.com' }}
+        run: |
+          chmod +x scripts/generate-sdks.sh
+          scripts/generate-sdks.sh
+
+      - name: Commit + push regenerated SDKs
+        run: |
+          git config user.email "sdk-bot@addrika.com"
+          git config user.name  "Addrika SDK Bot"
+          git add clients/
+          if git diff --cached --quiet; then
+            echo "No SDK changes to commit."
+          else
+            git commit -m "chore(sdks): auto-regenerate mobile clients [skip ci]"
+            git push
+          fi

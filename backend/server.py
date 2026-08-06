@@ -57,6 +57,7 @@ from routers.docs import router as docs_router
 from routers.partner import router as partner_router
 from routers.impact import router as impact_router
 from routers.app_config import router as app_config_router
+from routers.retailer_milestones import router as retailer_milestones_router
 from routers.admin.admin_social import router as admin_social_router
 from routers.admin.admin_integrations import router as admin_integrations_router
 from routers.admin.admin_b2b_inventory import router as admin_b2b_inventory_router
@@ -134,6 +135,7 @@ app.include_router(admin_provider_balances_router, prefix="/api")
 app.include_router(partner_router, prefix="/api")
 app.include_router(impact_router, prefix="/api")
 app.include_router(app_config_router, prefix="/api")
+app.include_router(retailer_milestones_router, prefix="/api")
 app.include_router(admin_social_router, prefix="/api")
 app.include_router(admin_integrations_router, prefix="/api")
 app.include_router(admin_b2b_inventory_router, prefix="/api")

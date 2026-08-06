@@ -30,6 +30,23 @@ async def run_post_payment_hooks(
     await _consume_rewards_redemption(db, order, retailer)
     await _deduct_inventory(db, order_id)
     await _push_zoho_payment(db, order, retailer, razorpay_payment_id)
+    await _sync_milestones(db, retailer)
+
+
+async def _sync_milestones(db, retailer: dict) -> None:
+    """Evaluate patron milestones after every paid B2B order — new tags
+    appear the moment they're earned."""
+    try:
+        from services.retailer_milestones import sync_achievements
+        unlocked = await sync_achievements(db, retailer["retailer_id"])
+        if unlocked:
+            logger.info(
+                "Retailer %s unlocked %d new milestone(s): %s",
+                retailer["retailer_id"], len(unlocked),
+                [u.get("milestone_name_at_time") for u in unlocked],
+            )
+    except Exception as e:
+        logger.debug("Milestone sync failed for %s: %s", retailer.get("retailer_id"), e)
 
 
 async def _accrue_rewards(
