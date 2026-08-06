@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://shiprocket-shipping.preview.emergentagent.com/api
+https://incense-rewards.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

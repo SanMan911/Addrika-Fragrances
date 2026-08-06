@@ -19,5 +19,5 @@
   "seed_data_creation": "None persistent — tests use ST-TEST-* retailer_ids in nudges_open_log with teardown. One Bold Bakhoor 50g row now has stock_pieces=100 from adjust test (harmless).",
   "retest_needed": false,
   "main_agent_can_self_test": true,
-  "context_for_next_testing_agent": "Backend URL: https://shiprocket-shipping.preview.emergentagent.com. Admin login is 2FA — grab OTP via motor from db.admin_2fa_tokens by token_id after /api/admin/login/initiate. Nudge tracking prefix is /api/nudges/track/open/{broadcast_id}/{retailer_id}.gif (not /api/broadcasts/open). B2B inventory endpoints at /api/admin/b2b/inventory (list, adjust/{pid}, nudges/best-time/{rid}, nudges/best-time-for-audience)."
+  "context_for_next_testing_agent": "Backend URL: https://incense-rewards.preview.emergentagent.com. Admin login is 2FA — grab OTP via motor from db.admin_2fa_tokens by token_id after /api/admin/login/initiate. Nudge tracking prefix is /api/nudges/track/open/{broadcast_id}/{retailer_id}.gif (not /api/broadcasts/open). B2B inventory endpoints at /api/admin/b2b/inventory (list, adjust/{pid}, nudges/best-time/{rid}, nudges/best-time-for-audience)."
 }

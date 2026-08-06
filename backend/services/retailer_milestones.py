@@ -291,7 +291,7 @@ def _milestone_whatsapp_body(name: str, tag: str) -> str:
 
 async def get_retailer_patron_status(db, retailer_id: str) -> dict:
     """Assemble the retailer's full patron status: current tag(s),
-    achievement history, honor badges, AND the next milestone in progress."""
+    achievement history, honor badges, tier ring AND the next milestone."""
     await seed_default_milestones(db)
     await sync_achievements(db, retailer_id)
 
@@ -324,15 +324,51 @@ async def get_retailer_patron_status(db, retailer_id: str) -> dict:
 
     honors = await _compute_honors(db, retailer_id)
     next_milestone = await _compute_next_milestone(db, retailer_id, milestone_ids)
+    tier = compute_tier(len(enriched))
 
     return {
         "retailer_id": retailer_id,
         "current_patron_tag": highest["name"] if highest else None,
         "current_aroma": highest["aroma_tag"] if highest else None,
+        "tier": tier,
         "achievements": enriched,
         "honors": honors,
         "next_milestone": next_milestone,
     }
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Aroma Ranking Tiers — Bronze / Silver / Gold rings
+# ────────────────────────────────────────────────────────────────────────────
+TIER_BRONZE = {"id": "bronze", "label": "Bronze",   "min_achievements": 1, "color": "#CD7F32", "ring_class": "ring-orange-400"}
+TIER_SILVER = {"id": "silver", "label": "Silver",   "min_achievements": 3, "color": "#C0C0C0", "ring_class": "ring-slate-400"}
+TIER_GOLD   = {"id": "gold",   "label": "Gold",     "min_achievements": 5, "color": "#FFD700", "ring_class": "ring-amber-400"}
+TIER_NEW    = {"id": "novice", "label": "Novice",   "min_achievements": 0, "color": "#94a3b8", "ring_class": "ring-slate-300"}
+_TIERS = [TIER_GOLD, TIER_SILVER, TIER_BRONZE, TIER_NEW]
+
+
+def compute_tier(achievement_count: int) -> dict:
+    """Return the tier a retailer sits in based on how many tags they've earned.
+    Tiers cascade — a retailer with 5+ achievements is Gold, 3-4 is Silver,
+    1-2 is Bronze, 0 is Novice."""
+    for tier in _TIERS:
+        if achievement_count >= tier["min_achievements"]:
+            # Enrich with progress-to-next-tier so the UI can hint at growth
+            next_tier = None
+            for candidate in reversed(_TIERS):
+                if candidate["min_achievements"] > tier["min_achievements"]:
+                    next_tier = candidate
+                    break
+            return {
+                **tier,
+                "achievements_count": achievement_count,
+                "next_tier": ({
+                    "id": next_tier["id"], "label": next_tier["label"],
+                    "min_achievements": next_tier["min_achievements"],
+                    "tags_to_go": max(0, next_tier["min_achievements"] - achievement_count),
+                } if next_tier else None),
+            }
+    return {**TIER_NEW, "achievements_count": achievement_count, "next_tier": None}
 
 
 async def _compute_next_milestone(

@@ -18,7 +18,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 load_dotenv("/app/backend/.env")
 
 BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL")
-            or "https://shiprocket-shipping.preview.emergentagent.com").rstrip("/")
+            or "https://incense-rewards.preview.emergentagent.com").rstrip("/")
 MONGO_URL = os.environ["MONGO_URL"]
 DB_NAME = os.environ["DB_NAME"]
 ADMIN_EMAIL = "contact.us@centraders.com"

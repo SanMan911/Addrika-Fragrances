@@ -479,7 +479,7 @@ Fix: `CSRSection.js` now fetches `/api/impact/trees` and renders the exact live 
   - **Outbound** `redeem_amardeep_coupon` — after a successful Addrika order that used an `AMD-GIFT-*` code, marks it redeemed on Amardeep (also via `BackgroundTasks`).
   - **Admin control**: `GET /api/admin/partner/coupons`, `POST /api/admin/partner/coupons/{code}/suspend`, `POST /api/admin/partner/coupons/{code}/reactivate`. Existing `/admin/discount-codes` list also surfaces them since they share the `discount_codes` collection.
   - **Safety**: self-pickup still blocks any coupon (including partner ones); minimum-order threshold configurable via `PARTNER_MIN_ORDER_INR` (defaults to 499).
-- ✅ **Env wired** in `backend/.env`: `PARTNER_SHARED_SECRET=<redacted>`, `AMARDEEP_API_BASE=https://shiprocket-shipping.preview.emergentagent.com`, `PARTNER_MIN_ORDER_INR=499`.
+- ✅ **Env wired** in `backend/.env`: `PARTNER_SHARED_SECRET=<redacted>`, `AMARDEEP_API_BASE=https://incense-rewards.preview.emergentagent.com`, `PARTNER_MIN_ORDER_INR=499`.
 - ✅ **Regression**: 16 new pytest cases in `tests/test_partner_coupons.py` covering HMAC helpers, signature rejection paths, persistence idempotency, remote validate happy / 404 / network-failure paths, `validate_and_apply_coupon` delegation, self-pickup short-circuit, and ≥₹499 threshold gating. **All 16 pass** + 25 prior regression = **41/41**.
 
 ### Feb 1, 2026 (later) — Floating Retailer CTA · Brochure messaging cleanup + redesign

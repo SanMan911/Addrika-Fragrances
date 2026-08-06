@@ -21,7 +21,7 @@ without explicit coordinates will be auto-geocoded by Mappls.
    works for both — copy that one value.
 5. Under **Restrictions / Allowed Origins**, add:
    - `https://centraders.com`
-   - `https://shiprocket-shipping.preview.emergentagent.com`
+   - `https://incense-rewards.preview.emergentagent.com`
    - `http://localhost:3000` *(optional, for local dev)*
 6. **Free-tier limits**: 10,000 map loads/month + 5,000 geocoding calls/month.
    More than enough for our traffic.
