@@ -64,6 +64,7 @@ from routers.admin.admin_b2b_inventory import router as admin_b2b_inventory_rout
 from routers.admin.admin_b2b_preorders import router as admin_b2b_preorders_router
 from routers.nudge_tracking import router as nudge_tracking_router
 from routers.fragrance_rewards import router as fragrance_rewards_router
+from routers.admin.admin_supabase_mirror import router as admin_supabase_mirror_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -91,12 +92,12 @@ async def health_check():
 
 
 # Include all routers with /api prefix
+# ---------- Public storefront ----------
 app.include_router(auth_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
 app.include_router(brochure_router, prefix="/api")
 app.include_router(docs_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
-app.include_router(admin_router, prefix="/api")
 app.include_router(blog_router, prefix="/api")
 app.include_router(reviews_router, prefix="/api")
 app.include_router(inventory_router, prefix="/api")
@@ -104,7 +105,6 @@ app.include_router(subscriptions_router, prefix="/api")
 app.include_router(inquiries_router, prefix="/api")
 app.include_router(discounts_router, prefix="/api")
 app.include_router(maps_router, prefix="/api")
-app.include_router(zoho_router, prefix="/api")
 app.include_router(shipping_router, prefix="/api")
 app.include_router(instagram_router, prefix="/api")
 app.include_router(cart_router, prefix="/api")
@@ -114,34 +114,45 @@ app.include_router(user_profile_router, prefix="/api")
 app.include_router(rewards_router, prefix="/api")
 app.include_router(retailers_router, prefix="/api")
 app.include_router(store_pickup_router, prefix="/api")
+app.include_router(impact_router, prefix="/api")
+app.include_router(nudge_tracking_router, prefix="/api")
+app.include_router(partner_router, prefix="/api")
+
+# ---------- Retailer / B2B portal ----------
 app.include_router(retailer_auth_router, prefix="/api")
 app.include_router(retailer_dashboard_router, prefix="/api")
 app.include_router(b2b_orders_router, prefix="/api")
+app.include_router(b2b_waitlist_router, prefix="/api")
+app.include_router(retailer_b2b_bills_msgs_router, prefix="/api")
+app.include_router(kyc_retailer_router, prefix="/api")
+app.include_router(retailer_milestones_router, prefix="/api")
+app.include_router(notify_me_router, prefix="/api")
+app.include_router(fragrance_rewards_router, prefix="/api")
+
+# ---------- Mobile / SDK ----------
+app.include_router(app_config_router, prefix="/api")
+
+# ---------- Admin ----------
+app.include_router(admin_router, prefix="/api")
 app.include_router(admin_b2b_router, prefix="/api")
 app.include_router(admin_b2b_settings_router, prefix="/api")
 app.include_router(admin_b2b_loyalty_router, prefix="/api")
 app.include_router(admin_b2b_reports_router, prefix="/api")
-app.include_router(admin_zoho_router, prefix="/api")
-app.include_router(zoho_oauth_public_router, prefix="/api")
-app.include_router(b2b_waitlist_router, prefix="/api")
-app.include_router(admin_b2b_waitlist_router, prefix="/api")
 app.include_router(admin_b2b_bills_msgs_router, prefix="/api")
-app.include_router(retailer_b2b_bills_msgs_router, prefix="/api")
-app.include_router(notify_me_router, prefix="/api")
-app.include_router(kyc_retailer_router, prefix="/api")
-app.include_router(kyc_admin_router, prefix="/api")
-app.include_router(admin_auto_blog_router, prefix="/api")
-app.include_router(admin_provider_balances_router, prefix="/api")
-app.include_router(partner_router, prefix="/api")
-app.include_router(impact_router, prefix="/api")
-app.include_router(app_config_router, prefix="/api")
-app.include_router(retailer_milestones_router, prefix="/api")
-app.include_router(admin_social_router, prefix="/api")
-app.include_router(admin_integrations_router, prefix="/api")
+app.include_router(admin_b2b_waitlist_router, prefix="/api")
 app.include_router(admin_b2b_inventory_router, prefix="/api")
 app.include_router(admin_b2b_preorders_router, prefix="/api")
-app.include_router(nudge_tracking_router, prefix="/api")
-app.include_router(fragrance_rewards_router, prefix="/api")
+app.include_router(admin_auto_blog_router, prefix="/api")
+app.include_router(admin_provider_balances_router, prefix="/api")
+app.include_router(admin_social_router, prefix="/api")
+app.include_router(admin_integrations_router, prefix="/api")
+app.include_router(admin_zoho_router, prefix="/api")
+app.include_router(admin_supabase_mirror_router, prefix="/api")
+app.include_router(kyc_admin_router, prefix="/api")
+
+# ---------- Third-party integrations ----------
+app.include_router(zoho_router, prefix="/api")
+app.include_router(zoho_oauth_public_router, prefix="/api")
 
 
 # Startup event
@@ -252,6 +263,25 @@ async def startup_db_client():
         print("Monthly rewards digest scheduler started")
     except Exception as e:
         print(f"Monthly rewards digest scheduler skipped: {e}")
+
+    # Supabase dual-write mirror — MongoDB stays source of truth
+    try:
+        from services.supabase_bootstrap import (
+            run_alembic_upgrade_on_boot,
+            periodic_backfill_loop,
+        )
+        from services.supabase_sync import dead_letter_scheduler_loop
+        from supabase_db import is_enabled
+
+        if is_enabled():
+            run_alembic_upgrade_on_boot()
+            asyncio.create_task(dead_letter_scheduler_loop())
+            asyncio.create_task(periodic_backfill_loop(db))
+            print("Supabase mirror bootstrapped (dead-letter + periodic backfill)")
+        else:
+            print("Supabase mirror disabled (SUPABASE_MIRROR_ENABLED=false or DB URL missing)")
+    except Exception as e:
+        print(f"Supabase mirror bootstrap skipped: {e}")
 
 
 # Shutdown event

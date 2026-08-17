@@ -152,6 +152,15 @@ async def mirror_b2c_product(db, product: dict) -> list[dict]:
         "Unified sync: mirrored %d B2B SKUs for B2C product '%s'",
         len(saved), product.get("id"),
     )
+
+    # Best-effort Supabase mirror for each B2B SKU (non-blocking)
+    try:
+        from services.supabase_sync import mirror_product_upsert
+        for sku in saved:
+            mirror_product_upsert(sku, channel="b2b")
+    except Exception:
+        pass
+
     return saved
 
 
