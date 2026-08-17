@@ -416,6 +416,13 @@ async def admin_onboard_waitlist_retailer(
     }
     await db.retailers.insert_one(retailer)
 
+    # Best-effort Supabase mirror (non-blocking)
+    try:
+        from services.supabase_sync import mirror_user_upsert
+        mirror_user_upsert(retailer, kind="b2b")
+    except Exception:
+        pass
+
     # Mark waitlist entry as onboarded
     await db.retailer_waitlist.update_one(
         {"id": signup_id},

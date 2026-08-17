@@ -98,6 +98,13 @@ async def admin_create_product(product: ProductInput, admin=Depends(require_admi
     # Mirror into B2B catalog (retailer portal + brochure use these)
     b2b_rows = await mirror_b2c_product(db, doc)
 
+    # Best-effort Supabase mirror (non-blocking)
+    try:
+        from services.supabase_sync import mirror_product_upsert
+        mirror_product_upsert(doc, channel="b2c")
+    except Exception:
+        pass
+
     doc.pop("_id", None)
     return {"message": "Product created", "product": doc, "b2b_skus_created": len(b2b_rows)}
 
@@ -125,6 +132,13 @@ async def admin_update_product(product_id: str, product: ProductInput, admin=Dep
 
     b2b_rows = await mirror_b2c_product(db, update)
 
+    # Best-effort Supabase mirror (non-blocking)
+    try:
+        from services.supabase_sync import mirror_product_upsert
+        mirror_product_upsert(update, channel="b2c")
+    except Exception:
+        pass
+
     return {"message": "Product updated", "product": update, "b2b_skus_synced": len(b2b_rows)}
 
 
@@ -138,6 +152,14 @@ async def admin_delete_product(product_id: str, admin=Depends(require_admin)):
         raise HTTPException(status_code=404, detail="Product not found")
 
     await refresh_products_cache()
+
+    # Best-effort Supabase mirror (non-blocking)
+    try:
+        from services.supabase_sync import mirror_product_delete
+        mirror_product_delete(product_id)
+    except Exception:
+        pass
+
     return {"message": "Product deleted", "id": product_id}
 
 

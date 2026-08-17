@@ -187,6 +187,13 @@ async def admin_create_retailer(
     
     await db.retailers.insert_one(retailer)
     
+    # Best-effort Supabase mirror (non-blocking)
+    try:
+        from services.supabase_sync import mirror_user_upsert
+        mirror_user_upsert(retailer, kind="b2b")
+    except Exception:
+        pass
+
     logger.info(f"Admin created retailer: {retailer['retailer_id']} - {retailer['business_name']}")
     
     # Remove sensitive data before returning
@@ -1334,5 +1341,12 @@ async def admin_add_retailer(request: Request, session_token: Optional[str] = Co
     }
     
     result = await db.retailers.insert_one(retailer)
-    
+
+    # Best-effort Supabase mirror (non-blocking)
+    try:
+        from services.supabase_sync import mirror_user_upsert
+        mirror_user_upsert({**retailer, "id": unique_id}, kind="b2b")
+    except Exception:
+        pass
+
     return {"message": "Retailer added successfully", "retailer": body.get("business_name"), "id": unique_id}

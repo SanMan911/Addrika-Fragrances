@@ -119,7 +119,14 @@ async def create_user(
     }
     
     await db.users.insert_one(user_data)
-    
+
+    # Best-effort Supabase mirror (non-blocking)
+    try:
+        from services.supabase_sync import mirror_user_upsert
+        mirror_user_upsert({**user_data, "id": user_id}, kind="b2c")
+    except Exception:
+        pass
+
     # Return without password_hash and _id
     user_data.pop('password_hash', None)
     user_data.pop('_id', None)

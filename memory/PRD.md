@@ -3,6 +3,43 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🔁 Feb 2026 (Iteration 83) — Supabase Postgres Dual-Write Mirror + Router Refactor
+
+**1. Supabase Postgres Dual-Write Mirror — MongoDB stays source of truth**
+- Connected to Supabase via the **Transaction Pooler URI** (port 6543) using SQLAlchemy 2.x async + asyncpg, per the integration playbook. `statement_cache_size=0` set on `connect_args` (mandatory for the pooler).
+- New files:
+    - `/app/backend/supabase_db.py` — lazy async engine + session factory. Reads `SUPABASE_DB_URL` from `.env`, converts to `postgresql+asyncpg://` under the hood, respects `SUPABASE_MIRROR_ENABLED` kill-switch (default `true`).
+    - `/app/backend/models/mirror.py` — SQLAlchemy models for `users_mirror` (kind: b2c/b2b/admin), `products_mirror` (channel: b2c/b2b), `sync_dead_letter` (retry queue).
+    - `/app/backend/alembic.ini` + `/app/backend/alembic/env.py` + `versions/0001_initial_mirror.py` — Alembic migration stack. `alembic upgrade head` runs automatically on backend startup.
+    - `/app/backend/services/supabase_sync.py` — fire-and-forget helpers:
+        - `mirror_user_upsert(doc, kind)` / `mirror_user_delete(id)`
+        - `mirror_product_upsert(doc, channel)` / `mirror_product_delete(id)`
+        - All wrap the actual write in `asyncio.create_task` so Mongo writes NEVER block.
+        - `replay_dead_letter(limit)` + `dead_letter_scheduler_loop()` — exponential backoff (5m → 30m → 2h → 6h → 24h), auto-abandon after 5 attempts.
+        - `_as_datetime()` normalises ISO string timestamps → tz-aware `datetime` for TIMESTAMPTZ columns.
+    - `/app/backend/services/supabase_bootstrap.py` — startup hook (`run_alembic_upgrade_on_boot`) + `periodic_backfill_loop(db)` runs every 6h as a safety net.
+    - `/app/backend/scripts/backfill_supabase_mirror.py` — one-time / periodic full backfill of users, retailers, products, b2b_products. Idempotent via `ON CONFLICT DO UPDATE`.
+    - `/app/backend/routers/admin/admin_supabase_mirror.py` — admin endpoints:
+        - `GET  /api/admin/supabase-mirror/status` — enabled? dead-letter counters.
+        - `POST /api/admin/supabase-mirror/replay-dead-letter` — force drain due retries.
+        - `POST /api/admin/supabase-mirror/backfill?kind=all|users|retailers|products|b2b_products` — force a full re-mirror.
+- **Live write hooks** (never block Mongo):
+    - `services/auth_service.py::create_user` → `mirror_user_upsert(kind="b2c")`
+    - `routers/retailers.py` (admin create + public partner-add) → `mirror_user_upsert(kind="b2b")`
+    - `routers/b2b_waitlist.py` onboarding → `mirror_user_upsert(kind="b2b")`
+    - `routers/admin/admin_products.py` create/update/delete → `mirror_product_*`
+    - `services/product_sync.py::mirror_b2c_product` → per-SKU `mirror_product_upsert(channel="b2b")`
+- **Sync-forever guarantee**: Even if a new write path is ever added without a live hook, the 6-hourly backfill catches up (idempotent upsert). GitHub push → Render redeploys → Alembic auto-applies migrations → schema stays in lockstep.
+- **First-time results**: Backfill mirrored **22 users** (12 B2C, 10 B2B), **27 products** (10 B2C, 17 B2B), **0 dead-letter rows**. End-to-end live verification: registering a new user via `POST /api/auth/register` landed the row in Supabase within 3s while the API response returned instantly.
+- Password + URI stored in `/app/backend/.env` as `SUPABASE_DB_URL` (URL-encoded `%21` for the `!` in the password). Env keys: `SUPABASE_DB_URL`, `SUPABASE_MIRROR_ENABLED`.
+
+**2. Router organization refactor (`server.py`)**
+- Grouped `include_router` calls into 5 clearly labelled sections: Public storefront · Retailer/B2B portal · Mobile/SDK · Admin · Third-party integrations. Zero behavioural change — only reordering + section comments so new routers land in the right neighbourhood.
+
+**3. Testing** — NEW `tests/test_supabase_mirror.py` (**11/11 passing**): id extraction, ISO/naive datetime coercion, user/product row mapping, JSON coercion of Mongo types, public helpers noop when disabled + swallow-no-running-loop, dead-letter mark-sent, reschedule-on-failure, abandon-after-max, disabled summary. Full regression: **126/126 across iter74–83 + B2B + fragrance rewards + shipping/inventory**. Frontend untouched this iteration.
+
+**4. Environment recovery** — The Python venv had ~1,265 site-package files corrupted with null bytes (pre-existing damage, not caused by this session). Force-reinstalled every dep from `requirements.txt`; backend now boots cleanly.
+
 ### 🏆 Feb 2026 (Iteration 82) — Aroma Ranking Tiers · Monthly Constant Companion Auto-Blog
 
 **1. Aroma Ranking Tiers — Bronze / Silver / Gold rings**
