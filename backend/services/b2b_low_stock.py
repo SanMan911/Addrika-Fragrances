@@ -97,6 +97,8 @@ def _render_html(items: list[dict]) -> str:
             status_cell = f"<b style='color:#b91c1c;'>{status}</b>"
         elif it.get("stock_pieces") < it["pieces_per_carton"]:
             status_cell = f"<b style='color:#b45309;'>{status} · Low</b>"
+        eta_html = f"ETA {eta}d" if eta is not None else "—"
+        note_html = f"<div style='font-size:11px;color:#888;'>{note}</div>" if note else ""
         rows.append(
             f"<tr>"
             f"<td style='padding:8px;border-bottom:1px solid #eee;'>{it['name']} ({it.get('net_weight') or '—'})</td>"
@@ -104,8 +106,8 @@ def _render_html(items: list[dict]) -> str:
             f"<td style='padding:8px;border-bottom:1px solid #eee;text-align:right;font-family:monospace;'>{stock_line}</td>"
             f"<td style='padding:8px;border-bottom:1px solid #eee;'>{status_cell}</td>"
             f"<td style='padding:8px;border-bottom:1px solid #eee;color:#666;'>"
-            f"{'ETA ' + str(eta) + 'd' if eta is not None else '—'}"
-            f"{('<div style=\"font-size:11px;color:#888;\">' + note + '</div>') if note else ''}"
+            f"{eta_html}"
+            f"{note_html}"
             f"</td>"
             f"</tr>"
         )
