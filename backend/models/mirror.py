@@ -102,11 +102,11 @@ class SyncDeadLetter(Base):
     __tablename__ = "sync_dead_letter"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    # 'user' | 'product'
+    # 'user' | 'product' | 'collection'
     entity = Column(String(16), nullable=False, index=True)
     # 'upsert' | 'delete'
     op = Column(String(16), nullable=False)
-    entity_id = Column(String(64), nullable=False, index=True)
+    entity_id = Column(String(128), nullable=False, index=True)
     payload = Column(JSONB, nullable=False, default=dict)
     error = Column(Text)
     attempts = Column(Integer, nullable=False, default=0)
@@ -114,6 +114,33 @@ class SyncDeadLetter(Base):
     # 'pending' | 'sent' | 'abandoned'
     status = Column(String(16), nullable=False, default="pending", index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class CollectionMirror(Base):
+    """
+    Generic mirror for every non-typed Mongo collection.
+
+    Composite PK (collection, doc_id) lets a single table hold every
+    downstream collection the mobile app might need — orders, blog posts,
+    retailer messages, rewards ledger, inventory log, etc.
+
+    Sensitive collections (sessions, credentials, OTPs, OAuth tokens) are
+    excluded via services.supabase_sync._MIRROR_BLOCKLIST.
+    """
+
+    __tablename__ = "collections_mirror"
+
+    collection = Column(String(64), primary_key=True)
+    doc_id = Column(String(128), primary_key=True)
+    raw = Column(JSONB, nullable=False, default=dict)
+    mongo_updated_at = Column(DateTime(timezone=True), index=True)
+    mirrored_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True),
         nullable=False,

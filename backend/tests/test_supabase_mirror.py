@@ -234,3 +234,95 @@ async def test_dead_letter_summary_returns_disabled_when_off():
     with patch.object(supabase_sync, "session_factory", return_value=None):
         out = await supabase_sync.dead_letter_summary()
     assert out == {"enabled": False}
+
+
+# ---------------------------------------------------------------------------
+# Generic collection mirror + sensitive-key stripping
+# ---------------------------------------------------------------------------
+
+def test_sanitize_strips_sensitive_keys_recursively():
+    doc = {
+        "id": "u1",
+        "email": "x@y.z",
+        "password_hash": "$2b$secret",
+        "session_token": "abc",
+        "nested": {
+            "api_key": "leak",
+            "safe_field": "ok",
+            "child": {"otp": "999999", "note": "keep"},
+        },
+        "items": [
+            {"reset_token": "gone", "kept": True},
+            {"secret": "gone", "plain": 42},
+        ],
+    }
+    cleaned = supabase_sync._sanitize(doc)
+    assert "password_hash" not in cleaned
+    assert "session_token" not in cleaned
+    assert "api_key" not in cleaned["nested"]
+    assert cleaned["nested"]["safe_field"] == "ok"
+    assert "otp" not in cleaned["nested"]["child"]
+    assert cleaned["nested"]["child"]["note"] == "keep"
+    assert cleaned["items"][0] == {"kept": True}
+    assert cleaned["items"][1] == {"plain": 42}
+
+
+def test_collection_row_uses_business_id_and_sanitises():
+    doc = {
+        "id": "order-42",
+        "customer_id": "u1",
+        "total": 999,
+        "password": "leak",
+        "created_at": "2026-02-01T10:00:00Z",
+    }
+    row = supabase_sync._collection_row("orders", doc)
+    assert row["collection"] == "orders"
+    assert row["doc_id"] == "order-42"
+    assert row["raw"]["total"] == 999
+    assert "password" not in row["raw"]
+    assert isinstance(row["mongo_updated_at"], datetime)
+
+
+def test_collection_row_falls_back_to_mongo_oid_string():
+    doc = {"_id": "abc123", "note": "no business key"}
+    row = supabase_sync._collection_row("misc", doc)
+    assert row["doc_id"] == "abc123"
+
+
+def test_collection_row_none_when_no_id():
+    assert supabase_sync._collection_row("orders", {"only": "data"}) is None
+
+
+def test_mirror_collection_upsert_skips_blocklist():
+    """Blocklisted + typed collections must NOT enter the generic mirror path."""
+    with patch.object(supabase_sync, "is_enabled", return_value=True), \
+         patch.object(supabase_sync, "session_factory", return_value=MagicMock()), \
+         patch("asyncio.get_running_loop") as gl:
+        fake_loop = MagicMock()
+        gl.return_value = fake_loop
+        # Blocklisted
+        supabase_sync.mirror_collection_upsert("user_sessions", {"id": "s1", "token": "x"})
+        supabase_sync.mirror_collection_upsert("admin_credentials", {"id": "a1"})
+        supabase_sync.mirror_collection_upsert("payment_sessions", {"id": "p1"})
+        # Typed (owned by dedicated tables)
+        supabase_sync.mirror_collection_upsert("users", {"id": "u1"})
+        supabase_sync.mirror_collection_upsert("products", {"id": "p1"})
+        # None of these should have scheduled a task
+        fake_loop.create_task.assert_not_called()
+
+        # A non-blocklisted collection DOES schedule
+        supabase_sync.mirror_collection_upsert("orders", {"id": "o1", "total": 100})
+        fake_loop.create_task.assert_called_once()
+
+
+def test_mirror_collection_delete_skips_blocklist():
+    with patch.object(supabase_sync, "is_enabled", return_value=True), \
+         patch.object(supabase_sync, "session_factory", return_value=MagicMock()), \
+         patch("asyncio.get_running_loop") as gl:
+        fake_loop = MagicMock()
+        gl.return_value = fake_loop
+        supabase_sync.mirror_collection_delete("user_sessions", "s1")
+        supabase_sync.mirror_collection_delete("users", "u1")
+        fake_loop.create_task.assert_not_called()
+        supabase_sync.mirror_collection_delete("orders", "o1")
+        fake_loop.create_task.assert_called_once()

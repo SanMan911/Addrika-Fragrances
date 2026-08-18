@@ -29,7 +29,11 @@ from motor.motor_asyncio import AsyncIOMotorClient  # noqa: E402
 
 from supabase_db import is_enabled, session_factory  # noqa: E402
 from services.supabase_sync import (  # noqa: E402
+    _MIRROR_BLOCKLIST,
+    _TYPED_COLLECTIONS,
+    _collection_row,
     _product_row,
+    _upsert_collection,
     _upsert_product,
     _upsert_user,
     _user_row,
@@ -113,6 +117,41 @@ async def _backfill_b2b_products(db) -> int:
     return n
 
 
+async def _backfill_all_collections(db) -> dict:
+    """Mirror every non-typed, non-blocklisted Mongo collection into
+    collections_mirror. Returns per-collection counters."""
+    factory = session_factory()
+    if factory is None:
+        return {}
+    counters: dict = {}
+    try:
+        names = await db.list_collection_names()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("could not list collections: %s", exc)
+        return {}
+    for name in names:
+        if name.startswith("system."):
+            continue
+        if name in _TYPED_COLLECTIONS or name in _MIRROR_BLOCKLIST:
+            continue
+        n = 0
+        try:
+            async with factory() as session:
+                async for doc in db[name].find({}):
+                    row = _collection_row(name, doc)
+                    if not row:
+                        continue
+                    try:
+                        await _upsert_collection(session, row)
+                        n += 1
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning("%s/%s failed: %s", name, row.get("doc_id"), exc)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("%s backfill failed: %s", name, exc)
+        counters[name] = n
+    return counters
+
+
 async def run_backfill(db, kind: str = "all") -> dict:
     if not is_enabled():
         return {"enabled": False, "skipped": True}
@@ -125,6 +164,8 @@ async def run_backfill(db, kind: str = "all") -> dict:
         counters["products"] = await _backfill_products(db)
     if kind in ("all", "b2b_products"):
         counters["b2b_products"] = await _backfill_b2b_products(db)
+    if kind in ("all", "collections"):
+        counters["collections"] = await _backfill_all_collections(db)
     return {"enabled": True, "kind": kind, **counters}
 
 

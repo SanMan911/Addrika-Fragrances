@@ -3,7 +3,7 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
-### 🔁 Feb 2026 (Iteration 83) — Supabase Postgres Dual-Write Mirror + Router Refactor
+### 🔁 Feb 2026 (Iteration 83) — Supabase Postgres Dual-Write Mirror + Router Refactor + Mirror-Everything
 
 **1. Supabase Postgres Dual-Write Mirror — MongoDB stays source of truth**
 - Connected to Supabase via the **Transaction Pooler URI** (port 6543) using SQLAlchemy 2.x async + asyncpg, per the integration playbook. `statement_cache_size=0` set on `connect_args` (mandatory for the pooler).
@@ -39,6 +39,16 @@
 **3. Testing** — NEW `tests/test_supabase_mirror.py` (**11/11 passing**): id extraction, ISO/naive datetime coercion, user/product row mapping, JSON coercion of Mongo types, public helpers noop when disabled + swallow-no-running-loop, dead-letter mark-sent, reschedule-on-failure, abandon-after-max, disabled summary. Full regression: **126/126 across iter74–83 + B2B + fragrance rewards + shipping/inventory**. Frontend untouched this iteration.
 
 **4. Environment recovery** — The Python venv had ~1,265 site-package files corrupted with null bytes (pre-existing damage, not caused by this session). Force-reinstalled every dep from `requirements.txt`; backend now boots cleanly.
+
+**5. Mirror-Everything expansion (same iteration)** — Extended the mirror to cover ALL non-sensitive Mongo collections for mobile-app read access:
+- New table `collections_mirror` (composite PK `collection` + `doc_id`, JSONB `raw`) — migration `0002_collections_mirror`.
+- `services/supabase_sync.py::mirror_collection_upsert/delete` — fire-and-forget generic helpers.
+- **Blocklist enforced**: `admin_credentials`, `admin_2fa_tokens`, `admin_recovery_tokens`, `admin_sessions`, `retailer_sessions`, `user_sessions`, `sessions`, `otp_verifications`, `store_pickup_otps`, `payment_sessions`, `zoho_tokens` — **never** mirrored.
+- **Sensitive-key stripping** on JSONB payloads: `password`, `password_hash`, `session_token`, `access_token`, `refresh_token`, `api_key`, `secret`, `reset_token`, `otp`, `otp_hash`, `verification_code`, `two_factor_secret` — removed from every mirrored doc.
+- `run_backfill(kind="all"|"collections")` now walks `db.list_collection_names()` and re-mirrors every allowed collection. First run mirrored **439 rows across 50 collections** (blog_posts, orders, b2b_orders, carts, wishlists, retailer_admin_messages, rewards_ledger, retailer_milestones, auto_blog_log, b2b_inventory_log, notify_me, discount_codes, etc.).
+- 6-hour periodic backfill loop now catches every collection automatically → **mobile app gets fresh reads within 6h of any change, even for collections without a dedicated live hook**.
+- Admin backfill endpoint now accepts `kind=collections`.
+- 6 new pytests cover the generic mirror path (sanitize recursion, business-id fallback, blocklist enforcement, delete blocklist). **17/17 mirror tests + 83/83 regression across iter74–83 pass**.
 
 ### 🏆 Feb 2026 (Iteration 82) — Aroma Ranking Tiers · Monthly Constant Companion Auto-Blog
 
