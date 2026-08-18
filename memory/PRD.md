@@ -3,6 +3,40 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 📱 Feb 2026 (Iteration 84) — Expo Mobile Bootstrap + b2b_low_stock scheduler fix
+
+**1. `b2b_low_stock.py` scheduler f-string bug FIXED**
+- Extracted the `ETA` + `note` HTML fragments out of the inline f-string expression so pre-Python 3.12 no longer chokes on escaped `\"` inside the expression brackets. Backend boot logs are now silent — the nightly low-stock digest scheduler runs cleanly.
+- Verified with `python -c "import services.b2b_low_stock"` + `pytest tests/test_b2b_category_stock.py tests/test_supabase_mirror.py` (**40/40 pass**).
+
+**2. Expo mobile client scaffolded at `/app/mobile/`**
+- Stack: Expo SDK 51 · expo-router 3.5 · React Native 0.74 · TypeScript strict · `@supabase/supabase-js` 2.45.4 (pinned for Node 20 compat) · `react-native-async-storage` for session persistence · `expo-secure-store` for tokens.
+- File tree:
+  ```
+  /app/mobile/
+  ├── app/
+  │   ├── _layout.tsx     — expo-router Stack, navy/gold theme
+  │   ├── index.tsx       — Home: /api/app/config (brand, live tree count, catalog counts)
+  │   └── products.tsx    — Product list read directly from Supabase products_mirror
+  ├── lib/
+  │   ├── supabase.ts     — Supabase client, AsyncStorage-backed session
+  │   ├── api.ts          — apiFetch helper for FastAPI writes
+  │   └── config.ts       — fetchAppConfig() typed wrapper
+  ├── app.json, package.json, tsconfig.json, babel.config.js
+  ├── .env.example        — EXPO_PUBLIC_SUPABASE_URL / _ANON_KEY / _API_BASE_URL
+  ├── .gitignore
+  └── README.md           — local dev + EAS build instructions
+  ```
+- `yarn install` clean (667 packages, 40s). `npx tsc --noEmit` passes with zero errors.
+- **Repo layout decision**: lives on a `mobile-app` branch of the same repo (not a separate repo). Render/Vercel deploy only from `main`, so `mobile-app` won't trigger the web pipelines.
+- Data direction locked in: **Supabase = READ mirror only**, all writes go through FastAPI which mirrors down via the iter83 dual-write pipeline.
+- Ready for `eas init && eas build --profile production --platform all` once the user creates the branch on GitHub and fills in `.env` with the rotated Supabase anon key + Render domain.
+
+**Pending user actions (as of Feb 2026)**:
+- Push `/app/mobile/*` to a new `mobile-app` branch via "Save to Github".
+- Fill `/app/mobile/.env` locally with the rotated Supabase URL + anon key + Render backend URL.
+- Rotate the Supabase DB password when ready (see instructions below — user updates `.env` and Render EnvVar directly; the new value never needs to be shared in chat).
+
 ### 🔁 Feb 2026 (Iteration 83) — Supabase Postgres Dual-Write Mirror + Router Refactor + Mirror-Everything
 
 **1. Supabase Postgres Dual-Write Mirror — MongoDB stays source of truth**
