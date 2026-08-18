@@ -34,7 +34,7 @@ async def mirror_replay(
 
 @router.post("/backfill")
 async def mirror_backfill(
-    kind: str = Query(default="all", pattern="^(all|users|retailers|products|b2b_products)$"),
+    kind: str = Query(default="all", pattern="^(all|users|retailers|products|b2b_products|collections)$"),
     admin=Depends(require_admin),
 ):
     if not is_enabled():

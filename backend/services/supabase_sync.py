@@ -22,7 +22,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from supabase_db import is_enabled, session_factory
-from models.mirror import ProductMirror, SyncDeadLetter, UserMirror
+from models.mirror import CollectionMirror, ProductMirror, SyncDeadLetter, UserMirror
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,72 @@ _BACKOFF_MINUTES = [5, 30, 120, 360, 1440]
 _MAX_ATTEMPTS = len(_BACKOFF_MINUTES)
 
 
+# Collections that must NEVER leave MongoDB. Session tokens, credentials,
+# OTPs, and OAuth refresh tokens live here and would be a breach if mirrored.
+_MIRROR_BLOCKLIST = frozenset(
+    {
+        "admin_credentials",
+        "admin_2fa_tokens",
+        "admin_recovery_tokens",
+        "admin_sessions",
+        "retailer_sessions",
+        "user_sessions",
+        "sessions",
+        "otp_verifications",
+        "store_pickup_otps",
+        "payment_sessions",
+        "zoho_tokens",
+    }
+)
+
+# These collections are already mirrored into typed tables — skip them
+# in the generic collections_mirror to avoid duplicate storage.
+_TYPED_COLLECTIONS = frozenset({"users", "retailers", "products", "b2b_products"})
+
+# Keys stripped from every JSONB payload before it lands in Supabase.
+_SENSITIVE_KEYS = frozenset(
+    {
+        "password",
+        "password_hash",
+        "session_token",
+        "refresh_token",
+        "access_token",
+        "bearer_token",
+        "api_key",
+        "secret",
+        "secret_key",
+        "reset_token",
+        "otp",
+        "otp_hash",
+        "verification_code",
+        "two_factor_secret",
+    }
+)
+
+
+def _sanitize(value: Any) -> Any:
+    """Recursively strip sensitive keys and coerce Mongo/BSON types."""
+    if isinstance(value, dict):
+        return {
+            str(k): _sanitize(v)
+            for k, v in value.items()
+            if str(k).lower() not in _SENSITIVE_KEYS
+        }
+    if isinstance(value, list):
+        return [_sanitize(v) for v in value]
+    if isinstance(value, datetime):
+        return value.astimezone(timezone.utc).isoformat() if value.tzinfo else value.isoformat()
+    if hasattr(value, "binary") and hasattr(value, "generation_time"):
+        return str(value)
+    return value
+
+
 def _jsonable(value: Any) -> Any:
-    """Recursively convert Mongo/BSON types to JSON-serialisable primitives."""
+    """Recursively convert Mongo/BSON types to JSON-serialisable primitives.
+
+    Unlike _sanitize, this keeps ALL keys — used for typed mirror rows where
+    the caller already knows what it's writing.
+    """
     if isinstance(value, dict):
         return {str(k): _jsonable(v) for k, v in value.items()}
     if isinstance(value, list):
@@ -175,6 +239,49 @@ async def _delete_product(session: AsyncSession, pid: str) -> None:
     await session.commit()
 
 
+async def _upsert_collection(session: AsyncSession, row: dict) -> None:
+    stmt = pg_insert(CollectionMirror).values(**row)
+    update_cols = {c: stmt.excluded[c] for c in row.keys() if c not in ("collection", "doc_id")}
+    stmt = stmt.on_conflict_do_update(
+        index_elements=[CollectionMirror.collection, CollectionMirror.doc_id],
+        set_=update_cols,
+    )
+    await session.execute(stmt)
+    await session.commit()
+
+
+async def _delete_collection(session: AsyncSession, collection: str, doc_id: str) -> None:
+    await session.execute(
+        delete(CollectionMirror).where(
+            (CollectionMirror.collection == collection)
+            & (CollectionMirror.doc_id == doc_id)
+        )
+    )
+    await session.commit()
+
+
+def _collection_doc_id(doc: dict) -> Optional[str]:
+    """Prefer business keys, fall back to _id string."""
+    for key in ("id", "product_id", "user_id", "retailer_id", "order_id", "message_id", "post_id", "slug"):
+        v = doc.get(key) if isinstance(doc, dict) else None
+        if v is not None:
+            return str(v)
+    _id = doc.get("_id") if isinstance(doc, dict) else None
+    return str(_id) if _id is not None else None
+
+
+def _collection_row(collection: str, doc: dict) -> Optional[dict]:
+    doc_id = _collection_doc_id(doc)
+    if not doc_id:
+        return None
+    return {
+        "collection": collection,
+        "doc_id": doc_id,
+        "raw": _sanitize(doc),
+        "mongo_updated_at": _as_datetime(_first(doc, "updated_at", "modified_at", "created_at")),
+    }
+
+
 async def _run(entity: str, op: str, entity_id: str, payload: dict, work) -> None:
     factory = session_factory()
     if factory is None:
@@ -266,6 +373,48 @@ def mirror_product_delete(product_id: str) -> None:
         pass
 
 
+def mirror_collection_upsert(collection: str, doc: dict) -> None:
+    """
+    Generic fire-and-forget upsert for any non-typed collection.
+    Silently no-ops for blocklisted (session/credential) collections.
+    """
+    if not is_enabled() or not isinstance(doc, dict):
+        return
+    if not collection or collection in _MIRROR_BLOCKLIST or collection in _TYPED_COLLECTIONS:
+        return
+    row = _collection_row(collection, doc)
+    if not row:
+        return
+
+    async def work(session: AsyncSession) -> None:
+        await _upsert_collection(session, row)
+
+    entity_id = f"{collection}|{row['doc_id']}"
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(_run("collection", "upsert", entity_id, row, work))
+    except RuntimeError:
+        pass
+
+
+def mirror_collection_delete(collection: str, doc_id: str) -> None:
+    if not is_enabled() or not collection or not doc_id:
+        return
+    if collection in _MIRROR_BLOCKLIST or collection in _TYPED_COLLECTIONS:
+        return
+
+    async def work(session: AsyncSession) -> None:
+        await _delete_collection(session, collection, str(doc_id))
+
+    entity_id = f"{collection}|{doc_id}"
+    payload = {"collection": collection, "doc_id": str(doc_id)}
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(_run("collection", "delete", entity_id, payload, work))
+    except RuntimeError:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Dead-letter retry
 # ---------------------------------------------------------------------------
@@ -282,6 +431,14 @@ async def _replay_row(session: AsyncSession, row: SyncDeadLetter) -> bool:
             await _upsert_product(session, payload)
         elif row.entity == "product" and row.op == "delete":
             await _delete_product(session, str(payload.get("id") or row.entity_id))
+        elif row.entity == "collection" and row.op == "upsert":
+            await _upsert_collection(session, payload)
+        elif row.entity == "collection" and row.op == "delete":
+            await _delete_collection(
+                session,
+                str(payload.get("collection")),
+                str(payload.get("doc_id") or row.entity_id.split("|", 1)[-1]),
+            )
         else:
             raise ValueError(f"Unknown dead-letter row: {row.entity}/{row.op}")
         return True
