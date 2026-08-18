@@ -47,7 +47,7 @@ export default function HomeScreen() {
       <View style={styles.card} testID="home-catalog-card">
         <Text style={styles.cardLabel}>Catalog</Text>
         <Text style={styles.cardValue}>
-          {config?.catalog.b2c_count ?? '—'} storefront · {config?.catalog.b2b_count ?? '—'} B2B
+          {config?.catalog.b2c_products ?? '—'} storefront · {config?.catalog.b2b_skus ?? '—'} B2B
         </Text>
       </View>
 
