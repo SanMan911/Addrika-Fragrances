@@ -21,7 +21,7 @@ export type AppConfig = {
   routes: Record<string, string>;
   features: Record<string, boolean>;
   impact: { trees_planted: number };
-  catalog: { b2c_count?: number; b2b_count?: number };
+  catalog: { b2c_products?: number; b2b_skus?: number };
   must_upgrade: boolean;
   deep_link_scheme: string;
   public_web_url: string;
