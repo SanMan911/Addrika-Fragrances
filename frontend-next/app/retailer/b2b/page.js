@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -15,6 +15,7 @@ import KYCVerificationCard from '../../../components/KYCVerificationCard';
 import RewardsBalanceCard from '../../../components/RewardsBalanceCard';
 import RewardsRedeemToggle from '../../../components/RewardsRedeemToggle';
 import PincodeShippingInput from '../../../components/PincodeShippingInput';
+import { getTierPerks } from '../../../lib/tierPerks';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -1017,16 +1018,7 @@ function CompactPatronProgress({ fetchWithAuth }) {
             </span>
           )}
           {tier && tier.id !== 'novice' && (
-            <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                tier.id === 'gold' ? 'bg-amber-400 text-amber-950'
-                : tier.id === 'silver' ? 'bg-slate-300 text-slate-900'
-                : 'bg-orange-400 text-orange-950'
-              }`}
-              data-testid={`catalog-tier-${tier.id}`}
-            >
-              {tier.label}
-            </span>
+            <TierPerksChip tier={tier} />
           )}
           {next && (
             <span className="text-slate-600 text-xs sm:text-sm">
@@ -1061,3 +1053,96 @@ function CompactPatronProgress({ fetchWithAuth }) {
   );
 }
 
+
+
+// Compact tier pill on the catalog header — hover / tap reveals the
+// list of perks unlocked at the retailer's current tier. Reads from
+// `/api/app/config → retailer_tier_perks` via a shared module cache.
+function TierPerksChip({ tier }) {
+  const [perksMap, setPerksMap] = useState(null);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getTierPerks().then((m) => { if (!cancelled) setPerksMap(m); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('touchstart', onDocClick);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('touchstart', onDocClick);
+    };
+  }, [open]);
+
+  if (!tier) return null;
+  const perks = perksMap?.[tier.id]?.perks || [];
+  const medal = perksMap?.[tier.id]?.medal || '';
+  const pillCls =
+    tier.id === 'gold' ? 'bg-amber-400 text-amber-950'
+    : tier.id === 'silver' ? 'bg-slate-300 text-slate-900'
+    : 'bg-orange-400 text-orange-950';
+
+  return (
+    <span
+      ref={wrapRef}
+      className="relative inline-block"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-help focus:outline-none focus:ring-2 focus:ring-amber-300 ${pillCls}`}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        data-testid={`catalog-tier-${tier.id}`}
+      >
+        {tier.label}
+      </button>
+      {open && (
+        <div
+          role="dialog"
+          data-testid={`catalog-tier-perks-${tier.id}`}
+          className="absolute z-40 top-full left-0 mt-2 w-72 rounded-xl border border-slate-200 bg-white shadow-xl p-4 text-left"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            {medal && <span className="text-xl">{medal}</span>}
+            <div>
+              <div className="text-sm font-bold text-slate-800">{tier.label} Tier Perks</div>
+              <div className="text-[11px] text-slate-500">
+                {tier.achievements_count || 0} patron tag{(tier.achievements_count || 0) === 1 ? '' : 's'} earned
+              </div>
+            </div>
+          </div>
+          {perks.length > 0 ? (
+            <ul className="space-y-1.5" data-testid={`catalog-tier-perks-list-${tier.id}`}>
+              {perks.map((p, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
+                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-slate-500">Loading perks…</p>
+          )}
+          {tier.next_tier && tier.next_tier.tags_to_go > 0 && (
+            <p className="mt-3 pt-2 border-t border-slate-100 text-[11px] text-amber-700 font-semibold">
+              Earn {tier.next_tier.tags_to_go} more tag{tier.next_tier.tags_to_go === 1 ? '' : 's'} to unlock {tier.next_tier.label}.
+            </p>
+          )}
+        </div>
+      )}
+    </span>
+  );
+}

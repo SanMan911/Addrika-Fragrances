@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Award, ArrowUpRight, ArrowDownLeft, Sparkles, Info, Clock, Download } from 'lucide-react';
 import { useRetailerAuth } from '../../../../context/RetailerAuthContext';
 import RewardsBalanceCard from '../../../../components/RewardsBalanceCard';
 import BRAND from '../../../../lib/brand.config';
+import { getTierPerks } from '../../../../lib/tierPerks';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -320,17 +321,93 @@ const TIER_STYLE = {
 };
 
 function TierBadge({ tier, size = 'md' }) {
+  const [perksMap, setPerksMap] = useState(null);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getTierPerks().then((m) => { if (!cancelled) setPerksMap(m); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Dismiss the pop-over when tapping outside on touch devices.
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('touchstart', onDocClick);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('touchstart', onDocClick);
+    };
+  }, [open]);
+
   if (!tier) return null;
   const style = TIER_STYLE[tier.id] || TIER_STYLE.novice;
   const sizing = size === 'sm' ? 'text-[10px] px-2 py-0.5' : 'text-xs px-2.5 py-1';
+  const perks = perksMap?.[tier.id]?.perks || [];
+
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full font-bold ${style.pill} ${sizing}`}
-      title={`${tier.label} tier · ${tier.achievements_count || 0} patron tag${(tier.achievements_count || 0) === 1 ? '' : 's'} earned`}
-      data-testid={`tier-badge-${tier.id}`}
+      ref={wrapRef}
+      className="relative inline-block"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      data-testid={`tier-badge-wrap-${tier.id}`}
     >
-      <span>{style.medal}</span>
-      <span className="uppercase tracking-wider">{tier.label}</span>
+      <button
+        type="button"
+        className={`inline-flex items-center gap-1 rounded-full font-bold ${style.pill} ${sizing} cursor-help focus:outline-none focus:ring-2 focus:ring-amber-300`}
+        onClick={() => setOpen((v) => !v)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        data-testid={`tier-badge-${tier.id}`}
+      >
+        <span>{style.medal}</span>
+        <span className="uppercase tracking-wider">{tier.label}</span>
+      </button>
+      {open && (
+        <div
+          role="dialog"
+          data-testid={`tier-perks-card-${tier.id}`}
+          className="absolute z-30 top-full left-0 mt-2 w-72 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-4 text-left"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xl">{style.medal}</span>
+            <div>
+              <div className="text-sm font-bold text-slate-800 dark:text-white">{tier.label} Tier</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                {tier.achievements_count || 0} patron tag{(tier.achievements_count || 0) === 1 ? '' : 's'} earned
+                {tier.next_tier && tier.next_tier.tags_to_go > 0 && (
+                  <> · {tier.next_tier.tags_to_go} to {tier.next_tier.label}</>
+                )}
+              </div>
+            </div>
+          </div>
+          {perks.length > 0 ? (
+            <ul className="space-y-1.5" data-testid={`tier-perks-list-${tier.id}`}>
+              {perks.map((p, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-200">
+                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-slate-500 dark:text-slate-400">Loading perks…</p>
+          )}
+          {tier.next_tier && tier.next_tier.tags_to_go > 0 && (
+            <p className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
+              Earn {tier.next_tier.tags_to_go} more tag{tier.next_tier.tags_to_go === 1 ? '' : 's'} to unlock {tier.next_tier.label}.
+            </p>
+          )}
+        </div>
+      )}
     </span>
   );
 }

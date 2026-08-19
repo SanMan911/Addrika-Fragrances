@@ -1,8 +1,91 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 const CartContext = createContext();
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+// Guard so the mobile deep-link import only runs once per tab even when
+// React StrictMode double-invokes the effect.
+let _mobileCartImportRun = false;
+
+async function importCartFromMobileLink(setCart) {
+  if (_mobileCartImportRun) return;
+  if (typeof window === 'undefined') return;
+  const params = new URLSearchParams(window.location.search);
+  const rawCart = params.get('cart');
+  const from = params.get('from');
+  if (!rawCart || (from !== 'mobile' && from !== 'mobile-share')) return;
+  _mobileCartImportRun = true;
+
+  let payload;
+  try {
+    payload = JSON.parse(decodeURIComponent(rawCart));
+    if (!Array.isArray(payload)) throw new Error('cart payload must be an array');
+  } catch (e) {
+    console.warn('Cart deep-link parse failed:', e);
+    return;
+  }
+
+  // Strip the params from the URL so a refresh doesn't re-import.
+  try {
+    params.delete('cart');
+    params.delete('from');
+    const nextSearch = params.toString();
+    window.history.replaceState(
+      {},
+      '',
+      `${window.location.pathname}${nextSearch ? '?' + nextSearch : ''}${window.location.hash}`,
+    );
+  } catch { /* non-fatal */ }
+
+  // Hydrate the {productId,size,quantity} tuples with the fresh
+  // product catalogue so the imported lines carry name/image/price.
+  let products = [];
+  try {
+    const res = await fetch(`${API_URL}/api/products`);
+    if (res.ok) products = await res.json();
+  } catch (e) {
+    console.warn('Cart deep-link product fetch failed:', e);
+  }
+  const byId = new Map(products.map((p) => [p.id, p]));
+
+  const imported = [];
+  for (const line of payload) {
+    if (!line || !line.productId || !line.size) continue;
+    const product = byId.get(line.productId);
+    if (!product) continue;
+    const sizeInfo = (product.sizes || []).find((s) => s.size === line.size);
+    if (!sizeInfo) continue;
+    imported.push({
+      productId: product.id,
+      name: product.name,
+      image: product.image,
+      tagline: product.tagline,
+      size: line.size,
+      price: sizeInfo.price || 0,
+      quantity: Math.max(1, Number(line.quantity) || 1),
+    });
+  }
+  if (imported.length === 0) return;
+
+  // Merge with anything already in the cart — dedupe by productId+size.
+  setCart((prev) => {
+    const next = [...prev];
+    for (const it of imported) {
+      const idx = next.findIndex(
+        (n) => n.productId === it.productId && n.size === it.size,
+      );
+      if (idx >= 0) next[idx] = { ...next[idx], quantity: next[idx].quantity + it.quantity };
+      else next.push(it);
+    }
+    return next;
+  });
+  const label = from === 'mobile-share' ? 'shared with you' : 'from mobile';
+  toast.success(`Cart ${label} — ${imported.length} item${imported.length === 1 ? '' : 's'} added`);
+}
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
@@ -21,6 +104,15 @@ export function CartProvider({ children }) {
     }
     setIsLoaded(true);
   }, []);
+
+  // Bootstrap `?cart=…&from=mobile[-share]` deep-links coming from the
+  // Aaroviah mobile shell (self hand-off *or* WhatsApp share from a
+  // colleague). Runs after the localStorage cart is loaded so we don't
+  // stomp on it.
+  useEffect(() => {
+    if (!isLoaded) return;
+    importCartFromMobileLink(setCart);
+  }, [isLoaded]);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {

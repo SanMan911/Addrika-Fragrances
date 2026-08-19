@@ -1,0 +1,112 @@
+#!/usr/bin/env node
+/**
+ * Brand audit — fails when any new frontend file hardcodes the capital
+ * brand string "Addrika" outside the single source of truth
+ * (`frontend-next/lib/brand.config.js`).
+ *
+ * Why case-sensitive?
+ * -------------------
+ * The rebrand story only cares about *user-facing copy*, which is always
+ * capitalized. Lower-case `addrika` shows up in URL slugs, localStorage
+ * keys, asset filenames and CSS classes — those stay stable across
+ * rebrand for SEO / backwards-compatibility and are safe to keep.
+ *
+ * Usage
+ * -----
+ *   node scripts/brand-audit.js          # exits 1 on any violation
+ *   yarn --cwd frontend-next brand-audit # same, via the npm script
+ *
+ * Whitelist
+ * ---------
+ * • `frontend-next/lib/brand.config.js`  — the single source of truth.
+ * • Any occurrence inside a `//` line-comment or `/* … *\/` block-comment
+ *   (comments never render).
+ * • Component / function identifiers that mirror an SEO route slug we
+ *   want to keep for backlinks (`WhyChooseAddrika…`, `AddrikaLogo…`).
+ */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.resolve(__dirname, '..', 'frontend-next');
+const SCAN_DIRS = ['app', 'components', 'context', 'lib'];
+const EXTS = new Set(['.js', '.jsx', '.ts', '.tsx']);
+const NEEDLE = 'Addrika'; // case-sensitive on purpose (see file header)
+
+/** Files that are allowed to reference the brand string literally. */
+const FILE_WHITELIST = new Set([
+  path.join(ROOT, 'lib', 'brand.config.js'),
+]);
+
+/** Identifier prefixes tied to SEO route slugs — safe as identifiers. */
+const IDENTIFIER_WHITELIST = [
+  /\bWhyChooseAddrika[A-Za-z0-9_]*/g,
+];
+
+function walk(dir, out) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === '.next' || entry.name === 'dist') continue;
+      walk(full, out);
+    } else if (EXTS.has(path.extname(entry.name))) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+/** Strip `//` line comments and `/* … *\/` block comments (naïve but sufficient). */
+function stripComments(src) {
+  // Block comments
+  let cleaned = src.replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length));
+  // Line comments — keep the trailing \n so line numbers still line up
+  cleaned = cleaned.replace(/(^|[^:])\/\/[^\n]*/g, (match, prefix) => prefix + ' '.repeat(match.length - prefix.length));
+  // Identifier whitelist — blank out matches so they don't trip the scan
+  for (const re of IDENTIFIER_WHITELIST) {
+    cleaned = cleaned.replace(re, (m) => ' '.repeat(m.length));
+  }
+  return cleaned;
+}
+
+function scanFile(file) {
+  const src = fs.readFileSync(file, 'utf8');
+  const cleaned = stripComments(src);
+  if (!cleaned.includes(NEEDLE)) return [];
+  const rawLines = src.split(/\r?\n/);
+  const cleanedLines = cleaned.split(/\r?\n/);
+  const hits = [];
+  cleanedLines.forEach((cLine, idx) => {
+    if (cLine.includes(NEEDLE)) {
+      hits.push({ line: idx + 1, snippet: rawLines[idx].trim() });
+    }
+  });
+  return hits;
+}
+
+function main() {
+  const files = SCAN_DIRS.flatMap((d) => walk(path.join(ROOT, d), []))
+    .filter((f) => !FILE_WHITELIST.has(f));
+
+  const violations = [];
+  for (const f of files) {
+    const hits = scanFile(f);
+    for (const h of hits) violations.push({ file: f, ...h });
+  }
+
+  if (violations.length === 0) {
+    console.log(`\u2713 brand-audit: 0 hardcoded "${NEEDLE}" references found across ${files.length} scanned files.`);
+    process.exit(0);
+  }
+
+  console.error(`\u2717 brand-audit: found ${violations.length} hardcoded "${NEEDLE}" reference(s) outside lib/brand.config.js:\n`);
+  for (const v of violations) {
+    const rel = path.relative(path.dirname(ROOT), v.file);
+    console.error(`  ${rel}:${v.line}   ${v.snippet}`);
+  }
+  console.error(`\nFix: import BRAND from '@/lib/brand.config' (or a relative path) and use \`${'${BRAND.name}'}\` instead.`);
+  process.exit(1);
+}
+
+main();
