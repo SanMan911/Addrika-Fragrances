@@ -7,12 +7,13 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { fetchAppConfig, type AppConfig } from '../lib/config';
 
 export default function HomeScreen() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetchAppConfig()
@@ -51,11 +52,14 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      <Link href="/products" asChild>
-        <Pressable style={styles.cta} testID="home-view-products-btn">
-          <Text style={styles.ctaText}>Browse Products →</Text>
-        </Pressable>
-      </Link>
+      <Pressable
+        style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+        onPress={() => router.push('/products')}
+        testID="home-view-products-btn"
+        android_ripple={{ color: 'rgba(212, 175, 55, 0.25)' }}
+      >
+        <Text style={styles.ctaText}>Browse Products →</Text>
+      </Pressable>
 
       <Text style={styles.footer}>
         Reads from Supabase · Writes via FastAPI · Schema v{config?.schema_version ?? '—'}
@@ -85,6 +89,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  ctaPressed: { opacity: 0.85 },
   ctaText: { color: '#d4af37', fontWeight: '600', fontSize: 16 },
   footer: { textAlign: 'center', fontSize: 11, color: '#8a8272', marginTop: 24 },
 });
