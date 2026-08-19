@@ -7,7 +7,8 @@ import {
 } from 'react-native';
 import { useCart } from '../lib/cart';
 import { useSession } from '../lib/session';
-import { openWebCheckout } from '../lib/web';
+import { openWebCheckout, shareCartOnWhatsApp } from '../lib/web';
+import { MOBILE_BRAND_NAME } from '../lib/brand';
 
 export default function CartScreen() {
   const { lines, ready, remove, setQty, subtotal, itemCount, clear } = useCart();
@@ -72,6 +73,17 @@ export default function CartScreen() {
         >
           <Text style={styles.checkoutTxt}>
             Complete Order on centraders.com →
+          </Text>
+        </Pressable>
+        <Pressable
+          testID="cart-share-whatsapp-btn"
+          style={({ pressed }) => [styles.shareBtn, pressed && styles.shareBtnPressed]}
+          android_ripple={{ color: 'rgba(37, 211, 102, 0.25)' }}
+          onPress={() => shareCartOnWhatsApp(lines, MOBILE_BRAND_NAME, subtotal)}
+        >
+          <Text style={styles.shareTxt}>Share cart on WhatsApp</Text>
+          <Text style={styles.shareSubtxt}>
+            Your colleague taps the link, lands on their own web cart, checks out under their account.
           </Text>
         </Pressable>
         <Pressable onPress={clear} testID="cart-clear-btn" style={styles.clearBtn}>
@@ -147,6 +159,22 @@ const styles = StyleSheet.create({
   },
   checkoutBtnPressed: { opacity: 0.85 },
   checkoutTxt: { color: '#d4af37', fontWeight: '700', fontSize: 14 },
+  shareBtn: {
+    backgroundColor: '#25D366',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    gap: 2,
+  },
+  shareBtnPressed: { opacity: 0.85 },
+  shareTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  shareSubtxt: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 10,
+    textAlign: 'center',
+    lineHeight: 13,
+    paddingHorizontal: 6,
+  },
   clearBtn: { alignItems: 'center', padding: 6 },
   clearTxt: { fontSize: 12, color: '#8a8272', textDecorationLine: 'underline' },
 });

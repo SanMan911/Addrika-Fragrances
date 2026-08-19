@@ -24,16 +24,29 @@ export async function apiFetch<T = unknown>(
   path: string,
   opts: FetchOpts = {}
 ): Promise<T> {
+  if (!API_BASE_URL) {
+    throw new Error(
+      'App is not configured to reach the server yet. ' +
+        'Please reinstall the latest build.'
+    );
+  }
   const { token, headers, ...rest } = opts;
   const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
-  const res = await fetch(url, {
-    ...rest,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(headers || {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...rest,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(headers || {}),
+      },
+    });
+  } catch (e: any) {
+    throw new Error(
+      `Can't reach the server. Check your internet connection and try again. (${e?.message || 'network error'})`
+    );
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`API ${res.status} ${path}: ${text || res.statusText}`);

@@ -1,4 +1,5 @@
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import type { CartLine } from './cart';
 import { encodeCartForWeb } from './cart';
@@ -36,4 +37,44 @@ export function openWebCheckout(lines: CartLine[], userKind: 'customer' | 'retai
   const cartParam = encodeCartForWeb(lines);
   const path = userKind === 'retailer' ? '/retailer/b2b/cart' : '/checkout';
   return openWebUrl(`${path}?cart=${cartParam}&from=mobile`);
+}
+
+/**
+ * Build the shareable web-cart URL — this lands on the public /cart page
+ * with the cart pre-filled, so a colleague who taps the WhatsApp link can
+ * review it in their own browser and check out under *their* account.
+ */
+export function buildShareableCartUrl(lines: CartLine[]): string {
+  const cartParam = encodeCartForWeb(lines);
+  return `${WEB_URL}/cart?cart=${cartParam}&from=mobile-share`;
+}
+
+/**
+ * Open WhatsApp's share sheet with a pre-composed message that carries a
+ * shareable cart URL. Falls back to the OS share sheet if WhatsApp isn't
+ * installed on the device.
+ */
+export async function shareCartOnWhatsApp(
+  lines: CartLine[],
+  brandName: string,
+  subtotal: number,
+): Promise<void> {
+  if (lines.length === 0) return;
+  const url = buildShareableCartUrl(lines);
+  const itemCount = lines.reduce((s, l) => s + l.quantity, 0);
+  const message =
+    `Check out my ${brandName} cart — ${itemCount} item${itemCount === 1 ? '' : 's'} ` +
+    `worth \u20B9${subtotal}. Tap to open in your browser and check out under your own account:\n\n${url}`;
+  const waUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+  const waWebUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  try {
+    const supported = await Linking.canOpenURL(waUrl);
+    if (supported) {
+      await Linking.openURL(waUrl);
+      return;
+    }
+  } catch {
+    // fall through to the wa.me fallback below
+  }
+  await Linking.openURL(waWebUrl);
 }

@@ -38,9 +38,9 @@
       "typedRoutes": true
     },
     "extra": {
-      "supabaseUrl": "",
-      "supabaseAnonKey": "",
-      "apiBaseUrl": "",
+      "supabaseUrl": "https://qzzwaqwgzvrdecheunpn.supabase.co",
+      "supabaseAnonKey": "sb_publishable_dUgl8KWxj4dArmssOQZpFw_9vd2CtR4",
+      "apiBaseUrl": "https://addrika-fragrances-backend.onrender.com",
       "webUrl": "https://www.centraders.com",
       "mobileBrandName": "Aaroviah",
       "mobileBrandTagline": "Sacred Luxury in Every Scent",

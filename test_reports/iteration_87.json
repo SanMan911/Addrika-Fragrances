@@ -1,0 +1,49 @@
+{
+  "summary": "Iteration 87 tested the three new additions: (1) brand-audit CI script, (2) cart deep-link sharing receiver on /cart, (3) tier-perks preview (backend retailer_tier_perks + frontend hover cards). Backend: 7/7 pytest tests pass (schema_version='2', retailer_tier_perks in /api/app/config and /api/app/manifest with identical payloads, gold>=5 / silver>=4 perks, retailer login regression, /api/retailer-dashboard/patron tier=novice, auth-required 401, deep-link product ids present in /api/products). Brand audit: clean run exits 0 with '0 hardcoded \"Addrika\" references found across 143 scanned files'; probe file components/__audit_probe__.js correctly produced exit 1 with file+line on stderr and was deleted. Cart deep-link: verified end-to-end on the preview URL — ?cart/?from stripped via replaceState, both lines hydrated (Kesar Chandan 50g x2 @110, Regal Rose 200g x1 @402), persisted to localStorage 'addrika_cart', survived a param-less revisit, and empty-state still shows when cart cleared. Tier perks UI: rewards page TierBadge (tier-badge-wrap-novice) hover reveals tier-perks-card-novice with 3 perks; catalog TierPerksChip correctly hidden at novice and (with patron response stubbed to gold) renders catalog-tier-gold + catalog-tier-perks-gold with all 5 gold perks. TWO pre-existing/adjacent defects found: browser retailer login is 404-broken, and literal '$Addrika' copy is rendered across many pages including the new tier card's parent copy.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "RetailerAuthContext.login", "issue": "Web retailer login is broken: login() POSTs to `${API_URL}/api/retailer/login` which returns 404 (verified via curl and in-browser). Correct endpoint is /api/retailer-auth/login. Clicking Sign In on /retailer/login never authenticates (no visible toast either), so the whole retailer portal is unreachable through the UI. Tier-perks UI could only be tested by injecting the retailer_session cookie obtained from the API.", "selector": "[data-testid='retailer-login-btn']", "priority": "CRITICAL"},
+      {"component": "Brand copy (21 files / ~72 lines)", "issue": "Literal '$Addrika' is rendered to users because `${BRAND.name}` was pasted inside JSX text nodes instead of `{BRAND.name}` — e.g. /retailer/b2b/rewards patron card ('Keep ordering with $Addrika and you'll earn...' rewards/page.js:445), /our-quality (7 occurrences), /why-zero-charcoal (5), /ingredients (2). Also '${BRAND.name}' inside plain quotes in app/retailer/b2b/orders/[order_id]/page.js:71 (Razorpay name) and retailer/admin-chat/page.js:178 (sender label).", "selector": "text=$Addrika", "priority": "HIGH"},
+      {"component": "TierBadge (rewards page)", "issue": "Click/tap toggle does not open the pop-over on pointer devices: mouseenter sets open=true, then onClick toggles it back to false, so a click closes it instantly (verified: popover count 0 after click). Touch users (mouse-event emulation) may never see the perks card. Use a separate 'pinned' state or ignore click when hover already opened it.", "selector": "[data-testid^='tier-badge-']", "priority": "MEDIUM"},
+      {"component": "/cart page", "issue": "No data-testid attributes anywhere on the cart page (items, qty steppers, remove, totals, checkout CTA) — deep-link verification had to rely on text + localStorage.", "selector": "app/cart/page.js", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Retailer portal login (browser)", "issue": "POST /api/retailer/login -> 404 Not Found; backend exposes /api/retailer-auth/login", "affected_selectors": ["[data-testid='retailer-login-btn']"]}
+    ],
+    "design_issues": [
+      {"screen": "/retailer/b2b (catalog)", "issues": ["Gold tier perks pop-over overlays the 'Place Order' CTA row while hovering (acceptable for hover, but it fully covers the primary CTA)", "_next/image 404 for an images.unsplash.com asset (broken product/hero image request)"]},
+      {"screen": "/why-zero-charcoal", "issues": ["Header nav links at top-right are near-invisible against the light header (very low contrast)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter87_tier_perks_cart.py",
+    "/app/test_reports/pytest/iter87_results.xml"
+  ],
+  "action_items": [
+    "Fix RetailerAuthContext.login to call /api/retailer-auth/login (and confirm logout/me paths) — retailer portal login is currently dead in the browser.",
+    "Replace JSX-text `${BRAND.name}` with `{BRAND.name}` across the ~21 affected files (users currently see '$Addrika'); fix the two quoted '${BRAND.name}' string literals too.",
+    "Extend scripts/brand-audit.js to also flag `${BRAND` / `$Addrika` occurrences outside template literals — the current audit passes while broken copy ships.",
+    "Make the TierBadge pop-over openable by click/tap (decouple hover-open from click-toggle).",
+    "Add data-testid attributes to /app/frontend-next/app/cart/page.js items and CTAs.",
+    "Investigate the _next/image 404 for the unsplash asset on the B2B catalog page."
+  ],
+  "critical_code_review_comments": [
+    "app/retailer/b2b/rewards/page.js:445 and 20 other files render `${BRAND.name}` as JSX text — this is a user-visible copy regression and the new brand-audit script does not detect it.",
+    "context/RetailerAuthContext.js:76 hardcodes the wrong login path (/api/retailer/login), a 404; login errors are swallowed into a toast that never appeared in testing, so failures are silent.",
+    "lib/tierPerks.js caches a null result on failure (_cache = null) but then always retries — fine; however a failed fetch shows 'Loading perks…' forever with no retry/error UI."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter87_tier_perks_cart.py"
+  ],
+  "success_rate": {"backend": "100% (7/7)", "frontend": "80% (deep-link + both tier perks surfaces + brand audit pass; retailer UI login broken)"},
+  "seed_data_creation": "None. Used existing seeded B2B retailer test_b2b_retailer@example.com (tier=novice). Cart localStorage entries created/cleared in the browser only. Temporary probe file /app/frontend-next/components/__audit_probe__.js created and deleted.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "B2B retailer test_b2b_retailer@example.com / Test@12345 — API login works (POST /api/retailer-auth/login returns token); browser login form is broken (404 route), so browser tests must inject cookie retailer_session=<token>.",
+  "context_for_next_testing_agent": "Backend regression file: /app/backend/tests/test_iter87_tier_perks_cart.py (reads NEXT_PUBLIC_BACKEND_URL from /app/frontend-next/.env.local; /app/frontend/.env does not exist). For browser retailer flows do NOT use the login form (POST /api/retailer/login -> 404); instead POST /api/retailer-auth/login via page.request and page.context.add_cookies({'name':'retailer_session','secure':True}). Use wait_until='domcontentloaded' — 'networkidle' times out on this app. To test the non-novice catalog chip, stub **/api/retailer-dashboard/patron* and inject tier.id='gold' (verified working, 5 perks). Literal '$Addrika' text is the tell-tale for the brand-placeholder bug (search body text for '$Addrika', not '${BRAND').",
+  "rca_of_the_issue": "1) Retailer login 404: context/RetailerAuthContext.js line 76 targets /api/retailer/login while the backend router prefix is /api/retailer-auth — no browser request ever reaches a valid endpoint. 2) '$Addrika': a bulk find/replace inserted the template-literal form `${BRAND.name}` into JSX text nodes and quoted strings; in JSX the leading '$' is literal text and `{BRAND.name}` interpolates, producing '$Addrika'. The new brand-audit only greps for the capital literal 'Addrika', so these files pass the audit."
+}

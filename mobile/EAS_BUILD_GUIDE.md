@@ -1,10 +1,17 @@
 # Ship Mobile Alpha — Aaroviah APK build via EAS
 
 You now have everything on the Emergent side:
-- `mobile/app.json` — brand identity: name "Aaroviah", bundle IDs `com.centraders.aaroviah`, scheme `aaroviah`, extra: `eas.projectId` placeholder
-- `mobile/eas.json` — build profiles: `preview` (internal APK) and `production` (Play Store AAB), all env-driven
+- `mobile/app.json` — brand identity: name "Aaroviah", bundle IDs `com.centraders.aaroviah`, scheme `aaroviah`, extra: `eas.projectId`, plus **hard-coded fallback values** for Supabase URL, anon key, API base URL and web URL (so the APK still boots even if you skip step 4)
+- `mobile/eas.json` — build profiles: `development` (dev client), `preview` (internal APK) and `production` (Play Store AAB), all env-driven
 - `mobile/assets/icon.png` + `adaptive-icon.png` + `splash.png` — the golden-lotus assets you sent
-- `mobile/lib/{session,cart,web,brand}.ts` — login-gated flow + AsyncStorage cart + web-checkout hand-off
+- `mobile/lib/{session,cart,web,brand}.ts` — login-gated flow + AsyncStorage cart + web-checkout hand-off + WhatsApp cart share
+
+> ### ⚠️ If your APK opens then crashes on tap — this is the fix
+> EAS cloud builds **do not read `mobile/.env`**. They only see values from `eas.json → env` (which resolves EAS secrets at build time) or `app.json → expo.extra`. Your first APK shipped with empty API URLs → the very first `fetch('/api/…')` crashed the app on the login screen tap.
+>
+> **The `app.json` in this repo now hard-codes the four public URLs** (the Supabase anon key is public-safe by design — it's protected by Postgres RLS), so any fresh `eas build` from this branch produces a working APK regardless of whether you've set the EAS secrets. Step 4 is still recommended for future rotation.
+>
+> **Preview build API endpoint**: `https://addrika-fragrances-backend.onrender.com` (production Render backend, HTTPS, publicly reachable). Do **not** point mobile at the ephemeral `*.preview.emergentagent.com` — that URL rotates when the container restarts.
 
 ## What you'll do on your Windows machine
 
@@ -46,14 +53,14 @@ git commit -m "chore: attach EAS projectId"
 git push origin "SupaBase Kickoff"
 ```
 
-### 4. Set the four build-time secrets on Expo
+### 4. Set the four build-time secrets on Expo (optional — recommended for rotation)
 
-The APK needs to know your Supabase URL/anon key, backend base URL, and web URL. Set them once per profile:
+The four `EXPO_PUBLIC_*` values are already baked into `app.json → expo.extra`, so a fresh build works out-of-the-box. Setting them as EAS secrets is optional — it lets you rotate any of them later without editing `app.json`. If you skip this step, jump straight to step 5.
 
 ```powershell
-eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_URL      --value "https://<your-project-ref>.supabase.co"
-eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "<publishable anon key — starts with eyJ...>"
-eas secret:create --scope project --name EXPO_PUBLIC_API_BASE_URL      --value "https://<your-backend>.onrender.com"
+eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_URL      --value "https://qzzwaqwgzvrdecheunpn.supabase.co"
+eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "sb_publishable_dUgl8KWxj4dArmssOQZpFw_9vd2CtR4"
+eas secret:create --scope project --name EXPO_PUBLIC_API_BASE_URL      --value "https://addrika-fragrances-backend.onrender.com"
 eas secret:create --scope project --name EXPO_PUBLIC_WEB_URL           --value "https://www.centraders.com"
 ```
 

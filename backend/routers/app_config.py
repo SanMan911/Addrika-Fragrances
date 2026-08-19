@@ -48,7 +48,7 @@ router = APIRouter(prefix="/app", tags=["App Config (mobile / SDK)"])
 # Bump this whenever the response shape changes in a backwards-INCOMPATIBLE
 # way. Additive changes should keep the same version — clients ignore
 # unknown fields.
-APP_CONFIG_SCHEMA_VERSION = "1"
+APP_CONFIG_SCHEMA_VERSION = "2"
 
 # The lowest app build number that's still allowed to hit the API. Older
 # mobile builds see `must_upgrade: true` on the client and get prompted.
@@ -106,16 +106,74 @@ DEFAULT_FEATURES = {
 }
 
 
+# Retailer Aroma-Ranking tier perks — surfaced on the frontend hover card
+# next to the tier ring. Ops can override any tier's perk list by writing
+# `{"tier_perks": {"gold": ["…"]}}` into the `platform_config` document.
+#
+# Keys MUST stay aligned with `services/retailer_milestones.compute_tier`
+# (novice / bronze / silver / gold) so the client can key straight into
+# this map using the tier id returned by `/api/retailer-dashboard/patron`.
+DEFAULT_TIER_PERKS = {
+    "novice": {
+        "label": "Novice",
+        "medal": "\u2728",
+        "perks": [
+            "Full wholesale catalog access",
+            "Standard Fragrance Rewards earn rate",
+            "Standard order-processing SLA",
+        ],
+    },
+    "bronze": {
+        "label": "Bronze",
+        "medal": "\U0001F949",
+        "perks": [
+            "Everything in Novice",
+            "Early-bird WhatsApp nudges on new drops",
+            "1 patron tag pinned to your public profile",
+        ],
+    },
+    "silver": {
+        "label": "Silver",
+        "medal": "\U0001F948",
+        "perks": [
+            "Everything in Bronze",
+            "Priority WhatsApp response window (same working day)",
+            "First access to seasonal collections 48h before public",
+            "Waived cash-discount lockout during voucher campaigns",
+        ],
+    },
+    "gold": {
+        "label": "Gold",
+        "medal": "\U0001F947",
+        "perks": [
+            "Everything in Silver",
+            "Dedicated relationship-manager WhatsApp line",
+            "Complimentary custom-bakhoor sample with every quarterly order",
+            "Named on the /community leaderboard when opted in",
+            "First-look on limited-batch releases",
+        ],
+    },
+}
+
+
 async def _load_platform_config() -> dict:
     """Merge DB overrides on top of the compile-time defaults so ops can
     toggle features / update contact info without a redeploy."""
     doc = await db.platform_config.find_one({"_id": "app_config"}, {"_id": 0}) or {}
+    # Deep-merge tier_perks so ops can override a single tier without
+    # wiping the rest.
+    tier_perks_override = doc.get("tier_perks") or {}
+    tier_perks_merged = {}
+    for key, base in DEFAULT_TIER_PERKS.items():
+        override = tier_perks_override.get(key) or {}
+        tier_perks_merged[key] = {**base, **override}
     merged = {
         "brand": {**DEFAULT_BRAND, **(doc.get("brand") or {})},
         "contact": {**DEFAULT_CONTACT, **(doc.get("contact") or {})},
         "social": {**DEFAULT_SOCIAL, **(doc.get("social") or {})},
         "routes": {**DEFAULT_ROUTES, **(doc.get("routes") or {})},
         "features": {**DEFAULT_FEATURES, **(doc.get("features") or {})},
+        "tier_perks": tier_perks_merged,
     }
     return merged
 
@@ -164,6 +222,7 @@ async def get_app_config(client_version: Optional[int] = None) -> dict:
         "social": cfg["social"],
         "routes": cfg["routes"],
         "features": cfg["features"],
+        "retailer_tier_perks": cfg["tier_perks"],
         "impact": await _impact_snapshot(),
         "catalog": await _catalog_counts(),
         "compatibility": {
@@ -184,11 +243,13 @@ async def get_app_manifest() -> dict:
     """A discoverability endpoint intended for SDK generators + third-party
     integrators. Points at the OpenAPI schema plus the most-used stable
     endpoints so tooling doesn't have to guess."""
+    cfg = await _load_platform_config()
     return {
         "schema_version": APP_CONFIG_SCHEMA_VERSION,
         "openapi": "/openapi.json",
         "swagger_ui": "/docs",
         "redoc": "/redoc",
+        "retailer_tier_perks": cfg["tier_perks"],
         "stable_endpoints": {
             "app_config": "/api/app/config",
             "products_list": "/api/products",
