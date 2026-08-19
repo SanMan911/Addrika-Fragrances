@@ -36,6 +36,17 @@ You now have everything on the Emergent side:
 > 5. Optional: delete the orphaned `addrika-mobile` project from expo.dev
 > 6. Run `eas build --profile preview --platform android`
 
+> ### ⚠️ If Gradle fails with `Plugin 'expo-module-gradle-plugin' was not found` or `Could not get unknown property release for SoftwareComponent container` — this is why
+> An Expo native module has drifted to a version from a newer SDK than your project is on (SDK 51). The `expo-module-gradle-plugin` was introduced in SDK 52+, so pulling in any package that expects it on a SDK-51 project breaks the whole Android build.
+>
+> **Fix**: run `npx expo-doctor@latest` from `mobile/`. If any line says `expected version: ...`, run the auto-installer:
+> ```powershell
+> npx expo install --check
+> ```
+> then re-run `npx expo-doctor@latest` and confirm `17/17 checks passed`. Commit the updated `mobile/package.json` + `mobile/yarn.lock` and rerun `eas build`.
+>
+> This session's fix (already in the repo): `expo-web-browser` was pinned to `^57.0.2` (SDK 54+ range). Downgraded to `~13.0.3` to match SDK 51. Doctor now clean.
+
 ## What you'll do on your Windows machine
 
 Time: ~15 minutes for `eas init`, then ~15-25 minutes for the first cloud build.
