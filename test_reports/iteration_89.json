@@ -1,0 +1,24 @@
+{
+  "summary": "Scoped iteration 89 verification of the InstagramFeed fix + 4 regressions. (1) Homepage / renders [data-testid=instagram-grid] with exactly 6 tiles (instagram-tile-{kesar-chandan,regal-rose,oriental-oudh,bold-bakhoor,mystical-meharishi,grated-omani-bakhoor}); every img src is an https URL from GET /api/products, all visible with naturalWidth>0 (loaded), alt = product name. (2) Zero requests to /images/products (list empty) => the 6 previous 404s are gone; only failing response on the homepage is the expected anonymous 401 on /api/auth/me. (3) /cart deep-link import with cleared localStorage renders 1 item (Kesar Chandan 50g x2, Rs.220 subtotal, badge=2), URL cleaned to /cart with cart/from params stripped, persisted in localStorage addrika_cart. (4) yarn --cwd /app/frontend-next brand-audit exit 0, '0 hardcoded Addrika references across 143 files'. (5) GET /api/app/config and /api/app/manifest both return schema_version='2' with retailer_tier_perks novice/bronze/silver/gold. (6) mobile/app.json slug=aaroviah-mobile, extra.eas.projectId=f152117c-57fb-4506-a44a-7c53d1043dd3; EAS_BUILD_GUIDE.md still has slug-mismatch section with Fix A + Fix B. (7) mobile/app/cart.tsx still has testID cart-share-whatsapp-btn; lib/web.ts still exports shareCartOnWhatsApp + buildShareableCartUrl.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Homepage / and /cart", "issues": ["Google Analytics cookie consent banner (bottom-right) overlaps footer 'Follow Us' social icons and can intercept clicks there until dismissed - low priority"]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "InstagramFeed renders no skeleton/placeholder while /api/products is in flight and silently hides the grid on failure - acceptable per design, but consider a lightweight skeleton to avoid layout shift on the homepage.",
+    "InstagramFeed filters isActive !== false; products API currently returns only active items, so no functional gap, but relying on `image` field presence means a product without image silently shrinks the grid below 6 tiles."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "InstagramFeed 404 issue from iteration 88 is fully resolved (tiles now driven by /api/products https URLs). Homepage/cart never reach networkidle (GA + polling) - use wait_until='domcontentloaded' + explicit wait_for_selector and a ~5s post-DOM wait for the products fetch. Anonymous 401 on /api/auth/me is expected noise.",
+  "rca_of_the_issue": "Previous 404s were caused by hardcoded /images/products/* paths that were never shipped to frontend-next/public. Fix replaces them with product image URLs fetched from /api/products at mount; verified zero /images/products requests now occur."
+}
