@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://incense-rewards.preview.emergentagent.com/api
+https://fragrance-rewards.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

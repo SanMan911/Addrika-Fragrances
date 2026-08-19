@@ -124,7 +124,7 @@ async def record_outbound_attempt(
 def _base_url() -> str:
     return os.environ.get(
         "AMARDEEP_API_BASE",
-        "https://incense-rewards.preview.emergentagent.com",
+        "https://fragrance-rewards.preview.emergentagent.com",
     ).rstrip("/")
 
 
