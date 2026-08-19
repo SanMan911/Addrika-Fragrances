@@ -204,8 +204,18 @@ class TestB2BCatalog:
                 login = resp
                 break
         if login is None:
-            pytest.skip("Could not authenticate test B2B retailer; SKU verified via Mongo/mirror")
-        r = s.get(f"{BASE_URL}/api/retailer-dashboard/b2b/catalog", timeout=30)
+            pytest.fail("Could not authenticate test B2B retailer (test_b2b_retailer@example.com)")
+        # The login endpoint sets `retailer_session` with secure=True, so
+        # requests will NOT replay it over plain HTTP. Re-attach it manually
+        # from the token in the JSON body (or from the Set-Cookie jar).
+        token = (login.json() or {}).get("token") or s.cookies.get("retailer_session")
+        assert token, f"no session token in login response: {login.text[:200]}"
+        headers = {"Cookie": f"retailer_session={token}"}
+        r = s.get(
+            f"{BASE_URL}/api/retailer-dashboard/b2b/catalog",
+            headers=headers,
+            timeout=30,
+        )
         assert r.status_code == 200, f"{r.status_code}: {r.text[:300]}"
         prods = r.json().get("products", [])
         ids = [p.get("id") for p in prods]

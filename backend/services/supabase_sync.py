@@ -194,6 +194,16 @@ def _product_row(doc: dict, channel: str) -> dict:
             totals = [int(s.get("stock") or 0) for s in sizes if isinstance(s, dict) and s.get("stock") is not None]
             stock = sum(totals) if totals else None
 
+    # B2B SKUs store per-unit price under `mrp_per_unit` and per-carton price
+    # under `price_per_carton`. Surface `mrp_per_unit` as the canonical
+    # `price_inr` so downstream consumers (mobile catalogue, analytics)
+    # never see NULL when the wholesale price is actually known.
+    if channel == "b2b":
+        if price is None:
+            price = _first(doc, "mrp_per_unit", "price_per_carton", "price_per_box")
+        if mrp is None:
+            mrp = _first(doc, "mrp_per_unit")
+
     # B2C uses `isActive` (camelCase); B2B uses `is_active`. Honour both.
     is_active = _first(doc, "is_active", "isActive", default=True)
 

@@ -3,6 +3,31 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 📦 Feb 2026 (Iteration 86) — B2B retailer seed + b2b mirror prices + Aaroviah EAS-ready
+
+**1. Test B2B Retailer auto-seed** (verified iter86 — TestB2BCatalog no longer skips)
+- `/app/backend/services/seed_test_b2b_retailer.py` — new idempotent seed inserts `test_b2b_retailer@example.com / Test@12345` with `retailer_id=RTL_TEST_B2B`, `status='active'`, `is_verified=True`, `gst_verified=True`, `name='Test B2B Retailer'`, `username='test_b2b_retailer'`. Heals missing fields on subsequent boots.
+- **Env-gated for safety**: only fires when `SEED_TEST_B2B_RETAILER=1` (default OFF). Prod deploys that forget the env var can never create the live account with a known password.
+- `/app/backend/.env` sets `SEED_TEST_B2B_RETAILER=1` for this preview.
+- Verified via testing agent: `POST /api/retailer-auth/login` returns HTTP 200 for both email and username identifiers; pytest test_iter82_product_cleanup.py went from 18 passed / 1 skipped → **19/19 green**; 74/74 regression tests pass.
+
+**2. B2B mirror `price_inr` hydration** (verified iter86)
+- `services/supabase_sync.py::_product_row` — new `if channel == 'b2b'` branch reads `price_inr` from `mrp_per_unit || price_per_carton || price_per_box` and `mrp_inr` from `mrp_per_unit`. B2B docs never carried a top-level `price` field which is why iter79-85 always mirrored NULL.
+- Periodic backfill (`services/supabase_bootstrap.py`) picks up the fix on the 90s post-boot tick.
+- Verified: all 16 b2b `products_mirror` rows now have non-null `price_inr` + `mrp_inr` (0 NULL from 16 NULL).
+
+**3. Mobile Alpha (EAS build ready)** — everything on the Emergent side is set; user runs `eas init` + `eas build --profile preview --platform android` from their Windows machine.
+- `mobile/app.json` — Aaroviah rebrand: `name`, `slug=aaroviah-mobile`, `scheme=aaroviah`, `ios.bundleIdentifier=com.centraders.aaroviah`, `android.package=com.centraders.aaroviah`, `android.versionCode=1`, `extra.eas.projectId` placeholder.
+- `mobile/eas.json` (new) — `preview` profile (internal APK, distribution:internal) + `production` profile (Play Store AAB, distribution:store). All 4 build-time envs (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_WEB_URL`) sourced from Expo secrets.
+- `mobile/EAS_BUILD_GUIDE.md` (new) — step-by-step walkthrough: `git pull` → `yarn install` → `expo login` → `eas init` (commits projectId) → `eas secret:create` (×4) → `eas build --profile preview --platform android` → download APK URL / QR from Expo dashboard → sanity-test on device.
+- `npx tsc --noEmit` in mobile/: 0 errors.
+
+**Iter86 testing agent flagged (informational, not blocking):**
+- `/api/retailer-dashboard/*` reads auth exclusively from `retailer_session` cookie (secure=True samesite=none). Python `requests` refuses to send that cookie over HTTP → subsequent authenticated calls 401 on non-HTTPS clients. iter86 test harness now attaches the cookie manually from the login JSON body. Long-term: consider accepting `Authorization: Bearer <token>` alongside the cookie.
+- 23 of 25 mirror rows still have `stock_pieces=0` (only bold-bakhoor has 100). Prices are correct now; if 0 isn't the true inventory that's a separate hydration gap.
+
+---
+
 ### 🎨 Feb 2026 (Iteration 85) — One-click brand rename mechanism (final sweep)
 
 - **Iter84 backend regressions closed** (verified iter85, 21/21 tests green + fault-injection self-heal proven):

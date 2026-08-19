@@ -177,6 +177,14 @@ async def startup_db_client():
     await refresh_b2b_catalog(db)
     print("B2B settings + loyalty milestones + catalog initialized")
 
+    # Idempotent seed of the pytest B2B retailer so retailer-auth-gated
+    # tests never skip. No-op in prod (env-gated).
+    try:
+        from services.seed_test_b2b_retailer import seed_test_b2b_retailer
+        await seed_test_b2b_retailer(db)
+    except Exception as e:  # noqa: BLE001
+        print(f"Test B2B retailer seed skipped: {e}")
+
     # Auto-purge bills older than 15 months / 5 quarters
     try:
         from routers.b2b_bills_messages import purge_old_bills
