@@ -10,10 +10,23 @@ import { encodeCartForWeb } from './cart';
  * with GST-KYC popup, checkout, order confirmation) live on the web —
  * the mobile app is a browse + cart-builder companion.
  */
+/**
+ * Guard against EAS interpolating an unresolved template string
+ * (e.g. the literal `"$EXPO_PUBLIC_WEB_URL"` when the matching EAS
+ * secret doesn't exist) into `process.env`. Only real https URLs win.
+ */
+function pickHttps(...candidates: (string | undefined | null)[]): string {
+  for (const c of candidates) {
+    if (typeof c === 'string' && /^https?:\/\//i.test(c)) return c;
+  }
+  return '';
+}
+
 export const WEB_URL =
-  process.env.EXPO_PUBLIC_WEB_URL ||
-  (Constants.expoConfig?.extra?.webUrl as string) ||
-  'https://www.centraders.com';
+  pickHttps(
+    process.env.EXPO_PUBLIC_WEB_URL,
+    Constants.expoConfig?.extra?.webUrl as string | undefined,
+  ) || 'https://www.centraders.com';
 
 export async function openWebUrl(path: string): Promise<void> {
   const url = path.startsWith('http')

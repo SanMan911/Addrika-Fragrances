@@ -47,6 +47,13 @@ You now have everything on the Emergent side:
 >
 > This session's fix (already in the repo): `expo-web-browser` was pinned to `^57.0.2` (SDK 54+ range). Downgraded to `~13.0.3` to match SDK 51. Doctor now clean.
 
+> ### ⚠️ If the APK opens but login says `Network request failed` — this is why
+> `eas.json` previously declared `env: { EXPO_PUBLIC_API_BASE_URL: "$EXPO_PUBLIC_API_BASE_URL", ... }`. That `$VAR` syntax is a template for EAS secrets. If you never ran `eas secret:create`, EAS interpolates the **literal string** `"$EXPO_PUBLIC_API_BASE_URL"` into `process.env` inside the APK. `fetch("$EXPO_PUBLIC_API_BASE_URL/api/auth/login")` then chokes on the URL parser → "Network request failed".
+>
+> **Fix applied**: the `env` block was removed from all three build profiles in `eas.json`. All four URLs are now sourced exclusively from `app.json → expo.extra`, which is hard-coded to production values in this repo. Additionally, the runtime clients (`lib/{api,supabase,web}.ts`) now reject any candidate that isn't a real `https://…` URL, so even if a stray unresolved template string ever leaks back in, the `app.json` fallback still wins.
+>
+> **If you later want EAS secrets** (for rotation without editing `app.json`), re-add the `env` block AND set the matching secrets first — never one without the other.
+
 ## What you'll do on your Windows machine
 
 Time: ~15 minutes for `eas init`, then ~15-25 minutes for the first cloud build.
