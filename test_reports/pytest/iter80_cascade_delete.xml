@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="3" time="45.394" timestamp="2026-08-19T08:35:32.559640+00:00" hostname="agent-env-ea7e2700-b86f-461c-97cb-52ee0f7acb1b"><testcase classname="tests.test_iter80_cascade_delete" name="test_delete_cascades_b2b_products_and_mirror" time="26.361" /><testcase classname="tests.test_iter80_cascade_delete" name="test_iter74_run_leaves_no_mirror_orphans" time="16.165"><failure message="AssertionError: iter74 run leaked mirror rows: [RealDictRow([('id', 'test-iter74-product-200g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')])]&#10;assert [RealDictRow(...el', 'b2b')])] == []&#10;  &#10;  Left contains one more item: RealDictRow([('id', 'test-iter74-product-200g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')])&#10;  &#10;  Full diff:&#10;  - []&#10;  + [&#10;  +     RealDictRow({...&#10;  &#10;  ...Full output truncated (5 lines hidden), use '-vv' to show">tests/test_iter80_cascade_delete.py:205: in test_iter74_run_leaves_no_mirror_orphans
+    assert rows == [], f"iter74 run leaked mirror rows: {rows}"
+E   AssertionError: iter74 run leaked mirror rows: [RealDictRow([('id', 'test-iter74-product-200g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')])]
+E   assert [RealDictRow(...el', 'b2b')])] == []
+E     
+E     Left contains one more item: RealDictRow([('id', 'test-iter74-product-200g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')])
+E     
+E     Full diff:
+E     - []
+E     + [
+E     +     RealDictRow({...
+E     
+E     ...Full output truncated (5 lines hidden), use '-vv' to show</failure></testcase><testcase classname="tests.test_iter80_cascade_delete" name="test_active_b2c_rows_have_price_and_stock" time="2.275" /></testsuite></testsuites>

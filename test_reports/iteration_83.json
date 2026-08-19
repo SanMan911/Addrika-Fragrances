@@ -1,0 +1,51 @@
+{
+  "summary": "Iter82 re-verification (backend only). The 3 previously-failing assertions now PASS: (a) TestMongo::test_all_linked_b2b_skus_renamed, (b) TestSupabaseMirror::test_no_stale_bilvapatra_name_in_mirror, (c) TestSupabaseMirror::test_no_orphan_b2b_mirror_rows. All requested sanity checks pass: products_mirror WHERE name ILIKE '%Bilvapatra%' -> 0 rows; products_mirror WHERE id LIKE 'mogra%' -> 0 rows; Mongo b2b_products WHERE product_id='bilvapatra-fragrance' -> belpatra-dhoop-b2b='Belpatra Dhoop', bilvapatra-fragrance-50g-b2b='Belpatra' (both mirrored with same names). Iter80 DELETE cascade + no-orphan and iter81 per-entity FIFO lock regressions PASS. HOWEVER the Iter82 fix introduced a NEW regression: the B2C Supabase mirror row for 'bilvapatra-fragrance' now has stock_pieces = NULL (was 0 before the fix), breaking the iter79/80 invariant 'all active b2c mirror rows have non-null price_inr + stock_pieces'. Fails in BOTH suites (test_iter82_product_cleanup::test_regression_price_and_stock_hydrated and test_iter80_cascade_delete::test_active_b2c_rows_have_price_and_stock), reproduced 4/4 runs and again immediately after a backend restart.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "routers/products.py::_migrate_products (Iter82 block, step 2 'Re-mirror B2C row') -> Supabase products_mirror",
+        "issue": "Regression: mirror row 'bilvapatra-fragrance' (channel='b2c') now has stock_pieces = NULL. The migration calls services.supabase_sync.mirror_product_upsert(b2c_doc, channel='b2c') with the RAW Mongo product doc. supabase_sync._product_row derives b2c stock from sizes[].stock (set only by the B2B stock enricher at serve time); the raw doc's sizes = [{'size':'50g','mrp':110,'price':110,'images':[...]}] has no 'stock' key and no top-level stock_pieces, so stock=None is written and it OVERWRITES the previously hydrated value (0). Fix: hydrate the doc before mirroring (reuse the same enricher used by GET /api/products, e.g. sum b2b_products.stock_pieces per net_weight into sizes[].stock, or set doc['stock_pieces']) OR skip the b2c stock column on partial re-mirrors instead of nulling it. Reproduced persistently, including immediately after `supervisorctl restart backend` (migration re-runs unconditionally each boot).",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "routers/products.py Iter82 migration",
+        "issue": "Migration still runs on EVERY startup and swallows exceptions with logger.warning; the b2c re-mirror is unconditional so it re-nulls stock on each boot. No migrations-completed marker (repeat of iter82 review comment)."
+      },
+      {
+        "endpoint": "/api/retailer-auth/login",
+        "issue": "Documented B2B test retailer (test_b2b_retailer@example.com / Test@12345, RTL_TEST_B2B) still does not exist -> 401, so TestB2BCatalog::test_catalog_lists_belpatra_and_no_bambooless remains SKIPPED. B2B SKU state verified via Mongo + Supabase instead."
+      },
+      {
+        "endpoint": "products_mirror.mongo_updated_at",
+        "issue": "Observation only: bilvapatra-fragrance mongo_updated_at = 2026-08-19T08:49:35Z, i.e. ahead of the current date (Jul 2026). Container clock / migration timestamp worth a sanity check; no functional impact observed."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter82_product_cleanup.py",
+    "/app/backend/tests/test_iter80_cascade_delete.py",
+    "/app/backend/tests/test_iter81_race_sanity.py",
+    "/app/backend/tests/rca_iter82_stock.py",
+    "/app/test_reports/pytest/iter82_retest.xml",
+    "/app/test_reports/pytest/iter83_regress.xml"
+  ],
+  "action_items": [
+    "Hydrate stock before the b2c re-mirror in the Iter82 migration so products_mirror.stock_pieces for 'bilvapatra-fragrance' is 0 (not NULL) — currently breaks the iter79/80 non-null invariant on every backend boot.",
+    "Optionally seed the documented B2B test retailer so /api/retailer-dashboard/b2b/catalog can be regression-tested end to end."
+  ],
+  "critical_code_review_comments": [
+    "supabase_sync._product_row returns stock=None whenever the passed doc lacks sizes[].stock — any caller that mirrors a raw Mongo b2c doc silently wipes the mirror's stock column. Centralise b2c mirroring behind a single hydrate+mirror helper so no caller can pass an un-enriched doc.",
+    "The Iter82 migration block is now ~75 lines of one-off data patching inside _migrate_products; move dated migrations into a versioned migrations module with a completion marker collection."
+  ],
+  "updated_files": ["/app/backend/tests/rca_iter82_stock.py (new, RCA helper — not a pytest module)"],
+  "success_rate": {"backend": "94% (17/18 executed pass, 1 skipped) on iter82 suite; 4/5 on iter80+81 regression suites — the single failure is the same b2c NULL stock issue", "frontend": "N/A (backend-only request)"},
+  "seed_data_creation": "None. No test data created or left behind; /api/products still returns exactly the 9 real products.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499 works. B2B retailer test_b2b_retailer@example.com / Test@12345 still absent from db.retailers (401).",
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/test_iter82_product_cleanup.py tests/test_iter80_cascade_delete.py tests/test_iter81_race_sanity.py -p no:randomly -v. BASE_URL=http://localhost:8001 (public preview /api 404s due to self-referencing Next rewrite). Supabase checked with psycopg2 on SUPABASE_DB_URL (swap postgresql+asyncpg:// -> postgresql://). Quick state dump: python tests/rca_iter82_stock.py. Only known failure: products_mirror b2c 'bilvapatra-fragrance'.stock_pieces IS NULL (should be 0). Mirror counts: b2c=9, b2b=16, zero orphans, zero 'Bilvapatra'/'mogra' rows.",
+  "rca_of_the_issue": "Iter82 fix correctly propagates the rename to derived B2B SKUs via mirror_b2c_product (which re-mirrors only the b2b rows) and then unconditionally calls mirror_product_upsert(b2c_doc, channel='b2c') with the raw Mongo doc. _product_row computes b2c stock_pieces from doc['stock_pieces'] or sum(sizes[].stock); neither exists on the stored doc (stock lives in b2b_products.stock_pieces and is injected only by the read-path enricher), so the upsert writes stock_pieces=NULL over the previously hydrated 0. Repro: supervisorctl restart backend; sleep 20; SELECT stock_pieces FROM products_mirror WHERE id='bilvapatra-fragrance' -> NULL. Mitigation: enrich sizes[].stock from b2b_products before mirroring, or make the b2c upsert preserve stock when the source value is None."
+}

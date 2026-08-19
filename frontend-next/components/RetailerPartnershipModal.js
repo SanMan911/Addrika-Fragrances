@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { X, Mail, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import BRAND from '../lib/brand.config';
 
 const API_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -232,7 +233,7 @@ export default function RetailerPartnershipModal({ open, onClose }) {
                 className="text-2xl font-bold text-[#2B3A4A]"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                Become an Addrika Retailer
+                Become an {BRAND.name} Retailer
               </h2>
               <p className="text-sm text-gray-600 mt-1">
                 {step === 1
@@ -534,7 +535,7 @@ export default function RetailerPartnershipModal({ open, onClose }) {
                   )}
                 </button>
                 <p className="text-[11px] text-center text-gray-500">
-                  By submitting, you agree to be contacted by Addrika at the email/WhatsApp above.
+                  By submitting, you agree to be contacted by {BRAND.name} at the email/WhatsApp above.
                 </p>
               </div>
             )}

@@ -151,29 +151,15 @@ _DEFAULT_PRODUCTS = [
         ],
     },
     {
-        "id": "bilvapatra-fragrance", "name": "Bilvapatra Fragrance", "tagline": "Sacred Bael Leaf Essence",
+        "id": "bilvapatra-fragrance", "name": "Belpatra", "tagline": "Sacred Bael Leaf Essence",
         "type": "agarbatti", "category": "agarbatti", "comingSoon": True, "isActive": True,
-        "description": "Experience the divine fragrance of Bilvapatra\u2014a sacred blend inspired by the revered bael leaf, offered in traditional worship to Lord Shiva. This premium agarbatti captures the essence of spiritual devotion with earthy, herbal notes blended with subtle floral undertones. Each stick creates a purifying atmosphere that elevates your daily rituals and meditation practices.",
+        "description": "Experience the divine fragrance of Belpatra\u2014a sacred blend inspired by the revered bael leaf, offered in traditional worship to Lord Shiva. This premium agarbatti captures the essence of spiritual devotion with earthy, herbal notes blended with subtle floral undertones. Each stick creates a purifying atmosphere that elevates your daily rituals and meditation practices.",
         "notes": ["Bael Leaf", "Sacred Herbs", "Subtle Florals"],
         "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/82eb095d8e73cc34f8daa37d10cebfc02578fa81cd77d69238cc06a2fa3c22c6.png",
         "burnTime": "40+ minutes",
         "sizes": [
             {"size": "50g", "mrp": 110, "price": 110, "images": [
                 "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/82eb095d8e73cc34f8daa37d10cebfc02578fa81cd77d69238cc06a2fa3c22c6.png"
-            ]}
-        ],
-        "rating": 0, "reviews": 0,
-    },
-    {
-        "id": "bambooless-dhoop-8inch", "name": "8\" Bambooless Dhoop", "tagline": "Extended Burn Premium Dhoop",
-        "type": "dhoop", "category": "dhoop", "bambooless": True, "comingSoon": True, "isActive": True,
-        "description": "Introducing our longest-burning bambooless dhoop\u2014a full 8 inches of pure, handcrafted fragrance. This premium dhoop stick is designed for extended rituals, larger spaces, and those who seek a deeper, longer-lasting aromatic experience. With over 60% less smoke and zero bamboo core, it delivers a clean, intense fragrance that fills your entire home.",
-        "notes": ["Extended Burn", "Pure Fragrance", "Zero Bamboo"],
-        "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/8a975139fd07d611a2c31b1f39f6bcaf5610bdda6ed86caba8423c3ddae46b20.png",
-        "burnTime": "45+ minutes",
-        "sizes": [
-            {"size": "100g", "mrp": 179, "price": 179, "weight": 150, "images": [
-                "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/8a975139fd07d611a2c31b1f39f6bcaf5610bdda6ed86caba8423c3ddae46b20.png"
             ]}
         ],
         "rating": 0, "reviews": 0,
@@ -272,8 +258,7 @@ async def _migrate_products():
     # Migration: Add new Coming Soon products if they don't exist
     new_products = [
         {"id": "bilvapatra-fragrance", "data": _DEFAULT_PRODUCTS[7]},
-        {"id": "bambooless-dhoop-8inch", "data": _DEFAULT_PRODUCTS[8]},
-        {"id": "royal-kewda", "data": _DEFAULT_PRODUCTS[9]},
+        {"id": "royal-kewda", "data": _DEFAULT_PRODUCTS[8]},
     ]
     for np in new_products:
         exists = await db.products.find_one({"id": np["id"]})
@@ -281,6 +266,93 @@ async def _migrate_products():
             doc = {**np["data"], "created_at": datetime.now(timezone.utc).isoformat(), "updated_at": datetime.now(timezone.utc).isoformat()}
             await db.products.insert_one(doc)
             logger.info(f"Added new product: {np['id']}")
+
+    # Migration (Iter82): Delete 8" Bambooless Dhoop everywhere and rename
+    # `bilvapatra-fragrance` display name to "Belpatra" (slug stays for URL
+    # stability so old shares/links keep working).
+    try:
+        # 1. Hard-delete bambooless dhoop (b2c + linked b2b SKUs + Supabase
+        # mirror). ALWAYS attempt the Supabase delete — orphans can slip
+        # in via racy backfills or manual pytest runs, so we treat this as
+        # a self-healing tombstone that runs on every boot.
+        bambooless_slug = "bambooless-dhoop-8inch"
+        await db.products.delete_many({"id": bambooless_slug})
+        b2b_ids = [
+            r["id"]
+            for r in await db.b2b_products.find(
+                {"product_id": bambooless_slug}, {"_id": 0, "id": 1}
+            ).to_list(20)
+        ]
+        await db.b2b_products.delete_many({"product_id": bambooless_slug})
+        try:
+            from services.supabase_sync import mirror_product_delete
+            mirror_product_delete(bambooless_slug)
+            # Belt-and-braces: try common size variants too, even if not in Mongo.
+            for size in ("50g", "100g", "150g", "200g", "500g", "1kg"):
+                mirror_product_delete(f"{bambooless_slug}-{size}-b2b")
+            for sid in b2b_ids:
+                mirror_product_delete(sid)
+        except Exception:  # noqa: BLE001
+            pass
+        logger.info(
+            "Iter82 tombstone: purged %s + %d linked b2b SKUs",
+            bambooless_slug, len(b2b_ids),
+        )
+
+        # 2. Rename display name (all touch-points that reference this slug).
+        # Guarded independently of the b2c name so the b2b propagation
+        # still runs on re-boot even if the b2c doc is already renamed.
+        b2c_doc = await db.products.find_one({"id": "bilvapatra-fragrance"}, {"_id": 0})
+        if b2c_doc:
+            if b2c_doc.get("name") != "Belpatra":
+                await db.products.update_one(
+                    {"id": "bilvapatra-fragrance"},
+                    {"$set": {
+                        "name": "Belpatra",
+                        "description": _DEFAULT_PRODUCTS[7]["description"],
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    }},
+                )
+                b2c_doc["name"] = "Belpatra"
+                b2c_doc["description"] = _DEFAULT_PRODUCTS[7]["description"]
+
+            # Propagate name to any derived B2B SKUs (auto-mirrored via
+            # product_sync.build_b2b_sku, which copies b2c product['name']).
+            stale = await db.b2b_products.find_one(
+                {"product_id": "bilvapatra-fragrance", "name": {"$ne": "Belpatra"}},
+                {"_id": 0, "id": 1},
+            )
+            if stale:
+                try:
+                    from services.product_sync import mirror_b2c_product
+                    await mirror_b2c_product(db, b2c_doc)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Iter82 B2B rename propagation failed: %s", exc)
+
+            # Re-mirror B2C row so Supabase reflects the new name (hydrate
+            # stock from linked B2B SKUs first — otherwise the raw Mongo
+            # doc has no sizes[].stock and would null the mirror column).
+            try:
+                from services.product_sync import enrich_b2c_products_with_stock
+                b2b_rows = await db.b2b_products.find(
+                    {"product_id": "bilvapatra-fragrance"}, {"_id": 0}
+                ).to_list(20)
+                enrich_b2c_products_with_stock([b2c_doc], b2b_rows)
+                from services.supabase_sync import mirror_product_upsert
+                mirror_product_upsert(b2c_doc, channel="b2c")
+            except Exception:  # noqa: BLE001
+                pass
+            logger.info("Iter82 migration: bilvapatra-fragrance → Belpatra (+ B2B SKUs)")
+
+        # 3. Purge legacy mogra-magic orphan mirror rows (pre-iter82)
+        try:
+            from services.supabase_sync import mirror_product_delete
+            for orphan_id in ("mogra-magic", "mogra-magic-b2b", "mogra-magic-200-b2b"):
+                mirror_product_delete(orphan_id)
+        except Exception:  # noqa: BLE001
+            pass
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Iter82 rename/delete migration failed: %s", exc)
 
     # Migration: Add initial ratings/reviews for Bakhoor products (recently launched)
     rating_migrations = [

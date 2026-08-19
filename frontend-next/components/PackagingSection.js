@@ -2,6 +2,7 @@
 
 import { useTheme } from '../context/ThemeContext';
 import { Gift, Package, Shield, Sparkles } from 'lucide-react';
+import BRAND from '../lib/brand.config';
 
 export default function PackagingSection() {
   const { isDarkMode } = useTheme();
@@ -41,7 +42,7 @@ export default function PackagingSection() {
             >
               <img 
                 src="https://customer-assets.emergentagent.com/job_b8dea517-acc0-4dd1-9653-6404f629d64f/artifacts/ta9e3e56_1000343227.jpg"
-                alt="Addrika Premium Bakhoor Packaging"
+                alt={`${BRAND.name} Premium Bakhoor Packaging`}
                 className="w-full h-auto rounded-xl"
                 style={{ 
                   maxHeight: '500px',
@@ -76,7 +77,7 @@ export default function PackagingSection() {
               className="text-lg mb-8 leading-relaxed"
               style={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'var(--text-subtle)' }}
             >
-              Every Addrika product is thoughtfully packaged to preserve its essence. Our Bakhoor 
+              Every {BRAND.name} product is thoughtfully packaged to preserve its essence. Our Bakhoor 
               comes in elegant amber glass jars that protect the fragrance and add a touch of luxury, 
               while our agarbattis and incense sticks are securely packed in quality plastic and 
               paper packaging for durability and freshness.

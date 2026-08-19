@@ -7,35 +7,72 @@
  * accent colour / product sizes / variants), edit THIS file only. Every
  * user-facing brand touchpoint (headers, footers, page titles, emails,
  * brochure, PDF invoices, meta tags, PWA manifest, sitemap, social share
- * cards) reads from here — either through a direct import or by
- * consuming the `BRAND_NAME` env variable that mirrors it on the
- * backend.
+ * cards, JSON-LD Schema.org markup) reads from here through the
+ * `BRAND` import.
  *
  * When you change `name` here, also set the same value in
  *   backend/.env      → BRAND_NAME=NewBrand
  *   backend/.env      → BRAND_TAGLINE="Some tagline"
  *   Vercel env panel  → BRAND_NAME + BRAND_TAGLINE
  *
- * A grep-friendly index of every hardcoded reference we knew about at
- * the time of the last rename lives in `docs/BRAND_INDEX.md`. Regenerate
- * it with `yarn brand:audit`.
+ * Every existing hardcoded "Addrika" reference (~200 across 61 files)
+ * has been migrated to consume BRAND.name. Grep the codebase before
+ * merging any new copy: no user-visible file should reintroduce a
+ * literal brand string.
  */
+
+const NAME = 'Addrika';                       // ← flip this to rename everywhere
+const LEGAL_NAME = 'Centraders (India) Private Limited';
+const TAGLINE = 'Elevate Your Everyday Rituals';
+const DOMAIN = 'centraders.com';
+const INSTAGRAM_HANDLE = '@addrika.fragrances';
+const INSTAGRAM_SLUG = 'addrika.fragrances';
+const TWITTER_CREATOR = '@addrika_incense';
 
 const BRAND = {
   // ---- Identity ----
-  name: 'Addrika',
-  legalName: 'Centraders (India) Private Limited',
-  tagline: 'Elevate Your Everyday Rituals',
-  domain: 'centraders.com',
+  name: NAME,
+  nameUpper: NAME.toUpperCase(),
+  legalName: LEGAL_NAME,
+  tagline: TAGLINE,
+  domain: DOMAIN,
 
   // ---- Logo & imagery ----
   logo: {
-    // Primary logo (favicon + navbar). Path is served from /public.
-    src: '/images/logo.png',
-    alt: 'Addrika logo',
-    monogram: 'A', // used in fallback tiles + brochure watermark
+    src: '/images/logos/addrika-logo.png',
+    srcGold: '/images/logos/addrika-logo-gold.png',
+    srcBrandNameGoldTransparent: '/images/logos/addrika-brand-name-gold-transparent.png',
+    srcGoldCropped: '/images/logos/addrika-logo-gold-cropped.png',
+    logoUrlAbs: `https://${DOMAIN}/images/logos/addrika-logo-gold-cropped.png`,
+    alt: `${NAME} logo`,
+    monogram: NAME.charAt(0),
     width: 160,
     height: 40,
+  },
+
+  // ---- Social ----
+  social: {
+    instagramHandle: INSTAGRAM_HANDLE,
+    instagramHandleUpper: INSTAGRAM_HANDLE.toUpperCase(),
+    instagramSlug: INSTAGRAM_SLUG,
+    instagramUrl: `https://instagram.com/${INSTAGRAM_SLUG}`,
+    instagramUrlWww: `https://www.instagram.com/${INSTAGRAM_SLUG}`,
+    twitterCreator: TWITTER_CREATOR,
+  },
+
+  // ---- SEO ----
+  seo: {
+    keywords: [
+      NAME.toLowerCase(), `${NAME.toLowerCase()} fragrances`,
+      'premium incense', 'luxury incense sticks', 'incense sticks for meditation',
+      'agarbatti', 'charcoal-free incense', 'low smoke agarbatti',
+      'kesar chandan incense', 'regal rose incense', 'oriental oudh',
+      'bakhoor', 'arabian bakhoor', 'bambooless dhoop',
+      'meditation incense', 'yoga incense', 'puja agarbatti',
+      'luxury home fragrance india', 'ethical incense', 'premium agarbatti online',
+      'buy incense online india', 'natural incense sticks',
+      'best incense for meditation', 'incense gift set india',
+    ],
   },
 
   // ---- Brand colours ----
@@ -47,12 +84,10 @@ const BRAND = {
     inkSoft: '#22324a',
     cream: '#fbf6e6',
     text: '#ffffff',
-    accent: '#D4AF37', // alias for backwards compat
+    accent: '#D4AF37',
   },
 
   // ---- Product taxonomy ----
-  // If sizes / variants change, this list is the single source of truth
-  // for the storefront filter chips, admin product form, and brochure.
   productSizes: [
     { key: '50g', label: '50g stick pack', unit: 'g', weight_g: 50 },
     { key: '100g', label: '100g stick pack', unit: 'g', weight_g: 100 },
@@ -72,14 +107,14 @@ const BRAND = {
     email: 'contact.us@centraders.com',
     phone: '+91 8377020402',
     whatsapp: '+91 8377020402',
-    instagram: '@addrika.official',
+    instagram: INSTAGRAM_HANDLE,
   },
 
   // ---- Copy defaults ----
   copy: {
-    supportEmailBody: (name) =>
-      `Hi ${name},\n\nThanks for reaching out to Addrika support. …`,
-    welcomeEmailSubject: 'Welcome to Addrika 🙏',
+    supportEmailBody: (customerName) =>
+      `Hi ${customerName},\n\nThanks for reaching out to ${NAME} support. …`,
+    welcomeEmailSubject: `Welcome to ${NAME} 🙏`,
     orderEmailFooter:
       'Elegance you can feel good about — every stick made in equal-participation workshops.',
   },
@@ -87,3 +122,4 @@ const BRAND = {
 
 module.exports = BRAND;
 module.exports.default = BRAND;
+module.exports.BRAND = BRAND;

@@ -3,6 +3,7 @@
 import { Leaf, Wind, Clock, Shield, Sparkles, Heart } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
+import BRAND from '../lib/brand.config';
 const uspItems = [
   {
     icon: Leaf,
@@ -77,7 +78,7 @@ export default function USPSection() {
               border: '1px solid rgba(212,175,55,0.2)'
             }}
           >
-            WHY ADDRIKA
+            WHY {BRAND.nameUpper}
           </span>
           <h2 
             className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6"
@@ -86,7 +87,7 @@ export default function USPSection() {
               color: isDarkMode ? '#ffffff' : 'var(--japanese-indigo)'
             }}
           >
-            The Addrika Difference
+            The {BRAND.name} Difference
           </h2>
           <p 
             className="text-lg max-w-2xl mx-auto"

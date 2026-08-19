@@ -9,6 +9,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useTheme } from '../context/ThemeContext';
+import BRAND from '../lib/brand.config';
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -74,8 +75,8 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
             <img 
-              src="/images/logos/addrika-logo-gold.png"
-              alt="Addrika - Elegance in Every Scent" 
+              src={BRAND.logo.srcGold}
+              alt={`${BRAND.name} - Elegance in Every Scent`} 
               className="h-16 md:h-20 w-auto"
               style={{ maxWidth: '200px' }}
             />

@@ -1,21 +1,22 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Star, Leaf, Wind, Heart, Shield, CheckCircle, ArrowRight, FlaskConical } from 'lucide-react';
+import BRAND from '../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export const metadata = {
-  title: 'Low Smoke Agarbatti | Charcoal-Free Incense Sticks | Addrika Fragrances',
-  description: 'Discover Addrika\'s premium low smoke agarbatti - charcoal-free incense sticks with ethically sourced ingredients. Made with pure essential oils and flower dust. Ideal for meditation, small apartments, and health-conscious users. Over 60% less smoke than traditional agarbatti.',
+  title: `Low Smoke Agarbatti | Charcoal-Free Incense Sticks | ${BRAND.name} Fragrances`,
+  description: `Discover ${BRAND.name}\'s premium low smoke agarbatti - charcoal-free incense sticks with ethically sourced ingredients. Made with pure essential oils and flower dust. Ideal for meditation, small apartments, and health-conscious users. Over 60% less smoke than traditional agarbatti.`,
   keywords: [
     'low smoke agarbatti', 'charcoal-free incense', 'charcoal-free agarbatti', 
     'reduced smoke incense', 'health-conscious agarbatti',
     'minimal residue incense', 'ethical incense sticks', 'eco-friendly agarbatti',
     'meditation incense', 'apartment-friendly incense', 'pure essential oil incense',
-    'flower dust agarbatti', 'natural resins incense', 'Addrika Fragrances'
+    'flower dust agarbatti', 'natural resins incense', `${BRAND.name} Fragrances`
   ],
   openGraph: {
-    title: 'Low Smoke Agarbatti | Charcoal-Free Incense | Addrika Fragrances',
+    title: `Low Smoke Agarbatti | Charcoal-Free Incense | ${BRAND.name} Fragrances`,
     description: 'Premium charcoal-free, low smoke incense sticks made with ethically sourced ingredients.',
     url: 'https://centraders.com/low-smoke-incense',
     type: 'website',
@@ -36,19 +37,19 @@ async function getProducts() {
 function FAQSchema() {
   const faqs = [
     {
-      question: "What makes Addrika's incense low smoke?",
-      answer: "Addrika's low smoke formula uses a charcoal-free design. Our agarbattis use traditional bamboo sticks with a charcoal-free coating, while our dhoop products are completely bambooless. This proprietary blend produces over 60% less smoke than traditional charcoal-based agarbatti while maintaining rich, long-lasting fragrance."
+      question: "What makes ${BRAND.name}'s incense low smoke?",
+      answer: "${BRAND.name}'s low smoke formula uses a charcoal-free design. Our agarbattis use traditional bamboo sticks with a charcoal-free coating, while our dhoop products are completely bambooless. This proprietary blend produces over 60% less smoke than traditional charcoal-based agarbatti while maintaining rich, long-lasting fragrance."
     },
     {
-      question: "Is Addrika incense safe for small apartments?",
-      answer: "Yes! Addrika's charcoal-free incense is specifically designed for indoor use in small spaces. The minimal smoke output and absence of harmful charcoal particles make it ideal for apartments, meditation rooms, and enclosed spaces where air quality is a concern."
+      question: "Is ${BRAND.name} incense safe for small apartments?",
+      answer: "Yes! ${BRAND.name}'s charcoal-free incense is specifically designed for indoor use in small spaces. The minimal smoke output and absence of harmful charcoal particles make it ideal for apartments, meditation rooms, and enclosed spaces where air quality is a concern."
     },
     {
-      question: "Are Addrika incense sticks suitable for people with respiratory sensitivities?",
-      answer: "Addrika's charcoal-free formula is gentler on the respiratory system compared to traditional agarbatti. The low smoke emission and ethically sourced ingredients reduce airborne irritants, making it a better choice for health-conscious users. However, those with severe respiratory conditions should consult their doctor."
+      question: "Are ${BRAND.name} incense sticks suitable for people with respiratory sensitivities?",
+      answer: "${BRAND.name}'s charcoal-free formula is gentler on the respiratory system compared to traditional agarbatti. The low smoke emission and ethically sourced ingredients reduce airborne irritants, making it a better choice for health-conscious users. However, those with severe respiratory conditions should consult their doctor."
     },
     {
-      question: "Are all Addrika products bambooless?",
+      question: "Are all ${BRAND.name} products bambooless?",
       answer: "No, only our Dhoop range is bambooless. Our Agarbatti (incense sticks) use traditional bamboo sticks with a charcoal-free coating. Both product lines are charcoal-free and produce over 60% less smoke than traditional alternatives."
     }
   ];
@@ -83,7 +84,7 @@ function ProductListSchema({ products }) {
         __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "ItemList",
-          "name": "Addrika Low Smoke Charcoal-Free Incense Collection",
+          "name": "${BRAND.name} Low Smoke Charcoal-Free Incense Collection",
           "description": "Premium charcoal-free, low smoke agarbatti made with ethically sourced ingredients",
           "itemListElement": products.map((product, index) => ({
             "@type": "ListItem",
@@ -93,7 +94,7 @@ function ProductListSchema({ products }) {
               "name": `${product.name} - Charcoal-Free Low Smoke Incense`,
               "description": product.description,
               "image": product.image,
-              "brand": { "@type": "Brand", "name": "Addrika Fragrances" },
+              "brand": { "@type": "Brand", "name": "${BRAND.name} Fragrances" },
               "material": "Ethically sourced essential oils, flower dust, natural resins - Charcoal-free",
               "additionalProperty": [
                 { "@type": "PropertyValue", "name": "smokeEmission", "value": "Low smoke - 60%+ less than traditional" },
@@ -174,7 +175,7 @@ export default async function LowSmokeIncensePage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span> Fragrances
+            <span className="text-[#D4AF37]">{`${BRAND.name}`}</span> Fragrances
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link href="/#fragrances" className="hover:text-[#D4AF37]">All Products</Link>
@@ -196,7 +197,7 @@ export default async function LowSmokeIncensePage() {
               Premium Low Smoke Agarbatti
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              Experience the purest fragrance with <strong>Addrika&apos;s charcoal-free incense sticks</strong>. 
+              Experience the purest fragrance with <strong>{`${BRAND.name}&apos;s charcoal-free incense sticks`}</strong>. 
               Crafted with ethically sourced ingredients for <strong>over 60% less smoke</strong> — 
               ideal for meditation, small apartments, and health-conscious living.
             </p>
@@ -221,7 +222,7 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              Why Addrika&apos;s Low Smoke Incense is Different
+              Why ${BRAND.name}&apos;s Low Smoke Incense is Different
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
               Our proprietary charcoal-free formula sets us apart from traditional agarbatti
@@ -244,7 +245,7 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              Key Ingredients in Addrika&apos;s Charcoal-Free Formula
+              Key Ingredients in ${BRAND.name}&apos;s Charcoal-Free Formula
             </h2>
             <div className="bg-white rounded-xl p-8">
               <ul className="space-y-4">
@@ -290,14 +291,14 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              Addrika vs Traditional Agarbatti
+              ${BRAND.name} vs Traditional Agarbatti
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-[#2B3A4A] text-white">
                     <th className="p-4 text-left">Feature</th>
-                    <th className="p-4 text-left">Addrika Charcoal-Free</th>
+                    <th className="p-4 text-left">{`${BRAND.name} Charcoal-Free`}</th>
                     <th className="p-4 text-left">Traditional Agarbatti</th>
                   </tr>
                 </thead>
@@ -319,7 +320,7 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              Best For: Who Should Use Addrika Low Smoke Incense?
+              Best For: Who Should Use ${BRAND.name} Low Smoke Incense?
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
               Our charcoal-free incense is specifically designed for these use cases
@@ -339,7 +340,7 @@ export default async function LowSmokeIncensePage() {
         <section id="products" className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              Shop Addrika&apos;s Charcoal-Free Collection
+              Shop ${BRAND.name}&apos;s Charcoal-Free Collection
             </h2>
             <p className="text-gray-600 text-center mb-12">
               All products are charcoal-free and produce over 60% less smoke
@@ -386,15 +387,15 @@ export default async function LowSmokeIncensePage() {
             </h2>
             <div className="space-y-4">
               <div className="bg-white rounded-lg p-6">
-                <h3 className="font-semibold text-[#2B3A4A] mb-2">What makes Addrika&apos;s incense low smoke?</h3>
-                <p className="text-gray-600">Addrika&apos;s low smoke formula uses a charcoal-free design. Our agarbattis use bamboo sticks with charcoal-free coating, while dhoop products are completely bambooless. This produces over 60% less smoke than traditional charcoal-based agarbatti.</p>
+                <h3 className="font-semibold text-[#2B3A4A] mb-2">{`What makes ${BRAND.name}&apos;s incense low smoke?`}</h3>
+                <p className="text-gray-600">{`${BRAND.name}&apos;s low smoke formula uses a charcoal-free design. Our agarbattis use bamboo sticks with charcoal-free coating, while dhoop products are completely bambooless. This produces over 60% less smoke than traditional charcoal-based agarbatti.`}</p>
               </div>
               <div className="bg-white rounded-lg p-6">
-                <h3 className="font-semibold text-[#2B3A4A] mb-2">Is Addrika incense safe for small apartments?</h3>
-                <p className="text-gray-600">Yes! Addrika&apos;s charcoal-free incense is specifically designed for indoor use in small spaces. The minimal smoke output and absence of harmful charcoal particles make it ideal for apartments, meditation rooms, and enclosed spaces.</p>
+                <h3 className="font-semibold text-[#2B3A4A] mb-2">{`Is ${BRAND.name} incense safe for small apartments?`}</h3>
+                <p className="text-gray-600">{`Yes! ${BRAND.name}&apos;s charcoal-free incense is specifically designed for indoor use in small spaces. The minimal smoke output and absence of harmful charcoal particles make it ideal for apartments, meditation rooms, and enclosed spaces.`}</p>
               </div>
               <div className="bg-white rounded-lg p-6">
-                <h3 className="font-semibold text-[#2B3A4A] mb-2">Are all Addrika products bambooless?</h3>
+                <h3 className="font-semibold text-[#2B3A4A] mb-2">{`Are all ${BRAND.name} products bambooless?`}</h3>
                 <p className="text-gray-600">No, only our Dhoop range is bambooless. Our Agarbatti products use traditional bamboo sticks with a charcoal-free coating. Both product lines produce over 60% less smoke than traditional alternatives.</p>
               </div>
             </div>
@@ -410,7 +411,7 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-[#2B3A4A]">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-white font-serif mb-4">
-              Experience the Addrika Difference
+              Experience the ${BRAND.name} Difference
             </h2>
             <p className="text-gray-300 mb-8">
               Join thousands of health-conscious users who&apos;ve switched to charcoal-free incense
@@ -455,7 +456,7 @@ export default async function LowSmokeIncensePage() {
       {/* Footer */}
       <footer className="bg-[#1a252f] text-white py-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika Fragrances</p>
+          <p className="text-[#D4AF37] font-bold text-xl mb-2">{`${BRAND.name} Fragrances`}</p>
           <p className="text-sm text-gray-400">Premium Charcoal-Free Low Smoke Incense</p>
           <p className="text-sm text-gray-400 mt-2">© 2026 Centsibl Traders Private Limited</p>
         </div>

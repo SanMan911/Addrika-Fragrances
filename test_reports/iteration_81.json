@@ -1,0 +1,32 @@
+{
+  "summary": "Verified iter80 fire-and-forget race fix in services/supabase_sync.py (per-entity asyncio.Lock keyed by '{entity}:{entity_id}'). All 3 iter80 regression tests pass (cascade delete, iter74 no-orphan re-run, active B2C mirror health). Added new iter81 sanity test that reproduces the exact race with rapid POST->PUT->DELETE on unique slugs (single + 3-cycle batch) — both pass. 5/5 backend tests green in 81s.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "services/supabase_sync.py::_entity_locks", "issue": "Unbounded dict growth over app lifetime — a lock is added per unique (entity, id) touched and never evicted. For a shop with thousands of products this is fine but should be capped or LRU-evicted in future if entity_id cardinality grows (e.g. per-order writes)."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter80_cascade_delete.py",
+    "/app/backend/tests/test_iter81_race_sanity.py",
+    "/app/test_reports/pytest/iter81_full.xml",
+    "/app/test_reports/pytest/iter81_race_sanity.xml",
+    "/app/test_reports/pytest/iter81_race_fix.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Lock cleanup: _entity_locks never releases keys. Consider periodic pruning of unlocked entries or a bounded LRU to avoid slow memory creep in long-lived processes.",
+    "Race sanity test required ~5-6s of settle time (initial 3s was too short) because each cycle enqueues 3 upserts (b2c + 2 b2b) + 3 deletes serialized behind Supabase network I/O. This is expected under FIFO lock — not a regression."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter81_race_sanity.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "N/A"},
+  "test_credentials": "Admin: contact.us@centraders.com / 050499 (OTP fetched from mongo admin_2fa_tokens)",
+  "seed_data_creation": "Test slugs 'race-<uuid>' and 'race-m-<uuid>' are created and cleaned up in fixtures' finally blocks. No persistent test data left.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "iter80 race fix is fully verified. Per-entity FIFO lock in supabase_sync._run correctly serializes upsert/delete on same (entity, entity_id). New regression test /app/backend/tests/test_iter81_race_sanity.py covers rapid POST->PUT->DELETE. Use sync psycopg2 for Supabase verification; wait >=5s after DELETE for fire-and-forget serialized chain to settle.",
+  "rca of the issue": "Root cause (iter80): supabase_sync._run scheduled work via asyncio.create_task without ordering guarantees between tasks operating on the same product_id. A DELETE task could complete before the preceding PUT upsert task, causing the upsert to re-materialize a row after deletion. Fix: added module-level dict _entity_locks; _run now acquires asyncio.Lock keyed by f'{entity}:{entity_id}' before performing work, guaranteeing FIFO serialization. Verified by tests iter74/iter80/iter81 all green."
+}

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ArrowLeft, Package, Wallet, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRetailerAuth } from '../../../../../context/RetailerAuthContext';
+import BRAND from '../../../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -67,7 +68,7 @@ export default function RetailerOrderDetailPage() {
         key: data.razorpay_key,
         amount: Math.round((data.amount_inr || 0) * 100),
         currency: 'INR',
-        name: 'Addrika',
+        name: '${BRAND.name}',
         description: `Balance payment · ${orderId}`,
         order_id: data.razorpay_order_id,
         prefill: {

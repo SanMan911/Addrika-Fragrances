@@ -92,6 +92,26 @@ async def test_mogra_magic_purged_and_new_products_seeded(admin_session, dbc):
 
 
 # ================= 2. Unified create/update =================
+async def _purge_iter74_product(dbc, slug: str) -> None:
+    """Remove leftovers from Mongo + Supabase mirror so runs stay hermetic."""
+    await dbc.products.delete_many({"id": slug})
+    await dbc.b2b_products.delete_many({"product_id": slug})
+    try:
+        from services.supabase_sync import (
+            mirror_product_delete,
+            _delete_product,
+        )
+        from supabase_db import session_factory
+        mirror_product_delete(slug)  # b2c row
+        factory = session_factory()
+        if factory is not None:
+            async with factory() as s:
+                for size in ("50g", "200g"):
+                    await _delete_product(s, f"{slug}-{size}-b2b")
+    except Exception:  # noqa: BLE001
+        pass
+
+
 @pytest.mark.asyncio
 async def test_unified_product_create_and_update(admin_session, dbc):
     payload = {
@@ -109,9 +129,8 @@ async def test_unified_product_create_and_update(admin_session, dbc):
         "isActive": True,
     }
     slug = "test-iter74-product"
-    # Cleanup any leftovers
-    await dbc.products.delete_many({"id": slug})
-    await dbc.b2b_products.delete_many({"product_id": slug})
+    # Cleanup any leftovers (Mongo + Supabase mirror) before the run
+    await _purge_iter74_product(dbc, slug)
 
     r = admin_session.post(f"{BASE_URL}/api/admin/products", json=payload, timeout=30)
     assert r.status_code == 200, r.text
@@ -142,9 +161,9 @@ async def test_unified_product_create_and_update(admin_session, dbc):
     assert b50b.get("mrp_per_unit") == 200.0, "MRP not resynced"
     assert b50b.get("stock_pieces") == 30, f"stock got wiped! {b50b}"  # preserved
 
-    # Cleanup
+    # Cleanup — Mongo + Supabase mirror (b2c row + both b2b SKU rows)
     admin_session.delete(f"{BASE_URL}/api/admin/products/{slug}", timeout=30)
-    await dbc.b2b_products.delete_many({"product_id": slug})
+    await _purge_iter74_product(dbc, slug)
 
 
 # ================= 3. Enriched B2C /api/products returns unified stock =================

@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import BRAND from '../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -293,7 +294,7 @@ export default function RegisterClient() {
         // Thank-you feedback: success toast + a short delay so the user
         // sees the confirmation before we redirect to their account.
         toast.success(
-          `Welcome to Addrika, ${formData.salutation || ''} ${formData.name.trim().split(' ')[0]}! Check your inbox for a welcome note.`,
+          `Welcome to ${BRAND.name}, ${formData.salutation || ''} ${formData.name.trim().split(' ')[0]}! Check your inbox for a welcome note.`,
           { duration: 4000 }
         );
         setStep(4);
@@ -731,7 +732,7 @@ export default function RegisterClient() {
                     className="text-2xl font-semibold text-white mb-3"
                     style={{ fontFamily: "'Playfair Display', serif" }}
                   >
-                    You&apos;re in. Welcome to Addrika.
+                    You&apos;re in. Welcome to {BRAND.name}.
                   </h3>
                   <p className="text-gray-300 mb-2 leading-relaxed">
                     A welcome note is on its way to{' '}

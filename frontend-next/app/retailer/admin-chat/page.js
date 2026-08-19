@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Send, Paperclip, Headset, RefreshCw, Download, X } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
+import BRAND from '../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const ALLOWED_MIME = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
@@ -140,7 +141,7 @@ export default function RetailerAdminChatPage() {
           <Headset size={22} /> Admin Chat
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          Direct secure channel with the Addrika team. Share documents
+          Direct secure channel with the ${BRAND.name} team. Share documents
           (PDF/PNG/JPG/WEBP · up to 5MB).
         </p>
       </div>
@@ -174,7 +175,7 @@ export default function RetailerAdminChatPage() {
                   }`}
                 >
                   <p className="text-[11px] opacity-70 mb-1">
-                    {mine ? 'You' : m.sender_name || 'Addrika'} ·{' '}
+                    {mine ? 'You' : m.sender_name || '${BRAND.name}'} ·{' '}
                     {formatTime(m.created_at)}
                   </p>
                   <p className="whitespace-pre-wrap break-words">{m.message}</p>

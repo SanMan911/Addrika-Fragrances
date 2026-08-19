@@ -1,18 +1,19 @@
 import Link from 'next/link';
 import { Award, CheckCircle, XCircle, Star, Shield, Leaf, Wind, Heart, MapPin, ExternalLink, ArrowRight, Clock, Sparkles, IndianRupee } from 'lucide-react';
+import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: 'Why Choose Addrika? | Premium Indian Incense vs Competitors | Phool, Nirmalaya Comparison',
-  description: 'Discover why Addrika Fragrances is India\'s premium choice for luxury incense. Compare Addrika vs Phool, Nirmalaya, Temple of Incense. Charcoal-free, 40-50 min burn time, ethically sourced ingredients, made in India.',
+  title: `Why Choose ${BRAND.name}? | Premium Indian Incense vs Competitors | Phool, Nirmalaya Comparison`,
+  description: `Discover why ${BRAND.name} Fragrances is India\'s premium choice for luxury incense. Compare ${BRAND.name} vs Phool, Nirmalaya, Temple of Incense. Charcoal-free, 40-50 min burn time, ethically sourced ingredients, made in India.`,
   keywords: [
-    'why choose addrika', 'addrika vs phool', 'addrika vs nirmalaya', 'best premium incense india',
+    `why choose ${BRAND.name.toLowerCase()}`, `${BRAND.name.toLowerCase()} vs phool`, `${BRAND.name.toLowerCase()} vs nirmalaya`, 'best premium incense india',
     'luxury agarbatti brands india', 'premium incense comparison', 'zero charcoal incense brands',
     'natural incense india', 'best agarbatti for puja', 'low smoke incense brands india',
-    'charcoal-free agarbatti', 'addrika fragrances review'
+    'charcoal-free agarbatti', `${BRAND.name.toLowerCase()} fragrances review`
   ],
   openGraph: {
-    title: 'Why Choose Addrika? | Premium Indian Incense',
-    description: 'Compare Addrika\'s premium zero-charcoal incense with other luxury brands.',
+    title: `Why Choose ${BRAND.name}? | Premium Indian Incense`,
+    description: `Compare ${BRAND.name}\'s premium zero-charcoal incense with other luxury brands.`,
     url: 'https://centraders.com/why-choose-addrika',
     type: 'website',
   },
@@ -27,11 +28,11 @@ function ComparisonSchema() {
         __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Article",
-          "headline": "Why Choose Addrika Fragrances: Premium Indian Incense Comparison",
-          "description": "Comprehensive comparison of Addrika Fragrances with other premium incense brands in India",
+          "headline": `Why Choose ${BRAND.name} Fragrances: Premium Indian Incense Comparison`,
+          "description": `Comprehensive comparison of ${BRAND.name} Fragrances with other premium incense brands in India`,
           "author": {
             "@type": "Organization",
-            "name": "Addrika Fragrances",
+            "name": `${BRAND.name} Fragrances`,
             "url": "https://centraders.com"
           },
           "publisher": {
@@ -47,8 +48,8 @@ function ComparisonSchema() {
           "mainEntityOfPage": "https://centraders.com/why-choose-addrika",
           "about": {
             "@type": "Product",
-            "name": "Addrika Premium Incense",
-            "brand": "Addrika Fragrances",
+            "name": `${BRAND.name} Premium Incense`,
+            "brand": `${BRAND.name} Fragrances`,
             "category": "Premium Natural Incense Sticks",
             "countryOfOrigin": "India"
           }
@@ -63,13 +64,13 @@ export default function WhyChooseAddrikaPage() {
     {
       icon: Wind,
       title: "Zero Charcoal Formula",
-      description: "Unlike many competitors, Addrika uses absolutely no charcoal. Our proprietary formula uses natural flower dust as the base, resulting in over 60% less smoke.",
+      description: `Unlike many competitors, ${BRAND.name} uses absolutely no charcoal. Our proprietary formula uses natural flower dust as the base, resulting in over 60% less smoke.`,
       highlight: "0% Charcoal"
     },
     {
       icon: Clock,
       title: "40-50 Minute Extended Burn",
-      description: "Each Addrika incense stick provides 40-50 minutes of continuous fragrance when used without a fan—among the longest burn times in premium incense.",
+      description: `Each ${BRAND.name} incense stick provides 40-50 minutes of continuous fragrance when used without a fan—among the longest burn times in premium incense.`,
       highlight: "40-50 Min Burn"
     },
     {
@@ -168,12 +169,12 @@ export default function WhyChooseAddrikaPage() {
     },
     {
       useCase: "Small Apartments & Bedrooms",
-      description: "60%+ less smoke is perfect for compact spaces. Won't stain walls or leave heavy residue.",
+      description: "60%+ less smoke is perfect for compact spaces. Won`t stain walls or leave heavy residue.",
       products: ["Regal Rose", "Kesar Chandan"]
     },
     {
       useCase: "Gifting & Special Occasions",
-      description: "Premium packaging and luxury fragrances make Addrika perfect for Diwali, weddings, and housewarmings.",
+      description: `Premium packaging and luxury fragrances make ${BRAND.name} perfect for Diwali, weddings, and housewarmings.`,
       products: ["Full Collection Gift Box"]
     },
     {
@@ -211,11 +212,11 @@ export default function WhyChooseAddrikaPage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span> Fragrances
+            <span className="text-[#D4AF37]">{`${BRAND.name}`}</span> Fragrances
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link href="/#fragrances" className="hover:text-[#D4AF37]">Products</Link>
-            <Link href="/why-choose-addrika" className="text-[#D4AF37] font-medium">Why Addrika?</Link>
+            <Link href="/why-choose-addrika" className="text-[#D4AF37] font-medium">{`Why ${BRAND.name}?`}</Link>
             <Link href="/our-quality" className="hover:text-[#D4AF37]">Quality</Link>
             <Link href="/faq" className="hover:text-[#D4AF37]">FAQs</Link>
           </nav>
@@ -230,10 +231,10 @@ export default function WhyChooseAddrikaPage() {
               Premium Indian Incense
             </span>
             <h1 className="text-4xl sm:text-5xl font-bold font-serif mb-6">
-              Why Choose Addrika Fragrances?
+              Why Choose ${BRAND.name} Fragrances?
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Discover what makes Addrika India&apos;s premium choice for luxury, 
+              Discover what makes ${BRAND.name} India&apos;s premium choice for luxury, 
               charcoal-free incense with exceptional burn time and pure natural fragrances
             </p>
           </div>
@@ -243,10 +244,10 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              The Addrika Difference
+              The ${BRAND.name} Difference
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              Six reasons why discerning customers choose Addrika for their premium incense needs
+              Six reasons why discerning customers choose ${BRAND.name} for their premium incense needs
             </p>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -268,7 +269,7 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              How Addrika Compares
+              How ${BRAND.name} Compares
             </h2>
             <p className="text-gray-600 text-center mb-12">
               A transparent comparison with typical premium incense offerings in India
@@ -279,7 +280,7 @@ export default function WhyChooseAddrikaPage() {
                 <thead>
                   <tr className="bg-[#2B3A4A] text-white">
                     <th className="p-4 text-left font-semibold">Feature</th>
-                    <th className="p-4 text-left font-semibold">Addrika</th>
+                    <th className="p-4 text-left font-semibold">{`${BRAND.name}`}</th>
                     <th className="p-4 text-left font-semibold">Other Brands</th>
                   </tr>
                 </thead>
@@ -310,10 +311,10 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              Best For: When to Use Addrika Incense
+              Best For: When to Use ${BRAND.name} Incense
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              Discover the perfect Addrika fragrance for every occasion and space
+              Discover the perfect ${BRAND.name} fragrance for every occasion and space
             </p>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -338,10 +339,10 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-[#2B3A4A] text-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold font-serif text-center mb-4">
-              Where to Buy Addrika Incense
+              Where to Buy ${BRAND.name} Incense
             </h2>
             <p className="text-gray-300 text-center mb-12">
-              Get authentic Addrika Fragrances from these trusted sources
+              Get authentic ${BRAND.name} Fragrances from these trusted sources
             </p>
             
             <div className="grid sm:grid-cols-2 gap-6">
@@ -388,7 +389,7 @@ export default function WhyChooseAddrikaPage() {
                   {[1,2,3,4,5].map(i => <Star key={i} size={16} fill="#D4AF37" color="#D4AF37" />)}
                 </div>
                 <p className="text-gray-600 text-sm italic mb-4">
-                  &quot;The aroma from Addrika&apos;s Kesar Chandan stayed fresh for hours! Perfect for my daily puja. Low smoke means I can use it in my small apartment.&quot;
+                  &quot;The aroma from ${BRAND.name}&apos;s Kesar Chandan stayed fresh for hours! Perfect for my daily puja. Low smoke means I can use it in my small apartment.&quot;
                 </p>
                 <p className="text-[#2B3A4A] font-medium text-sm">- Priya M., Mumbai</p>
               </div>
@@ -406,7 +407,7 @@ export default function WhyChooseAddrikaPage() {
                   {[1,2,3,4,5].map(i => <Star key={i} size={16} fill="#D4AF37" color="#D4AF37" />)}
                 </div>
                 <p className="text-gray-600 text-sm italic mb-4">
-                  &quot;I&apos;ve tried Phool and others, but Addrika&apos;s burn time and fragrance retention is unmatched. The Oriental Oudh is absolutely divine.&quot;
+                  &quot;I&apos;ve tried Phool and others, but ${BRAND.name}&apos;s burn time and fragrance retention is unmatched. The Oriental Oudh is absolutely divine.&quot;
                 </p>
                 <p className="text-[#2B3A4A] font-medium text-sm">- Anita S., Bangalore</p>
               </div>
@@ -418,7 +419,7 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif mb-4">
-              Experience the Addrika Difference
+              Experience the ${BRAND.name} Difference
             </h2>
             <p className="text-gray-600 mb-8">
               Join thousands of satisfied customers who&apos;ve made the switch to premium, charcoal-free incense
@@ -444,7 +445,7 @@ export default function WhyChooseAddrikaPage() {
       {/* Footer */}
       <footer className="bg-[#1a252f] text-white py-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika Fragrances</p>
+          <p className="text-[#D4AF37] font-bold text-xl mb-2">{`${BRAND.name} Fragrances`}</p>
           <p className="text-sm text-gray-400">Premium Zero Charcoal Incense • Made in India</p>
           <p className="text-sm text-gray-400 mt-2">© 2026 Centsibl Traders Private Limited</p>
         </div>

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import BRAND from '../lib/brand.config';
 
 const WHATSAPP_NUMBER = '919667269711';
-const WHATSAPP_MESSAGE = 'Hi! I have a query about Addrika incense products.';
+const WHATSAPP_MESSAGE = `Hi! I have a query about ${BRAND.name} incense products.`;
 
 export default function WhatsAppButton() {
   const [isHovered, setIsHovered] = useState(false);

@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useImpact } from '../context/ImpactContext';
 import { Heart, Users, TreePine, GraduationCap, HandHeart, Globe, Leaf } from 'lucide-react';
 import TreeCounter from './TreeCounter';
+import BRAND from '../lib/brand.config';
 
 const baseInitiatives = [
   {
@@ -104,7 +105,7 @@ export default function CSRSection() {
             className="text-lg max-w-3xl mx-auto leading-relaxed"
             style={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'var(--text-subtle)' }}
           >
-            At Addrika, we believe business should be a force for good. Through our voluntary CSR initiatives, 
+            At ${BRAND.name}, we believe business should be a force for good. Through our voluntary CSR initiatives, 
             we&apos;re committed to making a positive impact on communities and the environment.
           </p>
 
@@ -208,7 +209,7 @@ export default function CSRSection() {
             className="text-sm"
             style={{ color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'var(--text-subtle)' }}
           >
-            — The Addrika Team
+            — The {BRAND.name} Team
           </p>
         </div>
       </div>

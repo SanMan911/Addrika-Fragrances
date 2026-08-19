@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { Heart, Leaf, Users, Target, Eye, Sparkles } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: 'Our Story | Addrika - The Journey Behind Premium Incense',
-  description: 'Discover the story behind Addrika - born from a belief that everyday rituals deserve care and intention. Learn about our mission, vision, and journey into mindful creation and ethical fragrance crafting.',
-  keywords: ['addrika story', 'incense brand story', 'premium agarbatti brand', 'ethical incense', 'mindful fragrance', 'centsible traders story', 'addrika mission', 'addrika vision'],
+  title: `Our Story | ${BRAND.name} - The Journey Behind Premium Incense`,
+  description: `Discover the story behind ${BRAND.name} - born from a belief that everyday rituals deserve care and intention. Learn about our mission, vision, and journey into mindful creation and ethical fragrance crafting.`,
+  keywords: [`${BRAND.name.toLowerCase()} story`, 'incense brand story', 'premium agarbatti brand', 'ethical incense', 'mindful fragrance', 'centsible traders story', `${BRAND.name.toLowerCase()} mission`, `${BRAND.name.toLowerCase()} vision`],
   openGraph: {
-    title: 'Our Story | Addrika',
+    title: `Our Story | ${BRAND.name}`,
     description: 'Born from a belief that everyday rituals deserve care and intention.',
     url: 'https://centraders.com/our-story',
   },
@@ -23,7 +24,7 @@ export default function OurStoryPage() {
     },
     {
       year: '2023',
-      title: 'Addrika is Born',
+      title: `${BRAND.name} is Born`,
       description: 'Our flagship incense brand launched with four signature fragrances.'
     },
     {
@@ -34,7 +35,7 @@ export default function OurStoryPage() {
     {
       year: '2025',
       title: 'Digital Presence',
-      description: 'Launched our e-commerce platform to bring Addrika to more homes.'
+      description: `Launched our e-commerce platform to bring ${BRAND.name} to more homes.`
     }
   ];
 
@@ -116,7 +117,7 @@ export default function OurStoryPage() {
               </h2>
               <div className="space-y-4 text-gray-300 leading-relaxed">
                 <p>
-                  Addrika was born from a simple belief: incense should carry
+                  {BRAND.name} was born from a simple belief: incense should carry
                   more than a fragrance. It should carry livelihoods, dignity,
                   and a lighter footprint on the earth.
                 </p>
@@ -294,7 +295,7 @@ export default function OurStoryPage() {
                 className="text-2xl sm:text-3xl font-bold mb-4 text-white"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                Experience Addrika
+                Experience {BRAND.name}
               </h2>
               <p className="text-gray-300 mb-6 max-w-lg mx-auto">
                 Discover our collection of premium, zero-charcoal incense and bring 

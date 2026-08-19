@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { CheckCircle, XCircle, Leaf, Wind, Heart, Award, ArrowRight, FlaskConical, Sparkles } from 'lucide-react';
+import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: 'Why Zero Charcoal Incense? | Benefits of Charcoal-Free Agarbatti | Addrika',
-  description: 'Learn why Addrika\'s zero charcoal incense is better than traditional agarbatti. Discover the health benefits, environmental advantages, and superior fragrance of charcoal-free, bambooless incense sticks.',
+  title: `Why Zero Charcoal Incense? | Benefits of Charcoal-Free Agarbatti | ${BRAND.name}`,
+  description: `Learn why ${BRAND.name}\'s zero charcoal incense is better than traditional agarbatti. Discover the health benefits, environmental advantages, and superior fragrance of charcoal-free, bambooless incense sticks.`,
   keywords: [
     'zero charcoal incense benefits', 'charcoal-free agarbatti advantages', 'why bambooless incense',
     'low smoke incense health benefits', 'natural incense vs charcoal', 'eco-friendly agarbatti',
@@ -24,7 +25,7 @@ function ArticleSchema() {
           "description": "Comprehensive guide explaining why zero charcoal incense is better for health, environment, and fragrance experience",
           "author": {
             "@type": "Organization",
-            "name": "Addrika Fragrances",
+            "name": `${BRAND.name} Fragrances`,
             "url": "https://centraders.com"
           },
           "publisher": {
@@ -32,7 +33,7 @@ function ArticleSchema() {
             "name": "Centsibl Traders Private Limited",
             "logo": {
               "@type": "ImageObject",
-              "url": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
+              "url": BRAND.logo.logoUrlAbs
             }
           },
           "datePublished": "2026-01-01",
@@ -106,7 +107,7 @@ export default function WhyZeroCharcoalPage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span> Fragrances
+            <span className="text-[#D4AF37]">{`${BRAND.name}`}</span> Fragrances
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link href="/#fragrances" className="hover:text-[#D4AF37]">Products</Link>
@@ -124,7 +125,7 @@ export default function WhyZeroCharcoalPage() {
               Why Choose Zero Charcoal Incense?
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Discover why Addrika&apos;s charcoal-free formula is the healthier, 
+              Discover why ${BRAND.name}&apos;s charcoal-free formula is the healthier, 
               cleaner, and more authentic way to enjoy premium incense
             </p>
           </div>
@@ -153,11 +154,11 @@ export default function WhyZeroCharcoalPage() {
           </div>
         </section>
 
-        {/* The Addrika Solution */}
+        {/* The ${BRAND.name} Solution */}
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              The Addrika Zero Charcoal Solution
+              The ${BRAND.name} Zero Charcoal Solution
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
               We developed a proprietary charcoal-free formula using only natural ingredients
@@ -182,7 +183,7 @@ export default function WhyZeroCharcoalPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              How Addrika Achieves 60%+ Less Smoke
+              How ${BRAND.name} Achieves 60%+ Less Smoke
             </h2>
             <div className="bg-[#F5F0E8] rounded-xl p-8">
               <div className="space-y-6">
@@ -231,7 +232,7 @@ export default function WhyZeroCharcoalPage() {
                   <tr className="bg-[#2B3A4A] text-white">
                     <th className="p-4 text-left font-semibold">Aspect</th>
                     <th className="p-4 text-left font-semibold">Traditional Agarbatti</th>
-                    <th className="p-4 text-left font-semibold">Addrika Zero Charcoal</th>
+                    <th className="p-4 text-left font-semibold">{`${BRAND.name} Zero Charcoal`}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -292,7 +293,7 @@ export default function WhyZeroCharcoalPage() {
               Ready to Experience the Difference?
             </h2>
             <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join thousands who&apos;ve switched to Addrika&apos;s zero charcoal incense for a cleaner, healthier fragrance experience
+              Join thousands who&apos;ve switched to ${BRAND.name}&apos;s zero charcoal incense for a cleaner, healthier fragrance experience
             </p>
             <Link
               href="/low-smoke-incense#products"
@@ -308,7 +309,7 @@ export default function WhyZeroCharcoalPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              Discover More About Addrika
+              Discover More About ${BRAND.name}
             </h2>
             <div className="grid sm:grid-cols-3 gap-6">
               <Link href="/ingredients" className="bg-[#F5F0E8] rounded-xl p-6 hover:shadow-md transition-shadow group">
@@ -334,7 +335,7 @@ export default function WhyZeroCharcoalPage() {
       {/* Footer */}
       <footer className="bg-[#1a252f] text-white py-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika Fragrances</p>
+          <p className="text-[#D4AF37] font-bold text-xl mb-2">{`${BRAND.name} Fragrances`}</p>
           <p className="text-sm text-gray-400">© 2026 Centsibl Traders Private Limited</p>
         </div>
       </footer>

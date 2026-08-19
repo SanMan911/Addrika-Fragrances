@@ -6,6 +6,7 @@ import { ArrowLeft, Boxes, Plus, Minus, RefreshCw, History, Package, AlertTriang
 import { toast } from 'sonner';
 import { authFetch } from '../../layout';
 import NudgeComposerModal from '../../../../components/NudgeComposerModal';
+import BRAND from '../../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -177,7 +178,7 @@ export default function AdminB2BInventoryPage() {
           disabled={sendingDigest}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 hover:bg-amber-200 disabled:opacity-50"
           data-testid="send-digest-btn"
-          title="Email low-stock digest to Addrika ops now"
+          title={`Email low-stock digest to ${BRAND.name} ops now`}
         >
           <Send size={14} /> {sendingDigest ? 'Sending…' : 'Send Low-Stock Digest'}
         </button>

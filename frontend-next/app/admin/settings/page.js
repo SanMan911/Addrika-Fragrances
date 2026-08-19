@@ -5,12 +5,13 @@ import { Settings, Save, RefreshCw, Mail, Store, Truck, CreditCard, Briefcase, C
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
+import BRAND from '../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
-    store_name: 'Addrika',
+    store_name: BRAND.name,
     store_email: '',
     store_phone: '',
     shipping_free_threshold: 499,

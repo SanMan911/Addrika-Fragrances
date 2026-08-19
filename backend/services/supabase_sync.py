@@ -29,6 +29,12 @@ logger = logging.getLogger(__name__)
 
 # Backoff schedule (minutes) — matches partner_reconcile.py conventions
 _BACKOFF_MINUTES = [5, 30, 120, 360, 1440]
+
+# Per-entity FIFO locks so back-to-back writes for the same (entity, id) can
+# not reorder in the fire-and-forget task queue. Key: f"{entity}:{entity_id}".
+# Small unbounded growth (one asyncio.Lock per unique key touched) is
+# acceptable — a typical mirror set has thousands of ids at most.
+_entity_locks: dict[str, asyncio.Lock] = {}
 _MAX_ATTEMPTS = len(_BACKOFF_MINUTES)
 
 
@@ -172,6 +178,25 @@ def _product_row(doc: dict, channel: str) -> dict:
     pid = _extract_id(doc)
     price = _first(doc, "price", "price_inr", "unit_price_inr", "wholesale_price")
     mrp = _first(doc, "mrp", "mrp_inr")
+    stock = _first(doc, "stock_pieces")
+
+    # B2C products store variants inside `sizes[]` — pull the first size's
+    # price/mrp/stock so the mirror rows aren't blank on the storefront.
+    sizes = doc.get("sizes") if isinstance(doc.get("sizes"), list) else []
+    if sizes:
+        first = sizes[0] if isinstance(sizes[0], dict) else {}
+        if price is None:
+            price = first.get("price") or first.get("mrp")
+        if mrp is None:
+            mrp = first.get("mrp")
+        if stock is None:
+            # Sum stock across sizes when the b2b enricher has populated `stock`
+            totals = [int(s.get("stock") or 0) for s in sizes if isinstance(s, dict) and s.get("stock") is not None]
+            stock = sum(totals) if totals else None
+
+    # B2C uses `isActive` (camelCase); B2B uses `is_active`. Honour both.
+    is_active = _first(doc, "is_active", "isActive", default=True)
+
     return {
         "id": pid,
         "channel": channel,
@@ -182,8 +207,8 @@ def _product_row(doc: dict, channel: str) -> dict:
         "price_inr": price,
         "mrp_inr": mrp,
         "gst_pct": _first(doc, "gst_pct", "gst_percent"),
-        "stock_pieces": _first(doc, "stock_pieces"),
-        "is_active": bool(_first(doc, "is_active", default=True)),
+        "stock_pieces": stock,
+        "is_active": bool(is_active),
         "ready_to_use": bool(_first(doc, "ready_to_use", default=False)),
         "raw": _jsonable(doc),
         "mongo_updated_at": _as_datetime(_first(doc, "updated_at")),
@@ -286,23 +311,32 @@ async def _run(entity: str, op: str, entity_id: str, payload: dict, work) -> Non
     factory = session_factory()
     if factory is None:
         return
-    try:
-        async with factory() as session:
-            await work(session)
-    except Exception as exc:  # noqa: BLE001 — never let mirror errors bubble
-        logger.warning("Supabase mirror %s/%s for %s failed: %s", entity, op, entity_id, exc)
+    # Per-entity FIFO: back-to-back upsert/delete on the same (entity, id)
+    # must complete in the order they were enqueued. Without this, a fast
+    # PUT-then-DELETE sequence can reorder and leave a stale row behind.
+    key = f"{entity}:{entity_id}"
+    lock = _entity_locks.get(key)
+    if lock is None:
+        lock = asyncio.Lock()
+        _entity_locks[key] = lock
+    async with lock:
         try:
             async with factory() as session:
-                await _record_dead_letter(
-                    session,
-                    entity=entity,
-                    op=op,
-                    entity_id=entity_id,
-                    payload=payload,
-                    error=str(exc),
-                )
-        except Exception as inner:  # noqa: BLE001
-            logger.error("Failed to record dead-letter: %s", inner)
+                await work(session)
+        except Exception as exc:  # noqa: BLE001 — never let mirror errors bubble
+            logger.warning("Supabase mirror %s/%s for %s failed: %s", entity, op, entity_id, exc)
+            try:
+                async with factory() as session:
+                    await _record_dead_letter(
+                        session,
+                        entity=entity,
+                        op=op,
+                        entity_id=entity_id,
+                        payload=payload,
+                        error=str(exc),
+                    )
+            except Exception as inner:  # noqa: BLE001
+                logger.error("Failed to record dead-letter: %s", inner)
 
 
 def mirror_user_upsert(user_doc: dict, kind: str = "b2c") -> None:

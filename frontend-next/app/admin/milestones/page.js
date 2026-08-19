@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Plus, Sparkles, Edit2, EyeOff, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
+import BRAND from '../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -121,7 +122,7 @@ export default function AdminMilestonesPage() {
               <Sparkles size={22} className="text-amber-500" /> Patron Milestones
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Configure the aroma-themed patron tags retailers unlock as they grow with Addrika.
+              Configure the aroma-themed patron tags retailers unlock as they grow with {BRAND.name}.
               <br/>
               <span className="text-xs italic">Achievement timestamps are immutable — audit history is preserved even after edits or deactivation.</span>
             </p>

@@ -9,14 +9,15 @@ import CartSidebar from '../components/CartSidebar';
 import WhatsAppButton from '../components/WhatsAppButton';
 import RetailerFloatingCTA from '../components/RetailerFloatingCTA';
 import CookieConsentAndGA from '../components/CookieConsentAndGA';
+import BRAND from '../lib/brand.config';
 
 export const metadata = {
   title: {
-    default: 'Addrika - Premium Incense | Sacred Luxury in Every Scent',
-    template: '%s | Addrika Premium Incense'
+    default: `${BRAND.name} - Premium Incense | Sacred Luxury in Every Scent`,
+    template: `%s | ${BRAND.name} Premium Incense`
   },
-  description: 'Addrika Fragrances by Centsibl Traders — India\'s premium charcoal-free incense brand. Shop luxury agarbatti (Kesar Chandan, Regal Rose, Oriental Oudh), bambooless dhoop, and authentic Arabian bakhoor (Omani & Yemeni). Over 60% less smoke, ethically sourced ingredients. Perfect for meditation, yoga, puja, and luxury home fragrance. Free shipping above ₹499.',
-  keywords: ['addrika', 'addrika fragrances', 'premium incense', 'luxury incense sticks', 'incense sticks for meditation', 'agarbatti', 'charcoal-free incense', 'low smoke agarbatti', 'kesar chandan incense', 'regal rose incense', 'oriental oudh', 'bakhoor', 'arabian bakhoor', 'bambooless dhoop', 'meditation incense', 'yoga incense', 'puja agarbatti', 'luxury home fragrance india', 'ethical incense', 'premium agarbatti online', 'buy incense online india', 'natural incense sticks', 'best incense for meditation', 'incense gift set india'],
+  description: `${BRAND.name} Fragrances by Centsibl Traders — India\'s premium charcoal-free incense brand. Shop luxury agarbatti (Kesar Chandan, Regal Rose, Oriental Oudh), bambooless dhoop, and authentic Arabian bakhoor (Omani & Yemeni). Over 60% less smoke, ethically sourced ingredients. Perfect for meditation, yoga, puja, and luxury home fragrance. Free shipping above ₹499.`,
+  keywords: BRAND.seo.keywords,
   authors: [{ name: 'Centsibl Traders Private Limited', url: 'https://centraders.com' }],
   creator: 'Centsibl Traders',
   publisher: 'Centsibl Traders Private Limited',
@@ -29,24 +30,24 @@ export const metadata = {
     type: 'website',
     locale: 'en_IN',
     url: 'https://centraders.com',
-    siteName: 'Addrika Fragrances',
-    title: 'Addrika Fragrances - Premium Charcoal-Free Incense | Agarbatti, Dhoop & Bakhoor',
+    siteName: `${BRAND.name} Fragrances`,
+    title: `${BRAND.name} Fragrances - Premium Charcoal-Free Incense | Agarbatti, Dhoop & Bakhoor`,
     description: 'India\'s premium charcoal-free incense brand. Luxury agarbatti, bambooless dhoop & authentic Arabian bakhoor. Over 60% less smoke. Perfect for meditation, yoga & puja. Free shipping above ₹499.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Addrika Fragrances - Premium Charcoal-Free Incense, Agarbatti, Dhoop & Bakhoor',
+        alt: `${BRAND.name} Fragrances - Premium Charcoal-Free Incense, Agarbatti, Dhoop & Bakhoor`,
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Addrika Fragrances - Premium Incense for Meditation & Luxury',
+    title: `${BRAND.name} Fragrances - Premium Incense for Meditation & Luxury`,
     description: 'Charcoal-free agarbatti, bambooless dhoop & authentic Arabian bakhoor. Over 60% less smoke, ethically sourced. Shop now.',
     images: ['/og-image.png'],
-    creator: '@addrika_incense',
+    creator: BRAND.social.twitterCreator,
   },
   robots: {
     index: true,
@@ -105,7 +106,7 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
         {/* Favicon */}
-        <link rel="icon" href="/images/logos/addrika-logo-gold-cropped.png" type="image/png" />
+        <link rel="icon" href={BRAND.logo.srcGoldCropped} type="image/png" />
         <link rel="apple-touch-icon" href="/images/pwa-icons/icon-192x192.png" />
         
         {/* Structured Data - Organization */}
@@ -116,10 +117,10 @@ export default function RootLayout({ children }) {
               "@context": "https://schema.org",
               "@type": "Organization",
               "name": "Centsibl Traders Private Limited",
-              "alternateName": ["Addrika", "Addrika Fragrances", "Addrika Incense"],
+              "alternateName": [BRAND.name, `${BRAND.name} Fragrances`, `${BRAND.name} Incense`],
               "url": "https://centraders.com",
-              "logo": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png",
-              "description": "Addrika is India's premium charcoal-free incense brand offering luxury agarbatti, bambooless dhoop, and authentic Arabian bakhoor. Ethically sourced ingredients, over 60% less smoke. Perfect for meditation, yoga, puja, and luxury home fragrance.",
+              "logo": BRAND.logo.logoUrlAbs,
+              "description": `${BRAND.name} is India's premium charcoal-free incense brand offering luxury agarbatti, bambooless dhoop, and authentic Arabian bakhoor. Ethically sourced ingredients, over 60% less smoke. Perfect for meditation, yoga, puja, and luxury home fragrance.`,
               "foundingDate": "2022",
               "knowsAbout": [
                 "Premium Incense Manufacturing",
@@ -151,14 +152,14 @@ export default function RootLayout({ children }) {
                 }
               ],
               "sameAs": [
-                "https://www.instagram.com/addrika.fragrances"
+                BRAND.social.instagramUrlWww
               ],
               "brand": {
                 "@type": "Brand",
-                "name": "Addrika",
-                "alternateName": "Addrika Fragrances",
+                "name": BRAND.name,
+                "alternateName": `${BRAND.name} Fragrances`,
                 "slogan": "Sacred Luxury in Every Scent",
-                "logo": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
+                "logo": BRAND.logo.logoUrlAbs
               }
             })
           }}
@@ -171,10 +172,10 @@ export default function RootLayout({ children }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebSite",
-              "name": "Addrika - Premium Natural Incense",
-              "alternateName": ["Addrika Fragrances", "Addrika Incense Store", "Centraders"],
+              "name": `${BRAND.name} - Premium Natural Incense`,
+              "alternateName": [`${BRAND.name} Fragrances`, `${BRAND.name} Incense Store`, "Centraders"],
               "url": "https://centraders.com",
-              "description": "Shop premium charcoal-free incense sticks, bambooless dhoop, and authentic Arabian bakhoor from Addrika. Over 60% less smoke, ethically sourced, perfect for meditation and luxury home fragrance.",
+              "description": `Shop premium charcoal-free incense sticks, bambooless dhoop, and authentic Arabian bakhoor from ${BRAND.name}. Over 60% less smoke, ethically sourced, perfect for meditation and luxury home fragrance.`,
               "inLanguage": "en-IN",
               "potentialAction": {
                 "@type": "SearchAction",
@@ -195,11 +196,11 @@ export default function RootLayout({ children }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Store",
-              "name": "Addrika Incense Store",
-              "alternateName": "Addrika Fragrances Online Store",
-              "image": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png",
+              "name": `${BRAND.name} Incense Store`,
+              "alternateName": `${BRAND.name} Fragrances Online Store`,
+              "image": BRAND.logo.logoUrlAbs,
               "url": "https://centraders.com",
-              "description": "Official online store for Addrika premium incense. Buy charcoal-free agarbatti, bambooless dhoop, and Arabian bakhoor with free shipping above ₹499 across India.",
+              "description": `Official online store for ${BRAND.name} premium incense. Buy charcoal-free agarbatti, bambooless dhoop, and Arabian bakhoor with free shipping above ₹499 across India.`,
               "priceRange": "₹110 - ₹399",
               "currenciesAccepted": "INR",
               "paymentAccepted": "UPI, Credit Card, Debit Card, Net Banking, Razorpay",
@@ -209,7 +210,7 @@ export default function RootLayout({ children }) {
               },
               "hasOfferCatalog": {
                 "@type": "OfferCatalog",
-                "name": "Addrika Premium Natural Incense Collection",
+                "name": `${BRAND.name} Premium Natural Incense Collection`,
                 "itemListElement": [
                   {
                     "@type": "OfferCatalog",

@@ -86,7 +86,7 @@ function OrdersContent() {
             <ArrowLeft size={20} />
             <span>Account</span>
           </Link>
-          <Link href="/" className="text-xl font-bold text-[#2B3A4A]">ADDRIKA</Link>
+          <Link href="/" className="text-xl font-bold text-[#2B3A4A]">{BRAND.nameUpper}</Link>
           <div className="w-20" />
         </div>
       </header>

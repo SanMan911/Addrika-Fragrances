@@ -1,0 +1,35 @@
+{
+  "summary": "Iter85 backend-only retest of the two iter84 regressions. (1) pytest test_iter82_product_cleanup.py: 18 passed / 1 skipped (B2B catalog test skips because the test retailer login fails) — previously 3 failures. (2) Direct psycopg2 query on products_mirror: 25 rows total, ZERO bambooless rows, all 9 active b2c rows have non-null price_inr AND non-null stock_pieces. (3) SELF-HEALING PROVEN: injected an orphan b2c row id='bambooless-dhoop-8inch' (NULL price/stock) and NULLed price+stock on 'regal-rose', restarted backend → after 30s the bambooless orphan was gone (unconditional tombstone in routers/products.py::_migrate_products) and after ~110s more the periodic backfill re-hydrated regal-rose to price 110.00 / stock 0. (4) test_iter80_cascade_delete.py + test_iter82 run together: 21 passed / 1 skipped — the iter84 test-isolation flakiness no longer reproduces. (5) GET /api/products returns exactly 9 products with bilvapatra-fragrance named 'Belpatra', no bambooless, no 'Bilvapatra Fragrance'. (6) Spot-check: /account and /orders return HTTP 200 and contain ZERO hardcoded uppercase 'ADDRIKA'; a repo-wide grep confirms no 'ADDRIKA' literal remains in app/, components/ or lib/ (excluding brand.config.js). Brand-rename yarn-build mechanism test skipped per main-agent instruction (already verified iter84).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "products_mirror (b2b)", "issue": "All 16 b2b mirror rows still have price_inr=NULL (only bold-bakhoor-b2b has stock_pieces=100, the rest 0). Not asserted by tests but likely unintended — b2b hydration path does not populate price like the b2c backfill does. Carried over from iter84."},
+      {"endpoint": "pytest tests/test_iter82_product_cleanup.py::TestB2BCatalog::test_catalog_lists_belpatra_and_no_bambooless", "issue": "Permanently SKIPPED: cannot authenticate seeded B2B retailer (test_b2b_retailer@example.com / Test@12345, RTL_TEST_B2B). The authenticated B2B catalog path is therefore untested."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "SEO metadata (informational, not retested in browser)", "issues": ["Hardcoded brand literals still exist in pages outside the iter85 fix list: app/products/[slug]/page.js:55 keywords 'addrika','addrika fragrances'; app/our-story/page.js:10; app/blog/page.js:13; app/blog/[slug]/page.js:32 keywords + :49 twitter creator '@addrika_incense' + :68/:76 logo URLs; app/shipping-returns/page.js:10; app/why-choose-addrika/page.js:9,17,43; app/low-smoke-incense + app/why-zero-charcoal comparison tables; app/find-retailers/page.js:37-44 keywords; app/sitemap.js fallback API URL 'addrika-fragrances-backend.onrender.com'. These are LOW/MEDIUM: they will survive a BRAND.name flip.", "Non-visible identifiers left hardcoded intentionally/acceptably: localStorage keys ('addrika_session_token', 'addrika_cookie_consent_v1'), CSV/PNG download filenames, API field names (is_addrika_verified_partner, addrika_match), CSS class 'addrika-pin'."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter82_product_cleanup.py", "/app/backend/tests/test_iter80_cascade_delete.py", "/app/backend/tests/verify_iter85_mirror.py", "/app/backend/tests/inject_iter85_orphan.py", "/app/test_reports/pytest/iter85_results.xml"],
+  "action_items": [
+    "Optional: populate price_inr for the 16 b2b mirror rows (or document that b2b prices are tier-based and intentionally NULL in the mirror) and add an assertion either way so it stops being ambiguous.",
+    "Fix/reseed the B2B test retailer credentials so TestB2BCatalog::test_catalog_lists_belpatra_and_no_bambooless actually runs instead of skipping.",
+    "Optional cleanup: sweep the remaining lowercase 'addrika' SEO keyword arrays / logo URLs / twitter creator listed under design_issues through scripts/refactor_brand.py so the one-line rename is 100% complete."
+  ],
+  "critical_code_review_comments": [
+    "routers/products.py::_migrate_products tombstone is now unconditional and idempotent — verified self-healing. Consider making the size-variant list data-driven (it hardcodes 50g..1kg) or deriving it from b2b_products so a new size variant cannot slip through.",
+    "The b2c hydration relies on a 90s-delayed periodic backfill; there is a ~90s window after every boot where a manually corrupted/NULL row stays NULL. If that matters, run one backfill pass synchronously during startup after the tombstone."
+  ],
+  "updated_files": ["/app/backend/tests/verify_iter85_mirror.py (new, read-only verification)", "/app/backend/tests/inject_iter85_orphan.py (new, self-healing fault-injection helper)"],
+  "success_rate": {"backend": "100% (21/21 executed pytest checks passed, 1 skipped)", "frontend": "not tested (backend-only request); /account + /orders HTTP 200 spot-check passed"},
+  "seed_data_creation": "Temporary fault injection only: orphan bambooless-dhoop-8inch mirror row + NULLed regal-rose price/stock. Both were auto-healed by the backend (tombstone + backfill); products_mirror is back to the expected clean state (9 hydrated b2c rows, 16 b2b rows, no bambooless).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin contact.us@centraders.com / 050499 (not needed this iteration). B2B retailer test_b2b_retailer@example.com / Test@12345 login FAILS — causes 1 skipped test.",
+  "context_for_next_testing_agent": "Both iter84 backend regressions are CLOSED and proven self-healing via fault injection (see /app/backend/tests/inject_iter85_orphan.py then restart backend, wait ~140s, run /app/backend/tests/verify_iter85_mirror.py). Remaining open items: b2b mirror price_inr all NULL, B2B retailer test creds broken (skipped test), and lowercase 'addrika' SEO literals in ~10 uncovered pages. Client-side /api/* is still not proxied on :3000, so browser-level product-data tests must hit http://localhost:8001/api directly.",
+  "rca_of_the_issue": "Previous failures were caused by (a) the iter82 cleanup being guarded by an `if existed` check so a re-inserted orphan mirror row was never removed on subsequent boots, and (b) the mirror backfill writing rows without pre-loading b2b_products / enriching stock, overwriting price_inr and stock_pieces with NULL. Both fixes verified: the tombstone now deletes the b2c slug plus common `<slug>-<size>-b2b` variants unconditionally on every boot, and the periodic backfill (services/supabase_bootstrap.py, +90s then every 6h) re-hydrates price and stock."
+}

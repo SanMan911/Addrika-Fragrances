@@ -2,12 +2,13 @@ import Link from 'next/link';
 import { HelpCircle, Leaf, Wind, FlaskConical } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: 'FAQs | Addrika Fragrances - Charcoal-Free Low Smoke Incense Questions',
-  description: 'Find answers to common questions about Addrika Fragrances charcoal-free, low smoke incense sticks, bambooless dhoop, and Arabian bakhoor. Learn about ethically sourced ingredients, health benefits, burn time, indoor safety, meditation use, and more.',
+  title: `FAQs | ${BRAND.name} Fragrances - Charcoal-Free Low Smoke Incense Questions`,
+  description: `Find answers to common questions about ${BRAND.name} Fragrances charcoal-free, low smoke incense sticks, bambooless dhoop, and Arabian bakhoor. Learn about ethically sourced ingredients, health benefits, burn time, indoor safety, meditation use, and more.`,
   keywords: [
-    'addrika faq', 'addrika fragrances questions', 'low smoke incense questions', 'charcoal-free agarbatti faq',
+    `${BRAND.name.toLowerCase()} faq`, `${BRAND.name.toLowerCase()} fragrances questions`, 'low smoke incense questions', 'charcoal-free agarbatti faq',
     'charcoal-free incense benefits', 'ethical incense ingredients', 'incense health safety',
     'incense safe for meditation', 'best incense for yoga', 'bambooless dhoop faq', 'bakhoor questions'
   ],
@@ -19,24 +20,24 @@ const faqs = [
     category: "About Our Products",
     questions: [
       {
-        q: "What makes Addrika's incense sticks low smoke?",
-        a: "Addrika's low smoke formula uses a proprietary charcoal-free design. Our agarbattis use traditional bamboo sticks with a charcoal-free coating, while our dhoop products are completely bambooless. This produces over 60% less smoke than traditional agarbatti while maintaining rich, authentic fragrance that lasts 40-50 minutes per stick."
+        q: `What makes ${BRAND.name}'s incense sticks low smoke?`,
+        a: `${BRAND.name}'s low smoke formula uses a proprietary charcoal-free design. Our agarbattis use traditional bamboo sticks with a charcoal-free coating, while our dhoop products are completely bambooless. This produces over 60% less smoke than traditional agarbatti while maintaining rich, authentic fragrance that lasts 40-50 minutes per stick.`
       },
       {
-        q: "What ingredients does Addrika use?",
+        q: `What ingredients does ${BRAND.name} use?`,
         a: "Our incense sticks are crafted with ethically sourced ingredients including: Pure essential oils (sandalwood, rose, oudh, bakhoor), natural flower dust, plant-based resins, aromatic herbs, and natural binders. We never use charcoal or harmful chemicals. Our agarbattis use bamboo sticks, while dhoop products are bambooless."
       },
       {
-        q: "Are all Addrika products bambooless?",
+        q: `Are all ${BRAND.name} products bambooless?`,
         a: "No, only our Dhoop range is bambooless. Our Agarbatti (incense sticks) use traditional bamboo sticks with a charcoal-free coating. The dhoop products are completely bambooless and stick-free, offering a different experience with the same premium fragrances."
       },
       {
-        q: "How long does each Addrika incense stick burn?",
-        a: "Each Addrika incense stick provides 40-50 minutes of burn time when used without a fan. The low smoke formula ensures consistent fragrance release throughout the burn without excessive smoke buildup."
+        q: `How long does each ${BRAND.name} incense stick burn?`,
+        a: `Each ${BRAND.name} incense stick provides 40-50 minutes of burn time when used without a fan. The low smoke formula ensures consistent fragrance release throughout the burn without excessive smoke buildup.`
       },
       {
-        q: "Are Addrika incense sticks charcoal-free?",
-        a: "Yes, all Addrika incense products are charcoal-free. We use natural flower dust as our base instead of charcoal, which results in over 60% less smoke, no black soot residue, and a purer fragrance experience. This makes our incense ideal for indoor use in India."
+        q: `Are ${BRAND.name} incense sticks charcoal-free?`,
+        a: `Yes, all ${BRAND.name} incense products are charcoal-free. We use natural flower dust as our base instead of charcoal, which results in over 60% less smoke, no black soot residue, and a purer fragrance experience. This makes our incense ideal for indoor use in India.`
       }
     ]
   },
@@ -44,28 +45,28 @@ const faqs = [
     category: "Safety & Indoor Use",
     questions: [
       {
-        q: "Is Addrika incense safe for indoor use with children?",
-        a: "Yes, Addrika's low smoke, charcoal-free incense is safer for indoor use around children compared to traditional agarbatti. Our non-toxic formula produces minimal smoke and no harmful charcoal particles. However, as with any incense, keep lit sticks away from children's reach and ensure proper ventilation."
+        q: `Is ${BRAND.name} incense safe for indoor use with children?`,
+        a: `Yes, ${BRAND.name}'s low smoke, charcoal-free incense is safer for indoor use around children compared to traditional agarbatti. Our non-toxic formula produces minimal smoke and no harmful charcoal particles. However, as with any incense, keep lit sticks away from children's reach and ensure proper ventilation.`
       },
       {
-        q: "Is Addrika incense safe to use around pets?",
-        a: "Addrika's charcoal-free, low smoke formula is gentler than traditional incense and can be used in homes with pets. Our ethically sourced ingredients contain no harmful chemicals. However, always ensure good ventilation and keep pets away from direct smoke exposure. If your pet has respiratory sensitivities, consult your vet."
+        q: `Is ${BRAND.name} incense safe to use around pets?`,
+        a: `${BRAND.name}'s charcoal-free, low smoke formula is gentler than traditional incense and can be used in homes with pets. Our ethically sourced ingredients contain no harmful chemicals. However, always ensure good ventilation and keep pets away from direct smoke exposure. If your pet has respiratory sensitivities, consult your vet.`
       },
       {
         q: "Why is charcoal-free incense better for health?",
-        a: "Traditional agarbatti uses charcoal as a burning agent, which produces smoke particles and can release carbon compounds when burned. Addrika's charcoal-free formula eliminates these concerns, producing over 60% less smoke that's gentler on the respiratory system. This makes it ideal for health-conscious users, small apartments, and indoor meditation spaces."
+        a: `Traditional agarbatti uses charcoal as a burning agent, which produces smoke particles and can release carbon compounds when burned. ${BRAND.name}'s charcoal-free formula eliminates these concerns, producing over 60% less smoke that's gentler on the respiratory system. This makes it ideal for health-conscious users, small apartments, and indoor meditation spaces.`
       },
       {
-        q: "Is Addrika incense safe for people with asthma or allergies?",
-        a: "Addrika's charcoal-free, low smoke formula is gentler than traditional incense. However, we recommend consulting your healthcare provider if you have severe respiratory conditions. Our ethically sourced ingredients and minimal smoke output make it a better choice for sensitive individuals compared to charcoal-based alternatives."
+        q: `Is ${BRAND.name} incense safe for people with asthma or allergies?`,
+        a: `${BRAND.name}'s charcoal-free, low smoke formula is gentler than traditional incense. However, we recommend consulting your healthcare provider if you have severe respiratory conditions. Our ethically sourced ingredients and minimal smoke output make it a better choice for sensitive individuals compared to charcoal-based alternatives.`
       },
       {
-        q: "Can I use Addrika incense in small apartments?",
-        a: "Absolutely! Addrika's low smoke incense is specifically designed for indoor use in compact spaces. The 60%+ reduced smoke output and absence of charcoal particles make it perfect for apartments, studio spaces, and small rooms without overwhelming the space or leaving residue."
+        q: `Can I use ${BRAND.name} incense in small apartments?`,
+        a: `Absolutely! ${BRAND.name}'s low smoke incense is specifically designed for indoor use in compact spaces. The 60%+ reduced smoke output and absence of charcoal particles make it perfect for apartments, studio spaces, and small rooms without overwhelming the space or leaving residue.`
       },
       {
-        q: "Is Addrika incense non-toxic?",
-        a: "Yes, Addrika incense is non-toxic. We use ethically sourced ingredients: pure essential oils, natural flower dust, plant-based resins, and aromatic herbs. We never use charcoal, DEP (diethyl phthalate), or any harmful chemicals. This makes it safe for indoor use in Indian homes."
+        q: `Is ${BRAND.name} incense non-toxic?`,
+        a: `Yes, ${BRAND.name} incense is non-toxic. We use ethically sourced ingredients: pure essential oils, natural flower dust, plant-based resins, and aromatic herbs. We never use charcoal, DEP (diethyl phthalate), or any harmful chemicals. This makes it safe for indoor use in Indian homes.`
       }
     ]
   },
@@ -73,53 +74,53 @@ const faqs = [
     category: "Daily Puja & Spiritual Use",
     questions: [
       {
-        q: "Which Addrika incense is best for daily puja?",
+        q: `Which ${BRAND.name} incense is best for daily puja?`,
         a: "For daily puja and spiritual rituals, we recommend Kesar Chandan (saffron-sandalwood) for its traditional, meditative fragrance, or Bold Bakhoor for a festive, sacred atmosphere. Both are charcoal-free, produce minimal smoke during prayers, and offer 40-50 minutes of continuous fragrance—perfect for extended puja sessions."
       },
       {
-        q: "Can I use Addrika incense for daily worship and rituals?",
-        a: "Absolutely! Addrika incense is ideal for daily puja and spiritual rituals. Our charcoal-free formula produces over 60% less smoke, ensuring clear air during prayers. The pure essential oil fragrances (sandalwood, rose, oudh, bakhoor) create an authentic, sacred atmosphere without overwhelming the pooja room."
+        q: `Can I use ${BRAND.name} incense for daily worship and rituals?`,
+        a: `Absolutely! ${BRAND.name} incense is ideal for daily puja and spiritual rituals. Our charcoal-free formula produces over 60% less smoke, ensuring clear air during prayers. The pure essential oil fragrances (sandalwood, rose, oudh, bakhoor) create an authentic, sacred atmosphere without overwhelming the pooja room.`
       },
       {
-        q: "What is Addrika incense best for?",
-        a: "Addrika's charcoal-free incense is ideal for: Daily puja and spiritual rituals (Kesar Chandan, Bold Bakhoor), Meditation and yoga practices (Oriental Oudh, Kesar Chandan), Small apartments and bedrooms (Regal Rose), Aromatherapy and relaxation, Wellness spaces like spas and yoga studios, Home fragrance without heavy smoke, Gifting on Diwali and special occasions."
+        q: `What is ${BRAND.name} incense best for?`,
+        a: `${BRAND.name}'s charcoal-free incense is ideal for: Daily puja and spiritual rituals (Kesar Chandan, Bold Bakhoor), Meditation and yoga practices (Oriental Oudh, Kesar Chandan), Small apartments and bedrooms (Regal Rose), Aromatherapy and relaxation, Wellness spaces like spas and yoga studios, Home fragrance without heavy smoke, Gifting on Diwali and special occasions.`
       },
       {
-        q: "How should I store Addrika incense?",
-        a: "Store Addrika incense in a cool, dry place away from direct sunlight. Keep the packaging sealed when not in use to preserve the essential oils and fragrance. Properly stored, our incense maintains its fragrance quality for up to 2 years."
+        q: `How should I store ${BRAND.name} incense?`,
+        a: `Store ${BRAND.name} incense in a cool, dry place away from direct sunlight. Keep the packaging sealed when not in use to preserve the essential oils and fragrance. Properly stored, our incense maintains its fragrance quality for up to 2 years.`
       },
       {
-        q: "Can I use Addrika incense during meditation?",
+        q: `Can I use ${BRAND.name} incense during meditation?`,
         a: "Yes! Our low smoke formula is perfect for meditation. The minimal smoke output allows for deeper breathing without irritation, while the fragrances (especially Kesar Chandan and Oriental Oudh) create a calming atmosphere conducive to mindfulness practices."
       }
     ]
   },
   {
-    category: "About Addrika & Buying",
+    category: `About ${BRAND.name} & Buying`,
     questions: [
       {
-        q: "Where are Addrika incense sticks made?",
-        a: "Addrika incense sticks are proudly made in India. They are crafted by skilled Indian artisans using traditional techniques perfected over generations. Centsibl Traders Private Limited, the company behind Addrika, is a purpose-driven Indian enterprise committed to ethical sourcing and supporting local communities."
+        q: `Where are ${BRAND.name} incense sticks made?`,
+        a: `${BRAND.name} incense sticks are proudly made in India. They are crafted by skilled Indian artisans using traditional techniques perfected over generations. Centsibl Traders Private Limited, the company behind ${BRAND.name}, is a purpose-driven Indian enterprise committed to ethical sourcing and supporting local communities.`
       },
       {
-        q: "Who makes Addrika incense?",
-        a: "Addrika is the flagship brand of Centsibl Traders Private Limited, a purpose-driven Indian enterprise committed to ethical sourcing and sustainable practices. We work with skilled artisans who craft each incense stick using time-honored methods perfected in India."
+        q: `Who makes ${BRAND.name} incense?`,
+        a: `${BRAND.name} is the flagship brand of Centsibl Traders Private Limited, a purpose-driven Indian enterprise committed to ethical sourcing and sustainable practices. We work with skilled artisans who craft each incense stick using time-honored methods perfected in India.`
       },
       {
-        q: "Where can I buy Addrika incense in India?",
-        a: "Addrika incense is available on our official website centraders.com (recommended for best prices and full collection), as well as on Amazon India. We also have authorized retailers across India. Visit our Find Retailers page for store locations near you. Coming soon to Flipkart and BigBasket."
+        q: `Where can I buy ${BRAND.name} incense in India?`,
+        a: `${BRAND.name} incense is available on our official website centraders.com (recommended for best prices and full collection), as well as on Amazon India. We also have authorized retailers across India. Visit our Find Retailers page for store locations near you. Coming soon to Flipkart and BigBasket.`
       },
       {
-        q: "Does Addrika ship across India?",
+        q: `Does ${BRAND.name} ship across India?`,
         a: "Yes, we ship to all PIN codes across India. Orders above Rs. 499 qualify for free shipping. Standard delivery takes 3-7 business days depending on your location."
       },
       {
-        q: "What is Addrika's return policy?",
+        q: `What is ${BRAND.name}'s return policy?`,
         a: "Due to the nature of our products (incense sticks, dhoop, bakhoor), we cannot accept returns or exchanges for hygiene and olfactory reasons. Please review your order carefully before confirming."
       },
       {
-        q: "What's the difference between Addrika and traditional agarbatti?",
-        a: "Key differences: 1) Charcoal-free vs charcoal-based, 2) Over 60% less smoke, 3) Ethically sourced ingredients, 4) 40-50 minute burn time (longer than typical 20-30 min), 5) Minimal ash residue, 6) Better for indoor/small spaces, 7) Gentler on respiratory system, 8) Made in India. Addrika delivers authentic fragrance without the drawbacks of traditional incense."
+        q: `What's the difference between ${BRAND.name} and traditional agarbatti?`,
+        a: `Key differences: 1) Charcoal-free vs charcoal-based, 2) Over 60% less smoke, 3) Ethically sourced ingredients, 4) 40-50 minute burn time (longer than typical 20-30 min), 5) Minimal ash residue, 6) Better for indoor/small spaces, 7) Gentler on respiratory system, 8) Made in India. ${BRAND.name} delivers authentic fragrance without the drawbacks of traditional incense.`
       }
     ]
   }
@@ -175,7 +176,7 @@ export default function FAQPage() {
               Frequently Asked Questions
             </h1>
             <p className="text-gray-400 max-w-2xl mx-auto">
-              Everything you need to know about Addrika&apos;s charcoal-free, low smoke incense sticks
+              Everything you need to know about {BRAND.name}&apos;s charcoal-free, low smoke incense sticks
             </p>
           </div>
 
@@ -301,7 +302,7 @@ export default function FAQPage() {
               >
                 <Leaf className="w-10 h-10 text-[#D4AF37] mb-4" />
                 <h3 className="font-semibold text-white mb-2 group-hover:text-[#D4AF37] transition-colors">Our Ingredients</h3>
-                <p className="text-sm text-gray-400">Complete guide to what goes into Addrika incense</p>
+                <p className="text-sm text-gray-400">{`Complete guide to what goes into ${BRAND.name} incense`}</p>
               </Link>
               <Link 
                 href="/why-zero-charcoal" 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Award, ArrowUpRight, ArrowDownLeft, Sparkles, Info, Clock, Download } from 'lucide-react';
 import { useRetailerAuth } from '../../../../context/RetailerAuthContext';
 import RewardsBalanceCard from '../../../../components/RewardsBalanceCard';
+import BRAND from '../../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -35,7 +36,7 @@ export default function RetailerRewardsHistoryPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `addrika-rewards-statement.pdf`;
+      a.download = `${BRAND.name.toLowerCase()}-rewards-statement.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -364,7 +365,7 @@ function PatronStatusCard({ fetchWithAuth }) {
           {tier && <TierBadge tier={tier} />}
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Keep ordering with Addrika and you&apos;ll earn aroma-themed patron tags — Cedar Patron, Sandalwood Sage, Oudh Master and more. Every tag is dated the moment you cross the threshold and stays with you forever.
+          Keep ordering with ${BRAND.name} and you&apos;ll earn aroma-themed patron tags — Cedar Patron, Sandalwood Sage, Oudh Master and more. Every tag is dated the moment you cross the threshold and stays with you forever.
         </p>
         {tier?.next_tier && tier.next_tier.tags_to_go > 0 && (
           <p className="text-xs text-amber-700 dark:text-amber-300 font-semibold mt-2" data-testid="tier-progress-hint">

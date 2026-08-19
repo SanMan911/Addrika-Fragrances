@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Sparkles, Trophy, MapPin, Calendar } from 'lucide-react';
+import BRAND from '../../lib/brand.config';
 
 const API_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -43,7 +44,7 @@ export default function CommunityLeaderboardPage() {
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-white mb-3">The Constant Companions</h1>
           <p className="text-slate-400 max-w-lg mx-auto">
-            The retailers who show up every month, without fail. These three carry the longest unbroken ordering streaks in the Addrika network.
+            The retailers who show up every month, without fail. These three carry the longest unbroken ordering streaks in the ${BRAND.name} network.
           </p>
           {asOf && (
             <p className="text-xs text-slate-500 mt-3 flex items-center justify-center gap-1">
@@ -102,7 +103,7 @@ export default function CommunityLeaderboardPage() {
             Start your streak →
           </Link>
           <p className="text-xs text-slate-500 mt-4">
-            Are you an Addrika retailer? Toggle your leaderboard opt-in from your <Link href="/retailer/b2b/rewards" className="text-[#D4AF37] hover:underline">Rewards page</Link> to appear here.
+            Are you an {BRAND.name} retailer? Toggle your leaderboard opt-in from your <Link href="/retailer/b2b/rewards" className="text-[#D4AF37] hover:underline">Rewards page</Link> to appear here.
           </p>
         </div>
       </div>

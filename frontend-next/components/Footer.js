@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { Mail, Phone, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
+import BRAND from '../lib/brand.config';
 
 const companyInfo = {
-  brandName: 'Addrika',
+  brandName: BRAND.name,
   companyName: 'Centsibl Traders Private Limited',
   email: 'contact.us@centraders.com',
   phone: '+91 9667-269-711',
@@ -39,8 +40,8 @@ export default function Footer() {
           {/* Brand Column */}
           <div>
             <img 
-              src="/images/logos/addrika-logo.png" 
-              alt="Addrika" 
+              src={BRAND.logo.src} 
+              alt={`${BRAND.name}`} 
               className="h-24 w-auto mb-4"
               style={{ filter: 'brightness(0) invert(1)' }}
             />
@@ -150,7 +151,7 @@ export default function Footer() {
                 <Facebook size={18} className="text-white" />
               </a>
               <a 
-                href="https://instagram.com/addrika.fragrances" 
+                href={BRAND.social.instagramUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110"

@@ -2,11 +2,12 @@ import Link from 'next/link';
 import { Truck, RefreshCcw, Clock, AlertTriangle } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: 'Shipping & Returns Policy | Addrika Premium Incense',
-  description: 'Free shipping on orders above Rs. 499. Fast delivery across India with real-time tracking for all Addrika incense orders. No returns on incense products due to hygiene reasons.',
-  keywords: ['addrika shipping', 'incense delivery india', 'agarbatti shipping policy', 'free shipping incense'],
+  title: `Shipping & Returns Policy | ${BRAND.name} Premium Incense`,
+  description: `Free shipping on orders above Rs. 499. Fast delivery across India with real-time tracking for all ${BRAND.name} incense orders. No returns on incense products due to hygiene reasons.`,
+  keywords: [`${BRAND.name.toLowerCase()} shipping`, 'incense delivery india', 'agarbatti shipping policy', 'free shipping incense'],
 };
 
 export default function ShippingReturnsPage() {

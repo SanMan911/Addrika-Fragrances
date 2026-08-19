@@ -6,6 +6,7 @@ import { Leaf, TreePine, Users, GraduationCap, Recycle, Target, Package, Trendin
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
+import BRAND from '../../lib/brand.config';
 // Animated Counter Component
 function AnimatedCounter({ target, suffix = '', prefix = '', duration = 2000 }) {
   const [count, setCount] = useState(0);
@@ -151,7 +152,7 @@ export default function SustainabilityPage() {
               Sustainability at the Heart of <span className="text-[#D4AF37]">Every Fragrance</span>
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              At Addrika, we believe that beautiful fragrances shouldn't come at the cost of our planet 
+              At {BRAND.name}, we believe that beautiful fragrances shouldn't come at the cost of our planet 
               or the people who create them. Every decision we make is guided by our commitment to 
               ethical sourcing, environmental responsibility, and community well-being.
             </p>
@@ -318,7 +319,7 @@ export default function SustainabilityPage() {
               Community Impact
             </h2>
             <p className="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
-              Behind every Addrika product are real people whose lives are improved through fair trade and ethical practices.
+              Behind every {BRAND.name} product are real people whose lives are improved through fair trade and ethical practices.
             </p>
             
             <div className="grid md:grid-cols-3 gap-6">
@@ -409,7 +410,7 @@ export default function SustainabilityPage() {
                 Your Impact
               </h2>
               <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-                Every Addrika purchase contributes to our sustainability initiatives. 
+                Every {BRAND.name} purchase contributes to our sustainability initiatives. 
                 Here's what your support helps achieve:
               </p>
               
@@ -534,7 +535,7 @@ export default function SustainabilityPage() {
               Join Us on This Journey
             </h2>
             <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-              Every Addrika product you choose is a vote for a more sustainable, ethical future. 
+              Every {BRAND.name} product you choose is a vote for a more sustainable, ethical future. 
               Together, we can make a difference—one fragrance at a time.
             </p>
             <div className="flex flex-wrap justify-center gap-4">

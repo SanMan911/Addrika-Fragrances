@@ -3,15 +3,16 @@ import { Calendar, Eye, Tag, Search } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import SmokeSignalSubscribe from '../../components/SmokeSignalSubscribe';
+import BRAND from '../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
 
 export const metadata = {
-  title: 'Blog | Addrika Fragrances — Incense Guides, Aromatherapy Tips & Fragrance Wisdom',
-  description: 'Read the Addrika Journal for expert guides on charcoal-free incense, Arabian bakhoor, meditation fragrances, and aromatherapy tips. Discover which premium agarbatti is best for your home.',
-  keywords: ['addrika blog', 'incense guide', 'charcoal-free agarbatti guide', 'best incense for meditation', 'how to use bakhoor', 'aromatherapy tips', 'premium incense india', 'agarbatti health benefits', 'low smoke incense', 'incense buying guide'],
+  title: `Blog | ${BRAND.name} Fragrances — Incense Guides, Aromatherapy Tips & Fragrance Wisdom`,
+  description: `Read the ${BRAND.name} Journal for expert guides on charcoal-free incense, Arabian bakhoor, meditation fragrances, and aromatherapy tips. Discover which premium agarbatti is best for your home.`,
+  keywords: [`${BRAND.name.toLowerCase()} blog`, 'incense guide', 'charcoal-free agarbatti guide', 'best incense for meditation', 'how to use bakhoor', 'aromatherapy tips', 'premium incense india', 'agarbatti health benefits', 'low smoke incense', 'incense buying guide'],
   openGraph: {
-    title: 'The Addrika Journal — Incense Guides & Fragrance Wisdom',
+    title: `The ${BRAND.name} Journal — Incense Guides & Fragrance Wisdom`,
     description: 'Expert guides on charcoal-free incense, Arabian bakhoor, meditation fragrances, and more.',
     url: 'https://centraders.com/blog',
   },
@@ -90,7 +91,7 @@ export default async function BlogPage() {
               className="text-4xl sm:text-5xl font-bold text-white mb-6"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-              The Addrika Journal
+              The ${BRAND.name} Journal
             </h1>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
               Explore the world of fragrances, aromatherapy tips, and mindful living.

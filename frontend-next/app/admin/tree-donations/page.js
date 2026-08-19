@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { TreePine, TrendingUp, Users, Calendar, RefreshCw, Download, ChevronDown, ChevronUp, DollarSign, Gift, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
+import BRAND from '../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -241,7 +242,7 @@ export default function AdminTreeDonationsPage() {
             </div>
           </div>
           <p className="text-3xl font-bold text-amber-600">{formatCurrency(summary.total_addrika_match)}</p>
-          <p className="text-sm text-slate-500 mt-1">Addrika Match</p>
+          <p className="text-sm text-slate-500 mt-1">{`${BRAND.name} Match`}</p>
         </div>
 
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
@@ -277,7 +278,7 @@ export default function AdminTreeDonationsPage() {
                     <th className="text-left p-3 text-sm font-medium text-slate-500">Date</th>
                     <th className="text-right p-3 text-sm font-medium text-slate-500">Orders</th>
                     <th className="text-right p-3 text-sm font-medium text-slate-500">Customer</th>
-                    <th className="text-right p-3 text-sm font-medium text-slate-500">Addrika Match</th>
+                    <th className="text-right p-3 text-sm font-medium text-slate-500">{`${BRAND.name} Match`}</th>
                     <th className="text-right p-3 text-sm font-medium text-slate-500">Total</th>
                     <th className="text-right p-3 text-sm font-medium text-slate-500">Trees</th>
                   </tr>
@@ -375,7 +376,7 @@ export default function AdminTreeDonationsPage() {
           <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-2">No Tree Donations Yet</h3>
           <p className="text-slate-500 max-w-md mx-auto">
             Tree donations will appear here once customers start adding the ₹5 donation at checkout. 
-            Each donation is matched by Addrika to plant a tree together!
+            Each donation is matched by {BRAND.name} to plant a tree together!
           </p>
         </div>
       )}

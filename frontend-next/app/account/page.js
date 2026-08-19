@@ -60,7 +60,7 @@ export default function AccountPage() {
       {/* Header */}
       <header className="bg-[#2B3A4A] text-white py-6 px-4">
         <div className="max-w-4xl mx-auto">
-          <Link href="/" className="text-xl font-bold text-[#D4AF37] mb-4 inline-block">ADDRIKA</Link>
+          <Link href="/" className="text-xl font-bold text-[#D4AF37] mb-4 inline-block">{BRAND.nameUpper}</Link>
           
           <div className="flex items-center gap-4 mt-4">
             <div className="w-16 h-16 bg-[#D4AF37] rounded-full flex items-center justify-center">

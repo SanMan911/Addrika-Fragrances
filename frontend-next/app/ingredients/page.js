@@ -1,17 +1,18 @@
 import Link from 'next/link';
 import { Leaf, Droplets, Flower2, TreeDeciduous, Sparkles, Wind, CheckCircle, ArrowRight, FlaskConical } from 'lucide-react';
+import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: 'Premium Ingredients in Addrika Incense | Pure Essential Oils & Natural Herbs',
-  description: 'Discover the ethically sourced ingredients in Addrika incense sticks: pure sandalwood oil, rose essence, oudh/agarwood, bakhoor blend, flower dust, and natural resins. No charcoal, no synthetics.',
+  title: `Premium Ingredients in ${BRAND.name} Incense | Pure Essential Oils & Natural Herbs`,
+  description: `Discover the ethically sourced ingredients in ${BRAND.name} incense sticks: pure sandalwood oil, rose essence, oudh/agarwood, bakhoor blend, flower dust, and natural resins. No charcoal, no synthetics.`,
   keywords: [
     'premium incense ingredients', 'pure essential oil incense', 'sandalwood incense',
     'rose incense ingredients', 'oudh agarwood incense', 'bakhoor incense',
     'flower dust agarbatti', 'natural resin incense', 'chemical-free incense ingredients',
-    'what is in premium incense', 'addrika ingredients', 'ethical incense'
+    'what is in premium incense', `${BRAND.name.toLowerCase()} ingredients`, 'ethical incense'
   ],
   openGraph: {
-    title: 'Premium Ingredients | Addrika Incense',
+    title: `Premium Ingredients | ${BRAND.name} Incense`,
     description: 'Ethically sourced ingredients: pure essential oils, flower dust, natural resins.',
     url: 'https://centraders.com/ingredients',
     type: 'website',
@@ -27,11 +28,11 @@ function ArticleSchema() {
         __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Article",
-          "headline": "Premium Ingredients in Addrika Incense: A Complete Guide",
-          "description": "Comprehensive guide to ethically sourced ingredients used in Addrika premium incense sticks",
+          "headline": `Premium Ingredients in ${BRAND.name} Incense: A Complete Guide`,
+          "description": `Comprehensive guide to ethically sourced ingredients used in ${BRAND.name} premium incense sticks`,
           "author": {
             "@type": "Organization",
-            "name": "Addrika Fragrances",
+            "name": `${BRAND.name} Fragrances`,
             "url": "https://centraders.com"
           },
           "publisher": {
@@ -39,7 +40,7 @@ function ArticleSchema() {
             "name": "Centsibl Traders Private Limited",
             "logo": {
               "@type": "ImageObject",
-              "url": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
+              "url": BRAND.logo.logoUrlAbs
             }
           },
           "datePublished": "2026-01-01",
@@ -57,7 +58,7 @@ export default function IngredientsPage() {
       icon: Droplets,
       name: "Pure Essential Oils",
       category: "Primary Fragrance Source",
-      description: "The heart of every Addrika incense stick. We use only pure, undiluted essential oils extracted from natural sources.",
+      description: `The heart of every ${BRAND.name} incense stick. We use only pure, undiluted essential oils extracted from natural sources.`,
       varieties: [
         {
           name: "Sandalwood Oil (Chandan)",
@@ -167,7 +168,7 @@ export default function IngredientsPage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span> Fragrances
+            <span className="text-[#D4AF37]">{`${BRAND.name}`}</span> Fragrances
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link href="/#fragrances" className="hover:text-[#D4AF37]">Products</Link>
@@ -186,7 +187,7 @@ export default function IngredientsPage() {
               Charcoal-Free • Ethically Sourced • Pure Essential Oils
             </span>
             <h1 className="text-4xl sm:text-5xl font-bold font-serif mb-6">
-              What&apos;s Inside Addrika Incense?
+              What&apos;s Inside ${BRAND.name} Incense?
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
               A complete guide to every natural ingredient we use—and everything we promise to never use
@@ -198,7 +199,7 @@ export default function IngredientsPage() {
         <section className="py-8 px-4 bg-[#F5F0E8]">
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h2 className="font-semibold text-[#2B3A4A] mb-4">Addrika Ingredient Summary</h2>
+              <h2 className="font-semibold text-[#2B3A4A] mb-4">{`${BRAND.name} Ingredient Summary`}</h2>
               <div className="grid sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-gray-600"><strong className="text-[#2B3A4A]">Base Material:</strong> Natural flower dust (not charcoal)</p>
@@ -328,7 +329,7 @@ export default function IngredientsPage() {
               What We Never Use
             </h2>
             <p className="text-gray-600 text-center mb-12">
-              These ingredients will never be found in any Addrika product
+              These ingredients will never be found in any ${BRAND.name} product
             </p>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -407,7 +408,7 @@ export default function IngredientsPage() {
       {/* Footer */}
       <footer className="bg-[#1a252f] text-white py-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika Fragrances</p>
+          <p className="text-[#D4AF37] font-bold text-xl mb-2">{`${BRAND.name} Fragrances`}</p>
           <p className="text-sm text-gray-400">Ethically Sourced Ingredients • Charcoal-Free</p>
           <p className="text-sm text-gray-400 mt-2">© 2026 Centsibl Traders Private Limited</p>
         </div>
