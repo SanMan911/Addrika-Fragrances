@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Calendar, Eye, ArrowLeft } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import BlogShareToolbar from '../../../components/BlogShareToolbar';
+import BRAND from '../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://centraders.com';
@@ -26,9 +27,9 @@ export async function generateMetadata({ params }) {
   }
   
   return {
-    title: `${post.title} | Addrika Fragrances Blog`,
-    description: post.excerpt || `Read ${post.title} on the Addrika Fragrances blog.`,
-    keywords: [...(post.tags || []), 'addrika', 'addrika fragrances', 'premium incense', 'incense guide'].join(', '),
+    title: `${post.title} | ${BRAND.name} Fragrances Blog`,
+    description: post.excerpt || `Read ${post.title} on the ${BRAND.name} Fragrances blog.`,
+    keywords: [...(post.tags || []), BRAND.name.toLowerCase(), `${BRAND.name.toLowerCase()} fragrances`, 'premium incense', 'incense guide'].join(', '),
     openGraph: {
       title: post.title,
       description: post.excerpt,
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }) {
       images: post.featuredImage ? [{ url: post.featuredImage }] : [],
       publishedTime: post.createdAt || post.created_at,
       modifiedTime: post.updatedAt || post.updated_at,
-      authors: ['Addrika Fragrances'],
+      authors: ['${BRAND.name} Fragrances'],
       section: 'Incense & Fragrance',
     },
     twitter: {
@@ -45,7 +46,7 @@ export async function generateMetadata({ params }) {
       title: post.title,
       description: post.excerpt,
       images: post.featuredImage || post.featured_image ? [post.featuredImage || post.featured_image] : [],
-      creator: '@addrika_incense',
+      creator: BRAND.social.twitterCreator,
     },
   };
 }
@@ -62,9 +63,9 @@ function ArticleStructuredData({ post }) {
     "dateModified": post.updatedAt || post.updated_at || post.createdAt || post.created_at,
     "author": {
       "@type": "Organization",
-      "name": "Addrika Fragrances",
+      "name": "${BRAND.name} Fragrances",
       "url": "https://centraders.com",
-      "logo": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
+      "logo": BRAND.logo.logoUrlAbs
     },
     "publisher": {
       "@type": "Organization",
@@ -72,7 +73,7 @@ function ArticleStructuredData({ post }) {
       "url": "https://centraders.com",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
+        "url": BRAND.logo.logoUrlAbs
       }
     },
     "mainEntityOfPage": {
@@ -111,7 +112,7 @@ export default async function BlogPostPage({ params }) {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span>
+            <span className="text-[#D4AF37]">{`${BRAND.name}`}</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link href="/#fragrances" className="hover:text-[#D4AF37] transition-colors">Fragrances</Link>
@@ -232,7 +233,7 @@ export default async function BlogPostPage({ params }) {
       {/* Footer */}
       <footer className="bg-[#2B3A4A] text-white py-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika</p>
+          <p className="text-[#D4AF37] font-bold text-xl mb-2">{`${BRAND.name}`}</p>
           <p className="text-sm text-gray-400">© 2026 Centsibl Traders Private Limited. All rights reserved.</p>
         </div>
       </footer>

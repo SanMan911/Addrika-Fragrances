@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
+import BRAND from '../../lib/brand.config';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 // Country codes
@@ -226,7 +227,7 @@ export default function ForgotUsernameClient() {
                   </div>
                 </div>
                 <p className="text-gray-500 text-sm mb-6">
-                  Please check your inbox (and spam folder) for an email from Addrika.
+                  Please check your inbox (and spam folder) for an email from {BRAND.name}.
                 </p>
                 <Link
                   href="/login"

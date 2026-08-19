@@ -98,8 +98,12 @@ async def admin_create_product(product: ProductInput, admin=Depends(require_admi
     # Mirror into B2B catalog (retailer portal + brochure use these)
     b2b_rows = await mirror_b2c_product(db, doc)
 
-    # Best-effort Supabase mirror (non-blocking)
+    # Best-effort Supabase mirror (non-blocking).
+    # Attach shared stock onto doc.sizes[] so the mirror row has a real
+    # stock_pieces number instead of NULL.
     try:
+        from services.product_sync import enrich_b2c_products_with_stock
+        enrich_b2c_products_with_stock([doc], b2b_rows)
         from services.supabase_sync import mirror_product_upsert
         mirror_product_upsert(doc, channel="b2c")
     except Exception:
@@ -132,8 +136,12 @@ async def admin_update_product(product_id: str, product: ProductInput, admin=Dep
 
     b2b_rows = await mirror_b2c_product(db, update)
 
-    # Best-effort Supabase mirror (non-blocking)
+    # Best-effort Supabase mirror (non-blocking).
+    # Attach shared stock onto update.sizes[] so the mirror row has a real
+    # stock_pieces number instead of NULL.
     try:
+        from services.product_sync import enrich_b2c_products_with_stock
+        enrich_b2c_products_with_stock([update], b2b_rows)
         from services.supabase_sync import mirror_product_upsert
         mirror_product_upsert(update, channel="b2c")
     except Exception:
@@ -144,23 +152,40 @@ async def admin_update_product(product_id: str, product: ProductInput, admin=Dep
 
 @router.delete("/products/{product_id}")
 async def admin_delete_product(product_id: str, admin=Depends(require_admin)):
-    """Delete a product."""
+    """Delete a B2C product AND its linked B2B SKUs from Mongo + Supabase mirror.
+    Prevents orphan `<slug>-<size>-b2b` rows accumulating in the mirror."""
     from routers.products import refresh_products_cache
+
+    # Collect linked B2B SKU ids first so we can mirror-delete them after Mongo.
+    b2b_sku_ids = [
+        r["id"]
+        for r in await db.b2b_products.find(
+            {"product_id": product_id}, {"_id": 0, "id": 1}
+        ).to_list(100)
+    ]
 
     result = await db.products.delete_one({"id": product_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    # Cascade Mongo B2B rows
+    await db.b2b_products.delete_many({"product_id": product_id})
     await refresh_products_cache()
 
-    # Best-effort Supabase mirror (non-blocking)
+    # Best-effort Supabase mirror (non-blocking) — b2c row + every b2b SKU row
     try:
         from services.supabase_sync import mirror_product_delete
         mirror_product_delete(product_id)
+        for sku_id in b2b_sku_ids:
+            mirror_product_delete(sku_id)
     except Exception:
         pass
 
-    return {"message": "Product deleted", "id": product_id}
+    return {
+        "message": "Product deleted",
+        "id": product_id,
+        "b2b_skus_deleted": len(b2b_sku_ids),
+    }
 
 
 @router.patch("/products/{product_id}/toggle-active")

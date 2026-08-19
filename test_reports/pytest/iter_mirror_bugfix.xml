@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="5" time="39.225" timestamp="2026-08-19T08:31:40.710168+00:00" hostname="agent-env-ea7e2700-b86f-461c-97cb-52ee0f7acb1b"><testcase classname="tests.test_iter74_unified_products" name="test_unified_product_create_and_update" time="8.550" /><testcase classname="tests.test_supabase_mirror_iter74_bugfix" name="test_no_leftover_test_iter_rows_in_mirror" time="2.141"><failure message="AssertionError: Leftover TEST Iter rows in mirror: [RealDictRow([('id', 'test-iter74-product-200g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')]), RealDictRow([('id', 'test-iter74-product-50g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')])]&#10;assert [RealDictRow(...el', 'b2b')])] == []&#10;  &#10;  Left contains 2 more items, first extra item: RealDictRow([('id', 'test-iter74-product-200g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')])&#10;  &#10;  Full diff:&#10;  - []&#10;  + [&#10;  +     RealDictRow({...&#10;  &#10;  ...Full output truncated (10 lines hidden), use '-vv' to show">tests/test_supabase_mirror_iter74_bugfix.py:88: in test_no_leftover_test_iter_rows_in_mirror
+    assert rows == [], f"Leftover TEST Iter rows in mirror: {rows}"
+E   AssertionError: Leftover TEST Iter rows in mirror: [RealDictRow([('id', 'test-iter74-product-200g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')]), RealDictRow([('id', 'test-iter74-product-50g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')])]
+E   assert [RealDictRow(...el', 'b2b')])] == []
+E     
+E     Left contains 2 more items, first extra item: RealDictRow([('id', 'test-iter74-product-200g-b2b'), ('name', 'TEST Iter74 Product'), ('channel', 'b2b')])
+E     
+E     Full diff:
+E     - []
+E     + [
+E     +     RealDictRow({...
+E     
+E     ...Full output truncated (10 lines hidden), use '-vv' to show</failure></testcase><testcase classname="tests.test_supabase_mirror_iter74_bugfix" name="test_all_active_b2c_have_price_and_stock" time="2.063" /><testcase classname="tests.test_supabase_mirror_iter74_bugfix" name="test_admin_product_create_populates_mirror" time="13.723" /><testcase classname="tests.test_supabase_mirror_iter74_bugfix" name="test_admin_product_update_keeps_price_in_mirror" time="12.105" /></testsuite></testsuites>

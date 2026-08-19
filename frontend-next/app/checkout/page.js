@@ -10,6 +10,7 @@ import { MapPin, CreditCard, Truck, Store, ArrowLeft, CheckCircle, Loader2, Shop
 import { toast } from 'sonner';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import BRAND from '../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -216,7 +217,7 @@ export default function CheckoutPage() {
           key: data.razorpay_key_id,
           amount: data.amount,
           currency: 'INR',
-          name: 'Addrika',
+          name: '${BRAND.name}',
           description: 'Premium Incense Purchase',
           order_id: data.razorpay_order_id,
           handler: async (response) => {

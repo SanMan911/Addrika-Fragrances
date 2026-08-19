@@ -1,0 +1,34 @@
+{
+  "summary": "Ran targeted iter74 mirror-sync regression tests. 4/5 core tests PASS. The 5 mobile-observable bugs are fixed: (a) mobile query `channel='b2c' AND is_active=true` returns 16 rows, all with non-null price_inr and stock_pieces (0 null violations); (b) no TEST Iter *b2c* rows in mirror; (c) POST /api/admin/products correctly populates price_inr=199 and stock_pieces=52 (42+10 sum across sizes); (d) PUT correctly updates price_inr=250 while preserving stock. HOWEVER — the regression guard is only partially fixed: TEST Iter *b2b SKU* mirror rows (`test-iter74-product-50g-b2b`, `test-iter74-product-200g-b2b`) persist after the iter74 test run because (1) `DELETE /api/admin/products/{id}` does NOT cascade-delete b2b_products in Mongo nor b2b SKU mirror rows in Supabase, and (2) `_purge_iter74_product` helper silently swallows `Event loop is closed` errors when doing async cleanup on the module-cached shared async engine from a fresh test loop. These b2b rows don't reach the mobile UI (filtered by channel='b2c') so the user-visible bug IS fixed, but the mirror still accumulates b2b SKU orphans on every test run.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/admin/products/{id}", "issue": "Does not cascade-delete linked b2b_products docs (Mongo) or their SKU rows in products_mirror (Supabase). Leaves `<slug>-<size>-b2b` orphans in both places. Not user-visible on mobile (mobile filters channel='b2c') but the mirror grows indefinitely."},
+      {"endpoint": "tests/test_iter74_unified_products.py::_purge_iter74_product", "issue": "Silently swallows `RuntimeError: Event loop is closed` when calling `_delete_product` on the shared cached async engine from a pytest-created loop. The b2b SKU cleanup runs but throws; the bare `except Exception: pass` hides the failure so the guard passes locally but leaves orphans in Supabase across runs."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_supabase_mirror_iter74_bugfix.py",
+    "/app/test_reports/pytest/iter_mirror_bugfix.xml"
+  ],
+  "action_items": [
+    "In routers/admin/admin_products.py::admin_delete_product — after `products.delete_one`, also `db.b2b_products.delete_many({'product_id': product_id})` and call `mirror_product_delete('<slug>-<size>-b2b')` for each linked SKU (or read b2b_products first for their ids). This is the true regression-guard fix.",
+    "In tests/test_iter74_unified_products.py::_purge_iter74_product — replace the async _delete_product call with a sync psycopg2 DELETE (as done in test_supabase_mirror_iter74_bugfix.py) so cleanup does not depend on the shared cached async engine's event loop. Do NOT swallow the exception silently — at least log it so failures show up in CI.",
+    "Consider adding a session-scoped pytest-asyncio event loop OR building the async engine lazily per event-loop to avoid the 'another operation in progress' / 'Event loop is closed' errors that appear when multiple async tests share the module-cached engine."
+  ],
+  "critical_code_review_comments": [
+    "supabase_sync.py::_product_row correctly falls back to sizes[0].mrp/price and sum(sizes[*].stock) — the B2C mirror is now hydrated correctly (verified: 16/16 active B2C rows have non-null price + stock).",
+    "admin_products.py POST + PUT correctly call enrich_b2c_products_with_stock before mirror_product_upsert — verified end-to-end that POST persists price=199 and stock=52 in the mirror row within ~1s.",
+    "admin_products.py::admin_delete_product is INCOMPLETE — it only deletes the b2c doc + b2c mirror row; b2b_products and their SKU mirror rows are leaked. This is the actual cause of the 'TEST Iter74' regression the reporter saw.",
+    "supabase_db.py caches _engine + _session_factory at module scope — fine for the FastAPI worker (single event loop) but fragile in tests. Consider a `loop-keyed` cache or per-test engine to make async test fixtures reliable."
+  ],
+  "updated_files": ["/app/backend/tests/test_supabase_mirror_iter74_bugfix.py"],
+  "success_rate": {"backend": "80% (4/5 tests pass; regression guard remains broken due to DELETE not cascading)", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "admin: contact.us@centraders.com / 050499 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. Test creates temp products with `mirror-regress-<uuid>` / `mirror-update-<uuid>` slugs and cleans them up via sync psycopg2 DELETE in finally. Manually purged 26 orphan Supabase rows accumulated from earlier test iterations.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Use /app/backend/tests/test_supabase_mirror_iter74_bugfix.py — it uses SYNC psycopg2 for Supabase reads/cleanup so it survives the pytest-asyncio shared-engine loop mismatch (do NOT use the async session_factory directly from tests). Note that b2b SKU mirror rows (`<slug>-<size>-b2b`) are still leaked by DELETE /api/admin/products/{id} — the fix must land in admin_products.py::admin_delete_product before the leftover regression guard will hold across runs. Mobile query `SELECT * FROM products_mirror WHERE channel='b2c' AND is_active=true` currently returns 16 rows, all healthy.",
+  "rca_of_the_issue": "1) B2C mirror rows missing price/stock: FIXED — supabase_sync.py::_product_row now reads sizes[0].mrp/price + sums sizes[*].stock (populated by enrich_b2c_products_with_stock). Verified 16/16 active rows have non-null values. 2) 'TEST Iter74 Product' leftover in mirror: PARTIALLY FIXED — the b2c mirror row is now purged after the iter74 test, but the 2 b2b SKU mirror rows (`test-iter74-product-50g-b2b`, `test-iter74-product-200g-b2b`) persist because (a) DELETE endpoint doesn't cascade and (b) `_purge_iter74_product`'s async cleanup fails on the shared engine but is silenced by `except Exception: pass`. The mobile app doesn't display these (channel='b2c' filter), so the user-observable bug is gone, but the Supabase mirror accumulates orphans on every test/CI run."
+}

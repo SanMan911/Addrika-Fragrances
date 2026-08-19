@@ -84,9 +84,14 @@ async def _backfill_products(db) -> int:
     factory = session_factory()
     if factory is None:
         return 0
+    # Preload all b2b SKUs once so we can attach shared stock to each B2C size.
+    from services.product_sync import enrich_b2c_products_with_stock
+
+    b2b_rows = await db.b2b_products.find({}, {"_id": 0}).to_list(5000)
     async with factory() as session:
         async for doc in db.products.find({}):
             doc["id"] = doc.get("id") or doc.get("product_id") or str(doc.get("_id"))
+            enrich_b2c_products_with_stock([doc], b2b_rows)
             row = _product_row(doc, channel="b2c")
             if not row.get("id"):
                 continue

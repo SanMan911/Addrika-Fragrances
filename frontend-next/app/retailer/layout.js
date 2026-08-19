@@ -8,6 +8,7 @@ import {
   Store, Package, MessageSquare, AlertTriangle, ShoppingBag,
   Trophy, Award, FileEdit, LogOut, Menu, X, ChevronRight, Receipt, Headset
 } from 'lucide-react';
+import BRAND from '../../lib/brand.config';
 import { RetailerAuthProvider, useRetailerAuth } from '../../context/RetailerAuthContext';
 import { toast } from 'sonner';
 
@@ -143,7 +144,7 @@ function RetailerLayoutInner({ children }) {
               <Store className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">Addrika</h1>
+              <h1 className="text-lg font-bold text-white">{`${BRAND.name}`}</h1>
               <p className="text-xs text-white/60">Retailer Portal</p>
             </div>
           </div>

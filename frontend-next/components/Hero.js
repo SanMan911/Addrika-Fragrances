@@ -3,6 +3,7 @@
 import { Sparkles, Heart, Award } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import HeroSmoke from './HeroSmoke';
+import BRAND from '../lib/brand.config';
 
 export default function Hero({ onBuyClick }) {
   const { isDarkMode } = useTheme();
@@ -65,8 +66,8 @@ export default function Hero({ onBuyClick }) {
         {/* Logo/Brand */}
         <div className="mb-8 sm:mb-12 animate-fade-in-up">
           <img 
-            src="/images/logos/addrika-brand-name-gold-transparent.png"
-            alt="Addrika - Elegance in Every Scent" 
+            src={BRAND.logo.srcBrandNameGoldTransparent}
+            alt={`${BRAND.name} - Elegance in Every Scent`} 
             className="mx-auto"
             style={{ 
               filter: isDarkMode 

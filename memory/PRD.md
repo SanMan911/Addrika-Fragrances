@@ -3,6 +3,74 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🎨 Feb 2026 (Iteration 85) — One-click brand rename mechanism (final sweep)
+
+- **Iter84 backend regressions closed** (verified iter85, 21/21 tests green + fault-injection self-heal proven):
+  * `/app/backend/routers/products.py::_migrate_products` — Iter82 cleanup is now an **unconditional tombstone** that removes bambooless from Mongo + Supabase mirror on every boot, plus common `<slug>-<size>-b2b` variants defensively.
+  * `services/supabase_bootstrap.py::periodic_backfill_loop` — 90s post-boot warmup + 6h cadence re-hydrates b2c mirror rows (price_inr, stock_pieces) via the fixed `_backfill_products` (pre-loads `b2b_products` + calls `enrich_b2c_products_with_stock`).
+  * Fault-injected orphan + NULL-hydration were auto-healed within ~140s (iter85 report).
+
+- **Full frontend refactor sweep** (~215 hardcoded refs → 0 user-visible + intentional external identifiers only):
+  * Central config `lib/brand.config.js` expanded with:
+    * `logo.src`, `srcGold`, `srcGoldCropped`, `srcBrandNameGoldTransparent`, `logoUrlAbs`
+    * `social.instagramHandle/Upper/Slug/Url/UrlWww`, `social.twitterCreator`
+    * `seo.keywords` (23 keywords array)
+    * `nameUpper` helper for uppercase display contexts
+  * **Files touched (~55 total)**: `app/layout.js` (SEO metadata + 3 JSON-LD blocks), `app/orders`, `app/account`, `app/admin/login`, `app/admin/forgot-password`, `app/admin/milestones`, `app/products/[slug]`, `app/our-story`, `app/blog`, `app/blog/[slug]`, `app/shipping-returns`, `app/find-retailers`, `app/why-choose-addrika`, `app/retailer/b2b/rewards`, `app/faq`, `app/about-us`, `app/ingredients`, `app/our-quality`, `app/sustainability`, `app/community`, `app/register`, `app/forgot-username`, `app/admin/tree-donations`, plus `components/Header.js`, `Footer.js`, `Hero.js`, `USPSection.js`, `CSRSection.js`, `PackagingSection.js`, `CTASection.js`, `InstagramFeed.js`, `NudgeComposerModal.js`, `RetailerPartnershipModal.js`, `RetailerFloatingCTA.js`, `ZohoSyncHealthCard.js`, `admin/b2b/retailers/[id]/page.js`, `retailer/layout.js`.
+  * **Migration script** `frontend-next/scripts/refactor_brand.py` (idempotent, safely re-runnable). Injects `import BRAND from '<rel>/lib/brand.config'` + rewrites string literals / JSX text / template literals / JSX attributes containing "Addrika" → `BRAND.name` / `${BRAND.name}` / `{BRAND.name}` per context.
+  * **Manual fixes** for 20+ multi-line JSX paragraphs the regex couldn't safely span + 5 files where the auto-injected import was placed inside a multi-line `import { ... } from 'lucide-react'` block.
+  * **Verified end-to-end** via BrandFlipTest → yarn build → curl (0 "Addrika" in HTML, "FlipTest" everywhere) → revert → yarn build → verify normal.
+
+- **Intentionally NOT config-driven** (external identifiers): Instagram handle format (`@brand.fragrances` — Instagram username isn't automatic), physical PNG file names in `/public/images/logos/*` (assets stay named as-is; config points at them), URL route paths like `/why-choose-addrika` (renaming URL paths breaks bookmarks + SEO history), internal object property keys (`row.addrika`, `is_addrika_verified_partner`), localStorage keys, CSS classes.
+
+- **Known low-priority items** (not blocking, out of scope):
+  * B2B mirror rows have `price_inr=NULL` (b2b prices are tier-based — mirror stores base rows without pricing). Iter85 flagged as informational.
+  * B2B test retailer credentials `test_b2b_retailer@example.com / Test@12345` are broken → 1 pytest skips permanently. Needs reseed.
+  * Legacy env-fallback URL in `sitemap.js` still references `addrika-fragrances-backend.onrender.com` (only used if `NEXT_PUBLIC_BACKEND_URL` env var is unset).
+
+**Testing**: iteration_79 → iteration_85 all green. Iter85 explicitly proves self-healing via fault-injection tests.
+
+---
+
+### 🧴 Feb 2026 (Iteration 84) — Product cleanup, Aaroviah mobile, one-click brand rename mechanism
+
+**1. Product data cleanup (verified iter79 → iter83)**
+- Removed **"8" Bambooless Dhoop"** (`bambooless-dhoop-8inch`) from Mongo `products` + linked `b2b_products` + Supabase `products_mirror` + default seed + blog references. Iter82 startup migration purges leftovers idempotently.
+- Renamed **"Bilvapatra Fragrance" → "Belpatra"** across B2C storefront, all derived B2B SKUs (`bilvapatra-fragrance-*-b2b`), Supabase mirror, blog topics, and brand-voice prompt. Slug retained for URL stability.
+- Root-cause bug fixes shipped alongside:
+  * `services/supabase_sync.py::_product_row` — B2C products now derive `price_inr` from `sizes[0].mrp` and `stock_pieces` from summed `sizes[*].stock`; also handles `isActive` (camelCase) alongside `is_active`.
+  * `routers/admin/admin_products.py::admin_delete_product` — cascade DELETE now removes linked b2b_products from Mongo AND every `<slug>-<size>-b2b` mirror row from Supabase.
+  * `services/supabase_sync.py::_run` — added per-entity `asyncio.Lock` map (`_entity_locks`) so back-to-back mirror writes for the same `(entity, id)` serialize FIFO. Kills the PUT-then-DELETE race that used to re-materialise deleted rows.
+  * `tests/test_iter74_unified_products.py` now cleans up Mongo + Supabase mirror before AND after each run (`_purge_iter74_product` helper).
+- Verified end-to-end by iterations 79 → 83 (`iteration_79.json` through `iteration_83.json`) — all green.
+
+**2. Mobile shell overhaul — "Aaroviah" branding + login gate + cart + web checkout hand-off**
+- Mobile is now branded **"Aaroviah"** (icon: golden lotus/Ω monogram, generated at 1024×1024 iOS + Android adaptive + splash + favicon). Web/backend still "Addrika". Mobile brand lives in `mobile/lib/brand.ts`, sourced from `app.json → expo.extra.mobileBrandName` so it can be rotated without a rebuild.
+- Login-gated navigation (`mobile/lib/session.ts`): expo-secure-store persists a `{kind, token, displayName, email}` blob. `_layout.tsx::useAuthGate` bounces unauth'd users to `/login` and auth'd users into the home screen.
+- `mobile/app/login.tsx` — tabbed **Customer / Retailer** sign-in.
+  * Customer tab hits `POST /api/auth/login` with `{identifier, password}`.
+  * Retailer tab hits `POST /api/retailer-auth/login` with `{email, password}` (or `{username, password}`).
+  * "New to Aaroviah?" CTA opens **`https://www.centraders.com/login`** (customer signup lives on the web).
+  * "Own a shop?" CTA opens **`https://www.centraders.com/`** (retailer flow starts with the GST-KYC popup on the homepage).
+- `mobile/app/products.tsx` — reads live from Supabase `products_mirror` (channel=b2c, is_active=true), shows real prices + stock counts. Adds "Add" button per product; carted items show quantity indicator.
+- `mobile/app/cart.tsx` (new) — AsyncStorage-backed cart. Line items support qty ± and remove. Footer surfaces `n items · ₹subtotal` and a **"Complete Order on centraders.com →"** button that opens `expo-web-browser` to `/checkout?cart=<encoded>&from=mobile` for customers or `/retailer/b2b/cart?cart=<encoded>&from=mobile` for retailers.
+- `mobile/lib/web.ts` — helper for all deep-links (`openCustomerSignup`, `openRetailerSignup`, `openWebCheckout`). URL sourced from `EXPO_PUBLIC_WEB_URL` env / `app.json → extra.webUrl` (default `https://www.centraders.com`).
+- All interactive elements carry `data-testid` (`login-submit`, `add-to-cart-<id>`, `cart-checkout-btn`, etc.).
+- New icon build pipeline: `mobile/assets/icon.png`, `adaptive-icon.png`, `splash.png`, `favicon.png` generated from `mobile/assets/aaroviah-src.webp`.
+- `npx tsc --noEmit` passes with zero errors.
+
+**3. One-click brand rename mechanism — full frontend-next refactor**
+- Every user-visible "Addrika" reference (~200 hardcoded strings across 43 files) now consumes `BRAND.name` from `frontend-next/lib/brand.config.js`. Batch-migrated via `frontend-next/scripts/refactor_brand.py` (idempotent + fully commented).
+- `brand.config.js` reworked so the entire brand identity (name, tagline, logo alt, monogram, welcome-email subject, support-email body) derives from a single `NAME` const at line 24. **Flip one line to rename everywhere.**
+- **Verified end-to-end**: temporarily set `NAME='BrandFlipTest'`, ran `yarn build`, restarted frontend, and confirmed `curl /` + `curl /faq` returned **zero** "Addrika" references while "BrandFlipTest" appeared everywhere it should. Reverted after test.
+- `next build` output: 90/90 pages compiled successfully, 0 blocking errors.
+- Manual JSX-text fixes for 10 multi-line paragraphs the script's regex couldn't safely handle (about-us, sustainability, community, our-story, register, CSR, Packaging, RetailerFloatingCTA, RetailerPartnershipModal, forgot-username, admin/tree-donations).
+- Backend/`brand.config.py` env vars (`BRAND_NAME`, `BRAND_TAGLINE`) already wired — flip both in one turn to complete a future rebrand.
+
+**Testing**: Iteration reports 79/80/81/82/83 (all green) cover the product data + mirror fixes. Frontend refactor verified via live BrandFlipTest → revert cycle. Mobile TypeScript passes with zero errors; UI needs user's device via Expo Go (agent cannot drive Expo).
+
+---
+
 ### 📱 Feb 2026 (Iteration 84) — Expo Mobile Bootstrap + b2b_low_stock scheduler fix
 
 **1. `b2b_low_stock.py` scheduler f-string bug FIXED**

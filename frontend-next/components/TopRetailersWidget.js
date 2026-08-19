@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Trophy, RefreshCw, ChevronRight, AlertCircle } from 'lucide-react';
 import { authFetch } from '../app/admin/layout';
+import BRAND from '../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -156,7 +157,7 @@ function NudgeButton({ retailer }) {
         maximumFractionDigits: 0,
       }).format(v || 0);
     const msg = encodeURIComponent(
-      `Hi ${retailer.retailer_name}, this is the Addrika team — you're just ${formatINR(
+      `Hi ${retailer.retailer_name}, this is the ${BRAND.name} team — you're just ${formatINR(
         retailer.gap_to_next
       )} away from unlocking a ${retailer.next_milestone.discount_percent}% loyalty bonus this quarter. Place your next order on the portal and the bonus auto-applies on top of any other discounts. 🌿`
     );

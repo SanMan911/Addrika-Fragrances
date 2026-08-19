@@ -1,0 +1,51 @@
+{
+  "summary": "Iter84 MECHANISM test of the one-file brand rename (frontend-next/lib/brand.config.js line 24). Flipped NAME='MechTest' -> yarn build (55s, exit 0) -> restarted frontend -> curled 20 routes: ZERO exact-case 'Addrika' on all routes except /blog (10 hits, come from DB blog post copy, not code) and multiple 'MechTest' hits on every route (/ 56, /faq 205, /about-us 43, /our-story 49, /why-choose-addrika 91). Reverted to NAME='Addrika', rebuilt (exit 0), restarted; 'Addrika' back (/ 62, /faq 205) and ZERO 'MechTest' anywhere. brand.config.js is left at NAME='Addrika' (idempotency requirement satisfied). Playwright smoke on / and /faq confirms visible brand + SEO title driven by BRAND.name and no MechTest residue. Backend regression: /api/products returns 9 products including id=bilvapatra-fragrance name='Belpatra'; /api/products/bambooless-dhoop-8inch -> 404. HOWEVER pytest test_iter82_product_cleanup.py has 3 persistent FAILURES on the Supabase products_mirror (bambooless row still present, price_inr/stock_pieces NULL on 9 b2c rows) - a real regression of iter79/80/82 guarantees, unrelated to the brand refactor.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "Supabase products_mirror (b2c)", "issue": "Row id='bambooless-dhoop-8inch' name='8\" Bambooless Dhoop' still exists in products_mirror (updated_at 2026-08-19T10:10Z) although the product was deleted from MongoDB and /api/products. test_iter82::test_no_bambooless_mirror_rows and ::test_b2c_mirror_rows FAIL. Cascade delete to the mirror is not happening (or a re-sync re-inserts the deleted SKU).", "priority": "CRITICAL"},
+      {"endpoint": "Supabase products_mirror (b2c)", "issue": "9 of 10 b2c mirror rows have price_inr=NULL AND stock_pieces=NULL (regal-rose, yemeni-bakhoor-chips, bold-bakhoor, mystical-meharishi, grated-omani-bakhoor, kesar-chandan, oriental-oudh, royal-kewda, bambooless-dhoop-8inch); only bilvapatra-fragrance is hydrated (110.00/0). Breaks test_iter82::test_regression_price_and_stock_hydrated and test_iter80_cascade_delete::test_active_b2c_rows_have_price_and_stock. iter79/80 hydration fix has regressed.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "pytest parallel execution", "issue": "Running test_iter82_product_cleanup.py together with test_iter80_cascade_delete.py produces 2 extra transient failures (test_no_orphan_b2b_mirror_rows -> mogra-magic-b2b/mogra-magic-200-b2b, test_no_stale_bilvapatra_name_in_mirror). Both pass when iter82 runs alone => iter80's fixture data leaks into iter82 mirror assertions (test isolation issue, not product bug)."},
+      {"endpoint": "products_mirror (b2b)", "issue": "All 16 b2b mirror rows have price_inr=NULL (stock_pieces=0). Not asserted by current tests but likely unintended."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "app/orders/page.js:89, app/account/page.js:63", "issue": "Visible header logo text hardcoded as 'ADDRIKA' (uppercase) - NOT driven by BRAND.name, so it survives the one-click rename.", "selector": "a[href='/'] text 'ADDRIKA'", "priority": "HIGH"},
+      {"component": "components/USPSection.js:81", "issue": "Section eyebrow label hardcoded 'WHY ADDRIKA' - survives rename (still rendered on homepage after flip to MechTest).", "selector": "span:has-text('WHY ADDRIKA')", "priority": "HIGH"},
+      {"component": "components/InstagramFeed.js:38,63,103,114 + components/Footer.js:154", "issue": "Hardcoded '@ADDRIKA.FRAGRANCES' visible text and instagram.com/addrika.fragrances links; brand.config exposes INSTAGRAM_HANDLE='@addrika.official' which is unused and inconsistent with the rendered handle.", "selector": "text=@ADDRIKA.FRAGRANCES", "priority": "MEDIUM"},
+      {"component": "components/NudgeComposerModal.js:342", "issue": "Email preview srcDoc hardcodes <h1>ADDRIKA</h1> - admin nudge email template will keep the old brand after a rename.", "selector": "iframe[srcDoc]", "priority": "MEDIUM"},
+      {"component": "app/layout.js:20 (keywords), :50 twitter creator '@addrika_incense', :155 sameAs instagram URL", "issue": "SEO keywords array still hardcodes 'addrika','addrika fragrances'; twitter:creator and Schema.org sameAs hardcode addrika handles - not driven by BRAND.name.", "selector": "meta[name='keywords']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Product detail page / client-side data fetch (local preview only)", "issue": "Browser-side fetches hit http://localhost:3000/api/* which 404s (no /api rewrite in the local Next server; public preview URL /api/products also returns 404). Result: /products/bilvapatra-fragrance renders the '404 Product Not Found' state, so 'Belpatra' could not be verified in the browser UI (verified directly on backend :8001 instead). Pre-existing env/ingress limitation, also noted in iter82 test header.", "affected_selectors": ["text=Product Not Found"]},
+      {"flow": "Homepage assets", "issue": "Several product images 404: /images/products/{kesar-chandan,regal-rose,bold-bakhoor,oriental-oudh}/*_box_and_10_stick_1200px.png and *_jar_1_1200px.png (also preloaded in <head>), plus https://<preview>/api/impact/trees 404.", "affected_selectors": ["img[src*='/images/products/']"]}
+    ],
+    "design_issues": [
+      {"screen": "SEO copy", "issues": ["app/layout.js:19 description says 'Fragrances by Centsibl Traders' while BRAND.legalName is 'Centraders (India) Private Limited' - conflicting legal/company name in indexed meta description"]},
+      {"screen": "Homepage/meta", "issues": ["Generic phrase 'bambooless dhoop' + Schema.org offer 'Premium Bambooless Dhoop' remain in layout.js; harmless as a category term but verify it is intended after the 8\" Bambooless Dhoop SKU removal"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter82_product_cleanup.py", "/app/backend/tests/test_iter80_cascade_delete.py", "/app/test_reports/pytest/iter84_results.xml"],
+  "action_items": [
+    "Fix Supabase products_mirror: delete the orphan bambooless-dhoop-8inch b2c row and make product deletion cascade to the mirror (or stop the re-sync that reinserts it).",
+    "Re-hydrate price_inr/stock_pieces for the 9 b2c mirror rows (iter79/80 fix regressed); consider a NOT NULL/backfill guard so it cannot silently regress.",
+    "Replace the remaining hardcoded brand literals that survive the flip: 'ADDRIKA' in app/orders/page.js, app/account/page.js, components/USPSection.js, NudgeComposerModal email preview; and addrika handles/keywords in app/layout.js + app/blog/[slug]/page.js + InstagramFeed/Footer (drive from BRAND.name / BRAND.social).",
+    "Isolate iter80 mogra-magic fixture data so it does not break iter82 mirror assertions during parallel pytest runs.",
+    "Fix the 404 product images referenced (and <head>-preloaded) on the homepage."
+  ],
+  "critical_code_review_comments": [
+    "brand.config.js correctly centralises name/logo/copy, but the rename is only complete for exact-case 'Addrika'. Case-variant ('ADDRIKA') and slug/handle variants ('addrika.fragrances', 'addrika_incense', keyword list) are still hardcoded - add BRAND.nameUpper and BRAND.social.instagram and a CI grep guard (case-insensitive) to keep the invariant.",
+    "Rename requires a full `yarn build` because pages are statically prerendered - document this in brand.config.js header so a future operator does not just restart the server.",
+    "Mirror sync appears to be write-only for name fields; price/stock hydration and delete propagation are not covered by the sync path - add an integration test in backend that asserts mirror parity right after product create/update/delete."
+  ],
+  "updated_files": ["/app/frontend-next/lib/brand.config.js (flipped to MechTest then reverted to Addrika - net zero diff)"],
+  "success_rate": {"backend": "86% (18/21 pytest checks; 3 persistent Supabase mirror failures)", "frontend": "90% (rename mechanism works on all routes; ~6 hardcoded brand literals survive)"},
+  "seed_data_creation": "None. No data created; brand.config.js restored to NAME='Addrika' and rebuilt.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin contact.us@centraders.com / 050499 (not exercised this iteration - no admin flow needed for the mechanism test)",
+  "context_for_next_testing_agent": "Rename mechanism is verified working end-to-end (flip line 24 -> yarn build (~55s) -> sudo supervisorctl restart frontend -> curl). Blog page 'Addrika' hits come from MongoDB blog copy, expected. Local browser testing of client-fetch pages is blocked: /api/* is not proxied on :3000 nor on the public preview host, so product detail pages render the 404 state in Playwright - test product data against http://localhost:8001/api directly. Outstanding: Supabase products_mirror regressions (bambooless row + NULL price/stock) and ~6 hardcoded ADDRIKA literals listed in frontend_issues.ui_bugs.",
+  "rca_of_the_issue": "Brand refactor: only case-exact 'Addrika' literals were migrated by scripts/refactor_brand.py, so uppercase 'ADDRIKA' JSX text, social handles and the SEO keywords array were skipped -> they persist after a flip (proved by curling / after NAME='MechTest': 'WHY ADDRIKA' and '@ADDRIKA.FRAGRANCES' still rendered). Mirror regression: bambooless-dhoop-8inch b2c row has updated_at 2026-08-19 (after the iter82 cleanup on 2026-08-17), i.e. a mirror sync re-inserted the deleted SKU with NULL price/stock, and the same sync path wrote NULLs over the previously hydrated price_inr/stock_pieces for the other 8 b2c rows - so the sync payload is missing the price/stock fields rather than the delete simply being missed."
+}

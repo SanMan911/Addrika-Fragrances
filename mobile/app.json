@@ -1,12 +1,14 @@
 {
   "expo": {
-    "name": "Addrika",
-    "slug": "addrika-mobile",
+    "name": "Aaroviah",
+    "slug": "aaroviah-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "addrika",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#1e3a52"
     },
@@ -16,11 +18,16 @@
       "bundleIdentifier": "com.centraders.addrika"
     },
     "android": {
-      "package": "com.centraders.addrika"
+      "package": "com.centraders.addrika",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1e3a52"
+      }
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -32,7 +39,10 @@
     "extra": {
       "supabaseUrl": "",
       "supabaseAnonKey": "",
-      "apiBaseUrl": ""
+      "apiBaseUrl": "",
+      "webUrl": "https://www.centraders.com",
+      "mobileBrandName": "Aaroviah",
+      "mobileBrandTagline": "Sacred Luxury in Every Scent"
     }
   }
 }

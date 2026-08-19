@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from '../context/ThemeContext';
 import { ShoppingBag, ArrowRight, Sparkles } from 'lucide-react';
 
+import BRAND from '../lib/brand.config';
 export default function CTASection() {
   const { isDarkMode } = useTheme();
   const router = useRouter();
@@ -62,7 +63,7 @@ export default function CTASection() {
 
         {/* Subheading */}
         <p className="text-lg sm:text-xl mb-10 text-white/70 max-w-2xl mx-auto">
-          Begin your journey with Addrika's premium zero-charcoal incense. 
+          Begin your journey with {BRAND.name}'s premium zero-charcoal incense. 
           Free shipping on orders above ₹499.
         </p>
 

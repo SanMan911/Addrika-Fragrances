@@ -1,16 +1,17 @@
 import Link from 'next/link';
 import { Award, Leaf, Shield, CheckCircle, Star, Users, Factory, Heart, Droplets, Wind, FlaskConical, Eye } from 'lucide-react';
+import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: 'Our Quality Standards | Premium Incense Craftsmanship | Addrika',
-  description: 'Discover Addrika\'s uncompromising quality standards. Learn about our ethically sourced ingredients, artisan craftsmanship, rigorous testing, and the traditional techniques behind our premium zero-charcoal incense sticks.',
+  title: `Our Quality Standards | Premium Incense Craftsmanship | ${BRAND.name}`,
+  description: `Discover ${BRAND.name}\'s uncompromising quality standards. Learn about our ethically sourced ingredients, artisan craftsmanship, rigorous testing, and the traditional techniques behind our premium zero-charcoal incense sticks.`,
   keywords: [
-    'addrika quality', 'premium incense quality', 'ethical incense ingredients', 'artisan incense',
+    `${BRAND.name.toLowerCase()} quality`, 'premium incense quality', 'ethical incense ingredients', 'artisan incense',
     'handcrafted agarbatti', 'incense quality standards', 'pure essential oils incense',
     'chemical-free incense', 'traditional incense making', 'incense craftsmanship'
   ],
   openGraph: {
-    title: 'Our Quality Standards | Addrika Premium Incense',
+    title: `Our Quality Standards | ${BRAND.name} Premium Incense`,
     description: 'Uncompromising quality in every stick. Ethically sourced ingredients, artisan crafted.',
     url: 'https://centraders.com/our-quality',
     type: 'website',
@@ -26,11 +27,11 @@ function ArticleSchema() {
         __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Article",
-          "headline": "Addrika Quality Standards: The Art of Premium Incense",
-          "description": "Comprehensive guide to Addrika's quality standards, ethically sourced ingredients, and traditional craftsmanship",
+          "headline": `${BRAND.name} Quality Standards: The Art of Premium Incense`,
+          "description": `Comprehensive guide to ${BRAND.name}'s quality standards, ethically sourced ingredients, and traditional craftsmanship`,
           "author": {
             "@type": "Organization",
-            "name": "Addrika Fragrances",
+            "name": `${BRAND.name} Fragrances`,
             "url": "https://centraders.com"
           },
           "publisher": {
@@ -38,7 +39,7 @@ function ArticleSchema() {
             "name": "Centsibl Traders Private Limited",
             "logo": {
               "@type": "ImageObject",
-              "url": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
+              "url": BRAND.logo.logoUrlAbs
             }
           },
           "datePublished": "2026-01-01",
@@ -55,7 +56,7 @@ export default function OurQualityPage() {
     {
       icon: Leaf,
       title: "Ethically Sourced Ingredients",
-      description: "Every component in Addrika incense is ethically sourced. Pure essential oils, flower dust, resins, and aromatic herbs - never synthetic fragrances or harmful chemicals.",
+      description: `Every component in ${BRAND.name} incense is ethically sourced. Pure essential oils, flower dust, resins, and aromatic herbs - never synthetic fragrances or harmful chemicals.`,
       details: [
         "Pure sandalwood, rose, oudh, and bakhoor essential oils",
         "Flower dust as the base material",
@@ -66,7 +67,7 @@ export default function OurQualityPage() {
     {
       icon: Factory,
       title: "Artisan Craftsmanship",
-      description: "Each Addrika incense stick is carefully crafted by skilled artisans using traditional techniques perfected over generations in India.",
+      description: `Each ${BRAND.name} incense stick is carefully crafted by skilled artisans using traditional techniques perfected over generations in India.`,
       details: [
         "Crafted by experienced artisans in India",
         "Traditional techniques preserved for quality",
@@ -173,7 +174,7 @@ export default function OurQualityPage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="text-[#2B3A4A] font-bold text-xl">
-            <span className="text-[#D4AF37]">Addrika</span> Fragrances
+            <span className="text-[#D4AF37]">{`${BRAND.name}`}</span> Fragrances
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link href="/#fragrances" className="hover:text-[#D4AF37]">Products</Link>
@@ -195,7 +196,7 @@ export default function OurQualityPage() {
               Our Quality Standards
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              At Addrika, quality isn&apos;t just a promise—it&apos;s the foundation of everything we create. 
+              At ${BRAND.name}, quality isn&apos;t just a promise—it&apos;s the foundation of everything we create. 
               Discover what makes our incense truly premium.
             </p>
           </div>
@@ -220,10 +221,10 @@ export default function OurQualityPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              The Four Pillars of Addrika Quality
+              The Four Pillars of ${BRAND.name} Quality
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              Every Addrika incense stick is built on these uncompromising principles
+              Every ${BRAND.name} incense stick is built on these uncompromising principles
             </p>
             
             <div className="grid md:grid-cols-2 gap-8">
@@ -281,7 +282,7 @@ export default function OurQualityPage() {
               Our Quality Commitments
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              What we promise to never use in any Addrika product
+              What we promise to never use in any ${BRAND.name} product
             </p>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -307,7 +308,7 @@ export default function OurQualityPage() {
                 The Artisans Behind Our Incense
               </h2>
               <p className="text-gray-300 max-w-2xl mx-auto">
-                Every Addrika incense stick is crafted by skilled artisans who have dedicated their lives 
+                Every ${BRAND.name} incense stick is crafted by skilled artisans who have dedicated their lives 
                 to perfecting this ancient craft using traditional techniques refined in India
               </p>
             </div>
@@ -388,13 +389,13 @@ export default function OurQualityPage() {
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              Learn More About Addrika
+              Learn More About ${BRAND.name}
             </h2>
             <div className="grid sm:grid-cols-3 gap-6">
               <Link href="/ingredients" className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
                 <Leaf className="w-10 h-10 text-[#D4AF37] mb-4" />
                 <h3 className="font-semibold text-[#2B3A4A] mb-2 group-hover:text-[#D4AF37] transition-colors">Our Ingredients</h3>
-                <p className="text-sm text-gray-600">Discover the ethically sourced ingredients in every Addrika incense stick</p>
+                <p className="text-sm text-gray-600">{`Discover the ethically sourced ingredients in every ${BRAND.name} incense stick`}</p>
               </Link>
               <Link href="/why-zero-charcoal" className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
                 <Wind className="w-10 h-10 text-[#D4AF37] mb-4" />
@@ -414,7 +415,7 @@ export default function OurQualityPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif mb-4">
-              Experience Addrika Quality
+              Experience ${BRAND.name} Quality
             </h2>
             <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
               Try our premium incense and feel the difference that uncompromising quality makes
@@ -440,7 +441,7 @@ export default function OurQualityPage() {
       {/* Footer */}
       <footer className="bg-[#1a252f] text-white py-12 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-[#D4AF37] font-bold text-xl mb-2">Addrika Fragrances</p>
+          <p className="text-[#D4AF37] font-bold text-xl mb-2">{`${BRAND.name} Fragrances`}</p>
           <p className="text-sm text-gray-400">Uncompromising Quality in Every Stick</p>
           <p className="text-sm text-gray-400 mt-2">© 2026 Centsibl Traders Private Limited</p>
         </div>

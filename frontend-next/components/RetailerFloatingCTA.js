@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Handshake, Download, X, FileText, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import RetailerPartnershipModal from './RetailerPartnershipModal';
+import BRAND from '../lib/brand.config';
 
 const HIDDEN_PREFIXES = [
   '/find-retailers',
@@ -55,7 +56,7 @@ export default function RetailerFloatingCTA() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'Addrika-Brochure.pdf';
+      a.download = `${BRAND.name}-Brochure.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -108,7 +109,7 @@ export default function RetailerFloatingCTA() {
                 FOR BUSINESS
               </div>
               <div className="text-white text-base font-semibold leading-tight mt-0.5">
-                Stock Addrika at your store
+                Stock {BRAND.name} at your store
               </div>
               <div className="text-[11px] text-white/60 mt-1 leading-snug">
                 Wholesale, GST-verified onboarding, dedicated SPOC.

@@ -7,6 +7,7 @@ import { Store, Eye, EyeOff, Lock, User, CheckCircle2, ChevronDown } from 'lucid
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
 import { titleCase, lowerEmail, COUNTRY_CODES, GST_REGEX, normalizeGstInput } from '../../../lib/formHelpers';
+import BRAND from '../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -116,14 +117,14 @@ function WaitlistComingSoon() {
           </div>
           <h1 className="text-2xl font-bold text-[#2B3A4A] mb-2">You&apos;re on the list!</h1>
           <p className="text-gray-600 mb-5">
-            Thank you for your interest in becoming an Addrika retail partner.
+            Thank you for your interest in becoming an ${BRAND.name} retail partner.
             Our team will review your details and reach out shortly.
           </p>
           <Link
             href="/"
             className="inline-block px-5 py-2.5 rounded-lg bg-[#2B3A4A] text-white font-medium hover:bg-[#1e3a52]"
           >
-            Back to Addrika
+            Back to ${BRAND.name}
           </Link>
         </div>
       </div>
@@ -306,12 +307,12 @@ function WaitlistComingSoon() {
             {submitting ? 'Submitting…' : 'Join the Waitlist'}
           </button>
           <p className="text-xs text-center text-gray-500">
-            By submitting you agree to be contacted by the Addrika team at
+            By submitting you agree to be contacted by the ${BRAND.name} team at
             contact.us@centraders.com.
           </p>
           <div className="text-center">
             <Link href="/" className="text-sm text-[#2B3A4A] underline hover:text-[#D4AF37]">
-              Back to Addrika
+              Back to ${BRAND.name}
             </Link>
           </div>
         </form>
@@ -459,7 +460,7 @@ export default function RetailerLoginPage() {
         </div>
         {/* Footer */}
         <div className="mt-8 pt-6 border-t text-center">
-          <p className="text-xs text-gray-500">Addrika Retailer Portal</p>
+          <p className="text-xs text-gray-500">{`${BRAND.name} Retailer Portal`}</p>
           <Link href="/" className="text-xs text-[#D4AF37] hover:underline">
             Visit Main Store
           </Link>

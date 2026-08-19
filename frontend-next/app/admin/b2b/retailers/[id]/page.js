@@ -7,6 +7,7 @@ import {
   ArrowLeft, Receipt, Headset, Package, Upload, Download, Trash2,
   Send, Paperclip, X, RefreshCw
 } from 'lucide-react';
+import BRAND from '../../../../../lib/brand.config';
 import { toast } from 'sonner';
 import { authFetch } from '../../../layout';
 
@@ -192,7 +193,7 @@ function OrdersPanel({ retailerId }) {
   };
 
   const emailInvoiceToAdmin = async (orderId) => {
-    if (!confirm(`Email tax invoice PDF for ${orderId} to Addrika ops inbox?`)) return;
+    if (!confirm(`Email tax invoice PDF for ${orderId} to ${BRAND.name} ops inbox?`)) return;
     try {
       const res = await authFetch(
         `${API_URL}/api/admin/b2b/orders/${orderId}/email-to-admin`,
@@ -321,7 +322,7 @@ function OrdersPanel({ retailerId }) {
                     onClick={() => emailInvoiceToAdmin(o.order_id)}
                     className="px-2 py-0.5 text-[11px] rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                     data-testid={`invoice-email-admin-${o.order_id}`}
-                    title="Re-send invoice PDF to Addrika ops inbox"
+                    title={`Re-send invoice PDF to ${BRAND.name} ops inbox`}
                   >
                     → Admin
                   </button>
@@ -687,7 +688,7 @@ function MessagesPanel({ retailerId }) {
                   }`}
                 >
                   <p className="text-[11px] opacity-70 mb-1">
-                    {mine ? 'Addrika Team' : m.sender_name || 'Retailer'} ·{' '}
+                    {mine ? '${BRAND.name} Team' : m.sender_name || 'Retailer'} ·{' '}
                     {formatDateTime(m.created_at)}
                   </p>
                   <p className="whitespace-pre-wrap break-words">{m.message}</p>

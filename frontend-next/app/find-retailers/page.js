@@ -4,6 +4,7 @@ import { Store, MapPin, Mail, Navigation, Building2, Download } from 'lucide-rea
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import PartnershipCTAButton from '../../components/PartnershipCTAButton';
+import BRAND from '../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -30,21 +31,21 @@ const RetailerMap = dynamic(() => import('../../components/RetailerMap'), {
 });
 
 export const metadata = {
-  title: 'Find Addrika Retailers | Authorized Stores in Delhi & Bihar | Store Locator',
-  description: 'Find authorized Addrika premium incense retailers. Visit M.G. Shoppie in Dwarka, Delhi or Mela Stores in Bhagalpur, Bihar. Get directions, phone numbers, and store details.',
+  title: `Find ${BRAND.name} Retailers | Authorized Stores in Delhi & Bihar | Store Locator`,
+  description: `Find authorized ${BRAND.name} premium incense retailers. Visit M.G. Shoppie in Dwarka, Delhi or Mela Stores in Bhagalpur, Bihar. Get directions, phone numbers, and store details.`,
   keywords: [
-    'addrika retailers', 
+    `${BRAND.name.toLowerCase()} retailers`, 
     'incense store near me', 
     'buy agarbatti delhi', 
     'premium incense stores india', 
-    'addrika dealers',
+    `${BRAND.name.toLowerCase()} dealers`,
     'M.G. Shoppie Dwarka',
     'Mela Stores Bhagalpur',
-    'addrika store locator',
+    `${BRAND.name.toLowerCase()} store locator`,
     'buy dhoop near me'
   ],
   openGraph: {
-    title: 'Find Addrika Retailers Near You | Store Locator',
+    title: `Find ${BRAND.name} Retailers Near You | Store Locator`,
     description: 'Visit our authorized retailers in Delhi (M.G. Shoppie, Dwarka) and Bihar (Mela Stores, Bhagalpur) to experience premium incense in person.',
     url: 'https://centraders.com/find-retailers',
     type: 'website',
@@ -88,7 +89,7 @@ function RetailersStructuredData({ retailers }) {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "name": retailer.business_name,
-    "description": `Authorized Addrika retailer selling premium zero-charcoal incense, agarbatti, and dhoop`,
+    "description": `Authorized ${BRAND.name} retailer selling premium zero-charcoal incense, agarbatti, and dhoop`,
     "address": {
       "@type": "PostalAddress",
       "streetAddress": retailer.address,
@@ -110,7 +111,7 @@ function RetailersStructuredData({ retailers }) {
     "sameAs": ["https://centraders.com"],
     "parentOrganization": {
       "@type": "Organization",
-      "name": "Addrika by Centsibl Traders",
+      "name": "${BRAND.name} by Centsibl Traders",
       "url": "https://centraders.com"
     }
   }));
@@ -119,8 +120,8 @@ function RetailersStructuredData({ retailers }) {
   const storeLocatorSchema = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Find Addrika Retailers",
-    "description": "Locate authorized Addrika incense retailers across India",
+    "name": "Find ${BRAND.name} Retailers",
+    "description": "Locate authorized ${BRAND.name} incense retailers across India",
     "url": "https://centraders.com/find-retailers",
     "mainEntity": {
       "@type": "ItemList",
@@ -176,7 +177,7 @@ export default async function FindRetailersPage() {
               className="text-4xl sm:text-5xl font-bold mb-6 text-white"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-              Find Addrika Retailers
+              Find ${BRAND.name} Retailers
             </h1>
             <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
               Visit our authorized retailers to experience premium zero-charcoal incense in person. 
@@ -315,7 +316,7 @@ export default async function FindRetailersPage() {
                                   color: '#1a1a2e',
                                   boxShadow: '0 2px 10px rgba(212,175,55,0.3)',
                                 }}
-                                title="Verified Addrika partner — certified & audited"
+                                title={`Verified ${BRAND.name} partner — certified & audited`}
                               >
                                 <span
                                   className="inline-block w-3.5 h-3.5 rounded-full flex items-center justify-center"
@@ -363,7 +364,7 @@ export default async function FindRetailersPage() {
                             {/* WhatsApp Button */}
                             {retailer.phone && (
                               <a
-                                href={`https://wa.me/91${retailer.phone}?text=${encodeURIComponent("Hi, I'm interested in Addrika Fragrances")}`}
+                                href={`https://wa.me/91${retailer.phone}?text=${encodeURIComponent("Hi, I'm interested in ${BRAND.name} Fragrances")}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all hover:scale-105"
@@ -422,7 +423,7 @@ export default async function FindRetailersPage() {
                 className="text-2xl sm:text-3xl font-bold mb-4 text-white"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                Become an Addrika Retailer
+                Become an {BRAND.name} Retailer
               </h2>
               <p className="text-gray-300 mb-6 max-w-lg mx-auto">
                 Join our growing network of authorized retailers and bring premium 

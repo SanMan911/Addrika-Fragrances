@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, ArrowLeft, CheckCircle, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
+import BRAND from '../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -122,8 +123,8 @@ export default function AdminForgotPasswordPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <img 
-              src="/images/logos/addrika-brand-name-gold-transparent.png" 
-              alt="Addrika" 
+              src={BRAND.logo.srcBrandNameGoldTransparent} 
+              alt={`${BRAND.name}`} 
               className="h-10 w-auto"
               style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
             />

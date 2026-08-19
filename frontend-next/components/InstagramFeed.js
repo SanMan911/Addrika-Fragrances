@@ -2,6 +2,7 @@
 
 import { useTheme } from '../context/ThemeContext';
 import { Instagram, ExternalLink } from 'lucide-react';
+import BRAND from '../lib/brand.config';
 
 // Sample Instagram posts - in production, these would come from Instagram API
 const instagramPosts = [
@@ -34,7 +35,7 @@ export default function InstagramFeed() {
               className="text-sm font-medium tracking-wider"
               style={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'var(--text-subtle)' }}
             >
-              @ADDRIKA.FRAGRANCES
+              {BRAND.social.instagramHandleUpper}
             </span>
           </div>
           <h2 
@@ -59,7 +60,7 @@ export default function InstagramFeed() {
           {instagramPosts.map((post) => (
             <a
               key={post.id}
-              href="https://instagram.com/addrika.fragrances"
+              href={BRAND.social.instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="group relative aspect-square rounded-xl overflow-hidden"
@@ -71,7 +72,7 @@ export default function InstagramFeed() {
             >
               <img 
                 src={post.image}
-                alt="Addrika Instagram"
+                alt={`${BRAND.name} Instagram`}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
               
@@ -99,7 +100,7 @@ export default function InstagramFeed() {
         {/* Follow Button */}
         <div className="text-center mt-10">
           <a
-            href="https://instagram.com/addrika.fragrances"
+            href={BRAND.social.instagramUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold transition-all hover:-translate-y-1"
@@ -110,7 +111,7 @@ export default function InstagramFeed() {
             }}
           >
             <Instagram size={20} />
-            Follow @addrika.fragrances
+            Follow {BRAND.social.instagramHandle}
           </a>
         </div>
       </div>

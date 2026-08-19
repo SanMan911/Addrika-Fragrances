@@ -2,10 +2,11 @@ import Link from 'next/link';
 import { Shield } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: 'Privacy Policy | Addrika by Centsibl Traders',
-  description: 'Read Addrika\'s privacy policy. Learn how we collect, use, and protect your personal information when you shop for premium incense products.',
+  title: `Privacy Policy | ${BRAND.name} by Centsibl Traders`,
+  description: `Read ${BRAND.name}\'s privacy policy. Learn how we collect, use, and protect your personal information when you shop for premium incense products.`,
   robots: { index: true, follow: true },
 };
 

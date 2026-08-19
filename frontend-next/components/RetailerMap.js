@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, ExternalLink, Store } from 'lucide-react';
+import BRAND from '../lib/brand.config';
 
 const MAPPLS_KEY = process.env.NEXT_PUBLIC_MAPPLS_MAP_SDK_KEY || '';
 
@@ -180,7 +181,7 @@ export default function RetailerMap({ retailers }) {
         const popupHtml = `
           <div style="font-family:'Segoe UI',Arial,sans-serif;min-width:220px;max-width:260px;color:#1a1a2e;">
             <div style="font-weight:700;font-size:15px;margin-bottom:4px;color:#1a1a2e;">${escapeHtml(
-              r.business_name || 'Addrika Retailer'
+              r.business_name || '${BRAND.name} Retailer'
             )}</div>
             <div style="font-size:12px;color:#4b5563;line-height:1.4;">
               ${escapeHtml(r.address || '')}${r.address ? ',<br/>' : ''}
@@ -200,7 +201,7 @@ export default function RetailerMap({ retailers }) {
                   ? `<a href="https://wa.me/91${
                       r.phone
                     }?text=${encodeURIComponent(
-                      "Hi, I'm interested in Addrika Fragrances"
+                      `Hi, I'm interested in ${BRAND.name} Fragrances`
                     )}" target="_blank" rel="noopener noreferrer"
                        style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;">
                        WhatsApp

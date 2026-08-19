@@ -2,11 +2,12 @@ import Link from 'next/link';
 import { Heart, Target, Leaf, Award, Users, TrendingUp } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: 'About Us | Centsibl Traders - Addrika Premium Incense Manufacturer',
-  description: 'Centsibl Traders Private Limited - A purpose-driven Indian enterprise creating Addrika premium incense. Built on ethical trade, inclusive growth, and responsible entrepreneurship.',
-  keywords: ['centsible traders', 'addrika manufacturer', 'incense company india', 'ethical incense brand', 'premium agarbatti company'],
+  title: `About Us | Centsibl Traders - ${BRAND.name} Premium Incense Manufacturer`,
+  description: `Centsibl Traders Private Limited - A purpose-driven Indian enterprise creating ${BRAND.name} premium incense. Built on ethical trade, inclusive growth, and responsible entrepreneurship.`,
+  keywords: ['centsible traders', `${BRAND.name.toLowerCase()} manufacturer`, 'incense company india', 'ethical incense brand', 'premium agarbatti company'],
   openGraph: {
     title: 'About Us | Centsibl Traders',
     description: 'A purpose-driven Indian enterprise creating premium ethically sourced incense.',
@@ -102,7 +103,7 @@ export default function AboutUsPage() {
                   while providing fair opportunities for artisans across India.
                 </p>
                 <p className="text-gray-300 leading-relaxed">
-                  Through Addrika, our flagship incense brand, we bring the sacred art of 
+                  Through {BRAND.name}, our flagship incense brand, we bring the sacred art of 
                   fragrance to modern homes while supporting sustainable practices and 
                   empowering local communities.
                 </p>
@@ -189,7 +190,7 @@ export default function AboutUsPage() {
                 className="text-3xl font-bold text-white mb-4"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                Experience the Addrika Difference
+                Experience the {BRAND.name} Difference
               </h2>
               <p className="text-gray-300 mb-8">
                 Discover our collection of premium incense, crafted with care and tradition.

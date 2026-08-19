@@ -1,0 +1,37 @@
+{
+  "summary": "Verified DELETE /api/admin/products/{id} cascade fix. 2/3 regression tests pass. Cascade DELETE endpoint is CORRECT and complete: Mongo products + Mongo b2b_products cleared, Supabase products_mirror b2c row + both b2b SKU rows cleared, response shape {'message','id','b2b_skus_deleted':2} verified. Regression #3 (active B2C rows have price+stock) still holds — 16+ rows healthy. HOWEVER — the iter74 test itself still leaks exactly one mirror row (`test-iter74-product-200g-b2b`) after every run. Root cause is NOT the DELETE endpoint anymore — it is a race between fire-and-forget Supabase mirror tasks scheduled by PUT (upsert) vs DELETE (delete). Both endpoints use `loop.create_task(_run(...))` with no per-entity serialization, so when PUT then DELETE fire back-to-back, the tail-of-queue upsert-200g task can execute AFTER the delete-200g task, re-materializing the row.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "services/supabase_sync.py::mirror_product_upsert / mirror_product_delete",
+        "issue": "Fire-and-forget `loop.create_task(_run(...))` has no per-entity FIFO. When admin PUT and DELETE fire back-to-back, the DELETE's async delete task can execute BEFORE the PUT's upsert task on the SAME product_id, causing the row to be re-upserted after deletion. Reproducible: iter74 test (POST -> PUT -> DELETE) leaks `test-iter74-product-200g-b2b` on every run even with 3s settle. My cleaner cascade test (POST -> DELETE, no PUT) always passes. Recommended fix: serialize `_run` by entity_id via an asyncio.Lock dict, or drop pending upserts for a doc_id when a delete for the same id is enqueued."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter80_cascade_delete.py",
+    "/app/test_reports/pytest/iter80_cascade_delete.xml"
+  ],
+  "action_items": [
+    "Add per-entity_id serialization in services/supabase_sync.py::_run — e.g., a module-level `dict[str, asyncio.Lock]` keyed by f'{entity}:{entity_id}' so upsert+delete for the same product_id can't interleave.",
+    "Alternatively: on delete, first `await` any pending upsert task for the same id, OR record a tombstone that suppresses subsequent upserts for a short window (e.g., 5s).",
+    "Once race is fixed, re-run iter74::test_unified_product_create_and_update; the trailing `test-iter74-product-200g-b2b` mirror row should no longer appear."
+  ],
+  "critical_code_review_comments": [
+    "admin_products.py::admin_delete_product cascade implementation is CORRECT — collects b2b SKU ids from Mongo first, deletes Mongo docs, then fires mirror deletes for b2c id + each b2b SKU id. Response shape matches spec: {message, id, b2b_skus_deleted:N}.",
+    "services/supabase_sync.py schedules every mirror op as an independent asyncio task with no per-doc FIFO — this makes rapid POST/PUT/DELETE sequences on the same product race. Fix by adding per-key async locks in _run().",
+    "test_iter74_unified_products.py::_purge_iter74_product's async cleanup on the shared cached engine still silently fails (`except Exception: pass`), but with the DELETE cascade in place the failure no longer matters for `test-iter74-product-50g-b2b` (deleted by cascade) — only the raced 200g row survives."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter80_cascade_delete.py (new)"
+  ],
+  "success_rate": {"backend": "67% (2/3 iter80 regression tests pass; the cascade DELETE endpoint itself is 100% correct — the failing test detects a separate mirror-sync race)", "frontend": "not tested (backend-only)"},
+  "test_credentials": "admin: contact.us@centraders.com / 050499",
+  "seed_data_creation": "Created + torn down `test-cascade-<uuid>` products. Manually purged 1 leaked `test-iter74-product-200g-b2b` mirror row at end.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The cascade DELETE endpoint is CORRECT. The remaining leak is a race in services/supabase_sync.py fire-and-forget mirror tasks (no per-entity FIFO). Use /app/backend/tests/test_iter80_cascade_delete.py — test_delete_cascades_b2b_products_and_mirror is the clean regression guard (passes). test_iter74_run_leaves_no_mirror_orphans reproduces the race (fails). Fix must land in supabase_sync.py::_run, not in admin_products.py.",
+  "rca_of_the_issue": "1) DELETE cascade requirement: FULLY FIXED in admin_products.py — endpoint deletes Mongo products + b2b_products + Supabase b2c mirror row + each b2b SKU mirror row and returns correct b2b_skus_deleted count. 2) iter74 mirror orphan: PARTIALLY FIXED — 2 of 3 orphans now cleaned automatically; the last surviving row (`test-iter74-product-200g-b2b`) is caused by an unordered fire-and-forget race in supabase_sync.py::_run where PUT's upsert task for the tail size can complete AFTER DELETE's delete task for the same id. Requires per-entity serialization in _run(), not another change in admin_products.py."
+}
