@@ -13,6 +13,29 @@ You now have everything on the Emergent side:
 >
 > **Preview build API endpoint**: `https://addrika-fragrances-backend.onrender.com` (production Render backend, HTTPS, publicly reachable). Do **not** point mobile at the ephemeral `*.preview.emergentagent.com` — that URL rotates when the container restarts.
 
+> ### ⚠️ If EAS says `slug 'aaroviah-mobile' does not match 'addrika-mobile'` — this is why
+> The local `app.json` was renamed from **Addrika → Aaroviah** during the mobile rebrand (slug: `aaroviah-mobile`). But the Expo project tied to `projectId f152117c-57fb-4506-a44a-7c53d1043dd3` was originally created under the old slug `addrika-mobile`, so EAS refuses the build.
+>
+> Pick **one** of the two fixes below:
+>
+> **Fix A — rename the Expo project (recommended, keeps projectId & any build history)**
+> 1. Open [expo.dev/accounts/{you}/projects/addrika-mobile/settings](https://expo.dev)
+> 2. Under **General → Slug**, change `addrika-mobile` → `aaroviah-mobile`
+> 3. Also update the **Name** field to `Aaroviah` while you're there
+> 4. Save
+> 5. Re-run `eas build --profile preview --platform android` — no local changes needed
+>
+> **Fix B — start fresh on Expo (creates a new project, discards old builds)**
+> 1. In `mobile/app.json`, clear the projectId:
+>    ```json
+>    "eas": { "projectId": "" }
+>    ```
+> 2. Run `eas init` → it will prompt: *"Create a project @<you>/aaroviah-mobile?"* → **Y**
+> 3. It writes the fresh projectId back into `app.json`
+> 4. Commit that (via the **Save to GitHub** button in Emergent, or manually: `git add mobile/app.json && git commit && git push`)
+> 5. Optional: delete the orphaned `addrika-mobile` project from expo.dev
+> 6. Run `eas build --profile preview --platform android`
+
 ## What you'll do on your Windows machine
 
 Time: ~15 minutes for `eas init`, then ~15-25 minutes for the first cloud build.

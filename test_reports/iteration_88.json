@@ -1,0 +1,21 @@
+{
+  "summary": "Mini-iteration 88 verification: (1) /app/mobile/app.json fully Aaroviah-aligned (name=Aaroviah, slug=aaroviah-mobile, scheme=aaroviah, android.package & ios.bundleIdentifier=com.centraders.aaroviah, extra.eas.projectId=f152117c-57fb-4506-a44a-7c53d1043dd3) — no 'addrika' identifiers (only apiBaseUrl host addrika-fragrances-backend.onrender.com, which is the intentional Render backend host). (2) eas.json has exactly development/preview/production profiles, each with the 4 EXPO_PUBLIC_* env passthroughs. (3) EAS_BUILD_GUIDE.md contains the troubleshooting callout with the exact substring \"slug 'aaroviah-mobile' does not match 'addrika-mobile'\" plus Fix A (rename the Expo project) and Fix B (start fresh on Expo / eas init). (4) cart.tsx still has Pressable testID='cart-share-whatsapp-btn' wired to shareCartOnWhatsApp from '../lib/web'; lib/web.ts exports shareCartOnWhatsApp(lines, brandName, subtotal) and buildShareableCartUrl building `${WEB_URL}/cart?cart=...&from=mobile-share` with wa.me fallback. (5) mobile typecheck (tsc --noEmit) exit 0. (6) yarn brand-audit exit 0 (0 hardcoded Addrika refs, 143 files). (7) GET /api/app/config -> schema_version='2' with retailer_tier_perks keys novice/bronze/silver/gold; /api/app/manifest also includes all four. (8) Browser regression on preview /cart?cart=...&from=mobile-share with cleared localStorage: both Kesar Chandan 50g x2 and Regal Rose 200g x1 render (subtotal Rs. 622, badge=3), URL cleaned to /cart (cart/from params stripped), cart persisted in localStorage addrika_cart and survives reload.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "InstagramFeed (frontend-next homepage)", "issue": "6 hardcoded image paths 404 (e.g. /images/products/kesar-chandan/kc_box_and_10_stick_1200px.png). public/images/products only contains regal-rose/regal-rose-{1,2,3}.png. Pre-existing, unrelated to this iteration, but produces 6 console 404s and broken tiles on the homepage.", "selector": "components/InstagramFeed.js", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": ["Optional (pre-existing): fix or replace the 6 missing InstagramFeed product image paths in /app/frontend-next/components/InstagramFeed.js", "Slug mismatch fix itself is user-side Expo dashboard action as documented — no code change needed"],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 8 requested checks passed. Note: /cart page never reaches networkidle (GA + polling), use wait_until='domcontentloaded' + explicit timeout in Playwright. Known pre-existing homepage 404s: 6 InstagramFeed product images missing from frontend-next/public/images/products.",
+  "rca_of_the_issue": "EAS slug mismatch is server-side: Expo project f152117c... was registered under old slug addrika-mobile while local app.json uses aaroviah-mobile. Local config is correct; resolution requires renaming the slug on expo.dev or re-running eas init after clearing projectId — both paths now documented in mobile/EAS_BUILD_GUIDE.md."
+}
