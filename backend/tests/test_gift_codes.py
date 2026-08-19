@@ -15,7 +15,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://incense-rewards.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://fragrance-rewards.preview.emergentagent.com')
 
 # Admin credentials
 ADMIN_EMAIL = "contact.us@centraders.com"
