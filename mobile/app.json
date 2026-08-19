@@ -4,7 +4,7 @@
     "slug": "aaroviah-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "addrika",
+    "scheme": "aaroviah",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/icon.png",
     "splash": {
@@ -15,10 +15,11 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.centraders.addrika"
+      "bundleIdentifier": "com.centraders.aaroviah"
     },
     "android": {
-      "package": "com.centraders.addrika",
+      "package": "com.centraders.aaroviah",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1e3a52"
@@ -42,7 +43,10 @@
       "apiBaseUrl": "",
       "webUrl": "https://www.centraders.com",
       "mobileBrandName": "Aaroviah",
-      "mobileBrandTagline": "Sacred Luxury in Every Scent"
+      "mobileBrandTagline": "Sacred Luxury in Every Scent",
+      "eas": {
+        "projectId": ""
+      }
     }
   }
 }
