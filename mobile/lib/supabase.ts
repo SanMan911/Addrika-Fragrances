@@ -11,15 +11,37 @@ import Constants from 'expo-constants';
  * The anon key is public by design (it's protected by Row-Level Security
  * policies on the Postgres side) so it's fine to bundle in the app.
  */
-const supabaseUrl =
-  process.env.EXPO_PUBLIC_SUPABASE_URL ||
-  (Constants.expoConfig?.extra?.supabaseUrl as string) ||
-  '';
+/**
+ * Guard against EAS interpolating an unresolved template string
+ * (e.g. `"$EXPO_PUBLIC_SUPABASE_URL"` when the matching EAS secret
+ * doesn't exist) into `process.env`. Anything that isn't a real
+ * https URL for the URL, or a non-empty non-`$`-prefixed string for
+ * the key, is treated as empty so `Constants.expoConfig.extra.*`
+ * fallbacks from app.json win.
+ */
+function pickHttps(...candidates: (string | undefined | null)[]): string {
+  for (const c of candidates) {
+    if (typeof c === 'string' && /^https:\/\//i.test(c)) return c;
+  }
+  return '';
+}
 
-const supabaseAnonKey =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  (Constants.expoConfig?.extra?.supabaseAnonKey as string) ||
-  '';
+function pickKey(...candidates: (string | undefined | null)[]): string {
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.length > 0 && !c.startsWith('$')) return c;
+  }
+  return '';
+}
+
+const supabaseUrl = pickHttps(
+  process.env.EXPO_PUBLIC_SUPABASE_URL,
+  Constants.expoConfig?.extra?.supabaseUrl as string | undefined,
+);
+
+const supabaseAnonKey = pickKey(
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  Constants.expoConfig?.extra?.supabaseAnonKey as string | undefined,
+);
 
 if (!supabaseUrl || !supabaseAnonKey) {
   // eslint-disable-next-line no-console

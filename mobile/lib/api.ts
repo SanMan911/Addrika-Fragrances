@@ -6,10 +6,25 @@ import Constants from 'expo-constants';
  * Render backend. MongoDB is the source of truth; the backend fires
  * asyncio dual-writes down to Supabase.
  */
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  (Constants.expoConfig?.extra?.apiBaseUrl as string) ||
-  '';
+
+/**
+ * Guard against EAS interpolating an unresolved template string
+ * (e.g. the literal `"$EXPO_PUBLIC_API_BASE_URL"` when the matching
+ * EAS secret does not exist) into `process.env`. Anything that
+ * doesn't look like an http(s) URL is treated as empty so the
+ * `Constants.expoConfig.extra.*` fallback in app.json wins.
+ */
+function pickUrl(...candidates: (string | undefined | null)[]): string {
+  for (const c of candidates) {
+    if (typeof c === 'string' && /^https?:\/\//i.test(c)) return c;
+  }
+  return '';
+}
+
+const API_BASE_URL = pickUrl(
+  process.env.EXPO_PUBLIC_API_BASE_URL,
+  Constants.expoConfig?.extra?.apiBaseUrl as string | undefined,
+);
 
 if (!API_BASE_URL) {
   // eslint-disable-next-line no-console

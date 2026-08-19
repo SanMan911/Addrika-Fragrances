@@ -1,0 +1,28 @@
+{
+  "summary": "Scoped verification of the mobile 'Network request failed' login hotfix. Created /app/backend/tests/test_iter91_mobile_env_hardening.py (23 tests, 23 passed). Confirmed: eas.json has exactly 3 build profiles (development/preview/production) with NO env block and zero '$' characters anywhere in the file; Render production backend (the URL the APK actually hits) is live — GET /api/app/config -> 200 with brand.name, POST /api/auth/login with bogus creds -> 401 {'detail':'Invalid credentials'}; the URL-resolver semantics (replicated in Python from the TS regexes) reject '$EXPO_PUBLIC_API_BASE_URL', '', None, whitespace, 'ftp://…' and bare hostnames while accepting the real https base, and the Supabase anon-key guard rejects any '$'-prefixed string; lib/api.ts uses pickUrl and the old fragile `process.env.X || (Constants…)` chain is gone from api.ts, supabase.ts and web.ts; web.ts keeps the 'https://www.centraders.com' last-resort fallback and still exports shareCartOnWhatsApp + buildShareableCartUrl. yarn typecheck exits 0; expo-doctor reports 17/17 checks passed, no issues; EAS_BUILD_GUIDE.md contains the new 'Network request failed' callout with the literal \"$EXPO_PUBLIC_API_BASE_URL\" and 'removed from all three build profiles'. Regressions clean: app.json extra.{apiBaseUrl,supabaseUrl,webUrl}/slug/eas.projectId intact, cart.tsx testID cart-share-whatsapp-btn present, iter90 pytest 27/27 pass, frontend-next brand-audit exit 0, preview host /api/app/config still schema_version='2' with novice/bronze/silver/gold tier perks, and /cart?cart=…&from=mobile-share renders 200 in a real browser. Also confirmed /app/mobile/.env is gitignored, so it is not uploaded to EAS — app.json extra is the single source of truth inside the APK, which is exactly what the fix relies on. No eas build / APK run attempted (no cloud credentials, per instructions).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Web /cart (mobile-share deep link)", "issues": ["Cookie-consent banner overlays the bottom-right footer area; harmless but can intercept clicks in that region during automation"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter91_mobile_env_hardening.py",
+    "/app/test_reports/pytest/iter91_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "lib/web.ts pickHttps accepts http:// (regex ^https?://) while lib/supabase.ts pickHttps is https-only — same helper name, different semantics across files. Consider extracting one shared helper into lib/env.ts to avoid future drift/confusion.",
+    "/app/.gitignore contains the .env / *.env patterns duplicated ~200 times (700 lines). Cosmetic but should be de-duplicated."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter91_mobile_env_hardening.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None. Only a synthetic base64 cart query param used for the /cart deep-link render check (no DB writes).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Not required; only an intentionally-invalid credential pair was posted to the Render login endpoint to assert the 401 path.",
+  "context_for_next_testing_agent": "Iter91 hotfix is fully verified at code/config level; the only remaining unverifiable step is an actual EAS APK build + device login, which needs cloud credentials outside this container. Regression suites to re-run: /app/backend/tests/test_iter90_mobile_sdk_alignment.py and /app/backend/tests/test_iter91_mobile_env_hardening.py (both green, fast, no seed data). Note the Render base https://addrika-fragrances-backend.onrender.com can cold-start (~10-30s first hit) — keep request timeouts >=60s.",
+  "rca_of_the_issue": "RCA confirmed as described: eas.json's env blocks used '$VAR' EAS-secret templates that were never created, so EAS interpolated the literal string '$EXPO_PUBLIC_API_BASE_URL' into process.env; the old `process.env.X || Constants.extra.X` chain treated that truthy literal as the base URL and fetch() failed at URL parsing -> 'Network request failed'. Fix verified: env blocks removed (no '$' left in eas.json) and all three runtime resolvers now validate candidates against ^https?:// (or a non-'$' non-empty string for the anon key), so the app.json extra values always win. Backend health independently confirmed via live 200/401 responses."
+}
