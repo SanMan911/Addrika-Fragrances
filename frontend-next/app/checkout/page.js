@@ -217,7 +217,7 @@ export default function CheckoutPage() {
           key: data.razorpay_key_id,
           amount: data.amount,
           currency: 'INR',
-          name: '${BRAND.name}',
+          name: BRAND.name,
           description: 'Premium Incense Purchase',
           order_id: data.razorpay_order_id,
           handler: async (response) => {

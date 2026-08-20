@@ -196,7 +196,7 @@ export default function OurQualityPage() {
               Our Quality Standards
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              At ${BRAND.name}, quality isn&apos;t just a promise—it&apos;s the foundation of everything we create. 
+              At {BRAND.name}, quality isn&apos;t just a promise—it&apos;s the foundation of everything we create. 
               Discover what makes our incense truly premium.
             </p>
           </div>
@@ -221,10 +221,10 @@ export default function OurQualityPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              The Four Pillars of ${BRAND.name} Quality
+              The Four Pillars of {BRAND.name} Quality
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              Every ${BRAND.name} incense stick is built on these uncompromising principles
+              Every {BRAND.name} incense stick is built on these uncompromising principles
             </p>
             
             <div className="grid md:grid-cols-2 gap-8">
@@ -282,7 +282,7 @@ export default function OurQualityPage() {
               Our Quality Commitments
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              What we promise to never use in any ${BRAND.name} product
+              What we promise to never use in any {BRAND.name} product
             </p>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -308,7 +308,7 @@ export default function OurQualityPage() {
                 The Artisans Behind Our Incense
               </h2>
               <p className="text-gray-300 max-w-2xl mx-auto">
-                Every ${BRAND.name} incense stick is crafted by skilled artisans who have dedicated their lives 
+                Every {BRAND.name} incense stick is crafted by skilled artisans who have dedicated their lives 
                 to perfecting this ancient craft using traditional techniques refined in India
               </p>
             </div>
@@ -389,7 +389,7 @@ export default function OurQualityPage() {
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              Learn More About ${BRAND.name}
+              Learn More About {BRAND.name}
             </h2>
             <div className="grid sm:grid-cols-3 gap-6">
               <Link href="/ingredients" className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
@@ -415,7 +415,7 @@ export default function OurQualityPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif mb-4">
-              Experience ${BRAND.name} Quality
+              Experience {BRAND.name} Quality
             </h2>
             <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
               Try our premium incense and feel the difference that uncompromising quality makes

@@ -81,27 +81,27 @@ export default function NudgeComposerModal({ open, onClose, products = [] }) {
   const applyTemplate = (k) => {
     setKind(k);
     if (k === 'drop') {
-      setSubject('New drop just landed at ${BRAND.name}');
+      setSubject(`New drop just landed at ${BRAND.name}`);
       setBodyHtml(
         '<p>A fresh batch of <b>[SKU name]</b> has just cleared QC and is ready to ship.</p>'
         + '<p>Order now — first-come-first-serve until the batch is spoken for.</p>'
       );
-      setWhatsappBody('🌸 New at ${BRAND.name}: [SKU name] is back — order early on the B2B portal before the batch is gone.');
+      setWhatsappBody(`🌸 New at ${BRAND.name}: [SKU name] is back — order early on the B2B portal before the batch is gone.`);
     } else if (k === 'price_drop') {
       setSubject('Wholesale rates just dropped on select SKUs');
       setBodyHtml('<p>We\u2019ve reduced the wholesale rate on <b>[SKU name]</b> for the next 7 days. Restock at the new rate on the B2B portal.</p>');
-      setWhatsappBody('Price drop 📉 — [SKU name] at ₹XX/carton for the next 7 days. Restock on your ${BRAND.name} B2B portal.');
+      setWhatsappBody(`Price drop 📉 — [SKU name] at ₹XX/carton for the next 7 days. Restock on your ${BRAND.name} B2B portal.`);
     } else if (k === 'festive') {
       setSubject('Diwali festive selection is live');
       setBodyHtml('<p>Our festive fragrance selection — <b>Kesar Chandan · Regal Rose · Oriental Oudh</b> — is live on the B2B portal.</p>'
         + '<p>Fill your shelves ahead of the season and offer your customers something special.</p>');
-      setWhatsappBody('🪔 Festive drop! Our Diwali fragrance selection is live on the ${BRAND.name} B2B portal. Restock early — orders ship in 48h.');
+      setWhatsappBody(`🪔 Festive drop! Our Diwali fragrance selection is live on the ${BRAND.name} B2B portal. Restock early — orders ship in 48h.`);
     } else if (k === 'promo') {
       setSubject('Special offer for our retail partners');
       setBodyHtml('<p>This month only: <b>Buy 2 cartons, get half a carton free</b> on Bakhoor 200g.</p>');
       setWhatsappBody('Special this month — Buy 2 cartons of Bakhoor 200g, get half a carton free 🎁 Apply on the B2B portal.');
     } else if (k === 'announcement') {
-      setSubject('An update from Team ${BRAND.name}');
+      setSubject(`An update from Team ${BRAND.name}`);
       setBodyHtml('<p>[Write your announcement here].</p>');
       setWhatsappBody('');
     }
@@ -203,7 +203,7 @@ export default function NudgeComposerModal({ open, onClose, products = [] }) {
 
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                Email body (HTML allowed — wrapped in ${BRAND.name} template)
+                Email body (HTML allowed — wrapped in {BRAND.name} template)
               </label>
               <textarea
                 rows={7} value={bodyHtml} onChange={(e) => setBodyHtml(e.target.value)}

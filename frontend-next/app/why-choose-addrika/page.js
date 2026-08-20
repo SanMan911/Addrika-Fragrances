@@ -231,10 +231,10 @@ export default function WhyChooseAddrikaPage() {
               Premium Indian Incense
             </span>
             <h1 className="text-4xl sm:text-5xl font-bold font-serif mb-6">
-              Why Choose ${BRAND.name} Fragrances?
+              Why Choose {BRAND.name} Fragrances?
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Discover what makes ${BRAND.name} India&apos;s premium choice for luxury, 
+              Discover what makes {BRAND.name} India&apos;s premium choice for luxury, 
               charcoal-free incense with exceptional burn time and pure natural fragrances
             </p>
           </div>
@@ -244,10 +244,10 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              The ${BRAND.name} Difference
+              The {BRAND.name} Difference
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              Six reasons why discerning customers choose ${BRAND.name} for their premium incense needs
+              Six reasons why discerning customers choose {BRAND.name} for their premium incense needs
             </p>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -269,7 +269,7 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              How ${BRAND.name} Compares
+              How {BRAND.name} Compares
             </h2>
             <p className="text-gray-600 text-center mb-12">
               A transparent comparison with typical premium incense offerings in India
@@ -311,10 +311,10 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              Best For: When to Use ${BRAND.name} Incense
+              Best For: When to Use {BRAND.name} Incense
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              Discover the perfect ${BRAND.name} fragrance for every occasion and space
+              Discover the perfect {BRAND.name} fragrance for every occasion and space
             </p>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -339,10 +339,10 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-[#2B3A4A] text-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold font-serif text-center mb-4">
-              Where to Buy ${BRAND.name} Incense
+              Where to Buy {BRAND.name} Incense
             </h2>
             <p className="text-gray-300 text-center mb-12">
-              Get authentic ${BRAND.name} Fragrances from these trusted sources
+              Get authentic {BRAND.name} Fragrances from these trusted sources
             </p>
             
             <div className="grid sm:grid-cols-2 gap-6">
@@ -389,7 +389,7 @@ export default function WhyChooseAddrikaPage() {
                   {[1,2,3,4,5].map(i => <Star key={i} size={16} fill="#D4AF37" color="#D4AF37" />)}
                 </div>
                 <p className="text-gray-600 text-sm italic mb-4">
-                  &quot;The aroma from ${BRAND.name}&apos;s Kesar Chandan stayed fresh for hours! Perfect for my daily puja. Low smoke means I can use it in my small apartment.&quot;
+                  &quot;The aroma from {BRAND.name}&apos;s Kesar Chandan stayed fresh for hours! Perfect for my daily puja. Low smoke means I can use it in my small apartment.&quot;
                 </p>
                 <p className="text-[#2B3A4A] font-medium text-sm">- Priya M., Mumbai</p>
               </div>
@@ -407,7 +407,7 @@ export default function WhyChooseAddrikaPage() {
                   {[1,2,3,4,5].map(i => <Star key={i} size={16} fill="#D4AF37" color="#D4AF37" />)}
                 </div>
                 <p className="text-gray-600 text-sm italic mb-4">
-                  &quot;I&apos;ve tried Phool and others, but ${BRAND.name}&apos;s burn time and fragrance retention is unmatched. The Oriental Oudh is absolutely divine.&quot;
+                  &quot;I&apos;ve tried Phool and others, but {BRAND.name}&apos;s burn time and fragrance retention is unmatched. The Oriental Oudh is absolutely divine.&quot;
                 </p>
                 <p className="text-[#2B3A4A] font-medium text-sm">- Anita S., Bangalore</p>
               </div>
@@ -419,7 +419,7 @@ export default function WhyChooseAddrikaPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif mb-4">
-              Experience the ${BRAND.name} Difference
+              Experience the {BRAND.name} Difference
             </h2>
             <p className="text-gray-600 mb-8">
               Join thousands of satisfied customers who&apos;ve made the switch to premium, charcoal-free incense

@@ -117,14 +117,14 @@ function WaitlistComingSoon() {
           </div>
           <h1 className="text-2xl font-bold text-[#2B3A4A] mb-2">You&apos;re on the list!</h1>
           <p className="text-gray-600 mb-5">
-            Thank you for your interest in becoming an ${BRAND.name} retail partner.
+            Thank you for your interest in becoming an {BRAND.name} retail partner.
             Our team will review your details and reach out shortly.
           </p>
           <Link
             href="/"
             className="inline-block px-5 py-2.5 rounded-lg bg-[#2B3A4A] text-white font-medium hover:bg-[#1e3a52]"
           >
-            Back to ${BRAND.name}
+            Back to {BRAND.name}
           </Link>
         </div>
       </div>
@@ -307,12 +307,12 @@ function WaitlistComingSoon() {
             {submitting ? 'Submitting…' : 'Join the Waitlist'}
           </button>
           <p className="text-xs text-center text-gray-500">
-            By submitting you agree to be contacted by the ${BRAND.name} team at
+            By submitting you agree to be contacted by the {BRAND.name} team at
             contact.us@centraders.com.
           </p>
           <div className="text-center">
             <Link href="/" className="text-sm text-[#2B3A4A] underline hover:text-[#D4AF37]">
-              Back to ${BRAND.name}
+              Back to {BRAND.name}
             </Link>
           </div>
         </form>

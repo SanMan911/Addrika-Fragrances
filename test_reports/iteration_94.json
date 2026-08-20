@@ -1,0 +1,41 @@
+{
+  "summary": "iter94 verification: brand-audit hardening (literal-${BRAND.name} rule + newline-preserving stripComments) both PASS via live probe files; the 14 quoted-string literal-template fixes across 10 frontend files are confirmed clean; retailer/login now uses JSX {BRAND.name} (0 raw '${BRAND.name}' in preview HTML/DOM); mobile openWhatsAppTo + login.tsx retailer WhatsApp branch + friendly error copy verified by source read; yarn typecheck 0, expo-doctor 17/17, app.json/eas.json unchanged; cart mobile-share import, /api/app/config schema_version=2 + retailer_tier_perks, /api/products 9 products w/ Belpatra & no Bambooless all pass; 122 pytest tests (iter90-94) pass. NEW HIGH BUG FOUND: 42 remaining stray '${BRAND.name}' occurrences inside MULTI-LINE JSX text nodes across 15 files render to users as literal '$Addrika' (35 visible occurrences confirmed on 8 live public pages) — the strengthened audit rule does NOT catch them.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Public marketing pages (our-quality, why-choose-addrika, why-zero-charcoal, ingredients, low-smoke-incense, find-retailers, blog, community)", "issue": "Stray '$' before {BRAND.name} in multi-line JSX text renders visible '$Addrika' to users. Live DOM counts: our-quality=7, why-choose-addrika=12, why-zero-charcoal=5, ingredients=2, low-smoke-incense=6, find-retailers=1, blog=1, community=1 (35 total). e.g. 'At $Addrika, quality isn't just a promise', 'The Four Pillars of $Addrika Quality', 'Why Choose $Addrika Fragrances?'", "selector": "body innerText", "priority": "HIGH"},
+      {"component": "Retailer/internal pages: app/retailer/admin-chat/page.js:144, app/retailer/bills/page.js:90, app/retailer/b2b/rewards/page.js:445, components/CSRSection.js:108, components/NudgeComposerModal.js:206", "issue": "Same stray-'$' JSX literal bug (source-confirmed, auth-gated so not rendered in this run) — will show '$Addrika' to retailers/admins", "selector": "n/a (source)", "priority": "HIGH"},
+      {"component": "scripts/brand-audit.js", "issue": "literal-template rule only matches single-line patterns (quoted string on one line, or '>...${BRAND.name}...<' on one line). Multi-line JSX text nodes (the most common case, 42 instances) are missed, so the audit exits 0 while the bug ships. Suggested extra rule: flag any '${BRAND.name}' on a line that contains no backtick.", "selector": "n/a", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "mobile/app/login.tsx (retailer tab)", "issues": ["Copy mismatch: the 401 error says 'Tap \"Contact admin to reset\" below' but the actual Pressable label reads 'Message admin on WhatsApp' — user cannot find the referenced control", "WhatsApp pre-composed message hardcodes 'Centraders/Aaroviah' instead of using MOBILE_BRAND_NAME"]},
+      {"screen": "frontend-next lint script", "issues": ["`yarn --cwd /app/frontend-next lint` is unusable: no ESLint config present, so `next lint` drops into an interactive 'How would you like to configure ESLint?' prompt and exits 1. Direct ESLint on the touched files (retailer/login/page.js, NudgeComposerModal.js) reports 0 issues."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter94_brand_audit_hardening.py",
+    "/app/test_reports/pytest/iter94_results.xml"
+  ],
+  "action_items": [
+    "Fix the 42 stray-'$' occurrences: change `${BRAND.name}` -> `{BRAND.name}` in multi-line JSX text in app/{our-quality,why-choose-addrika,why-zero-charcoal,ingredients,low-smoke-incense,find-retailers,blog,community,retailer/admin-chat,retailer/bills,retailer/b2b/rewards}/page.js and components/{CSRSection,NudgeComposerModal}.js (exact line list obtainable via: grep -rn '\\${BRAND\\.name}' app components | grep -v '`')",
+    "Extend brand-audit.js: flag any line containing '${BRAND.name}' with no backtick on that line (catches multi-line JSX). Re-run: it must fail before the fix and pass after.",
+    "Align mobile retailer 401 error copy with the actual button label ('Message admin on WhatsApp')",
+    "Add an ESLint config to frontend-next (or change the lint script) so `yarn lint` is non-interactive in CI"
+  ],
+  "critical_code_review_comments": [
+    "The audit's regex-per-line design is structurally unable to catch multi-line JSX text; a no-backtick-on-line heuristic (or an AST/JSXText walk) is required, otherwise the class of bug this iteration set out to eliminate keeps shipping.",
+    "iter93 tests asserted the now-superseded retailer forgot-password behaviour; I updated those two assertions to the new WhatsApp branch (test-only change)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter94_brand_audit_hardening.py",
+    "/app/backend/tests/test_iter93_mobile_login_ux_and_products_migration.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "70%"},
+  "seed_data_creation": "None. Two temporary audit probe files were created under /app/frontend-next/components and deleted (verified absent).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Not needed — public curl/Playwright + filesystem verification only.",
+  "context_for_next_testing_agent": "Verified this run: brand-audit probes (literal rule -> exit 1 tagged [literal-${BRAND.name}] at probe:1; newline probe -> line 8, proving newline preservation), audit clean on tree (143 files), /retailer/login preview DOM has 0 '${BRAND.name}' and renders 'Addrika Retailer Portal' (NOTE: preview serves the real login FORM, not the waitlist gate, so 'Back to Addrika' / 'contacted by the Addrika team' could only be verified from source, not rendered), /low-smoke-incense JSON-LD 0 literals, mobile typecheck 0, expo-doctor 17/17, app.json slug=aaroviah-mobile + projectId f152117c-... + 6 extras, eas.json 3 profiles/0 env blocks, cart import works ONLY when the ?cart= param is plain URL-encoded JSON [{productId,size,quantity}] (NOT base64 — a base64 param silently yields an empty cart; consider whether that should surface an error toast). pytest iter90-94 = 122 passed, 2 xfailed (the 2 xfails are the open multi-line '$Addrika' bug + the audit blind spot — flip them to strict pass after the fix).",
+  "rca_of_the_issue": "Root cause of the new HIGH bug: the original rebrand sweep replaced the plain word 'Addrika' with '${BRAND.name}' inside JSX text nodes without converting the surrounding text to a template literal or to '{BRAND.name}'. React then interpolates '{BRAND.name}' as an expression but keeps the preceding '$' as literal text, producing '$Addrika'. Because these JSX text nodes span multiple lines, neither audit regex (which requires quotes or a '>'/'<' on the same line) matches, so brand-audit.js exits 0. Reproduction: curl won't show it (pages are client-rendered); open https://fragrance-rewards.preview.emergentagent.com/our-quality in a browser and read the hero paragraph — 'At $Addrika, quality isn't just a promise'. Mitigation: mechanical '${BRAND.name}' -> '{BRAND.name}' replacement on the 42 grep-identified lines plus a no-backtick audit rule."
+}

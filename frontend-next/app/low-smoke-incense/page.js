@@ -37,19 +37,19 @@ async function getProducts() {
 function FAQSchema() {
   const faqs = [
     {
-      question: "What makes ${BRAND.name}'s incense low smoke?",
-      answer: "${BRAND.name}'s low smoke formula uses a charcoal-free design. Our agarbattis use traditional bamboo sticks with a charcoal-free coating, while our dhoop products are completely bambooless. This proprietary blend produces over 60% less smoke than traditional charcoal-based agarbatti while maintaining rich, long-lasting fragrance."
+      question: `What makes ${BRAND.name}'s incense low smoke?`,
+      answer: `${BRAND.name}'s low smoke formula uses a charcoal-free design. Our agarbattis use traditional bamboo sticks with a charcoal-free coating, while our dhoop products are completely bambooless. This proprietary blend produces over 60% less smoke than traditional charcoal-based agarbatti while maintaining rich, long-lasting fragrance.`
     },
     {
-      question: "Is ${BRAND.name} incense safe for small apartments?",
-      answer: "Yes! ${BRAND.name}'s charcoal-free incense is specifically designed for indoor use in small spaces. The minimal smoke output and absence of harmful charcoal particles make it ideal for apartments, meditation rooms, and enclosed spaces where air quality is a concern."
+      question: `Is ${BRAND.name} incense safe for small apartments?`,
+      answer: `Yes! ${BRAND.name}'s charcoal-free incense is specifically designed for indoor use in small spaces. The minimal smoke output and absence of harmful charcoal particles make it ideal for apartments, meditation rooms, and enclosed spaces where air quality is a concern.`
     },
     {
-      question: "Are ${BRAND.name} incense sticks suitable for people with respiratory sensitivities?",
-      answer: "${BRAND.name}'s charcoal-free formula is gentler on the respiratory system compared to traditional agarbatti. The low smoke emission and ethically sourced ingredients reduce airborne irritants, making it a better choice for health-conscious users. However, those with severe respiratory conditions should consult their doctor."
+      question: `Are ${BRAND.name} incense sticks suitable for people with respiratory sensitivities?`,
+      answer: `${BRAND.name}'s charcoal-free formula is gentler on the respiratory system compared to traditional agarbatti. The low smoke emission and ethically sourced ingredients reduce airborne irritants, making it a better choice for health-conscious users. However, those with severe respiratory conditions should consult their doctor.`
     },
     {
-      question: "Are all ${BRAND.name} products bambooless?",
+      question: `Are all ${BRAND.name} products bambooless?`,
       answer: "No, only our Dhoop range is bambooless. Our Agarbatti (incense sticks) use traditional bamboo sticks with a charcoal-free coating. Both product lines are charcoal-free and produce over 60% less smoke than traditional alternatives."
     }
   ];
@@ -84,7 +84,7 @@ function ProductListSchema({ products }) {
         __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "ItemList",
-          "name": "${BRAND.name} Low Smoke Charcoal-Free Incense Collection",
+          "name": `${BRAND.name} Low Smoke Charcoal-Free Incense Collection`,
           "description": "Premium charcoal-free, low smoke agarbatti made with ethically sourced ingredients",
           "itemListElement": products.map((product, index) => ({
             "@type": "ListItem",
@@ -94,7 +94,7 @@ function ProductListSchema({ products }) {
               "name": `${product.name} - Charcoal-Free Low Smoke Incense`,
               "description": product.description,
               "image": product.image,
-              "brand": { "@type": "Brand", "name": "${BRAND.name} Fragrances" },
+              "brand": { "@type": "Brand", "name": `${BRAND.name} Fragrances` },
               "material": "Ethically sourced essential oils, flower dust, natural resins - Charcoal-free",
               "additionalProperty": [
                 { "@type": "PropertyValue", "name": "smokeEmission", "value": "Low smoke - 60%+ less than traditional" },
@@ -222,7 +222,7 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              Why ${BRAND.name}&apos;s Low Smoke Incense is Different
+              Why {BRAND.name}&apos;s Low Smoke Incense is Different
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
               Our proprietary charcoal-free formula sets us apart from traditional agarbatti
@@ -245,7 +245,7 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              Key Ingredients in ${BRAND.name}&apos;s Charcoal-Free Formula
+              Key Ingredients in {BRAND.name}&apos;s Charcoal-Free Formula
             </h2>
             <div className="bg-white rounded-xl p-8">
               <ul className="space-y-4">
@@ -291,7 +291,7 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              ${BRAND.name} vs Traditional Agarbatti
+              {BRAND.name} vs Traditional Agarbatti
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -320,7 +320,7 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              Best For: Who Should Use ${BRAND.name} Low Smoke Incense?
+              Best For: Who Should Use {BRAND.name} Low Smoke Incense?
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
               Our charcoal-free incense is specifically designed for these use cases
@@ -340,7 +340,7 @@ export default async function LowSmokeIncensePage() {
         <section id="products" className="py-16 px-4 bg-white">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              Shop ${BRAND.name}&apos;s Charcoal-Free Collection
+              Shop {BRAND.name}&apos;s Charcoal-Free Collection
             </h2>
             <p className="text-gray-600 text-center mb-12">
               All products are charcoal-free and produce over 60% less smoke
@@ -411,7 +411,7 @@ export default async function LowSmokeIncensePage() {
         <section className="py-16 px-4 bg-[#2B3A4A]">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-white font-serif mb-4">
-              Experience the ${BRAND.name} Difference
+              Experience the {BRAND.name} Difference
             </h2>
             <p className="text-gray-300 mb-8">
               Join thousands of health-conscious users who&apos;ve switched to charcoal-free incense

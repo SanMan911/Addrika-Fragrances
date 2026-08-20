@@ -1,0 +1,60 @@
+{
+  "summary": "Iter93 verification of the mobile login UX fix (forgot-password link + friendly 4xx error mapper), docs additions, and the NO-OP products-migration claim. Created /app/backend/tests/test_iter93_mobile_login_ux_and_products_migration.py; ran it together with iter90/91/92 suites: 99/99 passed. Verified by source read: login.tsx has `testID=\"forgot-password-link\"` -> openForgotPassword -> openWebUrl(tab==='customer' ? '/forgot-password' : '/retailer/login'); single `from '../lib/web'` import including openWebUrl; error mapper maps /401.*Invalid credentials/i and /400.*Google login/i with `let msg = raw` fall-through. Confirmed the mapper regexes match the real thrown string shape from lib/api.ts (`API ${status} ${path}: ${body}`) and that Render actually returns 401 {\"detail\":\"Invalid credentials\"}. yarn typecheck exit 0, expo-doctor 17/17 passed, frontend-next brand-audit 0 violations. Preview backend: 9 products, id 'bilvapatra-fragrance' name 'Belpatra', no bambooless-dhoop-8inch; /api/app/config schema_version=2 with retailer_tier_perks. Render prod: 10 products with 'Bilvapatra Fragrance' + '8\" Bambooless Dhoop' still active (EXPECTED-STALE, logged as action item), /api/app/config 200 with brand.name, bad-cred login 401. Web prod /forgot-password, /retailer/login, /register, /cart all 200. Browser-checked both new link destinations, which surfaced two UX gaps (below).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "frontend-next/app/retailer/login/page.js (waitlist success state, ~lines 120 & 127)",
+        "issue": "`${BRAND.name}` is written inside JSX text children, not a template literal, so it renders literally as the string '${BRAND.name}': 'becoming an ${BRAND.name} retail partner' and 'Back to ${BRAND.name}'. Needs {BRAND.name} interpolation.",
+        "selector": "[data-testid='retailer-waitlist-success']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Mobile retailer tab -> 'Forgot password?' -> /retailer/login",
+        "issue": "Dead end. /app/frontend-next/app/retailer/login/page.js contains ZERO 'forgot'/reset references. On preview it renders a plain sign-in form whose only secondary CTA is 'Don't have an account? Contact Admin'; on prod (www.centraders.com) it renders the 'Retailer Portal Coming Soon' waitlist/GSTIN screen. The premise that 'the retailer flow already has its own reset UI there' does not hold in either environment, so a retailer who taps Forgot password? gets no way to reset.",
+        "affected_selectors": ["forgot-password-link", "retailer-portal-disabled", "waitlist-form"]
+      },
+      {
+        "flow": "Mobile customer tab -> 'Forgot password?' -> /forgot-password",
+        "issue": "Minor mismatch: the prod reset page asks only for a 10-digit MOBILE NUMBER ('Enter your registered mobile number to recover your account'), while the mobile error copy talks about 'Wrong email/username or password'. A user who logged in with email may be confused; consider noting 'reset uses your registered mobile number' in the mobile hint copy.",
+        "affected_selectors": ["forgot-password-link", "login-error"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "www.centraders.com (prod)",
+        "issues": ["Page titles/footers still read 'Addrika' (e.g. 'Forgot Password | Addrika ...') while the repo brand-audit reports 0 hardcoded Addrika refs — consistent with the already-known stale Vercel deploy; resolves on next web deploy.", "Prod /forgot-password inputs and CTA lack data-testid attributes (only 1 unlabeled tel input; buttons have no accessible text), making the destination flow hard to automate."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter93_mobile_login_ux_and_products_migration.py",
+    "/app/test_reports/pytest/iter93_results.xml"
+  ],
+  "action_items": [
+    "USER ACTION (not a code defect): redeploy the Render service (Manual Deploy -> Deploy latest commit) so the Iter82 startup migration runs in prod; only then does the mobile catalogue drop '8\" Bambooless Dhoop' and rename 'Bilvapatra Fragrance' -> 'Belpatra'. Confirmed still stale today (10 products).",
+    "Fix the literal '${BRAND.name}' strings in frontend-next/app/retailer/login/page.js waitlist-success block (use {BRAND.name}).",
+    "Give the mobile retailer tab a real reset destination: either add a retailer password-reset UI on /retailer/login, or point the retailer 'Forgot password?' link at a working reset/contact route (today it lands on the 'Coming Soon' waitlist page in prod).",
+    "Optionally reword the mobile 401 hint to mention that reset is via the registered mobile number + OTP.",
+    "USER ACTION: redeploy www.centraders.com (Vercel) — the deployed bundle still lacks the ?cart=...&from=mobile-share import handler and still shows old Addrika branding (iter92 EXPECTED-STALE assertion still passing)."
+  ],
+  "critical_code_review_comments": [
+    "login.tsx error mapper depends on the exact string format produced by lib/api.ts (`API ${status} ${path}: ${body}`). This coupling is untested at runtime — if apiFetch's message format ever changes, users silently get raw errors again. Consider throwing a typed ApiError with a numeric `status` field and matching on status + detail instead of regexing a formatted string.",
+    "The retailer branch of openForgotPassword sends users to a page with no reset capability; verify destination behaviour, not just HTTP 200, before shipping such deep links."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter93_mobile_login_ux_and_products_migration.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "85%"},
+  "seed_data_creation": "None",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "No auth flow exercised; /app/memory/test_credentials.md present and unchanged.",
+  "context_for_next_testing_agent": "iter93 suite (test_iter93_mobile_login_ux_and_products_migration.py) contains the EXPECTED-STALE Render assertion, which pytest.skips itself automatically once the user redeploys Render — after redeploy, expect 9 products with Belpatra on https://addrika-fragrances-backend.onrender.com. Mobile login screen cannot be rendered in this container (no Expo device), so login.tsx is validated by source read + regex/format cross-check against lib/api.ts. Base URL for iter93 tests resolves from frontend-next/.env.local NEXT_PUBLIC_BACKEND_URL (there is no /app/frontend/.env, only .env.local).",
+  "rca_of_the_issue": "Products issue: code is correct; the Iter82 migration in backend/routers/products.py runs at startup and is verified working on preview (9 products, Belpatra). Render prod simply hasn't been redeployed since Iter82 merged, so its Mongo still holds the pre-migration state -> deploy gap, not a code bug. Login issue: mobile app hits the Render Mongo, which is a different database from preview, so preview-created accounts 401 there; the new forgot-password link + friendly error mapper are the correct mitigations, but the retailer branch points at a page that has no reset UI at all (and renders a 'Coming Soon' waitlist in prod), so the retailer half of the fix is incomplete."
+}

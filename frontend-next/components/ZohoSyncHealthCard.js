@@ -53,7 +53,7 @@ export default function ZohoSyncHealthCard() {
       const body = await res.json();
       if (body.authorize_url) {
         window.open(body.authorize_url, 'zoho_oauth', 'width=720,height=820');
-        toast.message('Authorize ${BRAND.name} in the popup, then return here.');
+        toast.message(`Authorize ${BRAND.name} in the popup, then return here.`);
       } else {
         toast.error(body.detail || 'Could not start OAuth flow');
       }

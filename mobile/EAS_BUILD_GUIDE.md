@@ -66,6 +66,22 @@ You now have everything on the Emergent side:
 >
 > If it prints `0` on every chunk, redeploy the Vercel project (or push to `main` if you have auto-deploy wired). Once redeployed, the shared link imports the cart into localStorage and the user can click Checkout → Razorpay opens normally.
 
+> ### ⚠️ If the mobile catalogue still shows `8" Bambooless Dhoop` or `Bilvapatra Fragrance` — this is why
+> The `Iter82` startup migration in `backend/routers/products.py` idempotently deletes the Bambooless Dhoop SKU and renames `Bilvapatra Fragrance` → `Belpatra` on every backend boot (verified working on the preview backend — 9 products, `Belpatra` present, `bambooless-dhoop-8inch` gone). But the mobile app hits the **production Render backend** at `https://addrika-fragrances-backend.onrender.com` — if that Render service was last deployed before Iter82 was merged, the migration has never run there. Verify with:
+>
+> ```bash
+> curl -s https://addrika-fragrances-backend.onrender.com/api/products \
+>   | python3 -c "import sys,json;print([p['name'] for p in json.load(sys.stdin)])"
+> ```
+>
+> If `'Bilvapatra Fragrance'` or `'8" Bambooless Dhoop'` shows up in that list, redeploy the Render service (dashboard → Manual Deploy → Deploy latest commit). Boot logs should show `Iter82 tombstone: purged bambooless-dhoop-8inch + N linked b2b SKUs` and `Iter82 migration: bilvapatra-fragrance → Belpatra`. Product listing then matches the preview backend.
+
+> ### ⚠️ If the mobile login rejects a password you know is correct — checklist
+> The mobile app calls `POST https://addrika-fragrances-backend.onrender.com/api/auth/login` — a DIFFERENT MongoDB than the preview. Common causes for 401 `Invalid credentials` with a real password:
+> 1. **Account was created on the preview site**, not on `www.centraders.com`. Preview and prod have separate Mongo databases. Sign up on the prod site first via the new "Create an account on centraders.com →" link (now points at `/register`).
+> 2. **Account was created with Google sign-in**. In this case the backend returns `400 "Please use Google login for this account"` — the mobile login screen now displays a friendly hint pointing you to sign in on the web browser.
+> 3. **Typo in the email or password**. Tap the new **Forgot password?** link on the login screen — it opens `/forgot-password` on centraders.com and walks you through OTP-based reset. New APK required (any rebuild after this doc's date).
+
 ## What you'll do on your Windows machine
 
 Time: ~15 minutes for `eas init`, then ~15-25 minutes for the first cloud build.

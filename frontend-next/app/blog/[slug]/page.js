@@ -38,7 +38,7 @@ export async function generateMetadata({ params }) {
       images: post.featuredImage ? [{ url: post.featuredImage }] : [],
       publishedTime: post.createdAt || post.created_at,
       modifiedTime: post.updatedAt || post.updated_at,
-      authors: ['${BRAND.name} Fragrances'],
+      authors: [`${BRAND.name} Fragrances`],
       section: 'Incense & Fragrance',
     },
     twitter: {
@@ -63,7 +63,7 @@ function ArticleStructuredData({ post }) {
     "dateModified": post.updatedAt || post.updated_at || post.createdAt || post.created_at,
     "author": {
       "@type": "Organization",
-      "name": "${BRAND.name} Fragrances",
+      "name": `${BRAND.name} Fragrances`,
       "url": "https://centraders.com",
       "logo": BRAND.logo.logoUrlAbs
     },

@@ -125,7 +125,7 @@ export default function WhyZeroCharcoalPage() {
               Why Choose Zero Charcoal Incense?
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Discover why ${BRAND.name}&apos;s charcoal-free formula is the healthier, 
+              Discover why {BRAND.name}&apos;s charcoal-free formula is the healthier, 
               cleaner, and more authentic way to enjoy premium incense
             </p>
           </div>
@@ -154,11 +154,11 @@ export default function WhyZeroCharcoalPage() {
           </div>
         </section>
 
-        {/* The ${BRAND.name} Solution */}
+        {/* The {BRAND.name} Solution */}
         <section className="py-16 px-4 bg-[#F5F0E8]">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-4">
-              The ${BRAND.name} Zero Charcoal Solution
+              The {BRAND.name} Zero Charcoal Solution
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
               We developed a proprietary charcoal-free formula using only natural ingredients
@@ -183,7 +183,7 @@ export default function WhyZeroCharcoalPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              How ${BRAND.name} Achieves 60%+ Less Smoke
+              How {BRAND.name} Achieves 60%+ Less Smoke
             </h2>
             <div className="bg-[#F5F0E8] rounded-xl p-8">
               <div className="space-y-6">
@@ -293,7 +293,7 @@ export default function WhyZeroCharcoalPage() {
               Ready to Experience the Difference?
             </h2>
             <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join thousands who&apos;ve switched to ${BRAND.name}&apos;s zero charcoal incense for a cleaner, healthier fragrance experience
+              Join thousands who&apos;ve switched to {BRAND.name}&apos;s zero charcoal incense for a cleaner, healthier fragrance experience
             </p>
             <Link
               href="/low-smoke-incense#products"
@@ -309,7 +309,7 @@ export default function WhyZeroCharcoalPage() {
         <section className="py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-[#2B3A4A] font-serif text-center mb-8">
-              Discover More About ${BRAND.name}
+              Discover More About {BRAND.name}
             </h2>
             <div className="grid sm:grid-cols-3 gap-6">
               <Link href="/ingredients" className="bg-[#F5F0E8] rounded-xl p-6 hover:shadow-md transition-shadow group">
