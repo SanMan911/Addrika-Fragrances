@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 92 scoped hotfix verification (mobile deep-links + error diagnosability). Created /app/backend/tests/test_iter92_mobile_hotfix.py (31 tests) and ran it together with the iter90 + iter91 regression suites: 71/71 passed. Verified by READING the source (not grep): openCustomerSignup -> openWebUrl('/register'), openRetailerSignup still '/', and openWebCheckout's path ternary is retailer='/retailer/b2b/cart' : customer='/cart' with '/checkout' fully absent from the function body and '&from=mobile' still appended. apiFetch's fetch-catch now throws an Error embedding `[url=${url} · ...]`; the legacy '(network error)' suffix is gone. curl smoke: www.centraders.com /register, /cart, /api/products, /api/app/config all 200. Render backend healthy: /api/app/config 200 with brand.name='Addrika', POST /api/auth/login {identifier:x,password:y} -> 401 {'detail':'Invalid credentials'} — proving the login endpoint is live and the residual 'Network request failed' can ONLY come from a stale pre-iteration-91 APK. Vercel staleness CONFIRMED (expected, not a code defect): 10 chunks off the live /cart page contain 0 occurrences of 'mobile-share'. yarn typecheck exits 0; expo-doctor 17/17 checks passed; yarn --cwd /app/frontend-next brand-audit exits 0. Regressions intact: eas.json still has 3 profiles and NO env block on any of them, app.json extras (apiBaseUrl/webUrl/slug/eas.projectId) unchanged, cart.tsx retains testID='cart-share-whatsapp-btn' + shareCartOnWhatsApp + openWebCheckout, CartContext.js still exports importCartFromMobileLink honouring both from=mobile and from=mobile-share. Browser test on the up-to-date preview host confirmed the owner hand-off end-to-end.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter92_mobile_hotfix.py",
+    "/app/backend/tests/test_iter90_mobile_sdk_alignment.py",
+    "/app/backend/tests/test_iter91_mobile_env_hardening.py",
+    "/app/test_reports/pytest/iter92_results.xml"
+  ],
+  "action_items": [
+    "USER ACTION (not a code defect): redeploy www.centraders.com on Vercel. The live bundle contains 0 occurrences of 'mobile-share' across all 10 chunks loaded by /cart, so the deployed CartContext.js predates importCartFromMobileLink. Until redeployed, BOTH the WhatsApp share (from=mobile-share) and the mobile owner hand-off (from=mobile) will land on an empty cart on production and Razorpay will never launch. Diagnostic: curl -s https://www.centraders.com/cart | grep -oE '/_next/static/chunks/[^\"]+\\.js' | head -10 | xargs -I{} curl -s 'https://www.centraders.com{}' | grep -c mobile-share  (must become > 0 after deploy).",
+    "USER ACTION (not a code defect): rebuild + reinstall the APK. The Render login endpoint returns a clean 401 for bogus creds, so the 'Can't reach the server (Network request failed)' in the screenshot can only originate from an APK built before the iteration_91 env-block/pickUrl hotfix. After the rebuild any residual failure will self-report the attempted URL via the new [url=...] suffix.",
+    "After the Vercel redeploy lands, flip test_deployed_chunks_are_stale_no_mobile_share_handler in /app/backend/tests/test_iter92_mobile_hotfix.py from `assert hits == 0` to `assert hits > 0` — it is deliberately written as an EXPECTED-STALE assertion and will start failing (correctly) once production is fresh."
+  ],
+  "critical_code_review_comments": [
+    "web.ts openWebCheckout and buildShareableCartUrl now both target /cart but tag differently (from=mobile vs from=mobile-share) — consistent with CartContext.js's guard `from !== 'mobile' && from !== 'mobile-share'`. No drift found between the producer and consumer of the deep link.",
+    "Minor/optional: the new [url=...] diagnostic suffix in api.ts is user-visible error copy. It is invaluable for the current debug loop, but consider gating it behind __DEV__ or a build flag before a Play Store release so end users don't see raw backend URLs in a toast.",
+    "Observation (pre-existing, not this iteration): Render /api/app/config returns brand.name='Addrika' while app.json sets extra.mobileBrandName='Aaroviah'. The mobile shell therefore shows a different brand than the backend reports. Confirm this override is intentional — if the mobile UI ever falls back to the API brand.name it will render 'Addrika'.",
+    "encodeCartForWeb ships only {productId,size,quantity}; the receiving CartContext re-enriches name/image/price server-side (verified in localStorage: addrika_cart got name/image/price/tagline populated). Good separation — no price is trusted from the URL."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter92_mobile_hotfix.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "None. All checks were read-only: filesystem reads, curl GET/POST against public endpoints, and a browser deep-link on the preview host. The bogus login POST creates no data. localStorage was cleared before the browser check.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Not required — no authenticated flow was exercised. /app/memory/test_credentials.md exists but was not needed for this scoped hotfix.",
+  "context_for_next_testing_agent": "All 3 code fixes from iteration 92 are verified correct and no new defects were found; nothing is pending on the developer agent. The two remaining blockers are USER actions (Vercel redeploy + APK rebuild) and cannot be validated from this container. /app/backend/tests/test_iter92_mobile_hotfix.py contains an intentional EXPECTED-STALE assertion (test_deployed_chunks_are_stale_no_mobile_share_handler asserts hits == 0) — if you see it FAIL, that is GOOD NEWS meaning the user redeployed Vercel; flip the assertion to `hits > 0` and then re-verify the full shared-cart flow against https://www.centraders.com/cart?cart=...&from=mobile-share. When browser-testing the preview host, do NOT use wait_until='networkidle' on /cart — a long-lived analytics/polling connection keeps the network busy and Playwright times out at 60s even though the page renders fine; use 'domcontentloaded' plus an explicit wait_for_selector instead. A benign 401 console error (unauthenticated user/session probe) appears on the cart page and is not a defect. Per instructions, eas build / APK execution / Vercel deploys were NOT triggered.",
+  "rca_of_the_issue": "Three of the four reported symptoms trace to distinct root causes, now separated cleanly. (1) 'Network request failed' on login: the installed APK predates iteration_91, so EAS interpolated the unresolved literal '$EXPO_PUBLIC_API_BASE_URL' into process.env and the old fragile fallback chain accepted it as a base URL, producing an unroutable request. The pickUrl guard (regex ^https?://) now rejects non-URL candidates and falls through to Constants.expoConfig.extra.apiBaseUrl; verified by the 8 parametrised resolver tests in iter91 plus a live 401 from the real endpoint. Residual failures require an APK rebuild. (2) Customer signup landed on /login (a tab-based combined page) instead of the dedicated page — fixed to openWebUrl('/register'), and https://www.centraders.com/register confirmed 200. (3) Empty cart on checkout: openWebCheckout routed the customer branch to /checkout, but only /cart mounts the CartContext ?cart= bootstrap, so the query param was silently dropped and the cart hydrated empty, leaving nothing for Razorpay to charge. Fixed by routing the customer branch to /cart, unifying it with the WhatsApp share path so both flows exercise the single tested import handler. (4) Even with (3) fixed, production stays broken because the deployed Vercel bundle contains zero references to 'mobile-share' — the import handler was never shipped. This is a deployment-freshness problem, not a code problem, and is proven by the chunk-grep assertion; the identical flow succeeds on the up-to-date preview host, where the deep link correctly imported 1 line item (Kesar Chandan, 50g, qty 2, Rs. 220) with the cart badge showing 2 and localStorage re-enriched with name/image/price."
+}

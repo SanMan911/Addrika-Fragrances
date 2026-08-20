@@ -59,7 +59,8 @@ export async function apiFetch<T = unknown>(
     });
   } catch (e: any) {
     throw new Error(
-      `Can't reach the server. Check your internet connection and try again. (${e?.message || 'network error'})`
+      `Can't reach the server. Check your internet connection and try again. ` +
+        `[url=${url} · ${e?.message || 'network error'}]`
     );
   }
   if (!res.ok) {

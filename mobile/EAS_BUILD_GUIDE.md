@@ -50,9 +50,21 @@ You now have everything on the Emergent side:
 > ### ⚠️ If the APK opens but login says `Network request failed` — this is why
 > `eas.json` previously declared `env: { EXPO_PUBLIC_API_BASE_URL: "$EXPO_PUBLIC_API_BASE_URL", ... }`. That `$VAR` syntax is a template for EAS secrets. If you never ran `eas secret:create`, EAS interpolates the **literal string** `"$EXPO_PUBLIC_API_BASE_URL"` into `process.env` inside the APK. `fetch("$EXPO_PUBLIC_API_BASE_URL/api/auth/login")` then chokes on the URL parser → "Network request failed".
 >
-> **Fix applied**: the `env` block was removed from all three build profiles in `eas.json`. All four URLs are now sourced exclusively from `app.json → expo.extra`, which is hard-coded to production values in this repo. Additionally, the runtime clients (`lib/{api,supabase,web}.ts`) now reject any candidate that isn't a real `https://…` URL, so even if a stray unresolved template string ever leaks back in, the `app.json` fallback still wins.
+> **Fix applied**: the `env` block was removed from all three build profiles in `eas.json`. All four URLs are now sourced exclusively from `app.json → expo.extra`, which is hard-coded to production values in this repo. Additionally, the runtime clients (`lib/{api,supabase,web}.ts`) now reject any candidate that isn't a real `https://…` URL, so even if a stray unresolved template string ever leaks back in, the `app.json` fallback still wins. `apiFetch` now embeds the attempted URL in the error message — if the next APK still shows "Network request failed", the on-screen error will read `[url=https://…/api/auth/login · …]` and you can screenshot it for a one-shot diagnosis.
+>
+> **Important**: after any change to `eas.json`, `app.json → extra`, or the four `lib/{api,supabase,web,session}.ts` clients, you MUST run a fresh `eas build --profile preview --platform android` and reinstall the APK. The old APK carries the old bundled JS.
 >
 > **If you later want EAS secrets** (for rotation without editing `app.json`), re-add the `env` block AND set the matching secrets first — never one without the other.
+
+> ### ⚠️ If the shared WhatsApp link opens an empty cart on centraders.com — this is why
+> The web `/cart` page's cart-import handler (bootstraps `?cart=…&from=mobile-share` into the CartContext) is added in `frontend-next/context/CartContext.js`. If your production `www.centraders.com` deploy is older than that commit, the JS bundle on the CDN doesn't include the handler. Verify with:
+>
+> ```bash
+> curl -s https://www.centraders.com/cart | grep -oE '/_next/static/chunks/[^"]+\.js' | head -5 | \
+>   xargs -I{} curl -s "https://www.centraders.com{}" | grep -c mobile-share
+> ```
+>
+> If it prints `0` on every chunk, redeploy the Vercel project (or push to `main` if you have auto-deploy wired). Once redeployed, the shared link imports the cart into localStorage and the user can click Checkout → Razorpay opens normally.
 
 ## What you'll do on your Windows machine
 

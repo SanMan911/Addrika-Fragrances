@@ -35,20 +35,22 @@ export async function openWebUrl(path: string): Promise<void> {
   await WebBrowser.openBrowserAsync(url);
 }
 
-/** Customer signup lives at /login on the web (register tab is there). */
-export const openCustomerSignup = () => openWebUrl('/login');
+/** Customer signup lives at /register on the web (dedicated page). */
+export const openCustomerSignup = () => openWebUrl('/register');
 
 /** Retailer registration begins on the homepage (GST-KYC popup path). */
 export const openRetailerSignup = () => openWebUrl('/');
 
 /**
- * Hand the cart over to the web checkout. Cart is passed via query so the
- * web can bootstrap it before Razorpay + order-confirmation flows kick in.
+ * Hand the cart over to the web. Both customer + retailer flows land on
+ * /cart (not /checkout) so the receiver-side CartContext bootstrap
+ * hydrates the cart from `?cart=` and the user can review before paying.
+ * For retailers we still deep-link to their B2B cart route.
  */
 export function openWebCheckout(lines: CartLine[], userKind: 'customer' | 'retailer' | null): Promise<void> {
   if (lines.length === 0) return openWebUrl('/');
   const cartParam = encodeCartForWeb(lines);
-  const path = userKind === 'retailer' ? '/retailer/b2b/cart' : '/checkout';
+  const path = userKind === 'retailer' ? '/retailer/b2b/cart' : '/cart';
   return openWebUrl(`${path}?cart=${cartParam}&from=mobile`);
 }
 
