@@ -68,7 +68,7 @@ export default function RetailerOrderDetailPage() {
         key: data.razorpay_key,
         amount: Math.round((data.amount_inr || 0) * 100),
         currency: 'INR',
-        name: '${BRAND.name}',
+        name: BRAND.name,
         description: `Balance payment · ${orderId}`,
         order_id: data.razorpay_order_id,
         prefill: {

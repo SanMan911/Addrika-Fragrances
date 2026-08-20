@@ -87,7 +87,7 @@ export default function RetailerBillsPage() {
           <Receipt size={22} /> Bills & Invoices
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          All invoices and statements uploaded by the ${BRAND.name} team for your
+          All invoices and statements uploaded by the {BRAND.name} team for your
           store. Download anytime.
         </p>
       </div>

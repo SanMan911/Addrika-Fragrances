@@ -181,7 +181,7 @@ export default function RetailerMap({ retailers }) {
         const popupHtml = `
           <div style="font-family:'Segoe UI',Arial,sans-serif;min-width:220px;max-width:260px;color:#1a1a2e;">
             <div style="font-weight:700;font-size:15px;margin-bottom:4px;color:#1a1a2e;">${escapeHtml(
-              r.business_name || '${BRAND.name} Retailer'
+              r.business_name || `${BRAND.name} Retailer`
             )}</div>
             <div style="font-size:12px;color:#4b5563;line-height:1.4;">
               ${escapeHtml(r.address || '')}${r.address ? ',<br/>' : ''}

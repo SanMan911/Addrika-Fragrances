@@ -44,7 +44,7 @@ export default function CommunityLeaderboardPage() {
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-white mb-3">The Constant Companions</h1>
           <p className="text-slate-400 max-w-lg mx-auto">
-            The retailers who show up every month, without fail. These three carry the longest unbroken ordering streaks in the ${BRAND.name} network.
+            The retailers who show up every month, without fail. These three carry the longest unbroken ordering streaks in the {BRAND.name} network.
           </p>
           {asOf && (
             <p className="text-xs text-slate-500 mt-3 flex items-center justify-center gap-1">

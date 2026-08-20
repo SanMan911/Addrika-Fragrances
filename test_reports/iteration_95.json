@@ -1,0 +1,38 @@
+{
+  "summary": "iter95 verification PASSED on all requested items. (1) Live browser sweep of all 8 previously-broken public pages (/our-quality, /why-choose-addrika, /why-zero-charcoal, /ingredients, /low-smoke-incense, /find-retailers, /blog, /community) on the preview host with domcontentloaded + 3.5s hydration wait: document.body.innerText counts for '$Addrika', '$Aaroviah' and '${BRAND.name}' are ALL 0 on every page (was 35 total in iter94). Home + /cart also 0. (2) brand-audit Rule B verified live: clean exit 0 / 143 files on the current tree; a fresh multi-line JSX probe (components/__audit_probe_multiline_v2__.js with <p>\\n Hello ${BRAND.name}, welcome\\n</p>) makes it exit 1 with '[literal-${BRAND.name}] ... __audit_probe_multiline_v2__.js:6'; after deleting the probe it exits 0 again. Probe files confirmed absent. (3) Source grep across app/components/context/lib: ZERO backtick-less '${BRAND.name}' lines anywhere, including the 5 auth-gated files (retailer/admin-chat, retailer/bills, retailer/b2b/rewards, CSRSection, NudgeComposerModal) — the 5 remaining hits in NudgeComposerModal are legitimate backticked template literals. (4) mobile/app/login.tsx: 'Message admin on WhatsApp' appears in BOTH the 401 retailer error mapper and the Pressable label; 'Contact admin to reset' and 'Centraders/Aaroviah' both gone; WhatsApp reset message interpolates MOBILE_BRAND_NAME. (5) mobile yarn typecheck exit 0; expo-doctor 17/17. (6) Regressions: /api/app/config schema_version='2' + retailer_tier_perks present; /api/products 9 items with Belpatra, no bambooless-dhoop-8inch, no _id leak; /cart?cart=…&from=mobile-share imports successfully on the preview host ('Cart shared with you — 1 item added', qty 2, totals computed); app.json slug=aaroviah-mobile + projectId f152117c-…; eas.json 3 profiles with no env blocks. (7) Flipped both iter94 xfail tests to strict passes — both now PASS. Full iter90-95 suite: 146 passed, 0 failed, 0 xfailed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/cart (mobile-share import)", "issues": ["The 'Cart shared with you' success toast renders on top of / overlapping the GA cookie-consent banner in the bottom-right corner, partially covering the 'Accept' button until the toast dismisses. Minor stacking/placement collision — consider offsetting the toast container or the consent banner.", "Toast copy says '1 item added' while the header says '2 items in your cart' (1 line item, quantity 2) — inconsistent wording, cosmetic only."]},
+      {"screen": "frontend-next lint script (carried over from iter94, still open)", "issues": ["`yarn --cwd /app/frontend-next lint` has no ESLint config, so `next lint` goes interactive and exits 1 — unusable in CI."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter95_multiline_jsx_brand_fix.py",
+    "/app/backend/tests/test_iter94_brand_audit_hardening.py",
+    "/app/test_reports/pytest/iter95_results.xml"
+  ],
+  "action_items": [
+    "No functional fixes required for iter95 — all 7 requested verifications pass.",
+    "Optional cosmetic: de-overlap the /cart share toast and the cookie-consent banner (bottom-right stacking).",
+    "Optional/carry-over: add an ESLint config (or change the lint script) so `yarn lint` is non-interactive."
+  ],
+  "critical_code_review_comments": [
+    "brand-audit Rule B (no-backtick-on-line heuristic) is effective but heuristic: a legitimate multi-line template literal whose continuation line contains ${BRAND.name} without a backtick would be a false positive. None exist today (audit is clean at 143 files), but if one appears later prefer an AST/JSXText walk over widening the regex.",
+    "/api/app/config returns schema_version as the STRING '2', not an int. Consistent with iter87-94 tests, but the type is surprising for a version field — if mobile ever does a numeric comparison this will silently break. Worth normalising to int with an explicit mobile-side migration.",
+    "Carry-over from iter94 and still true: /cart?cart=<base64> silently yields an empty cart instead of surfacing an error; only plain URL-encoded JSON works. Consider a validation toast."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter95_multiline_jsx_brand_fix.py",
+    "/app/backend/tests/test_iter94_brand_audit_hardening.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None persisted. One temporary audit probe (/app/frontend-next/components/__audit_probe_multiline_v2__.js) plus a pytest-managed probe (__audit_probe_iter95__.js) were created and deleted; both verified absent.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Not needed — public browser + curl + filesystem verification only. /app/memory/test_credentials.md not consulted (no auth flows in scope; admin 2FA explicitly out of scope).",
+  "context_for_next_testing_agent": "iter95 is fully green: 8 public pages render 0 '$Addrika'/'$Aaroviah'/'${BRAND.name}'; brand-audit Rule B proven to catch multi-line JSX (probe -> exit 1 with [literal-${BRAND.name}], delete -> exit 0, 143 files); zero backtick-less '${BRAND.name}' lines in app/components/context/lib. Test-only changes made this run: (a) new /app/backend/tests/test_iter95_multiline_jsx_brand_fix.py (22 tests: source sweep, per-file parametrised checks, audit probe, mobile copy, app.json/eas.json, /api/app/config, /api/products); (b) removed the two iter94 xfail markers (both now pass strictly); (c) updated iter94's test_error_copy_mentions_mobile_number which still asserted the superseded copy 'Contact admin to reset' -> now asserts 'Tap \"Message admin on WhatsApp\"'. Note when writing new audit tests: brand-audit.js prints FAILURES to stderr and successes to stdout — assert on stdout+stderr. Note /api/app/config schema_version is the string '2'. Full iter90-95 run: 146 passed in 23s (junit at /app/test_reports/pytest/iter95_results.xml). Nothing outstanding except two cosmetic items (cart toast/cookie-banner overlap, missing ESLint config).",
+  "rca_of_the_issue": "N/A — iter94's HIGH bugs are resolved. Confirmed mechanism of the original defect for the record: JSX text nodes containing '${BRAND.name}' without backticks caused React to interpolate {BRAND.name} while leaving the '$' as literal text ('$Addrika'); the mechanical line-scoped patch to '{BRAND.name}' plus brand-audit Rule B (flag any line with '${BRAND.name}' and no backtick) both close the bug and prevent regression, verified by live probe and live DOM reads."
+}

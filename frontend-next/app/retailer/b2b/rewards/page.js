@@ -442,7 +442,7 @@ function PatronStatusCard({ fetchWithAuth }) {
           {tier && <TierBadge tier={tier} />}
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Keep ordering with ${BRAND.name} and you&apos;ll earn aroma-themed patron tags — Cedar Patron, Sandalwood Sage, Oudh Master and more. Every tag is dated the moment you cross the threshold and stays with you forever.
+          Keep ordering with {BRAND.name} and you&apos;ll earn aroma-themed patron tags — Cedar Patron, Sandalwood Sage, Oudh Master and more. Every tag is dated the moment you cross the threshold and stays with you forever.
         </p>
         {tier?.next_tier && tier.next_tier.tags_to_go > 0 && (
           <p className="text-xs text-amber-700 dark:text-amber-300 font-semibold mt-2" data-testid="tier-progress-hint">

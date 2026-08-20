@@ -688,7 +688,7 @@ function MessagesPanel({ retailerId }) {
                   }`}
                 >
                   <p className="text-[11px] opacity-70 mb-1">
-                    {mine ? '${BRAND.name} Team' : m.sender_name || 'Retailer'} ·{' '}
+                    {mine ? `${BRAND.name} Team` : m.sender_name || 'Retailer'} ·{' '}
                     {formatDateTime(m.created_at)}
                   </p>
                   <p className="whitespace-pre-wrap break-words">{m.message}</p>

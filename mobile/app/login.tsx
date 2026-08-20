@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSession } from '../lib/session';
 import { fetchAppConfig, type AppConfig } from '../lib/config';
-import { openCustomerSignup, openRetailerSignup } from '../lib/web';
+import { openCustomerSignup, openRetailerSignup, openWebUrl, openWhatsAppTo } from '../lib/web';
 import { MOBILE_BRAND_NAME, MOBILE_BRAND_TAGLINE } from '../lib/brand';
 
 type Tab = 'customer' | 'retailer';
@@ -37,11 +37,35 @@ export default function LoginScreen() {
       if (tab === 'customer') await loginCustomer(identifier.trim(), password);
       else await loginRetailer(identifier.trim(), password);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Login failed');
+      const raw = e instanceof Error ? e.message : 'Login failed';
+      // Friendlier copy for the two 4xx responses the backend actually returns.
+      let msg = raw;
+      if (/401.*Invalid credentials/i.test(raw)) {
+        msg = tab === 'customer'
+          ? 'Wrong email/username or password. Tap "Forgot password" below — reset uses your registered mobile number.'
+          : 'Wrong email/username or password. Tap "Message admin on WhatsApp" below.';
+      } else if (/400.*Google login/i.test(raw)) {
+        msg = 'This account uses Google sign-in. Please sign in via centraders.com in your browser.';
+      } else if (/401.*Retailer not found|401.*Invalid password/i.test(raw)) {
+        msg = 'Retailer login failed. Check your email/username and password, or message admin to reset.';
+      }
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
   }
+
+  // Customers self-serve via /forgot-password (mobile-number OTP flow).
+  // Retailers don't have a self-serve reset UI yet — on prod /retailer/login
+  // is the "coming soon" waitlist gate — so we open the WhatsApp app to the
+  // admin line with a pre-composed reset request instead of dead-ending.
+  const openForgotPassword = () => {
+    if (tab === 'customer') return openWebUrl('/forgot-password');
+    return openWhatsAppTo(
+      '918377020402',
+      `Hi, I'm a ${MOBILE_BRAND_NAME} retailer and need help resetting my B2B password. My registered email/username is: `,
+    );
+  };
 
   const brand = MOBILE_BRAND_NAME;
   const tagline = MOBILE_BRAND_TAGLINE;
@@ -103,6 +127,17 @@ export default function LoginScreen() {
             ) : (
               <Text style={styles.ctaText}>Sign in</Text>
             )}
+          </Pressable>
+
+          <Pressable
+            testID="forgot-password-link"
+            onPress={openForgotPassword}
+            android_ripple={{ color: 'rgba(30, 58, 82, 0.1)' }}
+            style={styles.forgotBtn}
+          >
+            <Text style={styles.forgotTxt}>
+              {tab === 'customer' ? 'Forgot password?' : 'Message admin on WhatsApp'}
+            </Text>
           </Pressable>
         </View>
 
@@ -183,6 +218,8 @@ const styles = StyleSheet.create({
   },
   ctaPressed: { opacity: 0.85 },
   ctaText: { color: '#d4af37', fontWeight: '700', fontSize: 15, letterSpacing: 0.5 },
+  forgotBtn: { alignItems: 'center', paddingVertical: 10, marginTop: 2 },
+  forgotTxt: { fontSize: 13, color: '#1e3a52', fontWeight: '600', textDecorationLine: 'underline' },
   signupBlock: { alignItems: 'center', gap: 6, marginTop: 4 },
   signupPrompt: { fontSize: 13, color: '#c8bfa9' },
   signupLink: { fontSize: 14, color: '#d4af37', fontWeight: '600' },

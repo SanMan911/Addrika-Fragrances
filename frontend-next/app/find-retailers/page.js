@@ -111,7 +111,7 @@ function RetailersStructuredData({ retailers }) {
     "sameAs": ["https://centraders.com"],
     "parentOrganization": {
       "@type": "Organization",
-      "name": "${BRAND.name} by Centsibl Traders",
+      "name": `${BRAND.name} by Centsibl Traders`,
       "url": "https://centraders.com"
     }
   }));
@@ -120,8 +120,8 @@ function RetailersStructuredData({ retailers }) {
   const storeLocatorSchema = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Find ${BRAND.name} Retailers",
-    "description": "Locate authorized ${BRAND.name} incense retailers across India",
+    "name": `Find ${BRAND.name} Retailers`,
+    "description": `Locate authorized ${BRAND.name} incense retailers across India`,
     "url": "https://centraders.com/find-retailers",
     "mainEntity": {
       "@type": "ItemList",
@@ -177,7 +177,7 @@ export default async function FindRetailersPage() {
               className="text-4xl sm:text-5xl font-bold mb-6 text-white"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-              Find ${BRAND.name} Retailers
+              Find {BRAND.name} Retailers
             </h1>
             <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
               Visit our authorized retailers to experience premium zero-charcoal incense in person. 

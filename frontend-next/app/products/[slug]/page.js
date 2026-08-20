@@ -121,8 +121,8 @@ function ProductStructuredData({ product }) {
     "url": `https://centraders.com/products/${product.id}`,
     "brand": {
       "@type": "Brand",
-      "name": "${BRAND.name}",
-      "alternateName": "${BRAND.name} Fragrances"
+      "name": BRAND.name,
+      "alternateName": `${BRAND.name} Fragrances`
     },
     "manufacturer": {
       "@type": "Organization",

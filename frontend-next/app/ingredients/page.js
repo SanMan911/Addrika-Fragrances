@@ -187,7 +187,7 @@ export default function IngredientsPage() {
               Charcoal-Free • Ethically Sourced • Pure Essential Oils
             </span>
             <h1 className="text-4xl sm:text-5xl font-bold font-serif mb-6">
-              What&apos;s Inside ${BRAND.name} Incense?
+              What&apos;s Inside {BRAND.name} Incense?
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
               A complete guide to every natural ingredient we use—and everything we promise to never use
@@ -329,7 +329,7 @@ export default function IngredientsPage() {
               What We Never Use
             </h2>
             <p className="text-gray-600 text-center mb-12">
-              These ingredients will never be found in any ${BRAND.name} product
+              These ingredients will never be found in any {BRAND.name} product
             </p>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

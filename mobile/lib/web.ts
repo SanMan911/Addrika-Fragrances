@@ -65,6 +65,27 @@ export function buildShareableCartUrl(lines: CartLine[]): string {
 }
 
 /**
+ * Open the WhatsApp app directly (falls back to wa.me in a browser when
+ * WhatsApp is not installed). Used by the mobile shell for admin-support
+ * hand-offs (e.g. retailer forgot-password) and by shareCartOnWhatsApp.
+ */
+export async function openWhatsAppTo(phoneNoPlus: string, message: string): Promise<void> {
+  const encoded = encodeURIComponent(message);
+  const waUrl = `whatsapp://send?phone=${phoneNoPlus}&text=${encoded}`;
+  const waWebUrl = `https://wa.me/${phoneNoPlus}?text=${encoded}`;
+  try {
+    const supported = await Linking.canOpenURL(waUrl);
+    if (supported) {
+      await Linking.openURL(waUrl);
+      return;
+    }
+  } catch {
+    // fall through
+  }
+  await Linking.openURL(waWebUrl);
+}
+
+/**
  * Open WhatsApp's share sheet with a pre-composed message that carries a
  * shareable cart URL. Falls back to the OS share sheet if WhatsApp isn't
  * installed on the device.

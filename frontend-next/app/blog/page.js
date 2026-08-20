@@ -91,7 +91,7 @@ export default async function BlogPage() {
               className="text-4xl sm:text-5xl font-bold text-white mb-6"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-              The ${BRAND.name} Journal
+              The {BRAND.name} Journal
             </h1>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
               Explore the world of fragrances, aromatherapy tips, and mindful living.
