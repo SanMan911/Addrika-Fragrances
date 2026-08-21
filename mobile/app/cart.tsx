@@ -69,7 +69,7 @@ export default function CartScreen() {
           testID="cart-checkout-btn"
           style={({ pressed }) => [styles.checkoutBtn, pressed && styles.checkoutBtnPressed]}
           android_ripple={{ color: 'rgba(212, 175, 55, 0.25)' }}
-          onPress={() => openWebCheckout(lines, session?.kind ?? null)}
+          onPress={() => openWebCheckout(lines, session?.kind ?? null, session?.token)}
         >
           <Text style={styles.checkoutTxt}>
             Complete Order on centraders.com →

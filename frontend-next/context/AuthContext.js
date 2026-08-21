@@ -50,9 +50,62 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Mobile → Web session handoff. When the Aaroviah shell hands the user
+  // over via `?handoff=hoff_<nonce>`, exchange the nonce for a real
+  // session cookie BEFORE running checkAuth so the user shows as logged-in
+  // on first paint. Silently no-ops if the nonce is missing / expired /
+  // used — checkoutout still works, the user just sees the login prompt.
+  const consumeMobileHandoff = useCallback(async () => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    const handoff = params.get('handoff');
+    if (!handoff || !handoff.startsWith('hoff_')) return false;
+
+    // Strip the nonce from the URL immediately so a refresh / share can't
+    // replay it (also because it's already single-use server-side).
+    try {
+      params.delete('handoff');
+      const nextSearch = params.toString();
+      window.history.replaceState(
+        {},
+        '',
+        `${window.location.pathname}${nextSearch ? '?' + nextSearch : ''}${window.location.hash}`,
+      );
+    } catch { /* non-fatal */ }
+
+    try {
+      const res = await fetch(`${API_URL}/api/auth/handoff/consume`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handoff_token: handoff }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data?.session_token) {
+        try { localStorage.setItem('addrika_session_token', data.session_token); } catch { /* localStorage unavailable */ }
+      }
+      if (data?.user) setUser(data.user);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    (async () => {
+      const auto = await consumeMobileHandoff();
+      // Whether or not the handoff succeeded, always run checkAuth so the
+      // cookie set by consume (or a pre-existing cookie) hydrates the
+      // `user` state consistently.
+      if (auto) {
+        // Give the browser a tick to persist the Set-Cookie response
+        // before /auth/me reads it back.
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      await checkAuth();
+    })();
+  }, [checkAuth, consumeMobileHandoff]);
 
   // Login with email/username + password
   const login = async (identifier, password) => {
