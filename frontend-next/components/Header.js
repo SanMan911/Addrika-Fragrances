@@ -38,7 +38,7 @@ export default function Header() {
     { label: 'Sustainability', href: '/sustainability', type: 'route' },
     { label: 'Blog', href: '/blog', type: 'route' },
     { label: 'Find Retailers', href: '/find-retailers', type: 'route' },
-    { label: 'Track Order', href: '/track-order', type: 'route' },
+    { label: 'Track Order', href: 'https://www.centraders.com/track-order', type: 'external' },
     { label: 'Contact', href: '#contact', type: 'scroll' }
   ];
 
@@ -94,6 +94,18 @@ export default function Header() {
                 >
                   {item.label}
                 </Link>
+              ) : item.type === 'external' ? (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium transition-colors hover:text-[#D4AF37]"
+                  style={{ color: '#e8e6e3' }}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  {item.label}
+                </a>
               ) : (
                 <a
                   key={item.label}
@@ -206,6 +218,19 @@ export default function Header() {
                   >
                     {item.label}
                   </Link>
+                ) : item.type === 'external' ? (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-sm font-medium transition-colors hover:text-[#D4AF37]"
+                    style={{ color: '#e8e6e3' }}
+                    data-testid={`mobile-nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {item.label}
+                  </a>
                 ) : (
                   <a
                     key={item.label}

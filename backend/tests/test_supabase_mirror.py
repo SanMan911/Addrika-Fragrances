@@ -326,3 +326,82 @@ def test_mirror_collection_delete_skips_blocklist():
         fake_loop.create_task.assert_not_called()
         supabase_sync.mirror_collection_delete("orders", "o1")
         fake_loop.create_task.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Order snapshot mirror (Mongo re-read + collection mirror upsert)
+# ---------------------------------------------------------------------------
+
+def _mock_mongo_db(collection: str, doc):
+    """Build a minimal Motor-shaped async db mock that returns `doc` for
+    db[collection].find_one({...})."""
+    coll = MagicMock()
+    coll.find_one = AsyncMock(return_value=doc)
+    db = MagicMock()
+    db.__getitem__.side_effect = lambda k: coll if k == collection else MagicMock()
+    return db, coll
+
+
+def test_mirror_order_snapshot_b2c_reads_and_mirrors():
+    order_doc = {
+        "order_number": "ORD-2026-0001",
+        "order_status": "confirmed",
+        "pricing": {"grand_total": 1499},
+        "created_at": "2026-02-01T10:00:00Z",
+    }
+    db, coll = _mock_mongo_db("orders", order_doc)
+
+    with patch.object(supabase_sync, "is_enabled", return_value=True), \
+         patch.object(supabase_sync, "mirror_collection_upsert") as upsert:
+        asyncio.run(
+            supabase_sync.mirror_order_snapshot(db, order_number="ORD-2026-0001")
+        )
+        coll.find_one.assert_awaited_once_with({"order_number": "ORD-2026-0001"})
+        upsert.assert_called_once_with("orders", order_doc)
+
+
+def test_mirror_order_snapshot_b2b_reads_and_mirrors():
+    order_doc = {
+        "order_id": "B2B-9001",
+        "retailer_id": "R123",
+        "order_status": "confirmed",
+    }
+    db, coll = _mock_mongo_db("b2b_orders", order_doc)
+
+    with patch.object(supabase_sync, "is_enabled", return_value=True), \
+         patch.object(supabase_sync, "mirror_collection_upsert") as upsert:
+        asyncio.run(
+            supabase_sync.mirror_order_snapshot(
+                db, order_id="B2B-9001", collection="b2b_orders"
+            )
+        )
+        coll.find_one.assert_awaited_once_with({"order_id": "B2B-9001"})
+        upsert.assert_called_once_with("b2b_orders", order_doc)
+
+
+def test_mirror_order_snapshot_noop_when_mirror_disabled():
+    db, coll = _mock_mongo_db("orders", {"order_number": "X"})
+    with patch.object(supabase_sync, "is_enabled", return_value=False), \
+         patch.object(supabase_sync, "mirror_collection_upsert") as upsert:
+        asyncio.run(supabase_sync.mirror_order_snapshot(db, order_number="X"))
+        coll.find_one.assert_not_called()
+        upsert.assert_not_called()
+
+
+def test_mirror_order_snapshot_swallows_mongo_errors():
+    """A Mongo hiccup must never bubble to the caller (fire-and-forget)."""
+    coll = MagicMock()
+    coll.find_one = AsyncMock(side_effect=RuntimeError("mongo down"))
+    db = MagicMock()
+    db.__getitem__.return_value = coll
+    with patch.object(supabase_sync, "is_enabled", return_value=True):
+        # Must not raise
+        asyncio.run(supabase_sync.mirror_order_snapshot(db, order_number="X"))
+
+
+def test_mirror_order_snapshot_ignores_missing_key():
+    """Without order_number/order_id, the helper is a silent no-op."""
+    db, coll = _mock_mongo_db("orders", None)
+    with patch.object(supabase_sync, "is_enabled", return_value=True):
+        asyncio.run(supabase_sync.mirror_order_snapshot(db))
+        coll.find_one.assert_not_called()

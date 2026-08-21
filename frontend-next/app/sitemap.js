@@ -19,7 +19,6 @@ const staticPages = [
   { path: '/privacy-policy', changeFreq: 'yearly', priority: 0.3 },
   { path: '/terms-of-service', changeFreq: 'yearly', priority: 0.3 },
   { path: '/shipping-returns', changeFreq: 'monthly', priority: 0.5 },
-  { path: '/track-order', changeFreq: 'monthly', priority: 0.5 },
 ];
 
 export default async function sitemap() {

@@ -657,6 +657,13 @@ async def verify_payment(
     result = await db.orders.insert_one(order)
     order["_id"] = result.inserted_id
 
+    # Mirror to Supabase (fire-and-forget, non-blocking)
+    try:
+        from services.supabase_sync import mirror_collection_upsert
+        mirror_collection_upsert("orders", order)
+    except Exception as e:
+        logger.warning(f"Supabase mirror upsert failed for order {order_number}: {e}")
+
     # Deduct from the unified inventory pool so B2C sales are visible in
     # the B2B stock counter (and vice-versa). Best-effort — never blocks
     # a paying customer's checkout.
@@ -874,6 +881,11 @@ async def verify_payment(
                         {"order_number": order_number},
                         {"$set": {"pickup_otp_code": otp_result.get("otp_code")}}
                     )
+                    try:
+                        from services.supabase_sync import mirror_order_snapshot
+                        await mirror_order_snapshot(db, order_number=order_number)
+                    except Exception:
+                        pass
                     logger.info(f"Pickup OTP generated for order {order_number}")
                 else:
                     logger.error(f"Failed to generate pickup OTP: {otp_result.get('error')}")
@@ -934,6 +946,11 @@ async def verify_payment(
                     }
                 }
             )
+            try:
+                from services.supabase_sync import mirror_order_snapshot
+                await mirror_order_snapshot(db, order_number=order_number)
+            except Exception:
+                pass
             logger.info(f"Order {order_number} synced to ShipRocket: order_id={shiprocket_result.get('order_id')}")
         else:
             logger.warning(f"ShipRocket sync failed for {order_number}: {shiprocket_result.get('error') if shiprocket_result else 'Unknown error'}")
@@ -1044,7 +1061,12 @@ async def _verify_legacy_payment(order: dict, razorpay_payment_id: str, razorpay
             }
         }
     )
-    
+    try:
+        from services.supabase_sync import mirror_order_snapshot
+        await mirror_order_snapshot(db, order_number=order_number)
+    except Exception:
+        pass
+
     return {
         "success": True,
         "message": "Payment verified successfully (legacy)",
@@ -1309,6 +1331,12 @@ async def update_order_address(
     
     if update_result.modified_count == 0:
         raise HTTPException(status_code=500, detail="Failed to update address")
+
+    try:
+        from services.supabase_sync import mirror_order_snapshot
+        await mirror_order_snapshot(db, order_number=order_number)
+    except Exception:
+        pass
     
     # Get assigned retailer and send notification
     assigned_retailer = order.get('assigned_retailer')

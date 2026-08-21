@@ -85,20 +85,33 @@ export default function Footer() {
             <h4 className="text-lg font-semibold mb-4 text-white">Support</h4>
             <ul className="space-y-2">
               {[
-                { label: 'Track Order', href: '/track-order' },
+                { label: 'Track Order', href: 'https://www.centraders.com/track-order', external: true },
                 { label: 'Shipping & Returns', href: '/shipping-returns' },
                 { label: 'Find Retailers', href: '/find-retailers' },
                 { label: 'Privacy Policy', href: '/privacy-policy' },
                 { label: 'Terms of Service', href: '/terms-of-service' }
               ].map(link => (
                 <li key={link.label}>
-                  <Link 
-                    href={link.href} 
-                    className="hover:opacity-70 transition-opacity"
-                    style={{ color: 'var(--text-light)' }}
-                  >
-                    {link.label}
-                  </Link>
+                  {link.external ? (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--text-light)' }}
+                      data-testid={`footer-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--text-light)' }}
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

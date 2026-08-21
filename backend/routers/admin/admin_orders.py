@@ -223,6 +223,11 @@ async def admin_update_order_status(
         {"order_number": order_id},
         {"$set": update_data}
     )
+    try:
+        from services.supabase_sync import mirror_order_snapshot
+        await mirror_order_snapshot(db, order_number=order_id)
+    except Exception:
+        pass
     
     # Refresh order for email
     updated_order = await db.orders.find_one({"order_number": order_id}, {"_id": 0})
@@ -414,6 +419,11 @@ async def generate_rto_voucher_manual(
             }
         )
         logger.info(f"[RTO VOUCHER] Order updated. Matched: {update_result.matched_count}, Modified: {update_result.modified_count}")
+        try:
+            from services.supabase_sync import mirror_order_snapshot
+            await mirror_order_snapshot(db, order_number=order_id)
+        except Exception:
+            pass
     except Exception as e:
         logger.error(f"[RTO VOUCHER] Error updating order: {str(e)}")
         # Voucher was saved, so don't fail completely
@@ -495,10 +505,17 @@ async def delete_order(order_id: str, request: Request, session_token: Optional[
     
     # Delete the order
     result = await db.orders.delete_one({"order_number": order_id})
-    
+
     if result.deleted_count == 0:
         raise HTTPException(status_code=500, detail="Failed to delete order")
-    
+
+    # Mirror delete to Supabase (fire-and-forget)
+    try:
+        from services.supabase_sync import mirror_collection_delete
+        mirror_collection_delete("orders", order_id)
+    except Exception:
+        pass
+
     return {"message": "Order deleted successfully", "order_number": order_id, "forced": force}
 
 
@@ -538,7 +555,14 @@ async def restore_order(request: Request, session_token: Optional[str] = Cookie(
     
     # Insert order
     result = await db.orders.insert_one(order_data)
-    
+
+    # Mirror to Supabase (fire-and-forget)
+    try:
+        from services.supabase_sync import mirror_collection_upsert
+        mirror_collection_upsert("orders", order_data)
+    except Exception:
+        pass
+
     return {
         "message": "Order restored successfully",
         "order_number": order_data['order_number'],
