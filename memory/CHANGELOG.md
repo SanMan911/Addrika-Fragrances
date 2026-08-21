@@ -10,9 +10,7 @@ architecture reference and ROADMAP.md for pending work._
 **Problem**: mobile users had to log in again on the web to check out — added
 friction, and cart items risked being lost mid-transition.
 
-**Solution — one-time nonce handoff** (industry-standard, like Stripe / OAuth code exchange).
-
-**Backend** (`/api/auth/handoff/*`)
+**Solution — one-time nonce handoff** (industry-standard, like Stripe / OAuth code exchange).**Backend** (`/api/auth/handoff/*`)
 - `POST /api/auth/handoff/create` (Bearer or Cookie auth) — mints a
   60-second single-use nonce `hoff_<uuid>`, stored in the new `auth_handoffs`
   Mongo collection (Mongo TTL index auto-purges).
@@ -45,6 +43,10 @@ friction, and cart items risked being lost mid-transition.
   `addrika_session_token` to `localStorage`.
 - Runs on any page (not just `/cart`) so future landing pages get the
   same behaviour for free.
+- **Welcome-back toast** (sonner) fires on successful consume:
+  _"Welcome back, {firstName} — Signed in from your mobile cart."_
+  (3.5s duration). Confirms the auto-login to the customer before the
+  cart items visibly hydrate.
 
 **E2E verified via curl**: mint returns `{handoff_token: "hoff_...", expires_in: 60}`;
 consume returns 200 with `Set-Cookie: session_token=...; HttpOnly; Secure; SameSite=none`;

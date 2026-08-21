@@ -85,7 +85,15 @@ export function AuthProvider({ children }) {
       if (data?.session_token) {
         try { localStorage.setItem('addrika_session_token', data.session_token); } catch { /* localStorage unavailable */ }
       }
-      if (data?.user) setUser(data.user);
+      if (data?.user) {
+        setUser(data.user);
+        // Soft welcome — first name only when we have it, otherwise "back".
+        const first = (data.user.name || '').trim().split(/\s+/)[0];
+        toast.success(`Welcome back${first ? `, ${first}` : ''}`, {
+          description: 'Signed in from your mobile cart.',
+          duration: 3500,
+        });
+      }
       return true;
     } catch {
       return false;
