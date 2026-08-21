@@ -3,6 +3,7 @@ import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import type { CartLine } from './cart';
 import { encodeCartForWeb } from './cart';
+import { apiFetch } from './api';
 
 /**
  * Deep-links from the mobile shell to the marketing domain.
@@ -42,16 +43,58 @@ export const openCustomerSignup = () => openWebUrl('/register');
 export const openRetailerSignup = () => openWebUrl('/');
 
 /**
+ * Mint a 60-second one-time nonce that the web /cart page can exchange for
+ * a fresh HttpOnly session cookie — the customer lands already logged-in.
+ *
+ * Returns `null` if the caller has no session, the API call fails, or the
+ * response is malformed. Callers must fall back to the plain deep-link so
+ * checkout is never blocked by a handoff error.
+ *
+ * NOTE: retailer sessions are NOT supported yet — the current backend
+ * endpoint only mints handoffs for customer sessions. A retailer handoff
+ * ticket is on the backlog (see ROADMAP.md).
+ */
+async function mintWebHandoff(bearerToken: string): Promise<string | null> {
+  try {
+    const data = await apiFetch<{ handoff_token?: string }>(
+      '/api/auth/handoff/create',
+      { method: 'POST', token: bearerToken },
+    );
+    return typeof data?.handoff_token === 'string' && data.handoff_token.startsWith('hoff_')
+      ? data.handoff_token
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Hand the cart over to the web. Both customer + retailer flows land on
  * /cart (not /checkout) so the receiver-side CartContext bootstrap
  * hydrates the cart from `?cart=` and the user can review before paying.
  * For retailers we still deep-link to their B2B cart route.
+ *
+ * If the caller is a logged-in customer, we ALSO mint a 60-second handoff
+ * nonce and append it as `?handoff=<nonce>` so the web page can auto-login
+ * the same user before hydrating the cart. This preserves the "must be
+ * signed-in to add items" contract on the web.
  */
-export function openWebCheckout(lines: CartLine[], userKind: 'customer' | 'retailer' | null): Promise<void> {
+export async function openWebCheckout(
+  lines: CartLine[],
+  userKind: 'customer' | 'retailer' | null,
+  bearerToken?: string,
+): Promise<void> {
   if (lines.length === 0) return openWebUrl('/');
   const cartParam = encodeCartForWeb(lines);
   const path = userKind === 'retailer' ? '/retailer/b2b/cart' : '/cart';
-  return openWebUrl(`${path}?cart=${cartParam}&from=mobile`);
+
+  let handoffQuery = '';
+  if (userKind === 'customer' && bearerToken) {
+    const nonce = await mintWebHandoff(bearerToken);
+    if (nonce) handoffQuery = `&handoff=${encodeURIComponent(nonce)}`;
+  }
+
+  return openWebUrl(`${path}?cart=${cartParam}&from=mobile${handoffQuery}`);
 }
 
 /**

@@ -539,6 +539,134 @@ async def logout_user(response: Response, request: Request, session_token: Optio
 
 
 
+# ============================================================================
+# Session Handoff (Mobile → Web auto-login)
+# ============================================================================
+# Flow:
+#   1. The mobile app (Aaroviah), while the user is logged in, calls
+#      POST /api/auth/handoff/create with its Bearer session token.
+#   2. Backend mints a one-time, 60-second nonce (`hoff_<uuid>`) bound to that
+#      session's user_id and stores it in `auth_handoffs`.
+#   3. Mobile opens the web checkout URL with `?handoff=<nonce>&cart=<b64>`.
+#   4. Web /cart page POSTs the nonce to /api/auth/handoff/consume, which
+#      validates it and sets the HttpOnly `session_token` cookie on the web
+#      domain — the user is now logged in.
+#
+# Security notes:
+#   - Nonces are single-use (marked used the moment they succeed).
+#   - 60-second lifetime bounds the leak window.
+#   - The `auth_handoffs` collection is in the Supabase mirror BLOCKLIST
+#     because a nonce that leaves the Mongo primary is a nonce that must
+#     not travel to secondary datastores.
+# ============================================================================
+
+HANDOFF_TTL_SECONDS = 60
+
+
+class HandoffConsumeBody(BaseModel):
+    handoff_token: str
+
+
+@router.post("/handoff/create")
+async def create_auth_handoff(request: Request, session_token: Optional[str] = Cookie(None)):
+    """
+    Mint a one-time handoff nonce for the currently authenticated caller.
+
+    Caller MUST be authenticated via Bearer token (mobile) or cookie (web).
+    The returned nonce is valid for 60 seconds and can be consumed exactly
+    once by POST /api/auth/handoff/consume.
+    """
+    user = await get_current_user(request, session_token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    import uuid as _uuid
+    now = datetime.now(timezone.utc)
+    handoff_token = f"hoff_{_uuid.uuid4().hex}"
+    expires_at = now + timedelta(seconds=HANDOFF_TTL_SECONDS)
+
+    # Ensure a TTL index on expires_at so Mongo auto-purges stale nonces
+    # (mongo checks the TTL background thread every ~60s). Idempotent.
+    await db.auth_handoffs.create_index("expires_at", expireAfterSeconds=0)
+    await db.auth_handoffs.create_index("handoff_token", unique=True)
+
+    await db.auth_handoffs.insert_one({
+        "handoff_token": handoff_token,
+        "user_id": user["user_id"],
+        "kind": "customer",
+        "created_at": now,
+        "expires_at": expires_at,
+        "used": False,
+    })
+
+    return {
+        "handoff_token": handoff_token,
+        "expires_in": HANDOFF_TTL_SECONDS,
+    }
+
+
+@router.post("/handoff/consume")
+async def consume_auth_handoff(body: HandoffConsumeBody, response: Response):
+    """
+    Exchange a one-time handoff nonce for a fresh web session cookie.
+
+    Called by the web /cart page after a mobile → web checkout deep-link.
+    On success: sets the HttpOnly `session_token` cookie and returns the
+    user + token. The nonce is atomically marked as used to guarantee
+    single-use semantics under concurrency.
+    """
+    token = (body.handoff_token or "").strip()
+    if not token.startswith("hoff_"):
+        raise HTTPException(status_code=400, detail="Invalid handoff token")
+
+    now = datetime.now(timezone.utc)
+
+    # Atomic single-use: only claim the row if it is still pending AND
+    # unexpired. If two requests race, only one flips `used` from False → True.
+    claimed = await db.auth_handoffs.find_one_and_update(
+        {
+            "handoff_token": token,
+            "used": False,
+            "expires_at": {"$gt": now},
+        },
+        {"$set": {"used": True, "consumed_at": now}},
+        return_document=True,  # Motor: return the doc AFTER the update
+    )
+    if not claimed:
+        raise HTTPException(status_code=401, detail="Handoff token invalid, expired, or already used")
+
+    # Mint a fresh web session bound to the same user_id
+    user_id = claimed["user_id"]
+    from services.auth_service import get_user_by_id
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="Handoff user no longer exists")
+
+    session_token = await create_session(db, user_id)
+
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=7 * 24 * 60 * 60,
+    )
+
+    return {
+        "message": "Auto-login successful",
+        "user": {
+            "user_id": user["user_id"],
+            "email": user.get("email", ""),
+            "name": user.get("name", ""),
+            "username": user.get("username"),
+            "avatar": user.get("avatar", user.get("picture", "")),
+        },
+        "session_token": session_token,
+    }
+
+
+
 # ===================== Email Change Feature =====================
 
 class EmailChangeOTPRequest(BaseModel):

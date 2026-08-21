@@ -53,6 +53,9 @@ _MIRROR_BLOCKLIST = frozenset(
         "store_pickup_otps",
         "payment_sessions",
         "zoho_tokens",
+        # Mobile → Web session-handoff nonces (60s single-use). A nonce that
+        # leaves the primary is a nonce that must not travel to a mirror.
+        "auth_handoffs",
     }
 )
 
