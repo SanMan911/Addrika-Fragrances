@@ -44,6 +44,22 @@ const nextConfig = {
       },
     ];
   },
+
+  // Order tracking is centralised on the parent Centraders domain
+  async redirects() {
+    return [
+      {
+        source: '/track-order',
+        destination: 'https://www.centraders.com/track-order',
+        permanent: true,
+      },
+      {
+        source: '/track-order/:path*',
+        destination: 'https://www.centraders.com/track-order',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

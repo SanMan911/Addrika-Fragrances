@@ -459,6 +459,43 @@ def mirror_collection_delete(collection: str, doc_id: str) -> None:
         pass
 
 
+async def mirror_order_snapshot(
+    db,
+    *,
+    order_number: Optional[str] = None,
+    order_id: Optional[str] = None,
+    collection: str = "orders",
+) -> None:
+    """
+    Re-read an order from Mongo and mirror the fresh snapshot to Supabase.
+
+    Call this AFTER any db.orders.update_one / db.b2b_orders.update_one so the
+    mirror stays in sync when we don't have the full updated doc in-hand.
+    Safe to call from async request handlers — never raises.
+
+    Args:
+        db: Motor AsyncIOMotorDatabase instance.
+        order_number: For B2C orders (`orders` collection, keyed by `order_number`).
+        order_id:     For B2B orders (`b2b_orders` collection, keyed by `order_id`).
+        collection:   "orders" (default) or "b2b_orders".
+    """
+    if not is_enabled():
+        return
+    key_field = "order_number" if collection == "orders" else "order_id"
+    key_value = order_number if collection == "orders" else order_id
+    if not key_value:
+        return
+    try:
+        doc = await db[collection].find_one({key_field: key_value})
+        if doc:
+            mirror_collection_upsert(collection, doc)
+    except Exception as exc:  # noqa: BLE001 — never let mirror errors bubble
+        logger.warning(
+            "mirror_order_snapshot failed (%s=%s, collection=%s): %s",
+            key_field, key_value, collection, exc,
+        )
+
+
 # ---------------------------------------------------------------------------
 # Dead-letter retry
 # ---------------------------------------------------------------------------

@@ -347,6 +347,13 @@ async def create_b2b_order(
     
     await db.b2b_orders.insert_one(order)
 
+    # Mirror to Supabase (fire-and-forget, non-blocking)
+    try:
+        from services.supabase_sync import mirror_collection_upsert
+        mirror_collection_upsert("b2b_orders", order)
+    except Exception as e:
+        logger.warning(f"Supabase mirror upsert failed for B2B order {order.get('order_id')}: {e}")
+
     # Send admin notification email for every B2B order placed
     try:
         await send_b2b_admin_notification_email(order, retailer)
@@ -365,6 +372,11 @@ async def create_b2b_order(
                     "zoho_synced_at": datetime.now(timezone.utc).isoformat(),
                 }},
             )
+            try:
+                from services.supabase_sync import mirror_order_snapshot
+                await mirror_order_snapshot(db, order_id=order["order_id"], collection="b2b_orders")
+            except Exception:
+                pass
         elif await _zoho_cfg():
             # configured but returned None → treat as a sync error
             from services.zoho_errors import record_error
@@ -488,6 +500,11 @@ async def create_b2b_balance_payment(
                 "balance_charge_amount": balance,
             }},
         )
+        try:
+            from services.supabase_sync import mirror_order_snapshot
+            await mirror_order_snapshot(db, order_id=order_id, collection="b2b_orders")
+        except Exception:
+            pass
         return {
             "razorpay_order_id": razorpay_order["id"],
             "razorpay_key": _os.environ.get("RAZORPAY_KEY_ID"),
@@ -561,6 +578,11 @@ async def verify_b2b_balance_payment(
         fresh = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0})
         # Reuse post-payment hook pipeline (rewards + inventory + Zoho)
         await run_post_payment_hooks(db, fresh, retailer, rpay_payment_id)
+        try:
+            from services.supabase_sync import mirror_order_snapshot
+            await mirror_order_snapshot(db, order_id=order_id, collection="b2b_orders")
+        except Exception:
+            pass
         return {
             "message": "Balance payment verified — your batch will be dispatched shortly.",
             "order_id": order_id,
@@ -658,6 +680,12 @@ async def verify_b2b_payment(
         # is independently guarded so partial failures don't cascade.
         fresh_order = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0}) or order
         await run_post_payment_hooks(db, fresh_order, retailer, razorpay_payment_id)
+
+        try:
+            from services.supabase_sync import mirror_order_snapshot
+            await mirror_order_snapshot(db, order_id=order_id, collection="b2b_orders")
+        except Exception:
+            pass
 
         return {
             "message": "Payment verified successfully",

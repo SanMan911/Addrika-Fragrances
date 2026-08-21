@@ -3,6 +3,36 @@
 ## 🎯 PRIORITY ITEMS  *(Feb 2026 — latest)*
 > Newsletter capture wired on `/blog`. Engineering backlog below.
 
+### 🔗 Feb 2026 (Iteration 96) — Orders in Supabase mirror + `/track-order` external redirect
+
+**1. Orders now mirror to Supabase on every write** (verified — 22/22 supabase_sync unit tests green)
+- `services/supabase_sync.py::mirror_order_snapshot(db, *, order_number, order_id, collection)` — new fire-and-forget async helper that re-reads the latest order doc from Mongo (`orders` keyed by `order_number`, `b2b_orders` keyed by `order_id`) and pushes it into `collections_mirror` via `mirror_collection_upsert`. Never raises — Mongo hiccups are logged, not surfaced.
+- **Write sites wired** (11 total):
+  - `routers/orders.py` (B2C): `insert_one` after payment (line 657), pickup-OTP update (879), Shiprocket sync update (930), legacy Razorpay verify update (1039), address-modification update (1330).
+  - `routers/b2b_orders.py`: `insert_one` (348), Zoho sales-order stamp (368), balance Razorpay stamp (496), balance-payment verify (560), main Razorpay verify (651).
+  - `routers/admin/admin_orders.py`: status update (222), RTO voucher stamp (403), `delete_one` → mirror delete (497), restore-order insert (540).
+- **Backfill already covered** — `scripts/backfill_supabase_mirror.py::_backfill_all_collections` iterates every non-typed, non-blocklisted collection, so `orders` and `b2b_orders` land in the initial backfill without further changes.
+- **Sensitive keys stripped** by `_sanitize()` before hitting `collections_mirror` — `password`, `otp`, `session_token`, `api_key`, `razorpay_signature`, etc. all filtered.
+- Tests added: `test_mirror_order_snapshot_{b2c_reads_and_mirrors, b2b_reads_and_mirrors, noop_when_mirror_disabled, swallows_mongo_errors, ignores_missing_key}`.
+
+**2. `/track-order` redirects to `https://www.centraders.com/track-order`** (verified via curl → `HTTP/1.1 308`)
+- `frontend-next/next.config.js` — new `redirects()` block returns a permanent 308 for `/track-order` and `/track-order/:path*` → `https://www.centraders.com/track-order`.
+- `components/Header.js` — nav item `type: 'external'` added; renders `<a target="_blank" rel="noopener noreferrer">` with `data-testid="nav-track-order"` (desktop + mobile menu).
+- `components/Footer.js` — Support column Track Order link is now an external `<a target="_blank">` with `data-testid="footer-track-order"`.
+- `app/sitemap.js` — `/track-order` removed from static routes (page is off-site now).
+- `app/track-order/` directory deleted (dead code — the redirect handles the URL).
+
+**3. P1 Vercel redeploy verification checklist** — `frontend-next/VERCEL_REDEPLOY_CHECKLIST.md` (new). 9-step manual QA covering: commit SHA verification, `/track-order` 308 curl, header/footer link presence, cart deep-link chunk, Instagram feed image 200s, brand-audit gate, backend health probe, smoke-test flow, rollback plan.
+
+**Verification**
+- `python -m pytest backend/tests/test_supabase_mirror.py -q` → 22 passed
+- `node scripts/brand-audit.js` → 0 hardcoded refs
+- `curl -sI http://localhost:3000/track-order` → `HTTP/1.1 308 Permanent Redirect` + `location: https://www.centraders.com/track-order`
+- `curl -s http://localhost:3000/ | grep 'nav-track-order'` → external href with `target="_blank"` confirmed
+- `curl -s http://localhost:8001/api/app/config` → 200, brand=Addrika
+
+---
+
 ### 📦 Feb 2026 (Iteration 86) — B2B retailer seed + b2b mirror prices + Aaroviah EAS-ready
 
 **1. Test B2B Retailer auto-seed** (verified iter86 — TestB2BCatalog no longer skips)
