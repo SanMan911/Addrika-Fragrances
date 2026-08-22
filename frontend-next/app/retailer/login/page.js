@@ -338,10 +338,18 @@ export default function RetailerLoginPage() {
         const res = await fetch(`${API_URL}/api/retailer-auth/portal-status`, {
           credentials: 'include',
         });
+        if (!res.ok) throw new Error(`portal-status ${res.status}`);
+        // Non-JSON responses (HTML 404/502 pages when the API is unreachable)
+        // throw here — caught below and defaulted to enabled so a transient
+        // network hiccup can't hide the login form behind the waitlist gate.
         const data = await res.json();
         if (!cancelled) setPortalEnabled(Boolean(data.enabled));
       } catch {
-        if (!cancelled) setPortalEnabled(false);
+        // FAIL OPEN — an admin who genuinely wants to disable the portal
+        // will use the explicit `{enabled: false}` API response; any other
+        // error surface (network / CDN / JSON parse) should NOT lock every
+        // retailer out of their login form.
+        if (!cancelled) setPortalEnabled(true);
       }
     })();
     return () => {

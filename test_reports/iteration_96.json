@@ -1,0 +1,73 @@
+{
+  "summary": "Iter 98 (mobile→web B2B handoff) reviewed. Backend: 51/51 pytest pass (test_iter97_auth_handoff.py 8/8 + new test_iter98_handoff_supplement.py 21/21 + test_supabase_mirror.py). Customer AND retailer handoff branches verified incl. raw Set-Cookie headers (retailer_session only on retailer branch, session_token only on customer branch), single-use, expiry, malformed nonce, blocklist, /track-order 308. Frontend E2E: customer /cart?handoff=&cart= flow works perfectly (auto-login + 3 items hydrated). TWO BLOCKING frontend bugs found: (1) web retailer login POSTs to non-existent /api/retailer/login (404) with an incompatible body shape, so nobody can log into the retailer portal via the UI; (2) /retailer/b2b cart hydration NEVER fires because the global B2C CartProvider consumes and strips ?cart&from on mount before the catalog-gated B2B effect can read them.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "frontend-next/context/RetailerAuthContext.js login()/logout()",
+        "issue": "login() POSTs to `${API_URL}/api/retailer/login` -> 404 (route does not exist; only /api/retailer-auth/login is registered). It also sends body {identifier, password} while RetailerLoginRequest expects {email|username, password} (that shape returns 400). logout() likewise hits /api/retailer/logout -> 404. Result: retailer portal login through the UI is completely broken - clicking Sign In with valid credentials shows 'Login failed' and stays on /retailer/login. Verified live at http://localhost:3000/retailer/login with a freshly seeded active retailer (backend /api/retailer-auth/login returns 200 for the same creds).",
+        "selector": "[data-testid=\"retailer-login-btn\"]",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "frontend-next/app/retailer/login/page.js",
+        "issue": "When the /api/retailer-auth/portal-status fetch fails (non-JSON / network error) the page silently falls back to portalEnabled=false and renders the 'Retailer Portal Coming Soon' waitlist instead of the login form. A transient backend/proxy hiccup therefore looks like the portal was disabled. Suggest distinguishing 'disabled' from 'unknown/error' and defaulting to showing the login form on error.",
+        "selector": "[data-testid=\"retailer-portal-disabled\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Mobile -> Web B2B cart hydration (/retailer/b2b?cart=<json>&from=mobile)",
+        "issue": "Quantities are NEVER pre-filled and no toast fires. RCA: the app-wide CartProvider (frontend-next/context/CartContext.js -> importCartFromMobileLink) runs on mount on EVERY route including /retailer/b2b, matches ?cart + from=mobile, and immediately window.history.replaceState()s the params away (and sets the module-level _mobileCartImportRun latch) before the B2B page's hydration effect - which is gated on `catalog.length > 0` and therefore only runs ~1-3s later after /api/retailer-dashboard/b2b/catalog resolves - gets a chance to read window.location.search. Proven with an instrumented history.replaceState probe: 3 replaceState calls all inside the first 200ms, and window.location.search is already '' at t=0ms of my polling. Verified with the correct catalog id ('kesar-chandan-b2b', which is what products_mirror/mobile actually sends) so this is not an id-mismatch issue. Fix options: (a) skip importCartFromMobileLink when location.pathname startsWith '/retailer', (b) snapshot the cart/from params into a module-level variable on first paint and have both consumers read the snapshot instead of live URL, or (c) read the params in the B2B page synchronously on mount (useRef snapshot) and only apply once catalog arrives.",
+        "affected_selectors": ["[data-testid=\"product-row-kesar-chandan-b2b\"]"]
+      },
+      {
+        "flow": "B2C cart deep-link after visiting a retailer page in the same SPA session",
+        "issue": "Side-effect of the above: because _mobileCartImportRun is a module-level latch that gets flipped on /retailer/b2b, a subsequent legitimate B2C ?cart=&from=mobile link in the same tab session will be ignored.",
+        "affected_selectors": []
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "/retailer/b2b quantity stepper",
+        "issues": [
+          "The quantity value is a bare <span> with no data-testid (only the row has product-row-<id>). Add data-testid={`qty-${product.id}`} to both the mobile and desktop quantity spans so the mobile->web hydration can be asserted deterministically."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter98_handoff_supplement.py",
+    "/app/backend/tests/test_iter97_auth_handoff.py",
+    "/app/backend/tests/seed_iter98_retailer.py",
+    "/app/test_reports/pytest/iter98_all.xml"
+  ],
+  "action_items": [
+    "CRITICAL: point RetailerAuthContext.login() at /api/retailer-auth/login and send {email: identifier} (or {username}) instead of {identifier}; fix logout() to /api/retailer-auth/logout. Without this the retailer portal cannot be entered from the UI at all.",
+    "CRITICAL: fix the CartContext vs /retailer/b2b race so ?cart&from survive until the B2B catalog loads (see rca_of_the_issue).",
+    "MEDIUM: /retailer/login should not render the 'Coming Soon' waitlist when portal-status simply fails to load.",
+    "LOW: add data-testid to the B2B quantity value spans.",
+    "LOW: importCartFromMobileLink/B2B effect both do JSON.parse(decodeURIComponent(param)) on a value already decoded by URLSearchParams.get() - a double decode that will corrupt payloads containing literal % (e.g. product names/sizes). Drop the extra decodeURIComponent."
+  ],
+  "critical_code_review_comments": [
+    "frontend-next/context/RetailerAuthContext.js:130,159 - hardcoded wrong API paths (/api/retailer/login, /api/retailer/logout) that do not exist in the FastAPI router (prefix is /retailer-auth). No test covered the UI login path, which is why this shipped.",
+    "frontend-next/context/CartContext.js:14 - a global provider mutating window.location (stripping ?cart/&from) on every route is an unscoped side-effect; it silently steals the query params from route-level consumers. Gate it by pathname or use a shared param snapshot.",
+    "frontend-next/app/retailer/b2b/page.js:1 - file is ~1400 lines / 55KB; should be split (catalog table, order summary, KYC gate, history tab) per the >700-line guideline.",
+    "backend/routers/auth.py consume_auth_handoff - solid: atomic find_one_and_update for single-use, kind branch, no _id leakage, HttpOnly+Secure+SameSite=None cookies. No changes needed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter98_handoff_supplement.py (new)",
+    "/app/backend/tests/seed_iter98_retailer.py (new, seed helper)"
+  ],
+  "success_rate": {"backend": "100% (51/51 pytest)", "frontend": "50% (customer handoff+cart OK, /track-order OK, homepage/cart OK; retailer UI login and B2B cart hydration broken)"},
+  "seed_data_creation": "Idempotent retailer RTL_ITER98_E2E / iter98_e2e_retailer@e2e.test / Iter98@E2E1 (via /app/backend/tests/seed_iter98_retailer.py) and customer iter98_cust@e2e.test / Iter98@Cust1. Ephemeral retailers/customers created by the pytest fixtures are cleaned up automatically.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499 (unused this round). Seeded: retailer iter98_e2e_retailer@e2e.test / Iter98@E2E1, customer iter98_cust@e2e.test / Iter98@Cust1.",
+  "context_for_next_testing_agent": "IMPORTANT ENV NOTE: the external preview host (https://fragrance-rewards.preview.emergentagent.com) is dormant in this container - its root returns the 'Wake up servers' page and every /api/* returns 404. Since frontend-next runs a PROD build, the /api/* rewrite destination is baked into .next/routes-manifest.json, so localhost:3000 could not reach the backend either. Workaround I used (and REVERTED afterwards): patch .next/routes-manifest.json rewrites[0].destination to http://localhost:8001 + restart frontend (no rebuild needed). Both .env.local and routes-manifest.json are back to their original values and /track-order still 308s. Retailer UI login is broken, so to reach /retailer/b2b in a browser, mint a handoff nonce (POST /api/retailer-auth/login then POST /api/auth/handoff/create with Bearer) and open /retailer/b2b?handoff=<nonce> - that path works and sets the retailer_session cookie (Secure cookies are accepted on http://localhost). Real B2B catalog ids are suffixed '-b2b' (e.g. kesar-chandan-b2b) - use those in the ?cart payload. Mobile (/app/mobile) passes npx tsc --noEmit; runtime is out of scope here.",
+  "rca_of_the_issue": "BUG 1 (retailer UI login): frontend-next/context/RetailerAuthContext.js posts to /api/retailer/login, which is not registered (routers/retailer_auth.py uses prefix '/retailer-auth'), so the proxy returns 404 and login() throws -> toast 'Login failed'. Even after fixing the path, the body {identifier, password} returns 400 because RetailerLoginRequest requires email or username. Reproduce: open /retailer/login, submit valid retailer creds -> network shows POST /api/retailer/login 404 and the page never navigates. BUG 2 (B2B cart hydration): mount order race. CartProvider.importCartFromMobileLink executes during the first paint of any page, matches ?cart&from=mobile, and strips both params via history.replaceState while also latching _mobileCartImportRun. The /retailer/b2b hydration effect is deliberately deferred until `catalog` is non-empty (after the b2b/catalog XHR ~1-3s later), by which time window.location.search is empty, so it early-returns: quantities stay 0 and neither the success nor the 'unavailable SKUs' toast fires. Confirmed by wrapping history.replaceState with a probe (3 calls within the first 200ms, search already empty at t=0 of polling) and by re-testing with the correct catalog id kesar-chandan-b2b. Mitigation: pathname-gate the B2C importer to non-/retailer routes, or snapshot the params once and share the snapshot between the two consumers."
+}

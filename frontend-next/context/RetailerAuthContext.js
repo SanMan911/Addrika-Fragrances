@@ -67,23 +67,95 @@ export function RetailerAuthProvider({ children }) {
   }, [fetchWithAuth]);
 
   useEffect(() => {
-    checkAuth();
+    (async () => {
+      // Mobile → Web retailer session handoff. When the Aaroviah shell
+      // hands the retailer over via `?handoff=hoff_<nonce>`, exchange the
+      // nonce for a real `retailer_session` cookie BEFORE running
+      // checkAuth so the retailer shows as logged-in on first paint.
+      // Silently no-ops if the nonce is missing / expired / used — the
+      // retailer just sees the normal login gate.
+      let handedOff = false;
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const handoff = params.get('handoff');
+        if (handoff && handoff.startsWith('hoff_')) {
+          // Strip the nonce immediately (single-use + prevents replay).
+          try {
+            params.delete('handoff');
+            const nextSearch = params.toString();
+            window.history.replaceState(
+              {},
+              '',
+              `${window.location.pathname}${nextSearch ? '?' + nextSearch : ''}${window.location.hash}`,
+            );
+          } catch { /* non-fatal */ }
+
+          try {
+            const res = await fetch(`${API_URL}/api/auth/handoff/consume`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ handoff_token: handoff }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.kind === 'retailer' && data?.token) {
+                try { localStorage.setItem('retailer_token', data.token); } catch { /* localStorage unavailable */ }
+                if (data.retailer) {
+                  setRetailer(data.retailer);
+                  setIsAuthenticated(true);
+                  handedOff = true;
+                  const first = (data.retailer.name || '').trim().split(/\s+/)[0];
+                  toast.success(`Welcome back${first ? `, ${first}` : ''}`, {
+                    description: 'Signed in from your mobile cart.',
+                    duration: 3500,
+                  });
+                }
+              }
+            }
+          } catch { /* handoff failed — fall through to normal auth */ }
+        }
+      }
+      if (handedOff) {
+        // Cookie was just set — give the browser a tick to persist.
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      await checkAuth();
+    })();
   }, [checkAuth]);
 
-  // Login
+  // Login — routes at /api/retailer-auth (not /api/retailer). Body shape
+  // matches RetailerLoginRequest: {email|username, password}. We accept a
+  // single `identifier` param at the UI layer and route it into the right
+  // field so retailers can sign in with either their email or username.
   const login = async (identifier, password) => {
     try {
-      const res = await fetch(`${API_URL}/api/retailer/login`, {
+      const body = { password };
+      if (identifier && identifier.includes('@')) body.email = identifier;
+      else body.username = identifier;
+
+      const res = await fetch(`${API_URL}/api/retailer-auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ identifier, password })
+        body: JSON.stringify(body)
       });
-      
-      const data = await res.json();
-      
+
+      // Guard against non-JSON error bodies (HTML 404/502 pages, empty
+      // bodies, gateway timeouts) — otherwise `res.json()` throws and the
+      // real HTTP status is lost. Fall back to the raw text (truncated)
+      // when parsing fails.
+      const ctype = res.headers.get('content-type') || '';
+      let data = null;
+      if (ctype.includes('application/json')) {
+        try { data = await res.json(); } catch { data = null; }
+      } else {
+        const raw = (await res.text().catch(() => '')).slice(0, 160);
+        data = { detail: raw || `Login failed (HTTP ${res.status})` };
+      }
+
       if (!res.ok) {
-        throw new Error(data.detail || 'Login failed');
+        throw new Error((data && data.detail) || `Login failed (HTTP ${res.status})`);
       }
       
       if (data.token) {
@@ -102,7 +174,7 @@ export function RetailerAuthProvider({ children }) {
   // Logout
   const logout = async () => {
     try {
-      await fetchWithAuth(`${API_URL}/api/retailer/logout`, { method: 'POST' });
+      await fetchWithAuth(`${API_URL}/api/retailer-auth/logout`, { method: 'POST' });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

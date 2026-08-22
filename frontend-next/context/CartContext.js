@@ -14,6 +14,15 @@ let _mobileCartImportRun = false;
 async function importCartFromMobileLink(setCart) {
   if (_mobileCartImportRun) return;
   if (typeof window === 'undefined') return;
+  // Retailer routes have their OWN mobile-cart hydration effect (see
+  // `frontend-next/app/retailer/b2b/page.js`) that reads a different
+  // payload shape and pre-fills a B2B quantity map. Bailing out here
+  // keeps this B2C importer from stealing the ?cart+from params before
+  // the B2B page's catalog-gated effect gets a chance to see them.
+  // Path check uses a trailing slash so a future public route like
+  // `/retailers-map` still gets the B2C hydration.
+  const path = window.location.pathname;
+  if (path === '/retailer' || path.startsWith('/retailer/')) return;
   const params = new URLSearchParams(window.location.search);
   const rawCart = params.get('cart');
   const from = params.get('from');
@@ -22,7 +31,11 @@ async function importCartFromMobileLink(setCart) {
 
   let payload;
   try {
-    payload = JSON.parse(decodeURIComponent(rawCart));
+    // URLSearchParams.get() already URL-decoded the value once. The
+    // mobile side URL-encodes the JSON string exactly ONCE, so decoding
+    // a second time here would corrupt payloads that contain literal '%'
+    // (e.g. sizes like "50g/50%") — parse the value as-is.
+    payload = JSON.parse(rawCart);
     if (!Array.isArray(payload)) throw new Error('cart payload must be an array');
   } catch (e) {
     console.warn('Cart deep-link parse failed:', e);
@@ -54,25 +67,35 @@ async function importCartFromMobileLink(setCart) {
 
   const imported = [];
   for (const line of payload) {
-    if (!line || !line.productId || !line.size) continue;
+    if (!line || !line.productId) continue;
     const product = byId.get(line.productId);
     if (!product) continue;
-    const sizeInfo = (product.sizes || []).find((s) => s.size === line.size);
+    const sizes = Array.isArray(product.sizes) ? product.sizes : [];
+    // Prefer the exact size the mobile app sent; fall back to the first
+    // available size so a legacy `50g` label from the mobile shell still
+    // lands on products that only carry `20g`/`100g` variants.
+    const sizeInfo =
+      sizes.find((s) => s.size === line.size) || sizes[0] || null;
     if (!sizeInfo) continue;
     imported.push({
       productId: product.id,
       name: product.name,
       image: product.image,
       tagline: product.tagline,
-      size: line.size,
+      size: sizeInfo.size,
       price: sizeInfo.price || 0,
       quantity: Math.max(1, Number(line.quantity) || 1),
     });
   }
   if (imported.length === 0) return;
 
-  // Merge with anything already in the cart — dedupe by productId+size.
+  // Mobile-share (WhatsApp) still MERGES so a colleague's link tops up the
+  // receiver's own cart. Direct mobile hand-off (this device → web
+  // checkout) REPLACES so the customer sees exactly what they built on
+  // the phone — no stale localStorage items from a previous browser
+  // session sneak in.
   setCart((prev) => {
+    if (from === 'mobile') return imported;
     const next = [...prev];
     for (const it of imported) {
       const idx = next.findIndex(
@@ -83,8 +106,8 @@ async function importCartFromMobileLink(setCart) {
     }
     return next;
   });
-  const label = from === 'mobile-share' ? 'shared with you' : 'from mobile';
-  toast.success(`Cart ${label} — ${imported.length} item${imported.length === 1 ? '' : 's'} added`);
+  const label = from === 'mobile-share' ? 'shared with you' : 'from your phone';
+  toast.success(`Cart ${label} — ${imported.length} item${imported.length === 1 ? '' : 's'} loaded`);
 }
 
 export function CartProvider({ children }) {

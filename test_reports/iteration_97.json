@@ -1,0 +1,50 @@
+{
+  "summary": "Iter 98 re-test of the two CRITICAL fixes from iteration_96. BOTH FIXES VERIFIED in a real browser. (1) Retailer UI login now POSTs /api/retailer-auth/login -> 200 with body {password,email} (or {username} for non-email identifiers, no `identifier` key), retailer_session cookie set, navigates into the portal; logout POSTs /api/retailer-auth/logout -> 200 and clears the cookie. (2) /retailer/b2b?cart=..&from=mobile now hydrates quantities (kesar-chandan-b2b showed 2 and 3 in two runs), fires the 'Cart from your phone — N SKU loaded' toast (incl. '(1 unavailable)' for retired SKUs) and cleans the URL to /retailer/b2b. Collateral double-decode fix verified with a payload containing a literal '%' on BOTH /retailer/b2b and /cart (no corruption, no error toast). Regressions all green: customer /cart?handoff=&cart= auto-login (session_token cookie + welcome-back toast + items hydrated), /cart without params still hydrates localStorage (qty 4 preserved), /retailer/b2b without ?cart shows 0 quantities and no toast, /track-order still 308 -> https://www.centraders.com/track-order. Backend: 51/51 pytest pass (test_iter97_auth_handoff.py + test_iter98_handoff_supplement.py + test_supabase_mirror.py). Retailer handoff nonce + ?cart in one shot coexists without racing (cookie set AND quantities pre-filled AND both toasts shown).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "app/retailer/login/page.js", "issue": "STILL OPEN (known, out of scope this round): portal-status fetch fails closed — any network/JSON error sets portalEnabled=false and renders the 'Retailer Portal Coming Soon' waitlist, locking every retailer out of login. Should fail OPEN (default enabled) on error. This is exactly what happens in the current default preview config where /api/* is proxied to a dormant host and returns 404 HTML.", "selector": "[data-testid=\"retailer-portal-disabled\"]", "priority": "MEDIUM"},
+      {"component": "app/retailer/b2b/page.js", "issue": "File is 1221 lines (>700 guideline) — split catalog table / KYC gate / order summary into components.", "selector": "n/a", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Retailer login redirect", "issue": "Spec in the review request said login should land on /retailer/b2b; the code (login/page.js) routes to /retailer/dashboard. Functionally fine, flagging only as a spec/expectation mismatch.", "affected_selectors": ["[data-testid=\"retailer-login-btn\"]"]},
+      {"flow": "/retailer/b2b initial load", "issue": "One 401 console error observed on first paint of /retailer/b2b (an authed XHR fires before the retailer session/context resolves). Non-blocking — page renders and all data loads — but noisy.", "affected_selectors": []}
+    ],
+    "design_issues": [
+      {"screen": "/retailer/b2b", "issues": ["The 'Quick Tour 1 of 4' modal auto-opens on every visit and covers the catalog including the just-hydrated quantities from a mobile handoff — consider suppressing the tour when a ?cart handoff was consumed."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter97_auth_handoff.py",
+    "/app/backend/tests/test_iter98_handoff_supplement.py",
+    "/app/backend/tests/test_supabase_mirror.py",
+    "/app/backend/tests/mint_iter98_nonces.py",
+    "/app/test_reports/pytest/iter98_retest.xml"
+  ],
+  "action_items": [
+    "MEDIUM: make /retailer/login portal-status fail OPEN (setPortalEnabled(true) on fetch/JSON error) so a transient API failure cannot hide the login form behind the Coming Soon waitlist.",
+    "LOW: rebuild frontend (yarn build) to pick up the data-testid={`qty-${product.id}`} / qty-mobile-* attributes I added to the B2B quantity spans — the container runs `next start` on a prod build, so source-only edits are not live.",
+    "LOW: suppress/defer the B2B Quick Tour modal when a mobile cart handoff was just consumed.",
+    "LOW: investigate the single 401 XHR on /retailer/b2b first paint (fire authed calls only after the retailer session resolves).",
+    "INFRA (not app code): .next/routes-manifest.json bakes /api/* -> https://fragrance-rewards.preview.emergentagent.com, which is dormant in this container (returns 404 for /api/*), so localhost:3000 cannot reach the backend out of the box."
+  ],
+  "critical_code_review_comments": [
+    "RetailerAuthContext.login(): correct now, but it swallows a non-JSON error body — `await res.json()` on an HTML 502/404 throws and surfaces as a generic parse-error toast. Guard with a content-type check.",
+    "CartContext.importCartFromMobileLink uses a module-level `_mobileCartImportRun` flag — it never resets, so a client-side navigation from /retailer/... to /cart with a fresh ?cart link inside the same tab would be ignored if an import already ran. Acceptable today but fragile.",
+    "The pathname guard `startsWith('/retailer')` is string-based; any future public route beginning with '/retailer' (e.g. /retailers-map) would also be skipped by the B2C importer. Prefer '/retailer/'."
+  ],
+  "updated_files": [
+    "/app/frontend-next/app/retailer/b2b/page.js (added data-testid qty-<id> / qty-mobile-<id> on the quantity spans — test-only attributes)",
+    "/app/backend/tests/mint_iter98_nonces.py (new helper to mint fresh customer/retailer handoff nonces for UI E2E)"
+  ],
+  "success_rate": {"backend": "100% (51/51)", "frontend": "100% of targeted flows (9/9) — 2 pre-existing MEDIUM/LOW issues remain"},
+  "seed_data_creation": "Reused existing seeded accounts (retailer RTL_ITER98_E2E / customer iter98_cust@e2e.test). No new persistent data; handoff nonces are single-use and TTL 60s.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Retailer iter98_e2e_retailer@e2e.test (username iter98_e2e) / Iter98@E2E1 — verified working via UI. Customer iter98_cust@e2e.test / Iter98@Cust1 — login uses {identifier, password} and returns session_token.",
+  "context_for_next_testing_agent": "ENV: /app/frontend is a symlink to /app/frontend-next and supervisor runs `yarn start` (PROD build) — source edits do NOT hot-reload; a `yarn build` is required. The prod build bakes the /api/* rewrite destination into .next/routes-manifest.json pointing at the dormant preview host, so http://localhost:3000/api/* returns 404. Workaround used and REVERTED afterwards: patch rewrites[0].destination to http://localhost:8001/api/:path* + `supervisorctl restart frontend` (verified reverted; /track-order still 308). Backend on localhost:8001 works directly. Customer login endpoint is POST /api/auth/login {identifier,password} -> session_token (Bearer for /api/auth/handoff/create); retailer login is POST /api/retailer-auth/login {email|username,password} -> token, and handoff/create needs header Cookie: retailer_session=<token>. Use /app/backend/tests/mint_iter98_nonces.py. Real B2B catalog ids are '-b2b' suffixed (kesar-chandan-b2b). Customer product kesar-chandan only has 50g/200g sizes, so a payload asking for 100g intentionally falls back to 50g. Quantity spans in the running build have no data-testid yet — select via [data-testid=\"product-row-<id>\"] span.w-16.",
+  "rca_of_the_issue": "Both iteration_96 root causes are resolved: (a) login pointed at the non-existent /api/retailer/login with an {identifier} body — now /api/retailer-auth/login with {email|username,password}; (b) the global B2C CartProvider consumed and stripped ?cart&from on mount before the catalog-gated B2B effect ran — now short-circuited by the window.location.pathname.startsWith('/retailer') guard, so the B2B effect sees the params once `catalog` loads. Remaining risk is unrelated: the retailer login page still fails closed on portal-status errors."
+}

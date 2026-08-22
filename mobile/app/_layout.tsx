@@ -3,11 +3,21 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { SessionContext, useSessionState } from '../lib/session';
+import { SessionContext, useSession, useSessionState, type SessionContextValue } from '../lib/session';
 import { CartContext, useCartState } from '../lib/cart';
 
+/**
+ * Reads the ONE session from the provider — never creates its own.
+ * (An earlier version called `useSessionState()` here, which spawned a
+ * second state tree independent of the provider. The result: successful
+ * logins persisted to SecureStore but the router never redirected
+ * because the gate was watching a different `session` value. Reopening
+ * the app made the gate's own load-persisted read the stored session
+ * on boot and the redirect worked — hence the "correct credentials do
+ * nothing until you force-close" symptom.)
+ */
 function useAuthGate() {
-  const { session, loading } = useSessionState();
+  const { session, loading } = useSession();
   const router = useRouter();
   const segments = useSegments();
 

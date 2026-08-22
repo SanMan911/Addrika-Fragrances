@@ -5,6 +5,92 @@ architecture reference and ROADMAP.md for pending work._
 
 ---
 
+### 🏪 Feb 2026 (Iteration 98) — B2B-only mobile pivot + retailer session handoff
+
+**Product change**: The mobile app (Aaroviah) is now **B2B-only**. B2C paths
+remain in the codebase (one-flag flip to re-enable) but the visible flow is
+retailers-only.
+
+**1. Retailer session handoff** — end-to-end auto-login from mobile → web B2B
+- Backend (`/api/auth/handoff/*`) now branches on session KIND:
+  - `create` sniffs the Bearer/Cookie against BOTH `user_sessions` and
+    `retailer_sessions`, sets `kind: "customer"|"retailer"` on the nonce.
+  - `consume` mints the correct session on the target: customer branch sets
+    `session_token` cookie (existing); retailer branch sets `retailer_session`
+    cookie (new) via `create_retailer_session` and returns the retailer object.
+- Web (`context/RetailerAuthContext.js`): new `consumeMobileHandoff` runs
+  before `checkAuth` on mount. Detects `?handoff=hoff_...`, strips it from
+  the URL, POSTs to `/consume`, sets local state + welcome-back toast:
+  _"Welcome back, {firstName} — Signed in from your mobile cart."_
+- 30/30 pytest cases green (`tests/test_iter97_auth_handoff.py` +
+  `tests/test_iter98_handoff_supplement.py`).
+
+**2. `/retailer/b2b` URL cart hydration** — first B2B cart deep-link
+- Existing page never read the URL; quantities lived only in local state.
+- New `useEffect` fires when `catalog` finishes loading: decodes
+  `?cart=<json>&from=mobile`, filters out SKUs not in the retailer's
+  current catalogue, and calls `setQuantities({...})`. Toast confirms
+  count. URL cleaned of `cart`+`from` afterwards.
+- Handles both `product_id` + `productId` and `quantity_boxes` + `quantity`
+  key variants (mobile sends both for cross-flow compat).
+
+**3. Two CRITICAL bug fixes uncovered by testing agent (iteration_96.json)**:
+- `RetailerAuthContext.login()` was POSTing to `/api/retailer/login` (non-
+  existent) with `{identifier, password}`. Fixed → `/api/retailer-auth/login`
+  with `{email|username, password}` auto-routed by `@` sniffing. Same fix on
+  `logout`.
+- The global `CartContext.importCartFromMobileLink` ran on EVERY route
+  including `/retailer/b2b`, stripped `?cart&from` params before the B2B
+  page's catalog-gated effect could see them. Fixed → early-return when
+  `pathname` starts with `/retailer/` (with trailing slash so future
+  `/retailers-map` still gets B2C hydration).
+
+**4. Hardening (from Iter 97 test report follow-ups)**:
+- `/retailer/login` portal-status now FAILS OPEN on network/JSON errors —
+  a transient API hiccup can no longer hide the login form behind the
+  "Coming Soon" waitlist. Only an explicit `{enabled: false}` disables.
+- `RetailerAuthContext.login` guards against non-JSON error bodies
+  (HTML 404/502 pages) — extracts the real HTTP status instead of
+  throwing a generic parse error.
+- Removed double `decodeURIComponent` in both `CartContext` and
+  `/retailer/b2b` hydration — `URLSearchParams.get()` already decodes once,
+  a second decode corrupted payloads containing literal `%`.
+
+**5. Mobile — B2B-only redesign**
+- `app/_layout.tsx` REWRITE: fixed the "correct credentials do nothing"
+  bug. The root layout was calling `useSessionState()` in two places
+  (Provider + gate), so the gate watched a different `session` state than
+  the provider mutated on login. Now the gate reads from `useSession()`
+  context — single source of truth. This is why the app used to only
+  land you inside after force-close + reopen (SecureStore was read from
+  scratch on the second boot into the gate's own state instance).
+- `app/login.tsx` REWRITE: B2B-only form. Serif brand mark (Georgia iOS
+  / serif Android — no new font deps). Uses `/api/retailer-auth/login`
+  via `loginRetailer` in `session.ts` (same endpoint as the web).
+  WhatsApp "Message admin" for password reset (retailers have no
+  self-serve reset yet).
+- `app/index.tsx` REWRITE: elegant hero with dual halo, serif wordmark,
+  gold accent rule. Removed Trees Planted counter. New **Fragrance
+  Spotlight** card rotates through 8 live products from Supabase every
+  6 s. Catalogue card shows B2B SKU count only. New "Grievances?"
+  WhatsApp CTA replaces retailer-facing links.
+- `app/products.tsx` — Supabase query now filters `channel='b2b'`;
+  quantity label switched from `50g` to `1 box` for wholesale units.
+- `lib/web.ts::openWebCheckout` — retailers deep-link to
+  `/retailer/b2b?cart=...&from=mobile&handoff=...` (not `/retailer/b2b/cart`
+  which never existed). Handoff nonce is minted for BOTH kinds now.
+- `lib/cart.ts::encodeCartForWeb` — payload carries both `quantity` and
+  `quantity_boxes` so the same string drives either B2C or B2B page.
+
+**Regression checks (all green)**:
+- Customer handoff (Iter 97) still works: `/cart?handoff=&cart=` auto-logs in,
+  hydrates items, welcome-back toast.
+- `/track-order` still 308 → `https://www.centraders.com/track-order`.
+- `mirror_order_snapshot` (Iter 96) + supabase mirror blocklist tests green.
+- 30/30 handoff + mirror pytest pass.
+
+---
+
 ### 🔐 Feb 2026 (Iteration 97) — Mobile → Web session handoff (auto-login on checkout)
 
 **Problem**: mobile users had to log in again on the web to check out — added
