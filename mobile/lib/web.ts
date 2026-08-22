@@ -4,6 +4,7 @@ import Constants from 'expo-constants';
 import type { CartLine } from './cart';
 import { encodeCartForWeb } from './cart';
 import { apiFetch } from './api';
+import { snapshotLatestOrder } from './orderWatcher';
 
 /**
  * Deep-links from the mobile shell to the marketing domain.
@@ -90,7 +91,15 @@ export async function openWebCheckout(
 
   let handoffQuery = '';
   if (userKind && bearerToken) {
-    const nonce = await mintWebHandoff(bearerToken);
+    // Snapshot the current most-recent B2B order id BEFORE we leave the
+    // app. The AppState listener in `_layout.tsx` will compare against
+    // this snapshot on foreground return and fire the celebration
+    // screen if a new order landed while the retailer was on the web.
+    // Runs in parallel with the handoff mint so we don't add latency.
+    const [nonce] = await Promise.all([
+      mintWebHandoff(bearerToken),
+      userKind === 'retailer' ? snapshotLatestOrder(bearerToken) : Promise.resolve(),
+    ]);
     if (nonce) handoffQuery = `&handoff=${encodeURIComponent(nonce)}`;
   }
 

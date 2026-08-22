@@ -1,10 +1,11 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { SessionContext, useSession, useSessionState, type SessionContextValue } from '../lib/session';
+import { useEffect, useRef } from 'react';
+import { AppState, View, ActivityIndicator, type AppStateStatus } from 'react-native';
+import { SessionContext, useSession, useSessionState } from '../lib/session';
 import { CartContext, useCartState } from '../lib/cart';
+import { checkForNewOrder } from '../lib/orderWatcher';
 
 /**
  * Reads the ONE session from the provider — never creates its own.
@@ -62,6 +63,7 @@ export default function RootLayout() {
 
 function StackNav() {
   useAuthGate();
+  useOrderPlacedWatcher();
   return (
     <Stack
       screenOptions={{
@@ -75,6 +77,61 @@ function StackNav() {
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="products" options={{ title: 'Catalogue' }} />
       <Stack.Screen name="cart" options={{ title: 'Your Cart' }} />
+      <Stack.Screen
+        name="order-placed"
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
     </Stack>
   );
+}
+
+/**
+ * Foreground poll for a NEW B2B order. When the app returns to
+ * `active` (after the retailer completes checkout on the web) we
+ * ask the backend for the newest order and compare it against the
+ * snapshot that `openWebCheckout` wrote right before we left.
+ *
+ * A "hit" pushes the celebration screen onto the stack with the
+ * fresh order metadata as query params — no extra API call from
+ * the screen itself.
+ *
+ * Guarded so we don't fire while sitting on `/login` (no session)
+ * or already inside `/order-placed` (would double-navigate).
+ */
+function useOrderPlacedWatcher() {
+  const { session } = useSession();
+  const router = useRouter();
+  const segments = useSegments();
+  const lastAppState = useRef<AppStateStatus>(AppState.currentState);
+
+  useEffect(() => {
+    if (!session || session.kind !== 'retailer') return;
+
+    const onChange = async (next: AppStateStatus) => {
+      const prev = lastAppState.current;
+      lastAppState.current = next;
+      // Only fire on background/inactive → active transitions.
+      if (next !== 'active' || (prev !== 'background' && prev !== 'inactive')) {
+        return;
+      }
+      // Don't stack a second celebration on top of the current one.
+      if (segments[0] === 'order-placed') return;
+
+      const fresh = await checkForNewOrder(session.token);
+      if (!fresh) return;
+
+      router.push({
+        pathname: '/order-placed',
+        params: {
+          order_number: fresh.order_number || fresh.order_id,
+          order_id: fresh.order_id,
+          grand_total: fresh.grand_total != null ? String(fresh.grand_total) : '',
+          items: fresh.items ? String(fresh.items.length) : '',
+        },
+      });
+    };
+
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
+  }, [session, router, segments]);
 }

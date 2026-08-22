@@ -5,6 +5,47 @@ architecture reference and ROADMAP.md for pending work._
 
 ---
 
+### 🧩 Feb 2026 (Iteration 99) — B2B page refactor + Order Placed celebration
+
+**1. `/retailer/b2b/page.js` split** — 1221 → 899 lines (-26%)
+- Extracted `components/b2b/B2BKycGate.js` (103 lines) — sticky KYC nudge
+  with GST/PAN/Aadhaar progress chips + inline verification card.
+- Extracted `components/b2b/B2BCatalogueTable.js` (201 lines) — desktop
+  grid + mobile stacked layout, pre-order badges, tier discount hints.
+- Extracted `components/b2b/B2BOrderSummary.js` (162 lines) — every totals
+  row + Place Order CTA, with all data-testids preserved.
+- Behavior byte-for-byte identical; page.js is now just orchestration
+  (state, callbacks, tabs, loyalty progress, order history).
+
+**2. Mobile "Order Placed" celebration screen** — closes the phone→web→phone loop
+- New `mobile/app/order-placed.tsx` — animated screen with dual gold halos,
+  spring-scaled checkmark disc, serif wordmark. Zero new deps (pure RN
+  Animated + Platform.select fonts) so EAS Android build stays clean.
+- New `mobile/lib/orderWatcher.ts` — three helpers: `snapshotLatestOrder`,
+  `checkForNewOrder`, `clearOrderSnapshot`. Uses `SecureStore` so the
+  snapshot survives with the session. Reuses existing
+  `GET /api/retailer-dashboard/b2b/orders?limit=1` — no new backend.
+- `openWebCheckout` now snapshots the retailer's most-recent order id
+  IN PARALLEL with the handoff mint (no added latency) right before we
+  hand the retailer over to the web.
+- `_layout.tsx::useOrderPlacedWatcher` — AppState listener on
+  `background/inactive → active` transition fires `checkForNewOrder`;
+  on a hit it pushes `/order-placed?order_number=&order_id=&grand_total=&items=`
+  so the screen renders instantly from query params (no API call from
+  the screen itself).
+- Guarded so it never fires on `/login` (no session) or when already
+  sitting on `/order-placed` (no double-navigate).
+- `logout` in `session.ts` now calls `clearOrderSnapshot` so the next
+  retailer on this device doesn't inherit a stale trigger.
+
+**Verification**
+- 30/30 backend pytest still green (customer + retailer handoff + mirror).
+- `yarn build` on frontend: no errors.
+- `npx tsc --noEmit` on mobile: clean.
+- `/track-order` still 308 (Iter 96 intact); `/retailer/b2b` still 200.
+
+---
+
 ### 🏪 Feb 2026 (Iteration 98) — B2B-only mobile pivot + retailer session handoff
 
 **Product change**: The mobile app (Aaroviah) is now **B2B-only**. B2C paths

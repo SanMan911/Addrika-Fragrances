@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState, useCallback, createContext, useContext } from 'react';
 import { apiFetch } from './api';
+import { clearOrderSnapshot } from './orderWatcher';
 
 /**
  * Session state for the Expo app.
@@ -111,6 +112,9 @@ export function useSessionState(): SessionContextValue {
   }, []);
 
   const logout = useCallback(async () => {
+    // Clear the B2B "new order" snapshot so the next retailer on this
+    // device doesn't inherit a stale trigger.
+    try { await clearOrderSnapshot(); } catch { /* non-fatal */ }
     await persist(null);
     setSession(null);
   }, []);
