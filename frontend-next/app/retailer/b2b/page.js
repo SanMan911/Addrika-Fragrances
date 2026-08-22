@@ -2,19 +2,20 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { 
-  ArrowLeft, ShoppingCart, Package, Minus, Plus, 
+  ArrowLeft, ShoppingCart, Package,
   Percent, CreditCard, FileText, CheckCircle, Loader2,
-  Info, History, ShieldCheck, ChevronUp, ChevronDown
+  Info, History, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import { toast } from 'sonner';
 import RetailerFirstLoginTour from '../../../components/RetailerFirstLoginTour';
-import KYCVerificationCard from '../../../components/KYCVerificationCard';
 import RewardsBalanceCard from '../../../components/RewardsBalanceCard';
 import RewardsRedeemToggle from '../../../components/RewardsRedeemToggle';
 import PincodeShippingInput from '../../../components/PincodeShippingInput';
+import B2BKycGate from '../../../components/b2b/B2BKycGate';
+import B2BCatalogueTable from '../../../components/b2b/B2BCatalogueTable';
+import B2BOrderSummary from '../../../components/b2b/B2BOrderSummary';
 import { getTierPerks } from '../../../lib/tierPerks';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const formatCurrency = (amount) => {
@@ -37,16 +38,6 @@ const formatDate = (dateStr) => {
   }
 };
 
-// Pre-order eligibility: SKU is out-of-stock / restocking / manufacturing /
-// delayed, or has zero pieces available. Matches server-side
-// `is_preorder_eligible` in `services/b2b_preorder.py`.
-const PREORDER_STATUSES = new Set(['out_of_stock', 'restocking', 'manufacturing', 'delayed']);
-const isPreorderAvailable = (product) => {
-  if (!product) return false;
-  const status = String(product.stock_status || '').toLowerCase();
-  if (PREORDER_STATUSES.has(status)) return true;
-  return Number(product.stock_pieces || 0) <= 0;
-};
 export default function RetailerB2BPage() {
   const [catalog, setCatalog] = useState([]);
   const [quantities, setQuantities] = useState({});
@@ -360,83 +351,12 @@ export default function RetailerB2BPage() {
           <RewardsBalanceCard fetchWithAuth={fetchWithAuth} />
 
           {/* KYC gate nudge — sticky on scroll with per-step progress chips */}
-          {kycGate && kycGate.gate_enabled && !kycGate.fully_kyc_verified && (
-            <div
-              id="kyc-self-service"
-              className="sticky top-16 z-30 rounded-xl overflow-hidden shadow-lg"
-              style={{
-                background:
-                  'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                border: '2px solid #d97706',
-              }}
-              data-testid="kyc-gate-banner"
-            >
-              <div className="p-4 flex flex-col md:flex-row md:items-center gap-3">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className="shrink-0 w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center">
-                    <ShieldCheck className="text-white" size={20} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-amber-900 mb-1.5">
-                      🔒 Complete your KYC to unlock wholesale pricing &amp; ordering
-                    </p>
-
-                    {/* Progress chips — one per verification step */}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {[
-                        { key: 'gst', label: 'GST', done: !kycGate.missing.includes('GST') },
-                        { key: 'pan', label: 'PAN', done: !kycGate.missing.includes('PAN') },
-                        { key: 'aadhaar', label: 'Aadhaar OTP', done: !kycGate.missing.includes('Aadhaar') },
-                      ].map((step) => (
-                        <span
-                          key={step.key}
-                          data-testid={`kyc-step-${step.key}`}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold"
-                          style={{
-                            background: step.done ? '#10b981' : 'rgba(120, 53, 15, 0.15)',
-                            color: step.done ? '#fff' : '#78350f',
-                            border: step.done ? 'none' : '1px solid rgba(120,53,15,0.3)',
-                          }}
-                        >
-                          {step.done ? '✓' : '○'} {step.label}
-                        </span>
-                      ))}
-                      <span className="text-[11px] text-amber-900/70 ml-1">
-                        takes ~3 min
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowKycCard(!showKycCard)}
-                  className="shrink-0 px-4 py-2 text-xs rounded-lg font-bold whitespace-nowrap transition-transform hover:-translate-y-0.5"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                    color: '#fff',
-                    boxShadow: '0 4px 12px -2px rgba(180,83,9,0.4)',
-                  }}
-                  data-testid="kyc-self-service-toggle"
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    <ShieldCheck size={13} />
-                    {showKycCard ? 'Hide verification' : 'Verify now →'}
-                  </span>
-                </button>
-              </div>
-              {showKycCard && (
-                <div className="border-t border-amber-300 p-4 bg-white">
-                  <KYCVerificationCard
-                    retailerId={kycGate.retailer_id}
-                    onComplete={() => {
-                      toast.success('KYC complete — orders unlocked');
-                      fetchCatalog();
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+          <B2BKycGate
+            kycGate={kycGate}
+            showKycCard={showKycCard}
+            onToggle={() => setShowKycCard(!showKycCard)}
+            onComplete={fetchCatalog}
+          />
 
           {/* GST Info Banner */}
           {retailerInfo && (
@@ -556,138 +476,13 @@ export default function RetailerB2BPage() {
             );
           })()}
           {/* Product Table */}
-          {loading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-20 bg-white rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200">
-              {/* Table Header */}
-              <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 text-sm font-semibold bg-[#2B3A4A] text-white">
-                <div className="col-span-1">Image</div>
-                <div className="col-span-3">Product Name</div>
-                <div className="col-span-1 text-center">Weight</div>
-                <div className="col-span-2 text-center">Price/Box</div>
-                <div className="col-span-2 text-center">Price/½ Box</div>
-                <div className="col-span-3 text-center">Quantity</div>
-              </div>
-              {/* Table Body */}
-              <div className="divide-y divide-gray-100">
-                {catalog
-                  .filter((p) => categoryFilter === 'all' || p.category === categoryFilter)
-                  .map((product) => (
-                  <div 
-                    key={product.id}
-                    className="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-gray-50 transition-colors"
-                    data-testid={`product-row-${product.id}`}
-                  >
-                    {/* Mobile Layout */}
-                    <div className="md:hidden flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden relative">
-                          {product.image && (
-                            <Image src={product.image} alt={product.name} fill className="object-cover" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-[#2B3A4A]">{product.name}</p>
-                          <p className="text-xs text-gray-500">{product.units_per_box} units/box • {product.net_weight}</p>
-                          <p className="text-sm font-medium text-[#D4AF37]">{formatCurrency(product.price_per_box)}/box</p>
-                          {isPreorderAvailable(product) && (
-                            <span
-                              className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300"
-                              data-testid={`preorder-badge-mobile-${product.id}`}
-                              title="This SKU is currently out of stock but bookable via a 50% token pre-order — you'll be prioritized in the Next Production Batch."
-                            >
-                              PRE-ORDER AVAILABLE
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleQuantityChange(product.id, -1)}
-                          disabled={(quantities[product.id] || 0) <= 0}
-                          className="w-8 h-8 rounded-full border-2 flex items-center justify-center disabled:opacity-30"
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <span className="w-12 text-center font-bold" data-testid={`qty-mobile-${product.id}`}>{quantities[product.id] || 0}</span>
-                        <button
-                          onClick={() => handleQuantityChange(product.id, 1)}
-                          className="w-8 h-8 rounded-full border-2 flex items-center justify-center hover:border-[#D4AF37]"
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                    </div>
-                    {/* Desktop Layout */}
-                    <div className="hidden md:contents">
-                      <div className="col-span-1">
-                        <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden relative">
-                          {product.image && (
-                            <Image src={product.image} alt={product.name} fill className="object-cover" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="col-span-3">
-                        <p className="font-semibold text-[#2B3A4A]">{product.name}</p>
-                        <p className="text-xs text-gray-500">{product.units_per_box} units/box</p>
-                        {isPreorderAvailable(product) && (
-                          <span
-                            className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300"
-                            data-testid={`preorder-badge-${product.id}`}
-                            title="Out of stock — bookable via 50% token pre-order. You'll be prioritized in the Next Production Batch."
-                          >
-                            PRE-ORDER AVAILABLE
-                          </span>
-                        )}
-                        {product.pricing_tiers?.length > 0 && (
-                          <p className="text-[11px] text-green-700 mt-1 font-medium" data-testid={`tiers-${product.id}`}>
-                            {product.pricing_tiers
-                              .filter((t) => t.discount_percent > 0)
-                              .map((t) => `${t.min_boxes}+ box: -${t.discount_percent}%`)
-                              .join(' • ') || 'Bulk discounts available'}
-                          </p>
-                        )}
-                      </div>
-                      <div className="col-span-1 text-center">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-[#F5F0E8] text-[#2B3A4A]">
-                          {product.net_weight}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-center font-bold text-[#D4AF37]">
-                        {formatCurrency(product.price_per_box)}
-                      </div>
-                      <div className="col-span-2 text-center font-medium text-[#2B3A4A]">
-                        {formatCurrency(product.price_per_half_box)}
-                      </div>
-                      <div className="col-span-3 flex items-center justify-center gap-3">
-                        <button
-                          onClick={() => handleQuantityChange(product.id, -1)}
-                          disabled={(quantities[product.id] || 0) <= 0}
-                          className="w-8 h-8 rounded-full border-2 flex items-center justify-center disabled:opacity-30"
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <span className="w-16 text-center text-lg font-bold text-[#2B3A4A]" data-testid={`qty-${product.id}`}>
-                          {quantities[product.id] || 0}
-                        </span>
-                        <button
-                          onClick={() => handleQuantityChange(product.id, 1)}
-                          className="w-8 h-8 rounded-full border-2 flex items-center justify-center hover:border-[#D4AF37] hover:bg-amber-50"
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <B2BCatalogueTable
+            catalog={catalog}
+            quantities={quantities}
+            categoryFilter={categoryFilter}
+            loading={loading}
+            onQuantityChange={handleQuantityChange}
+          />
           {/* Distance-based shipping quote (Shiprocket-powered) */}
           <PincodeShippingInput
             fetchWithAuth={fetchWithAuth}
@@ -825,127 +620,11 @@ export default function RetailerB2BPage() {
             )}
           </button>
           {/* Order Summary */}
-          {orderSummary && (
-            <div className="rounded-xl overflow-hidden bg-white border-2 border-[#D4AF37]">
-              <div className="px-6 py-4 bg-[#D4AF37] text-white">
-                <h3 className="text-lg font-bold">Order Summary</h3>
-              </div>
-              <div className="p-6">
-                {/* Items */}
-                <div className="space-y-3 mb-6">
-                  {orderSummary.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <div>
-                        <span className="font-medium">{item.name}</span>
-                        <span className="text-sm text-gray-500 ml-2">({item.net_weight})</span>
-                        <span className="text-sm text-gray-500 ml-2">× {item.quantity_boxes} boxes</span>
-                      </div>
-                      <span className="font-semibold">{formatCurrency(item.line_total)}</span>
-                    </div>
-                  ))}
-                </div>
-                {/* Totals */}
-                <div className="space-y-2 border-t pt-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Subtotal</span>
-                    <span className="font-medium">{formatCurrency(orderSummary.subtotal)}</span>
-                  </div>
-                  {orderSummary.tier_discount_total > 0 && (
-                    <div className="flex justify-between text-emerald-700">
-                      <span>Bulk Tier Savings (applied per line)</span>
-                      <span className="font-medium">-{formatCurrency(orderSummary.tier_discount_total)}</span>
-                    </div>
-                  )}
-                  {orderSummary.loyalty_discount > 0 && (
-                    <div className="flex justify-between text-amber-700" data-testid="summary-loyalty">
-                      <span>
-                        Loyalty Bonus ({orderSummary.loyalty_discount_percent}%)
-                      </span>
-                      <span className="font-medium">
-                        -{formatCurrency(orderSummary.loyalty_discount)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">GST (after discount)</span>
-                    <span className="font-medium">{formatCurrency(orderSummary.gst_total)}</span>
-                  </div>
-                  {orderSummary.voucher_discount > 0 && (
-                    <div className="flex justify-between text-amber-600">
-                      <span>Voucher ({orderSummary.voucher_code})</span>
-                      <span className="font-medium">-{formatCurrency(orderSummary.voucher_discount)}</span>
-                    </div>
-                  )}
-                  {orderSummary.cash_discount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Cash Discount ({orderSummary.cash_discount_percent}%)</span>
-                      <span className="font-medium">-{formatCurrency(orderSummary.cash_discount)}</span>
-                    </div>
-                  )}
-                  {orderSummary.credit_note_discount > 0 && (
-                    <div className="flex justify-between text-blue-600">
-                      <span>Credit Note ({orderSummary.credit_note_code})</span>
-                      <span className="font-medium">-{formatCurrency(orderSummary.credit_note_discount)}</span>
-                    </div>
-                  )}
-                  {orderSummary.shipping_charges > 0 && (
-                    <div className="flex justify-between text-indigo-700" data-testid="summary-shipping">
-                      <span>
-                        Shipping
-                        {orderSummary.shipping_quote?.courier_name && (
-                          <span className="text-xs text-gray-500 ml-1">
-                            ({orderSummary.shipping_quote.courier_name})
-                          </span>
-                        )}
-                      </span>
-                      <span className="font-medium">+{formatCurrency(orderSummary.shipping_charges)}</span>
-                    </div>
-                  )}
-                  {orderSummary.rewards_redeemed_inr > 0 && (
-                    <div className="flex justify-between text-amber-700" data-testid="summary-rewards-redeemed">
-                      <span>Fragrance Rewards applied</span>
-                      <span className="font-medium">-{formatCurrency(orderSummary.rewards_redeemed_inr)}</span>
-                    </div>
-                  )}
-                  {orderSummary.rewards_projection?.will_earn_inr > 0 && (
-                    <div className="flex justify-between text-amber-700 bg-amber-50 -mx-1 px-2 py-1.5 rounded-lg text-sm border border-amber-100"
-                      data-testid="summary-rewards-projection">
-                      <span>
-                        You&apos;ll earn (Fragrance Rewards @ {orderSummary.rewards_projection.multiplier_pct}%)
-                      </span>
-                      <span className="font-semibold">+{formatCurrency(orderSummary.rewards_projection.will_earn_inr)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between pt-3 mt-3 border-t text-xl font-bold text-[#2B3A4A]">
-                    <span>Grand Total</span>
-                    <span className="text-[#D4AF37]">{formatCurrency(orderSummary.grand_total)}</span>
-                  </div>
-                </div>
-                {/* Place Order Button */}
-                <button
-                  onClick={submitOrder}
-                  disabled={submitting}
-                  className="w-full mt-6 py-4 text-lg font-semibold bg-green-600 text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
-                  data-testid="place-order-btn"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="animate-spin" size={20} />
-                      Placing Order...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard size={20} />
-                      Place Order - {formatCurrency(orderSummary.grand_total)}
-                    </>
-                  )}
-                </button>
-                <p className="text-center text-sm mt-3 text-gray-500">
-                  Our team will contact you to confirm and arrange delivery
-                </p>
-              </div>
-            </div>
-          )}
+          <B2BOrderSummary
+            orderSummary={orderSummary}
+            submitting={submitting}
+            onPlaceOrder={submitOrder}
+          />
         </>
       ) : (
         /* Order History Tab */

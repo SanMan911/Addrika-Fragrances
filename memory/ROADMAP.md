@@ -26,15 +26,13 @@ _None currently._
 - **401 XHR on `/retailer/b2b` first paint** — an authed XHR fires before
   the retailer session resolves; page renders fine but noisy in the
   console. Gate the initial fetch on `isAuthenticated`.
-- **Split `/retailer/b2b/page.js`** — 1221 lines; extract catalogue table,
-  KYC gate, order summary into components.
 - **Suppress B2B Quick Tour** when a mobile cart handoff was just
   consumed (skip on `?cart=` presence in the initial URL).
 - **Split `b2b_orders.py` further** — calculate/order-body already extracted;
   pull remaining verify-payment + post-payment hooks into `services/`.
 - **Retailer Onboarding Video** — 60-second walkthrough of Aaroviah cart →
-  auto-login → `/retailer/b2b` hydration flow, pinned inside the retailer
-  portal's first-login tour.
+  auto-login → `/retailer/b2b` hydration → Order Placed celebration flow,
+  pinned inside the retailer portal's first-login tour.
 - **Order Mirror Analytics endpoint** — `/api/admin/supabase-mirror/orders-summary`
   surfacing mirror lag + row counts for ops.
 - **Wipe-utility mirror consistency** — `wipe_all_data` and admin
