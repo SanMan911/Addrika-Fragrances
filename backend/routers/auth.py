@@ -572,12 +572,28 @@ async def create_auth_handoff(request: Request, session_token: Optional[str] = C
     """
     Mint a one-time handoff nonce for the currently authenticated caller.
 
-    Caller MUST be authenticated via Bearer token (mobile) or cookie (web).
+    Accepts BOTH a customer bearer/cookie (from the Aaroviah customer flow)
+    AND a retailer bearer/cookie (from the Aaroviah retailer flow). The
+    resulting nonce records `kind` so `/consume` knows which cookie to set.
+
     The returned nonce is valid for 60 seconds and can be consumed exactly
     once by POST /api/auth/handoff/consume.
     """
+    # Try customer first (cookie or Bearer via get_current_user)
     user = await get_current_user(request, session_token)
+    kind = "customer"
+    subject_id: Optional[str] = user["user_id"] if user else None
+
+    # If no customer session matched, try retailer
     if not user:
+        from routers.retailer_auth import get_current_retailer
+        retailer_cookie = request.cookies.get("retailer_session")
+        retailer = await get_current_retailer(request, retailer_cookie)
+        if retailer:
+            kind = "retailer"
+            subject_id = retailer["retailer_id"]
+
+    if not subject_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     import uuid as _uuid
@@ -592,8 +608,9 @@ async def create_auth_handoff(request: Request, session_token: Optional[str] = C
 
     await db.auth_handoffs.insert_one({
         "handoff_token": handoff_token,
-        "user_id": user["user_id"],
-        "kind": "customer",
+        "user_id": subject_id if kind == "customer" else None,
+        "retailer_id": subject_id if kind == "retailer" else None,
+        "kind": kind,
         "created_at": now,
         "expires_at": expires_at,
         "used": False,
@@ -602,6 +619,7 @@ async def create_auth_handoff(request: Request, session_token: Optional[str] = C
     return {
         "handoff_token": handoff_token,
         "expires_in": HANDOFF_TTL_SECONDS,
+        "kind": kind,
     }
 
 
@@ -610,10 +628,11 @@ async def consume_auth_handoff(body: HandoffConsumeBody, response: Response):
     """
     Exchange a one-time handoff nonce for a fresh web session cookie.
 
-    Called by the web /cart page after a mobile → web checkout deep-link.
-    On success: sets the HttpOnly `session_token` cookie and returns the
-    user + token. The nonce is atomically marked as used to guarantee
-    single-use semantics under concurrency.
+    Called by the web /cart page (customer) or /retailer/b2b page (retailer)
+    after a mobile → web deep-link. On success: sets the appropriate
+    HttpOnly session cookie and returns the user/retailer + token. The
+    nonce is atomically marked as used to guarantee single-use semantics
+    under concurrency.
     """
     token = (body.handoff_token or "").strip()
     if not token.startswith("hoff_"):
@@ -635,8 +654,46 @@ async def consume_auth_handoff(body: HandoffConsumeBody, response: Response):
     if not claimed:
         raise HTTPException(status_code=401, detail="Handoff token invalid, expired, or already used")
 
-    # Mint a fresh web session bound to the same user_id
-    user_id = claimed["user_id"]
+    kind = claimed.get("kind", "customer")
+
+    if kind == "retailer":
+        # ---- retailer branch ----
+        from routers.retailer_auth import create_retailer_session, RETAILER_SESSION_EXPIRY_DAYS
+        retailer_id = claimed.get("retailer_id")
+        retailer = await db.retailers.find_one(
+            {"retailer_id": retailer_id},
+            {"_id": 0, "password_hash": 0},
+        )
+        if not retailer or retailer.get("status") != "active":
+            raise HTTPException(status_code=401, detail="Handoff retailer no longer active")
+
+        retailer_token = await create_retailer_session(retailer_id, retailer.get("email", ""))
+
+        response.set_cookie(
+            key="retailer_session",
+            value=retailer_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=RETAILER_SESSION_EXPIRY_DAYS * 24 * 60 * 60,
+        )
+
+        return {
+            "message": "Auto-login successful",
+            "kind": "retailer",
+            "retailer": {
+                "retailer_id": retailer["retailer_id"],
+                "name": retailer.get("name", ""),
+                "email": retailer.get("email", ""),
+                "city": retailer.get("city"),
+                "district": retailer.get("district"),
+                "state": retailer.get("state"),
+            },
+            "token": retailer_token,
+        }
+
+    # ---- customer branch (default) ----
+    user_id = claimed.get("user_id")
     from services.auth_service import get_user_by_id
     user = await get_user_by_id(db, user_id)
     if not user:
@@ -655,6 +712,7 @@ async def consume_auth_handoff(body: HandoffConsumeBody, response: Response):
 
     return {
         "message": "Auto-login successful",
+        "kind": "customer",
         "user": {
             "user_id": user["user_id"],
             "email": user.get("email", ""),

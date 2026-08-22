@@ -12,42 +12,48 @@ import {
 } from 'react-native';
 import { useSession } from '../lib/session';
 import { fetchAppConfig, type AppConfig } from '../lib/config';
-import { openCustomerSignup, openRetailerSignup, openWebUrl, openWhatsAppTo } from '../lib/web';
+import { openWebUrl, openWhatsAppTo } from '../lib/web';
 import { MOBILE_BRAND_NAME, MOBILE_BRAND_TAGLINE } from '../lib/brand';
 
-type Tab = 'customer' | 'retailer';
+/**
+ * B2B-only login screen (Iter 98).
+ *
+ * The B2C flow is temporarily out of the mobile experience while we focus
+ * the app on retailers. The code path (`loginCustomer`) remains in
+ * `lib/session.ts` so re-enabling later is a one-flag flip.
+ *
+ * Existing retailers sign in via the exact same endpoint used by
+ * `/retailer/login` on the web: POST /api/retailer-auth/login with
+ * `{email|username, password}`.
+ */
+const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
 
 export default function LoginScreen() {
-  const [tab, setTab] = useState<Tab>('customer');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<AppConfig | null>(null);
-  const { loginCustomer, loginRetailer } = useSession();
+  const { loginRetailer } = useSession();
 
   useEffect(() => {
-    fetchAppConfig().then(setConfig).catch(() => {});
+    fetchAppConfig().then(setConfig).catch(() => { /* offline is fine */ });
   }, []);
 
   async function submit() {
     setError(null);
     setSubmitting(true);
     try {
-      if (tab === 'customer') await loginCustomer(identifier.trim(), password);
-      else await loginRetailer(identifier.trim(), password);
+      await loginRetailer(identifier.trim(), password);
     } catch (e) {
       const raw = e instanceof Error ? e.message : 'Login failed';
-      // Friendlier copy for the two 4xx responses the backend actually returns.
       let msg = raw;
-      if (/401.*Invalid credentials/i.test(raw)) {
-        msg = tab === 'customer'
-          ? 'Wrong email/username or password. Tap "Forgot password" below — reset uses your registered mobile number.'
-          : 'Wrong email/username or password. Tap "Message admin on WhatsApp" below.';
-      } else if (/400.*Google login/i.test(raw)) {
-        msg = 'This account uses Google sign-in. Please sign in via centraders.com in your browser.';
-      } else if (/401.*Retailer not found|401.*Invalid password/i.test(raw)) {
-        msg = 'Retailer login failed. Check your email/username and password, or message admin to reset.';
+      if (/403/.test(raw) && /portal is currently unavailable/i.test(raw)) {
+        msg = 'The retailer portal is temporarily paused. Message admin on WhatsApp to reactivate.';
+      } else if (/401.*Retailer not found|401.*Invalid password|401.*Invalid email/i.test(raw)) {
+        msg = 'Wrong email/username or password. Tap "Message admin on WhatsApp" below to reset.';
+      } else if (/400.*required/i.test(raw)) {
+        msg = 'Please enter your email or username above.';
       }
       setError(msg);
     } finally {
@@ -55,20 +61,14 @@ export default function LoginScreen() {
     }
   }
 
-  // Customers self-serve via /forgot-password (mobile-number OTP flow).
-  // Retailers don't have a self-serve reset UI yet — on prod /retailer/login
-  // is the "coming soon" waitlist gate — so we open the WhatsApp app to the
-  // admin line with a pre-composed reset request instead of dead-ending.
-  const openForgotPassword = () => {
-    if (tab === 'customer') return openWebUrl('/forgot-password');
-    return openWhatsAppTo(
+  // Retailers don't have a self-serve reset UI yet — WhatsApp admin.
+  const openReset = () =>
+    openWhatsAppTo(
       '918377020402',
       `Hi, I'm a ${MOBILE_BRAND_NAME} retailer and need help resetting my B2B password. My registered email/username is: `,
     );
-  };
 
-  const brand = MOBILE_BRAND_NAME;
-  const tagline = MOBILE_BRAND_TAGLINE;
+  const openRetailerSignup = () => openWebUrl('/');
 
   return (
     <KeyboardAvoidingView
@@ -77,17 +77,18 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={styles.container} testID="login-screen">
         <View style={styles.header}>
-          <Text style={styles.brand} testID="login-brand-name">{brand}</Text>
-          <Text style={styles.tagline}>{tagline}</Text>
-        </View>
-
-        <View style={styles.tabs}>
-          <TabBtn label="Customer" active={tab === 'customer'} onPress={() => setTab('customer')} tid="tab-customer" />
-          <TabBtn label="Retailer" active={tab === 'retailer'} onPress={() => setTab('retailer')} tid="tab-retailer" />
+          <View style={styles.haloBg} pointerEvents="none" />
+          <Text style={styles.brand} testID="login-brand-name">{MOBILE_BRAND_NAME}</Text>
+          <View style={styles.brandRule} />
+          <Text style={styles.tagline}>{MOBILE_BRAND_TAGLINE}</Text>
+          <Text style={styles.b2bBadge}>· For Retailers ·</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>{tab === 'customer' ? 'Email or username' : 'Retailer email or username'}</Text>
+          <Text style={styles.cardTitle}>Retailer Sign-in</Text>
+          <Text style={styles.cardSub}>Use the same credentials you use on centraders.com</Text>
+
+          <Text style={styles.label}>Email or username</Text>
           <TextInput
             testID="login-identifier"
             value={identifier}
@@ -96,7 +97,7 @@ export default function LoginScreen() {
             autoCorrect={false}
             keyboardType="email-address"
             style={styles.input}
-            placeholder={tab === 'customer' ? 'you@email.com' : 'retailer@shop.com'}
+            placeholder="retailer@shop.com"
             placeholderTextColor="#a89f8b"
           />
 
@@ -131,74 +132,107 @@ export default function LoginScreen() {
 
           <Pressable
             testID="forgot-password-link"
-            onPress={openForgotPassword}
+            onPress={openReset}
             android_ripple={{ color: 'rgba(30, 58, 82, 0.1)' }}
             style={styles.forgotBtn}
           >
-            <Text style={styles.forgotTxt}>
-              {tab === 'customer' ? 'Forgot password?' : 'Message admin on WhatsApp'}
-            </Text>
+            <Text style={styles.forgotTxt}>Message admin on WhatsApp</Text>
           </Pressable>
         </View>
 
         <View style={styles.signupBlock}>
-          <Text style={styles.signupPrompt}>
-            {tab === 'customer' ? `New to ${brand}?` : 'Own a shop and want to stock our fragrances?'}
-          </Text>
+          <Text style={styles.signupPrompt}>Own a shop and want to stock our fragrances?</Text>
           <Pressable
             testID="signup-link"
-            onPress={tab === 'customer' ? openCustomerSignup : openRetailerSignup}
+            onPress={openRetailerSignup}
             android_ripple={{ color: 'rgba(30, 58, 82, 0.15)' }}
           >
             <Text style={styles.signupLink}>
-              {tab === 'customer' ? 'Create an account on centraders.com →' : 'Start retailer onboarding on centraders.com →'}
+              Start retailer onboarding on centraders.com →
             </Text>
           </Pressable>
         </View>
 
         <Text style={styles.footer}>
-          Sign-ups happen on the web — the mobile app is your quick catalogue + cart companion.
+          Onboarding + payments happen on the web · the mobile app is your quick catalogue + cart companion.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-function TabBtn({ label, active, onPress, tid }: { label: string; active: boolean; onPress: () => void; tid: string }) {
-  return (
-    <Pressable
-      testID={tid}
-      style={[styles.tab, active && styles.tabActive]}
-      onPress={onPress}
-    >
-      <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#1e3a52' },
-  container: { padding: 24, gap: 20, flexGrow: 1, justifyContent: 'center' },
-  header: { alignItems: 'center', marginBottom: 8 },
-  brand: { fontSize: 42, fontWeight: '700', color: '#d4af37', letterSpacing: 1 },
-  tagline: { fontSize: 13, color: '#c8bfa9', marginTop: 4, fontStyle: 'italic' },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 999,
-    padding: 4,
+  container: { padding: 24, gap: 18, flexGrow: 1, justifyContent: 'center' },
+  header: { alignItems: 'center', marginBottom: 6, position: 'relative', paddingVertical: 12 },
+  haloBg: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    top: -60,
   },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 999 },
-  tabActive: { backgroundColor: '#d4af37' },
-  tabLabel: { fontSize: 14, fontWeight: '600', color: '#c8bfa9' },
-  tabLabelActive: { color: '#1e3a52' },
+  brand: {
+    fontFamily: SERIF,
+    fontSize: 46,
+    fontWeight: '700',
+    color: '#f4e7c1',
+    letterSpacing: 3,
+    textAlign: 'center',
+  },
+  brandRule: {
+    width: 72,
+    height: 2,
+    backgroundColor: '#d4af37',
+    marginVertical: 12,
+  },
+  tagline: {
+    fontFamily: SERIF,
+    fontSize: 14,
+    color: '#e8dcc1',
+    fontStyle: 'italic',
+    letterSpacing: 1,
+  },
+  b2bBadge: {
+    marginTop: 8,
+    fontSize: 10,
+    color: '#d4af37',
+    letterSpacing: 3,
+    fontWeight: '700',
+  },
   card: {
     backgroundColor: '#faf7f2',
-    padding: 20,
-    borderRadius: 14,
+    padding: 22,
+    borderRadius: 16,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 4,
   },
-  label: { fontSize: 12, color: '#6b6357', letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 6 },
+  cardTitle: {
+    fontFamily: SERIF,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e3a52',
+    letterSpacing: 0.5,
+  },
+  cardSub: {
+    fontSize: 12,
+    color: '#6b6357',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  label: {
+    fontSize: 11,
+    color: '#6b6357',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: 8,
+    fontWeight: '600',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#d8cfbc',
@@ -208,20 +242,42 @@ const styles = StyleSheet.create({
     color: '#1e3a52',
     backgroundColor: '#fff',
   },
-  error: { color: '#b91c1c', fontSize: 13, marginTop: 4 },
+  error: { color: '#b91c1c', fontSize: 13, marginTop: 6 },
   cta: {
-    marginTop: 16,
+    marginTop: 18,
     backgroundColor: '#1e3a52',
-    padding: 14,
-    borderRadius: 10,
+    paddingVertical: 15,
+    borderRadius: 12,
     alignItems: 'center',
   },
   ctaPressed: { opacity: 0.85 },
-  ctaText: { color: '#d4af37', fontWeight: '700', fontSize: 15, letterSpacing: 0.5 },
-  forgotBtn: { alignItems: 'center', paddingVertical: 10, marginTop: 2 },
-  forgotTxt: { fontSize: 13, color: '#1e3a52', fontWeight: '600', textDecorationLine: 'underline' },
+  ctaText: {
+    color: '#d4af37',
+    fontWeight: '700',
+    fontSize: 15,
+    letterSpacing: 1.5,
+  },
+  forgotBtn: { alignItems: 'center', paddingVertical: 10, marginTop: 4 },
+  forgotTxt: {
+    fontSize: 13,
+    color: '#1e3a52',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
   signupBlock: { alignItems: 'center', gap: 6, marginTop: 4 },
-  signupPrompt: { fontSize: 13, color: '#c8bfa9' },
-  signupLink: { fontSize: 14, color: '#d4af37', fontWeight: '600' },
-  footer: { fontSize: 11, color: '#8a8272', textAlign: 'center', marginTop: 12 },
+  signupPrompt: { fontSize: 12, color: '#c8bfa9', textAlign: 'center' },
+  signupLink: {
+    fontSize: 13,
+    color: '#d4af37',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  footer: {
+    fontSize: 10,
+    color: '#8a8272',
+    textAlign: 'center',
+    marginTop: 12,
+    letterSpacing: 0.5,
+    fontStyle: 'italic',
+  },
 });

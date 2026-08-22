@@ -140,6 +140,78 @@ export default function RetailerB2BPage() {
       fetchOrders();
     }
   }, [activeTab, fetchOrders]);
+
+  // Mobile → Web cart hydration. When the Aaroviah shell deep-links to
+  // /retailer/b2b?cart=<b64>&from=mobile, decode the payload and pre-fill
+  // the quantities map with only SKUs that exist in the retailer's current
+  // catalogue (so retired SKUs don't ghost-populate). Runs once, ONLY
+  // after `catalog` is loaded, and strips the `cart`/`from` params from
+  // the URL so a refresh doesn't replay the import.
+  const cartHydratedRef = useRef(false);
+  useEffect(() => {
+    if (cartHydratedRef.current) return;
+    if (!catalog || catalog.length === 0) return;
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const cartParam = params.get('cart');
+    const from = params.get('from');
+    if (!cartParam || (from !== 'mobile' && from !== 'mobile-share')) return;
+
+    cartHydratedRef.current = true;
+
+    let payload;
+    try {
+      // URLSearchParams.get() already decodes once; the mobile side
+      // encodes exactly once. A second decode here would corrupt
+      // payloads containing literal '%'.
+      payload = JSON.parse(cartParam);
+    } catch {
+      toast.error('Could not read the cart from your phone — please re-add items.');
+      return;
+    }
+    if (!Array.isArray(payload)) return;
+
+    const validIds = new Set(catalog.map((p) => p.id));
+    const next = {};
+    let dropped = 0;
+    for (const line of payload) {
+      const id = line?.productId || line?.product_id;
+      const qty = Number(line?.quantity_boxes ?? line?.quantity ?? 0);
+      if (!id || qty <= 0) continue;
+      if (!validIds.has(id)) { dropped += 1; continue; }
+      next[id] = qty;
+    }
+
+    // Strip cart+from from URL — handoff is already stripped by
+    // RetailerAuthContext. Preserves other params (e.g. #kyc hash) so the
+    // KYC deep-link still works even alongside a cart hand-off.
+    params.delete('cart');
+    params.delete('from');
+    const nextSearch = params.toString();
+    try {
+      window.history.replaceState(
+        {},
+        '',
+        `${window.location.pathname}${nextSearch ? '?' + nextSearch : ''}${window.location.hash}`,
+      );
+    } catch { /* non-fatal */ }
+
+    if (Object.keys(next).length > 0) {
+      setQuantities(next);
+      // Give the UI a beat to render before toasting so the user sees
+      // both the numbers and the confirmation at the same time.
+      setTimeout(() => {
+        const label = from === 'mobile-share' ? 'shared with you' : 'from your phone';
+        toast.success(
+          `Cart ${label} — ${Object.keys(next).length} SKU${Object.keys(next).length === 1 ? '' : 's'} loaded${dropped > 0 ? ` (${dropped} unavailable)` : ''}`,
+        );
+      }, 60);
+    } else if (dropped > 0) {
+      toast.info(`Cart from mobile had ${dropped} SKU${dropped === 1 ? '' : 's'} that aren't in your current catalogue.`);
+    }
+  }, [catalog]);
+
   const handleQuantityChange = (productId, delta) => {
     setQuantities(prev => {
       const current = prev[productId] || 0;
@@ -542,7 +614,7 @@ export default function RetailerB2BPage() {
                         >
                           <Minus size={14} />
                         </button>
-                        <span className="w-12 text-center font-bold">{quantities[product.id] || 0}</span>
+                        <span className="w-12 text-center font-bold" data-testid={`qty-mobile-${product.id}`}>{quantities[product.id] || 0}</span>
                         <button
                           onClick={() => handleQuantityChange(product.id, 1)}
                           className="w-8 h-8 rounded-full border-2 flex items-center justify-center hover:border-[#D4AF37]"
@@ -600,7 +672,7 @@ export default function RetailerB2BPage() {
                         >
                           <Minus size={14} />
                         </button>
-                        <span className="w-16 text-center text-lg font-bold text-[#2B3A4A]">
+                        <span className="w-16 text-center text-lg font-bold text-[#2B3A4A]" data-testid={`qty-${product.id}`}>
                           {quantities[product.id] || 0}
                         </span>
                         <button

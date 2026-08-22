@@ -32,12 +32,14 @@ export default function ProductsScreen() {
 
   async function load() {
     setError(null);
+    // B2B-only mobile app (Iter 98). B2C rows are still in Supabase
+    // (`channel='b2c'`) — flip the filter below to re-enable in future.
     const { data, error: err } = await supabase
       .from('products_mirror')
       .select(
         'id, name, channel, category, price_inr, mrp_inr, stock_pieces, is_active, ready_to_use'
       )
-      .eq('channel', 'b2c')
+      .eq('channel', 'b2b')
       .eq('is_active', true)
       .order('name', { ascending: true })
       .limit(50);
@@ -121,14 +123,16 @@ export default function ProductsScreen() {
                 add({
                   productId: item.id,
                   name: item.name,
-                  size: '50g',
+                  // B2B "size" is really a box unit — the web B2B page
+                  // reads `quantity_boxes` regardless of this label.
+                  size: '1 box',
                   priceInr: price,
                   quantity: 1,
                 })
               }
             >
               <Text style={[styles.addBtnText, !inStock && styles.addBtnTextDisabled]}>
-                {inCart ? `In cart · ${inCart.quantity}` : inStock ? 'Add' : '—'}
+                {inCart ? `${inCart.quantity} box${inCart.quantity === 1 ? '' : 'es'}` : inStock ? 'Add' : '—'}
               </Text>
             </Pressable>
           </View>

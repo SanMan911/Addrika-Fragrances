@@ -203,3 +203,132 @@ def test_auth_handoffs_is_supabase_mirror_blocklisted():
     """The nonce collection must NEVER travel to Supabase."""
     from services import supabase_sync
     assert "auth_handoffs" in supabase_sync._MIRROR_BLOCKLIST
+
+
+# ---------------------------------------------------------------------------
+# Retailer branch (Iter 98)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def logged_in_retailer():
+    """Seed an active retailer with a known password and login via the
+    same `/api/retailer-auth/login` endpoint the web uses."""
+    import asyncio
+    from motor.motor_asyncio import AsyncIOMotorClient
+    import os as _os
+    from dotenv import load_dotenv
+    load_dotenv(BACKEND_DIR / ".env")
+
+    retailer_id = f"rtl_test_{uuid.uuid4().hex[:10]}"
+    email = f"retailer_{uuid.uuid4().hex[:10]}@e2e.test"
+    username = f"rtluser_{uuid.uuid4().hex[:8]}"
+    password = "Handoff@Retailer1"
+
+    async def _seed():
+        client = AsyncIOMotorClient(_os.environ["MONGO_URL"])
+        db = client[_os.environ["DB_NAME"]]
+        from services.auth_service import hash_password
+        # Ensure the B2B kill-switch is off so login isn't 403.
+        settings = await db.admin_settings.find_one({"_id": "singleton"})
+        if not settings or not settings.get("b2b_enabled", True):
+            await db.admin_settings.update_one(
+                {"_id": "singleton"},
+                {"$set": {"b2b_enabled": True}},
+                upsert=True,
+            )
+        await db.retailers.insert_one({
+            "retailer_id": retailer_id,
+            "email": email,
+            "username": username,
+            "name": "E2E Retailer",
+            "phone": "9876540001",
+            "password_hash": hash_password(password),
+            "status": "active",
+            "city": "Delhi",
+            "district": "Central Delhi",
+            "state": "Delhi",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        client.close()
+
+    asyncio.run(_seed())
+
+    r = requests.post(
+        f"{BASE_URL}/api/retailer-auth/login",
+        json={"email": email, "password": password},
+        timeout=10,
+    )
+    assert r.status_code == 200, f"retailer login failed: {r.text}"
+    data = r.json()
+    yield {
+        "retailer_id": retailer_id,
+        "email": email,
+        "token": data["token"],
+        "name": data["retailer"]["name"],
+    }
+
+    async def _cleanup():
+        client = AsyncIOMotorClient(_os.environ["MONGO_URL"])
+        db = client[_os.environ["DB_NAME"]]
+        await db.retailers.delete_one({"retailer_id": retailer_id})
+        await db.retailer_sessions.delete_many({"retailer_id": retailer_id})
+        await db.auth_handoffs.delete_many({"retailer_id": retailer_id})
+        client.close()
+    asyncio.run(_cleanup())
+
+
+def test_retailer_handoff_create_and_consume(logged_in_retailer):
+    token = logged_in_retailer["token"]
+
+    # Mint
+    r = requests.post(
+        f"{BASE_URL}/api/auth/handoff/create",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=10,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["kind"] == "retailer"
+    assert body["handoff_token"].startswith("hoff_")
+    assert body["expires_in"] == 60
+
+    # Consume — should set `retailer_session` cookie, not `session_token`
+    r2 = requests.post(
+        f"{BASE_URL}/api/auth/handoff/consume",
+        json={"handoff_token": body["handoff_token"]},
+        timeout=10,
+    )
+    assert r2.status_code == 200, r2.text
+    data = r2.json()
+    assert data["kind"] == "retailer"
+    assert data["retailer"]["retailer_id"] == logged_in_retailer["retailer_id"]
+    assert data["retailer"]["email"] == logged_in_retailer["email"]
+    assert data["token"].startswith("")  # opaque, just non-empty
+    assert data["token"]
+    assert "retailer_session" in r2.cookies
+    assert "session_token" not in r2.cookies  # MUST NOT leak customer cookie
+
+
+def test_retailer_handoff_is_single_use(logged_in_retailer):
+    token = logged_in_retailer["token"]
+    minted = requests.post(
+        f"{BASE_URL}/api/auth/handoff/create",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=10,
+    ).json()
+    ho = minted["handoff_token"]
+
+    r1 = requests.post(
+        f"{BASE_URL}/api/auth/handoff/consume",
+        json={"handoff_token": ho},
+        timeout=10,
+    )
+    assert r1.status_code == 200
+    assert r1.json()["kind"] == "retailer"
+
+    r2 = requests.post(
+        f"{BASE_URL}/api/auth/handoff/consume",
+        json={"handoff_token": ho},
+        timeout=10,
+    )
+    assert r2.status_code == 401

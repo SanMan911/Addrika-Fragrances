@@ -43,16 +43,15 @@ export const openCustomerSignup = () => openWebUrl('/register');
 export const openRetailerSignup = () => openWebUrl('/');
 
 /**
- * Mint a 60-second one-time nonce that the web /cart page can exchange for
- * a fresh HttpOnly session cookie — the customer lands already logged-in.
+ * Mint a 60-second one-time nonce that the web can exchange for a fresh
+ * HttpOnly session cookie — the retailer (or customer) lands already
+ * logged-in. The backend `/api/auth/handoff/create` endpoint sniffs the
+ * bearer against BOTH `user_sessions` and `retailer_sessions`, so a
+ * single API call covers both flows.
  *
- * Returns `null` if the caller has no session, the API call fails, or the
- * response is malformed. Callers must fall back to the plain deep-link so
- * checkout is never blocked by a handoff error.
- *
- * NOTE: retailer sessions are NOT supported yet — the current backend
- * endpoint only mints handoffs for customer sessions. A retailer handoff
- * ticket is on the backlog (see ROADMAP.md).
+ * Returns `null` if the caller has no session, the API call fails, or
+ * the response is malformed. Callers must fall back to the plain
+ * deep-link so checkout is never blocked by a handoff error.
  */
 async function mintWebHandoff(bearerToken: string): Promise<string | null> {
   try {
@@ -69,15 +68,16 @@ async function mintWebHandoff(bearerToken: string): Promise<string | null> {
 }
 
 /**
- * Hand the cart over to the web. Both customer + retailer flows land on
- * /cart (not /checkout) so the receiver-side CartContext bootstrap
- * hydrates the cart from `?cart=` and the user can review before paying.
- * For retailers we still deep-link to their B2B cart route.
+ * Hand the cart over to the web. For retailers we deep-link to the
+ * existing B2B dashboard (`/retailer/b2b`) which now hydrates its
+ * `quantities` state from `?cart=<b64>` on mount. Customer flow is
+ * kept intact for the day we re-enable B2C in the mobile shell.
  *
- * If the caller is a logged-in customer, we ALSO mint a 60-second handoff
- * nonce and append it as `?handoff=<nonce>` so the web page can auto-login
- * the same user before hydrating the cart. This preserves the "must be
- * signed-in to add items" contract on the web.
+ * If the caller is a logged-in retailer/customer, we ALSO mint a
+ * 60-second handoff nonce and append it as `?handoff=<nonce>` so the
+ * web page can auto-login the same session before hydrating the cart.
+ * This preserves the "must be signed-in to place an order" contract on
+ * the web.
  */
 export async function openWebCheckout(
   lines: CartLine[],
@@ -86,10 +86,10 @@ export async function openWebCheckout(
 ): Promise<void> {
   if (lines.length === 0) return openWebUrl('/');
   const cartParam = encodeCartForWeb(lines);
-  const path = userKind === 'retailer' ? '/retailer/b2b/cart' : '/cart';
+  const path = userKind === 'retailer' ? '/retailer/b2b' : '/cart';
 
   let handoffQuery = '';
-  if (userKind === 'customer' && bearerToken) {
+  if (userKind && bearerToken) {
     const nonce = await mintWebHandoff(bearerToken);
     if (nonce) handoffQuery = `&handoff=${encodeURIComponent(nonce)}`;
   }

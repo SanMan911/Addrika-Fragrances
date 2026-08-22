@@ -24,9 +24,13 @@ via one-time session-handoff nonces (Feb 2026, Iter 97).
    they self-KYC (PAN + Aadhaar), then unlock tiered wholesale pricing,
    loyalty milestones, retailer-only vouchers, credit-note redemption, and
    Shiprocket/pickup fulfilment.
-3. **Aaroviah mobile user** — logged-in customer builds a cart on the phone,
-   taps "Complete Order on centraders.com →" and lands on the web already
-   logged-in with the same items (via 60-sec handoff nonce).
+3. **Aaroviah mobile user (B2B-only, Iter 98)** — logged-in **retailer**
+   builds a B2B cart on the phone, taps "Complete Order on centraders.com →"
+   and lands on `/retailer/b2b` already signed in (via 60-sec retailer
+   handoff nonce) with quantities pre-filled. The mobile app uses the
+   SAME `/api/retailer-auth/login` endpoint as the web. B2C flow is
+   temporarily disabled in the mobile shell — code paths preserved,
+   re-enable via `loginCustomer` + product filter flip.
 4. **Admin** — Centraders team (Delhi). 2FA-guarded portal for products,
    orders, retailers, KYC review, RTO vouchers, auto-blog controls, Zoho
    sync health, Supabase mirror status, and support messaging.

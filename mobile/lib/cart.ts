@@ -123,13 +123,20 @@ export function useCartState(): CartContextValue {
 
 /**
  * Encode the cart into the `?cart=` param the web checkout expects.
- * Format: JSON array of {productId,size,quantity}, URL-encoded.
+ *
+ * Format: JSON array of `{productId, size, quantity, quantity_boxes}`,
+ * URL-encoded. Web B2C `/cart` reads `productId + size + quantity`; the
+ * web B2B `/retailer/b2b` page reads `productId + quantity_boxes` (each
+ * "box" is a wholesale unit and can be a half — hence the number). We
+ * carry BOTH so the same param drives either landing page without
+ * mobile needing to know which flow it is.
  */
 export function encodeCartForWeb(lines: CartLine[]): string {
   const payload = lines.map((l) => ({
     productId: l.productId,
     size: l.size,
     quantity: l.quantity,
+    quantity_boxes: l.quantity,
   }));
   return encodeURIComponent(JSON.stringify(payload));
 }
