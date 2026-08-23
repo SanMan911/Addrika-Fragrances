@@ -44,7 +44,11 @@ function WaitlistComingSoon() {
         if (cancelled) return;
         const data = await res.json();
         if (!data || data.verified === false) {
-          setGstStatus({ state: 'failed', error: data?.error || 'GST not verified' });
+          setGstStatus({
+            state: 'failed',
+            error: data?.error || 'GST not verified',
+            provider_down: Boolean(data?.provider_down),
+          });
           // Still prefill state from GSTIN prefix
           if (data?.state) {
             setForm((f) => ({ ...f, state: f.state || data.state }));
@@ -73,6 +77,14 @@ function WaitlistComingSoon() {
     e.preventDefault();
     if (!GST_REGEX.test((form.gst_number || '').toUpperCase())) {
       toast.error('GST is required — please enter a valid 15-character GSTIN');
+      return;
+    }
+    if (gstStatus.state === 'failed' && !gstStatus.provider_down) {
+      toast.error('GSTIN could not be verified with GSTN records. Please double-check the number before submitting.');
+      return;
+    }
+    if (gstStatus.state !== 'verified' && !gstStatus.provider_down) {
+      toast.error('Please wait for GSTIN verification to complete.');
       return;
     }
     if (!form.business_name || !form.contact_name || !form.email || !form.phone) {
@@ -185,12 +197,20 @@ function WaitlistComingSoon() {
                 ✓ Verified · {gstStatus.legal_name || 'Business details auto-filled below'}
               </p>
             )}
-            {gstStatus.state === 'failed' && (
+            {gstStatus.state === 'failed' && gstStatus.provider_down && (
               <p
                 className="mt-1.5 text-xs text-amber-700"
                 data-testid="gst-lookup-status"
               >
-                Could not auto-verify — you can still continue; we&apos;ll verify manually.
+                ⚠ Verification service is temporarily unavailable. You may still submit — we&apos;ll auto-verify shortly.
+              </p>
+            )}
+            {gstStatus.state === 'failed' && !gstStatus.provider_down && (
+              <p
+                className="mt-1.5 text-xs text-red-700 font-medium"
+                data-testid="gst-lookup-status"
+              >
+                ✗ Could not verify this GSTIN with GSTN records. Please double-check the number.
               </p>
             )}
             {gstStatus.state === 'idle' && (
@@ -400,7 +420,7 @@ export default function RetailerLoginPage() {
             <Store className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-[#2B3A4A]">Retailer Portal</h1>
-          <p className="text-gray-500">Sign in to manage your store</p>
+          <p className="text-gray-600">Sign in to manage your store</p>
         </div>
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -416,7 +436,7 @@ export default function RetailerLoginPage() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="email@example.com or username"
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
+                className="w-full pl-10 pr-4 py-3 bg-white text-[#2B3A4A] placeholder:text-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
                 data-testid="retailer-identifier-input"
               />
             </div>
@@ -433,7 +453,7 @@ export default function RetailerLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
+                className="w-full pl-10 pr-10 py-3 bg-white text-[#2B3A4A] placeholder:text-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
                 data-testid="retailer-password-input"
               />
               <button

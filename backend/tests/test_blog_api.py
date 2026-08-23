@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://fragrance-rewards.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://b2b-handoff.preview.emergentagent.com').rstrip('/')
 
 # Expected blog slugs
 EXPECTED_SLUGS = [

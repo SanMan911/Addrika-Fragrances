@@ -100,6 +100,9 @@ export default function LoginScreen() {
             placeholder="retailer@shop.com"
             placeholderTextColor="#a89f8b"
           />
+          <Text style={styles.hint} testID="login-identifier-hint">
+            The email you used to apply. New retailer? Apply on centraders.com — our team will email you a set-password link once your GSTIN is verified.
+          </Text>
 
           <Text style={styles.label}>Password</Text>
           <TextInput
@@ -111,6 +114,9 @@ export default function LoginScreen() {
             placeholder="••••••••"
             placeholderTextColor="#a89f8b"
           />
+          <Text style={styles.hint} testID="login-password-hint">
+            You set this via the invite link emailed to you after onboarding.
+          </Text>
 
           {error ? (
             <Text style={styles.error} testID="login-error">{error}</Text>
@@ -134,9 +140,9 @@ export default function LoginScreen() {
             testID="forgot-password-link"
             onPress={openReset}
             android_ripple={{ color: 'rgba(30, 58, 82, 0.1)' }}
-            style={styles.forgotBtn}
+            style={styles.forgotBtnProminent}
           >
-            <Text style={styles.forgotTxt}>Message admin on WhatsApp</Text>
+            <Text style={styles.forgotTxtProminent}>Need help? Message admin on WhatsApp</Text>
           </Pressable>
         </View>
 
@@ -263,6 +269,28 @@ const styles = StyleSheet.create({
     color: '#1e3a52',
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  forgotBtnProminent: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 12,
+    backgroundColor: 'rgba(30, 58, 82, 0.06)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(30, 58, 82, 0.15)',
+  },
+  forgotTxtProminent: {
+    fontSize: 14,
+    color: '#1e3a52',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  hint: {
+    fontSize: 11,
+    color: '#8a8272',
+    lineHeight: 15,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   signupBlock: { alignItems: 'center', gap: 6, marginTop: 4 },
   signupPrompt: { fontSize: 12, color: '#c8bfa9', textAlign: 'center' },

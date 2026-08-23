@@ -24,7 +24,7 @@ from dotenv import dotenv_values
 frontend_env = dotenv_values("/app/frontend/.env")
 base_url = os.environ.get("REACT_APP_BACKEND_URL") or frontend_env.get("REACT_APP_BACKEND_URL")
 if not base_url:
-    base_url = "https://fragrance-rewards.preview.emergentagent.com"
+    base_url = "https://b2b-handoff.preview.emergentagent.com"
 BASE_URL = base_url.rstrip("/")
 
 REPO = Path("/app")

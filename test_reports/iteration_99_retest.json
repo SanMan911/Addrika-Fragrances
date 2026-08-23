@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration-99 retest of the 2 remaining regressions. BACKEND: 100% pass (16/16) — test_iter99_gst_hardblock.py 15/15 (GST hard-block 400 + friendly detail, gst-lookup provider_down:false, malformed 400, missing fields 422, and the NEW classifier case `_is_provider_outage('GST verification key invalid. Admin: update the Appyflow key in Integrations.') is True`), plus test_iter99_waitlist_email.py 1/1 (admin + applicant email code path still executes, no regression). FRONTEND: (a) /retailer/login inputs are now FIXED — typed text computes rgb(43, 58, 74) on rgb(255,255,255) for both retailer-identifier-input and retailer-password-input with html.dark active, and the served CSS confirms the `:where(...)` base rules shipped. (b) The waitlist form is STILL ILLEGIBLE — every waitlist input now computes color rgb(250, 250, 250) (#fafafa) on a white background (contrast ~1.02:1). The :where() change over-corrected: Tailwind preflight `button,input,optgroup,select,textarea{...color:inherit}` (type selector, specificity 0-0-1) now BEATS the `:where(input...)` base rule (0-0-0), so inputs inherit body's dark-theme `text-foreground` (#fafafa) instead of #1a1918. Waitlist GST hard-block UI itself still works (red inline error, blocking toast, 0 POST requests).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Waitlist form (/retailer/login, portal disabled path)", "issue": "All waitlist inputs render typed text as rgb(250,250,250) on white — invisible. Verified for waitlist-business-name, waitlist-contact-name, waitlist-email, waitlist-phone, waitlist-city, waitlist-state, the GSTIN input (placeholder 22AAAAA0000A1Z5) and the message textarea. Cause: Tailwind preflight `input{color:inherit}` (0-0-1) outranks the new `:where(input...)` base rule (0-0-0), so inputs inherit body text-foreground=#fafafa in the default dark theme. Fix: revert the light-mode base rule to a plain (non-:where) `input:not(...)/select/textarea { color:#1a1918 }` and keep only the `.dark` variant inside :where(), OR add explicit `text-[#1a1918] dark:text-[#1a1918]` utilities to each waitlist input/textarea (matches what already works on the login inputs).", "selector": "[data-testid='waitlist-business-name'], [data-testid='waitlist-email'], textarea", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/retailer/login waitlist (default dark theme)", "issues": ["Typed values in every waitlist field are near-white on white (contrast ~1.02:1) — worse than before the fix (#e8eaed -> #fafafa)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter99_gst_hardblock.py",
+    "/app/backend/tests/test_iter99_waitlist_email.py",
+    "/app/test_reports/pytest/iter99_retest.xml"
+  ],
+  "action_items": [
+    "Fix waitlist input legibility: un-:where() the light-mode base input rule (or add text-[#1a1918] dark:text-[#1a1918] to all waitlist inputs + textarea). Current computed colour is rgb(250,250,250) on white.",
+    "After the CSS/JSX change run `yarn build` && `sudo supervisorctl restart frontend` (preview serves a production build, no hot reload)."
+  ],
+  "critical_code_review_comments": [
+    "Wrapping the light-mode base input rule in :where() drops it below Tailwind preflight's `input{color:inherit}`; only the .dark override needed de-specifying. Prefer explicit per-input utilities over global base overrides for theme-mixed pages.",
+    "ThemeContext still defaults to dark on the light-themed retailer portal routes — route-scoped theming would remove this whole class of bug."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (16/16)", "frontend": "50% (login inputs pass, waitlist inputs fail)"},
+  "seed_data_creation": "None persisted. Hard-blocked POSTs create nothing; the email-path unit test upserts and deletes its own record.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499; B2B retailer test_b2b_retailer@example.com / Test@12345 (legibility check only, no login performed)",
+  "context_for_next_testing_agent": "Repro for waitlist legibility: page.route('**/api/retailer-auth/portal-status**') -> {\"enabled\": false}, goto /retailer/login, fill any waitlist field, assert getComputedStyle(el).color. Expected #1a1918-ish, actual rgb(250,250,250). Login inputs already verified rgb(43,58,74). Backend suite: `cd /app/backend && python -m pytest tests/test_iter99_gst_hardblock.py tests/test_iter99_waitlist_email.py -v` — all green.",
+  "rca_of_the_issue": "The :where() wrapping reduced BOTH base input rules to specificity (0,0,0). Tailwind's preflight sets `button,input,optgroup,select,textarea{...;color:inherit}` with a type-selector specificity of (0,0,1), which now wins over the :where() light-mode rule. Inputs therefore inherit the body colour, which in the default dark theme is text-foreground = #fafafa, on the light-card white input background. Inputs carrying an explicit Tailwind text utility (retailer login, specificity 0,1,0) are unaffected and render correctly."
+}

@@ -5,6 +5,68 @@ architecture reference and ROADMAP.md for pending work._
 
 ---
 
+### 🔧 Feb 2026 (Iteration 100) — GST hard-block, admin notification email, login legibility
+
+**1. GST auto-verification is now MANDATORY on `/retailer/waitlist`**
+- `services/gst_verification.py`: added `_is_provider_outage(err)` classifier
+  that returns True for maintenance / timeout / credit exhaustion / invalid
+  API key / "not configured" — i.e. anything not caused by the user's data.
+- `routers/b2b_waitlist.py`: `create_waitlist_signup` now HARD-BLOCKS with
+  HTTP 400 when `gst_verified=False AND provider_down=False`. Provider
+  outages still fail-open (accept-with-caveat).
+- `GET /api/retailer-auth/waitlist/gst-lookup/{gstin}` now returns
+  `provider_down: bool` so the frontend can distinguish user-error (red,
+  block submit) from provider outage (amber, allow submit).
+- Frontend `app/retailer/login/page.js`: `onSubmit` rejects submission when
+  `gstStatus.state === 'failed' && !provider_down`. Failed-state message
+  split into red (`✗ Could not verify this GSTIN...`) vs amber (`⚠ Service
+  temporarily unavailable...`).
+
+**2. Waitlist admin + applicant email — no more black-holed signups**
+- New waitlist entry → email fires to `ADMIN_EMAIL` (default
+  `contact.us@centraders.com`) with full applicant details table and a
+  green/amber GST-verified badge.
+- Applicant confirmation email sent to the retailer.
+- Both emails are best-effort — failures never fail the signup.
+
+**3. Mobile app login clarity (Aaroviah)**
+- `mobile/app/login.tsx`: added hint under Email input — "The email you
+  used to apply. New retailer? Apply on centraders.com — our team will
+  email you a set-password link once your GSTIN is verified." Password
+  input hint: "You set this via the invite link emailed to you after
+  onboarding."
+- `Message admin on WhatsApp` button upgraded to a full boxed CTA with
+  border + subtle bg — no longer looks like an afterthought link.
+
+**4. Login form legibility fix**
+- `frontend-next/app/globals.css`: kept the light-mode base rule
+  `input {color:#1a1918}` at normal specificity (to beat Tailwind
+  preflight `input {color: inherit}`), but wrapped the `.dark input`
+  override in `:where(...)` so it's specificity-0 and any explicit
+  Tailwind text utility on an input wins.
+- `retailer/login/page.js`: retailer identifier + password inputs now
+  ship `bg-white text-[#2B3A4A] placeholder:text-gray-400` with
+  `border-gray-300` instead of the too-light `border-gray-200`.
+- Verified rendered color: `rgb(26,25,24)` on `rgb(255,255,255)` bg —
+  contrast > 15:1 (AAA) on both login and waitlist inputs.
+
+**Note on OTP to GST-registered mobile/email (deferred, not feasible today)**
+- User asked whether GSTIN registration can be OTP-confirmed on the
+  GST-registered mobile or email. Neither Appyflow's `verifyGST` nor
+  GSTINCheck expose these — GSTN masks both from third-party lookup APIs.
+  OTP via the GST portal itself would require a full GSP integration
+  (out of scope). Alternative for a future iteration: OTP the phone
+  number the retailer TYPES on the form via Twilio (proves ownership of
+  the given number, not necessarily the GSTN-registered one).
+
+Tests: `/app/backend/tests/test_iter99_gst_hardblock.py` (16/16 green),
+`/app/backend/tests/test_iter99_waitlist_email.py`. Frontend regression
+verified via `testing_agent` (report `/app/test_reports/iteration_99_retest.json`)
+and self-screenshot at `/tmp/waitlist_full.png`.
+
+---
+
+
 ### 🧩 Feb 2026 (Iteration 99) — B2B page refactor + Order Placed celebration
 
 **1. `/retailer/b2b/page.js` split** — 1221 → 899 lines (-26%)
@@ -871,7 +933,7 @@ Fix: `CSRSection.js` now fetches `/api/impact/trees` and renders the exact live 
   - **Outbound** `redeem_amardeep_coupon` — after a successful Addrika order that used an `AMD-GIFT-*` code, marks it redeemed on Amardeep (also via `BackgroundTasks`).
   - **Admin control**: `GET /api/admin/partner/coupons`, `POST /api/admin/partner/coupons/{code}/suspend`, `POST /api/admin/partner/coupons/{code}/reactivate`. Existing `/admin/discount-codes` list also surfaces them since they share the `discount_codes` collection.
   - **Safety**: self-pickup still blocks any coupon (including partner ones); minimum-order threshold configurable via `PARTNER_MIN_ORDER_INR` (defaults to 499).
-- ✅ **Env wired** in `backend/.env`: `PARTNER_SHARED_SECRET=<redacted>`, `AMARDEEP_API_BASE=https://fragrance-rewards.preview.emergentagent.com`, `PARTNER_MIN_ORDER_INR=499`.
+- ✅ **Env wired** in `backend/.env`: `PARTNER_SHARED_SECRET=<redacted>`, `AMARDEEP_API_BASE=https://b2b-handoff.preview.emergentagent.com`, `PARTNER_MIN_ORDER_INR=499`.
 - ✅ **Regression**: 16 new pytest cases in `tests/test_partner_coupons.py` covering HMAC helpers, signature rejection paths, persistence idempotency, remote validate happy / 404 / network-failure paths, `validate_and_apply_coupon` delegation, self-pickup short-circuit, and ≥₹499 threshold gating. **All 16 pass** + 25 prior regression = **41/41**.
 
 ### Feb 1, 2026 (later) — Floating Retailer CTA · Brochure messaging cleanup + redesign
