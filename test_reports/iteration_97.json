@@ -29,7 +29,7 @@
     "LOW: rebuild frontend (yarn build) to pick up the data-testid={`qty-${product.id}`} / qty-mobile-* attributes I added to the B2B quantity spans — the container runs `next start` on a prod build, so source-only edits are not live.",
     "LOW: suppress/defer the B2B Quick Tour modal when a mobile cart handoff was just consumed.",
     "LOW: investigate the single 401 XHR on /retailer/b2b first paint (fire authed calls only after the retailer session resolves).",
-    "INFRA (not app code): .next/routes-manifest.json bakes /api/* -> https://fragrance-rewards.preview.emergentagent.com, which is dormant in this container (returns 404 for /api/*), so localhost:3000 cannot reach the backend out of the box."
+    "INFRA (not app code): .next/routes-manifest.json bakes /api/* -> https://b2b-handoff.preview.emergentagent.com, which is dormant in this container (returns 404 for /api/*), so localhost:3000 cannot reach the backend out of the box."
   ],
   "critical_code_review_comments": [
     "RetailerAuthContext.login(): correct now, but it swallows a non-JSON error body — `await res.json()` on an HTML 502/404 throws and surfaces as a generic parse-error toast. Guard with a content-type check.",

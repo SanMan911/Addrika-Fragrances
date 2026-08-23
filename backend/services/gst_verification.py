@@ -101,6 +101,20 @@ def _friendly_upstream_error(raw: str) -> str:
     return (raw or "GST verification failed").strip()
 
 
+def _is_provider_outage(err_msg: str) -> bool:
+    """Return True when the failure is a provider-side outage rather than a
+    user data problem. Used by b2b_waitlist to decide whether to hard-block
+    the signup (user error) or accept-with-caveat (provider down)."""
+    e = (err_msg or "").lower()
+    return any(k in e for k in (
+        "maintenance", "temporarily", "timeout", "unavailable",
+        "credit", "expire", "insufficient", "limit",
+        "not configured", "all gst providers failed",
+        "invalid key", "key invalid", "auth",
+        "network", "connection",
+    ))
+
+
 def _shape_legacy(payload: dict, gst_number: str) -> dict:
     """Convert gstincheck payload into our internal shape."""
     if not payload.get("flag"):

@@ -9,7 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 load_dotenv("/app/backend/.env")
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL") or "https://fragrance-rewards.preview.emergentagent.com"
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL") or "https://b2b-handoff.preview.emergentagent.com"
 BASE_URL = BASE_URL.rstrip("/")
 ADMIN_EMAIL = "contact.us@centraders.com"
 ADMIN_PIN = "050499"

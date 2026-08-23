@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://fragrance-rewards.preview.emergentagent.com/api
+https://b2b-handoff.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

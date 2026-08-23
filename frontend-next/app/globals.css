@@ -113,16 +113,18 @@
 
   /* Defensive: explicitly enforce dark text on light inputs across the
      site so even if a wrapper sets `color: white`, native form controls
-     render legibly. Admin uses `dark:bg-slate-*` + `dark:text-*` so the
-     `dark:` variants below apply correctly. */
+     render legibly. Light-mode rule keeps normal specificity (must beat
+     Tailwind preflight `input {color: inherit}`). Dark-mode override is
+     wrapped in :where() so specificity is 0 and any Tailwind `text-*`
+     utility on an input overrides it safely. */
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]),
   select,
   textarea {
     color: #1a1918;
   }
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]),
-  .dark select,
-  .dark textarea {
+  :where(.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"])),
+  :where(.dark select),
+  :where(.dark textarea) {
     color: #e8eaed;
   }
   

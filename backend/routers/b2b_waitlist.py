@@ -139,15 +139,17 @@ async def public_gst_lookup(gst_number: str):
     if not GST_PATTERN.match(gst):
         raise HTTPException(status_code=400, detail="Invalid GST number format")
 
-    from services.gst_verification import verify_gst_number
+    from services.gst_verification import verify_gst_number, _is_provider_outage
 
     result = await verify_gst_number(gst)
     if not result.get("verified"):
+        err = result.get("error") or "Could not verify GSTIN"
         return {
             "verified": False,
+            "provider_down": _is_provider_outage(err),
             "gst_number": gst,
             "state": INDIAN_STATE_CODES.get(gst[:2]),
-            "error": result.get("error") or "Could not verify GSTIN",
+            "error": err,
         }
 
     # Build a clean payload for the form
@@ -191,13 +193,17 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
     if not GST_PATTERN.match(gst):
         raise HTTPException(status_code=400, detail="Invalid GST number format")
 
-    # Try to auto-verify GST (best-effort; doesn't block signup unless mismatch)
+    # Try to auto-verify GST — REQUIRED unless the provider is down.
+    # Only accept "provider outage" as a soft-fail (maintenance / timeout /
+    # credit exhaustion / not configured). User-data errors (invalid GSTIN,
+    # not found in GSTN) hard-block registration.
     legal_name = None
     gst_verified = False
     gst_verification_error: Optional[str] = None
+    gst_provider_down = False
     gst_record: dict = {}
     try:
-        from services.gst_verification import verify_gst_number  # type: ignore
+        from services.gst_verification import verify_gst_number, _is_provider_outage  # type: ignore
         result = await verify_gst_number(gst)
         if isinstance(result, dict) and result.get("verified"):
             gst_verified = True
@@ -207,8 +213,21 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
             gst_verification_error = (result or {}).get(
                 "error", "Verification unavailable"
             )
+            gst_provider_down = _is_provider_outage(gst_verification_error)
     except Exception as e:
         gst_verification_error = str(e) or "Verification service unavailable"
+        gst_provider_down = True  # unexpected exceptions == provider down
+
+    # HARD BLOCK: If verification failed AND the provider is up, reject.
+    # (Manual verification fallback disabled per admin request Iter 99.)
+    if not gst_verified and not gst_provider_down:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                gst_verification_error
+                or "GSTIN could not be verified. Please double-check the number."
+            ),
+        )
 
     # ---- Anti-spoofing cross-checks (only when GSTIN actually verified) ----
     if gst_verified:
@@ -293,6 +312,82 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
     logger.info(
         f"B2B waitlist signup: {data.email} / {data.business_name} (GST verified={gst_verified})"
     )
+
+    # Fire-and-forget admin notification + applicant confirmation emails.
+    # Never let an email failure fail the signup itself.
+    try:
+        from services.email_service import send_email
+
+        admin_email = os.environ.get("ADMIN_EMAIL", "contact.us@centraders.com")
+        gst_line = (
+            f"<span style='color:#16a34a;font-weight:700;'>✓ GST auto-verified</span>"
+            if gst_verified
+            else f"<span style='color:#b45309;font-weight:700;'>⚠ GST NOT auto-verified — {gst_verification_error or 'provider down'}</span>"
+        )
+        admin_html = f"""
+        <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
+          <table cellpadding='0' cellspacing='0' style='max-width:640px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;'>
+            <tr><td style='background:#1e3a52;padding:20px;text-align:center;'>
+              <h1 style='color:#d4af37;margin:0;'>New B2B Retailer Signup</h1>
+              <p style='color:#fff;margin:4px 0 0;font-size:12px;'>Waitlist entry captured — action needed</p>
+            </td></tr>
+            <tr><td style='padding:22px;color:#1e3a52;'>
+              <p style='margin:0 0 12px;'>A new retailer has applied to join Addrika's B2B portal.</p>
+              <p style='margin:0 0 16px;'>{gst_line}</p>
+              <table cellpadding='6' cellspacing='0' style='width:100%;border-collapse:collapse;font-size:14px;'>
+                <tr><td style='background:#f5f0e8;font-weight:600;width:38%;'>Business Name</td><td style='background:#faf7f2;'>{_titlecase(data.business_name) or '—'}</td></tr>
+                <tr><td style='background:#f5f0e8;font-weight:600;'>Contact Name</td><td style='background:#faf7f2;'>{_titlecase(data.contact_name) or '—'}</td></tr>
+                <tr><td style='background:#f5f0e8;font-weight:600;'>Email</td><td style='background:#faf7f2;'><a href='mailto:{data.email}'>{data.email}</a></td></tr>
+                <tr><td style='background:#f5f0e8;font-weight:600;'>WhatsApp</td><td style='background:#faf7f2;'><a href='https://wa.me/{cc.lstrip("+")}{(data.phone or "").strip()}'>{cc} {(data.phone or "").strip()}</a></td></tr>
+                <tr><td style='background:#f5f0e8;font-weight:600;'>GSTIN</td><td style='background:#faf7f2;font-family:monospace;'>{gst}</td></tr>
+                <tr><td style='background:#f5f0e8;font-weight:600;'>Legal Name (GSTN)</td><td style='background:#faf7f2;'>{legal_name or '—'}</td></tr>
+                <tr><td style='background:#f5f0e8;font-weight:600;'>City / State</td><td style='background:#faf7f2;'>{_titlecase((data.city or '').strip()) or '—'}, {_titlecase((data.state or '').strip()) or INDIAN_STATE_CODES.get(gst[:2]) or '—'}</td></tr>
+                <tr><td style='background:#f5f0e8;font-weight:600;'>Pincode</td><td style='background:#faf7f2;'>{(data.pincode or '').strip() or '—'}</td></tr>
+                <tr><td style='background:#f5f0e8;font-weight:600;'>Message</td><td style='background:#faf7f2;'>{(data.message or '').strip() or '—'}</td></tr>
+              </table>
+              <p style='margin:20px 0 8px;font-size:13px;color:#6b6357;'>
+                Review in the admin panel and click "Onboard" to send the retailer their password-setup link.
+              </p>
+            </td></tr>
+          </table>
+        </body></html>
+        """
+        await send_email(
+            to_email=admin_email,
+            subject=f"[Addrika B2B] New retailer signup — {_titlecase(data.business_name)}",
+            html_content=admin_html,
+        )
+
+        # Applicant confirmation
+        applicant_html = f"""
+        <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
+          <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;'>
+            <tr><td style='background:#1e3a52;padding:24px;text-align:center;'>
+              <h1 style='color:#d4af37;margin:0;'>ADDRIKA</h1>
+              <p style='color:#fff;margin:6px 0 0;'>You're on the wholesale waitlist</p>
+            </td></tr>
+            <tr><td style='padding:24px;color:#1e3a52;'>
+              <p>Hi {_titlecase(data.contact_name) or 'there'},</p>
+              <p>Thanks for applying to become an Addrika retailer. We've captured your details and our team will reach out shortly to complete your KYC and set up your account.</p>
+              <p style='background:#f5f0e8;padding:12px;border-radius:6px;font-size:13px;'>
+                <strong>Your GSTIN:</strong> <span style='font-family:monospace;'>{gst}</span><br/>
+                <strong>Business:</strong> {_titlecase(data.business_name)}<br/>
+                <strong>Registered email:</strong> {data.email}
+              </p>
+              <p style='color:#6b6357;font-size:13px;margin-top:20px;'>Have questions? Reply to this email or reach us at <a href='mailto:{admin_email}'>{admin_email}</a>.</p>
+              <p style='margin-top:24px;color:#888;font-size:12px;'>— Addrika B2B Team</p>
+            </td></tr>
+          </table>
+        </body></html>
+        """
+        await send_email(
+            to_email=data.email.lower(),
+            subject="Addrika B2B — we've got your application",
+            html_content=applicant_html,
+        )
+    except Exception as e:
+        logger.error(f"B2B waitlist notification email failed for {data.email}: {e}")
+
     return {
         "message": "Thanks — we'll be in touch soon.",
         "email": data.email.lower(),
@@ -441,7 +536,7 @@ async def admin_onboard_waitlist_retailer(
 
         portal_url = os.environ.get(
             "FRONTEND_PUBLIC_URL",
-            "https://fragrance-rewards.preview.emergentagent.com",
+            "https://b2b-handoff.preview.emergentagent.com",
         ).rstrip("/")
         link = f"{portal_url}/retailer/setup-password?token={invite_token}"
         html = f"""

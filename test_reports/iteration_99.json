@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 99 verification of the 4 reported /retailer/login bugs. Backend: GST hard-block + provider_down flag fully verified (15 API/unit tests, 14 pass, 1 real classifier gap). Waitlist admin+applicant email code path verified in-process (both emails attempted: contact.us@centraders.com + applicant). Frontend: IMPORTANT — the preview was serving a STALE Next.js production build (supervisor runs `next start`, .next built Aug-22; page.js edited Aug-23), so none of the Iter-99 frontend changes were live. I ran `yarn build` + `supervisorctl restart frontend`; after that the waitlist hard-block UI (red failure message, blocking toast, no POST) passes. However the input text-colour fix (bug #4) is STILL BROKEN in the default theme: ThemeProvider defaults to dark, so html.dark is set on /retailer/login and globals.css `.dark input{color:#e8eaed}` (specificity 0-2-1) overrides the new `text-[#2B3A4A]` utility (0-1-0) => typed text renders #E8EAED on white (contrast ~1.1:1, illegible). Mobile login.tsx verified by code inspection only (no Expo runtime).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "services/gst_verification._is_provider_outage", "issue": "Does not classify the invalid-API-key outage as provider_down. _friendly_upstream_error returns 'GST verification key invalid. Admin: update the Appyflow key in Integrations.' but the classifier only checks for the substring 'invalid key' (wrong word order) => an expired/invalid Appyflow key would HARD-BLOCK every waitlist signup instead of soft-accepting. Suggest checking ('key invalid' or 'invalid key' or 'auth')."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "RetailerLoginPage inputs (/retailer/login)", "issue": "Bug #4 NOT fixed in default (dark) theme. Computed color on both inputs = rgb(232,234,237) on rgb(255,255,255) bg. Cause: context/ThemeContext.js defaults isDarkMode=true -> html gets class 'dark'; app/globals.css base rule `.dark input:not([type=checkbox])... { color:#e8eaed }` has higher specificity than the utility class `text-[#2B3A4A]`. Fix: add `dark:text-[#2B3A4A]` (or `!text-[#2B3A4A]`) to the inputs, or wrap the globals.css dark input rule in :where() so it does not beat explicit utilities. Same rule also washes out the waitlist form inputs (business/contact/email/phone) — their typed text is equally illegible.", "selector": "[data-testid='retailer-identifier-input'], [data-testid='retailer-password-input']", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Frontend deploy/build", "issue": "supervisor runs `yarn start` = `next start` against a prebuilt .next (no hot reload). Any change under /app/frontend-next requires `yarn build` + `sudo supervisorctl restart frontend`, otherwise the preview serves stale code (this is why the old amber 'Could not auto-verify — you can still continue' message and old input styles were still live). I rebuilt and restarted during this run.", "affected_selectors": ["[data-testid='gst-lookup-status']"]}
+    ],
+    "design_issues": [
+      {"screen": "/retailer/login (default dark theme)", "issues": ["Input text #E8EAED on white background — effectively invisible", "Waitlist form placeholders/values also near-invisible due to the same .dark input rule"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter99_gst_hardblock.py",
+    "/app/backend/tests/test_iter99_waitlist_email.py",
+    "/app/test_reports/pytest/iter99_results.xml"
+  ],
+  "action_items": [
+    "Fix input legibility for the default dark theme: add dark:text-[#2B3A4A] to retailer login + waitlist inputs OR de-specify the `.dark input` rule in app/globals.css using :where().",
+    "After ANY frontend-next change run `yarn build` && `sudo supervisorctl restart frontend` — preview serves a production build, no hot reload.",
+    "Broaden _is_provider_outage to catch 'key invalid' / auth-error wording so an invalid Appyflow key is treated as provider-down instead of hard-blocking all signups."
+  ],
+  "critical_code_review_comments": [
+    "b2b_waitlist.create_waitlist_signup: unexpected exceptions set gst_provider_down=True (fail-open). Acceptable, but log the exception explicitly so silent fail-open is auditable.",
+    "b2b_waitlist.py is ~600 lines with large inline HTML email templates; move templates to services/email_templates for maintainability.",
+    "ThemeContext defaults to dark for first-time visitors on every route including the light-themed retailer portal — consider route-scoped theming."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter99_gst_hardblock.py",
+    "/app/backend/tests/test_iter99_waitlist_email.py",
+    "/app/frontend-next/.next (rebuilt via yarn build; no source changes)"
+  ],
+  "success_rate": {"backend": "94% (15/16 assertions/tests pass)", "frontend": "75% (waitlist hard-block UI pass; input legibility fail)"},
+  "seed_data_creation": "No persisted data. Hard-blocked POSTs create nothing; the in-process email test upserted test_iter99_email_path@example.com and deleted it in the same test.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499; B2B retailer test_b2b_retailer@example.com / Test@12345 (not used for login, legibility check only)",
+  "context_for_next_testing_agent": "Backend verified: GET /api/retailer-auth/waitlist/gst-lookup/22AAAAA0000A1Z5 -> 200 {verified:false, provider_down:false, error:'GSTIN not found in the GSTN database...'}; POST /api/retailer-auth/waitlist with same GSTIN -> 400 same friendly detail. Frontend waitlist UI can only be reached by mocking portal-status: page.route('**/api/retailer-auth/portal-status**') -> {\"enabled\": false}; with that, invalid GSTIN shows red (rgb(185,28,28)) '✗ Could not verify this GSTIN with GSTN records...' and submit is blocked client-side (0 POSTs). REMEMBER: frontend needs `yarn build` + restart to pick up source edits. Verify input colour with getComputedStyle both with and without html.dark.",
+  "rca_of_the_issue": "1) Stale build: /app/frontend is a symlink to /app/frontend-next and supervisor runs `next start`, serving .next from 2026-08-22 while page.js was edited 2026-08-23 — all Iter-99 frontend changes were invisible until rebuilt. 2) Input legibility: context/ThemeContext.js sets isDarkMode=true by default, adding class 'dark' to <html> on every route; app/globals.css contains a base rule `.dark input:not(...) { color:#e8eaed }` whose specificity (0-2-1) beats the single-class Tailwind utility `text-[#2B3A4A]` (0-1-0), so the intended dark-navy text colour never applies for default visitors. 3) Provider-outage classifier misses the 'key invalid' phrasing produced by _friendly_upstream_error."
+}

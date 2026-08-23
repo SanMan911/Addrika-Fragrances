@@ -19,7 +19,7 @@
       },
       {
         "endpoint": "preview ingress /api/*",
-        "issue": "Public preview URL (NEXT_PUBLIC_BACKEND_URL=https://fragrance-rewards.preview.emergentagent.com) returns 404 for every /api path because next.config.js rewrites /api/:path* to that same public host (self-referencing proxy loop). Tests therefore ran against http://localhost:8001 like previous iterations."
+        "issue": "Public preview URL (NEXT_PUBLIC_BACKEND_URL=https://b2b-handoff.preview.emergentagent.com) returns 404 for every /api path because next.config.js rewrites /api/:path* to that same public host (self-referencing proxy loop). Tests therefore ran against http://localhost:8001 like previous iterations."
       }
     ]
   },
