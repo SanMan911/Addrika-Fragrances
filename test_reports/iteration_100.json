@@ -1,0 +1,63 @@
+{
+  "summary": "Iteration 100 (retailer self-registration + admin KYC panel) tested end-to-end on the public preview URL. Backend: existing suite test_iter100_retailer_kyc.py re-run = 12/12 PASS; added a new negative-path suite for POST /api/retailer-auth/register (9 tests, all PASS) covering GSTIN hard-block (400 'Invalid GSTIN...'), non-PDF/image mime rejection (400), empty file, malformed/short GSTIN (400/422), missing cert (422), short password (422), bad email (422) and no-DB-leak verification. Combined 21/21 pass. Verified Emergent object-storage put/get round-trip and admin certificate streaming (200, application/pdf, byte-exact). Frontend: /retailer/register (all 15 data-testids present, dark text rgb(26,25,24) on white everywhere, live GSTIN check shows red '✗ Could not verify this GSTIN', text/plain rejected client-side with toast, PDF shows register-cert-selected + remove, submit blocked with clear toast), /retailer/pending (Under Processing + revoked variants, check-status → GET /retailer-auth/me, sign-out → POST /retailer-auth/logout, unauth redirect to login, verified → auto-redirect to dashboard), layout status gate (/retailer/dashboard → /retailer/pending), retailer login returns status (under_processing/revoked 200, suspended 403 with reason), and the full /admin/retailer-requests panel (list, counts, 5 filter pills, refresh, approve, suspend w/ reason + inline 'Suspended: <reason>', unsuspend, note + expand notes list w/ audit trail, revoke w/ reason + inline text, view cert new tab, delete → row removed). All test data cleaned up (seeded retailer deleted via the panel; 0 self_registered docs remain).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/admin/retailer-requests/{id}/certificate", "issue": "When the stored object is missing, backend raises HTTP 502 which the Kubernetes/CDN edge replaces with an HTML Cloudflare error page — admin sees a raw gateway-error page in the new tab instead of a JSON/graceful message. Use 404 (or 424) instead of 502."},
+      {"endpoint": "GET /api/retailer-dashboard/alerts (routers/retailers.py:1050-1063)", "issue": "Alerts read legal_documents.gst_certificate and is_verified, but self-registration stores the cert at top-level `gst_certificate` and admin approve sets status='verified' without is_verified. An approved self-registered retailer therefore sees misleading 'GST Certificate not uploaded' + 'Account pending verification' on the dashboard."},
+      {"endpoint": "POST /api/retailer-auth/login", "issue": "Response `retailer` object omits business_name, so the pending screen shows the contact name under 'Business' until /me refreshes (cosmetic inconsistency)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminRetailerRequests row", "issue": "Inline 'Suspended: <reason>' / 'Revoked: <reason>' render whenever the field exists, without checking status. Backend $unsets these on transition so normal flows are fine, but any stale field (e.g. data patched externally) shows 'Suspended: ...' on an under_processing row (reproduced).", "selector": "[data-testid^=\"row-\"]", "priority": "LOW"},
+      {"component": "AdminRetailerRequests empty state", "issue": "Empty state text renders as 'No retailer requests .' (stray space before period).", "selector": "[data-testid=\"admin-retailer-requests\"]", "priority": "LOW"},
+      {"component": "RetailerRegister cert preview", "issue": "Small files display as '0.0 KB'; consider rounding up or showing bytes.", "selector": "[data-testid=\"register-cert-selected\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Register submit with invalid GSTIN", "issue": "Spec expected the form to POST to /api/retailer-auth/register and surface the backend 400. Actual: the client hard-blocks before the POST and toasts 'GSTIN could not be verified with GSTN records. Please double-check.' (no network call). Functionally equivalent/faster UX but differs from the stated acceptance criterion — confirm this is intended.", "affected_selectors": ["[data-testid=\"register-submit\"]", "[data-testid=\"register-gst-status\"]"]},
+      {"flow": "Register password-mismatch validation", "issue": "The GSTIN gate returns before the password-mismatch check, so 'Passwords do not match' is unreachable while the GSTIN is unverified (a mismatch attempt with an invalid GSTIN toasts the GSTIN error instead). Only reachable on a verified GSTIN, which we could not test without burning Appyflow credits.", "affected_selectors": ["[data-testid=\"register-confirm-password\"]", "[data-testid=\"register-submit\"]"]},
+      {"flow": "Approved retailer dashboard", "issue": "Verified self-registered retailer lands on /retailer/dashboard but sees an 'Action Required' banner claiming GST certificate not uploaded and account pending verification (see backend minor issue).", "affected_selectors": [".bg-amber", "Action Required"]}
+    ],
+    "design_issues": [
+      {"screen": "/retailer/register", "issues": ["No issues — all inputs render rgb(26,25,24) on white, GST panel turns red/emerald correctly, spacing and CTA contrast are good."]},
+      {"screen": "/admin/login footer", "issues": ["Footer reads '© 2026 Centsibl Traders. Admin Portal.' while the rest of the app brands as Addrika — brand inconsistency (pre-existing)."]},
+      {"screen": "/retailer/dashboard", "issues": ["Top-right header button is near-invisible (very low contrast against the light header) — pre-existing.", "Sidebar shows an empty store name because retailer.store_name is undefined for self-registered retailers."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter100_register_negative.py",
+    "/app/backend/tests/test_iter100_retailer_kyc.py",
+    "/app/backend/tests/seed_iter100_ui.py",
+    "/app/backend/tests/set_iter100_status.py",
+    "/app/backend/tests/check_iter100_storage.py",
+    "/app/test_reports/pytest/iter100_results.xml"
+  ],
+  "action_items": [
+    "Set is_verified=True (and/or mirror the cert into legal_documents.gst_certificate) on admin approve, or update /api/retailer-dashboard/alerts so approved self-registered retailers don't see 'GST Certificate not uploaded' / 'Account pending verification'.",
+    "Change the certificate endpoint's storage-failure status from 502 to 404/424 so the edge doesn't swap in an HTML gateway error page.",
+    "Gate the inline 'Suspended:/Revoked:' reason lines on r.status in the admin panel.",
+    "Include business_name in the POST /api/retailer-auth/login retailer payload.",
+    "Confirm intent: register form blocks submit client-side for unverified GSTINs instead of POSTing and surfacing the backend 400.",
+    "Fix 'No retailer requests .' stray space."
+  ],
+  "critical_code_review_comments": [
+    "retailer_auth.register reads the whole upload into memory before the size check (await read() then len>8MB) — a malicious 1GB upload is buffered fully; consider streaming/Content-Length pre-check.",
+    "register() trusts the client-provided content_type for mime validation (ALLOWED_CERT_MIME) — a text file renamed and sent with content_type=application/pdf is accepted; add magic-byte sniffing.",
+    "admin_retailer_requests.DELETE hard-deletes the retailer doc but the audit trail/admin_notes are lost with it; consider archiving to a deleted_retailers collection for compliance.",
+    "AuthContext.checkAuth authenticates via cookie only while authFetch sends a Bearer header — the two paths can disagree (this is why an admin session token in localStorage alone does not unlock /admin/*)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter100_register_negative.py",
+    "/app/backend/tests/seed_iter100_ui.py",
+    "/app/backend/tests/set_iter100_status.py",
+    "/app/backend/tests/check_iter100_storage.py"
+  ],
+  "success_rate": {"backend": "100% (21/21 pytest, plus storage round-trip and auth/error curl checks)", "frontend": "95% (all flows functional; 3 cosmetic/consistency issues + 1 spec deviation)"},
+  "seed_data_creation": "Seeded retailer RTL_ITER100UI / test_iter100_ui@example.com / TestPass@12345 (self_registered, cycled through under_processing→suspended→revoked→verified) — DELETED at the end of admin-panel testing. No self_registered docs remain; retailer_waitlist untouched.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin contact.us@centraders.com PIN 050499 (OTP from admin_2fa_tokens). For admin UI testing set BOTH the `session_token` cookie (page.context.add_cookies, secure=True) AND localStorage['addrika_session_token'] — the cookie is required because AuthContext.checkAuth uses cookies only.",
+  "context_for_next_testing_agent": "Re-run `pytest tests/test_iter100_retailer_kyc.py tests/test_iter100_register_negative.py` (21 tests). Use tests/seed_iter100_ui.py to recreate a retailer + mint an admin session, and tests/set_iter100_status.py <status> [reason] to flip status and re-check the login response. tests/check_iter100_storage.py <admin_token> validates object-storage put/get + admin cert streaming. Happy-path register with a real GSTIN was deliberately NOT tested (Appyflow credits/admin inbox). After the dashboard-alerts fix, verify a freshly approved self-registered retailer sees no 'Action Required' alerts.",
+  "rca_of_the_issue": "Dashboard false alerts: /api/retailer-dashboard/alerts (routers/retailers.py:1050-1063) still evaluates the legacy KYC shape (legal_documents.gst_certificate, is_verified) whereas iteration-100 self-registration persists the certificate at top-level `gst_certificate` and admin approval only writes status='verified'/verified_at. Certificate 502: HTTPException(502) from download_certificate is intercepted by the ingress/CDN, which returns its own HTML error page, so the intended JSON detail never reaches the admin."
+}
