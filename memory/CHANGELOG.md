@@ -5,6 +5,90 @@ architecture reference and ROADMAP.md for pending work._
 
 ---
 
+### 🚀 Feb 2026 (Iteration 101) — Retailer self-registration + Admin KYC panel
+
+**1. Self-serve retailer registration on `/retailer/register`**
+- New `POST /api/retailer-auth/register` (multipart) — accepts business +
+  contact + password + **mandatory** GST certificate file (PDF/JPG/PNG/WebP,
+  ≤ 8 MB). Runs Appyflow auto-verify (hard-blocks on user-error GSTINs,
+  falls open on provider outages), uploads cert to Emergent Object Storage
+  under `addrika/kyc/gst-cert/{retailer_id}/{uuid}.{ext}`, and creates the
+  retailer with `status='under_processing'`, `is_verified=false`,
+  `admin_notes=[]`, `legal_documents.gst_certificate=<storage_path>`.
+- Emails: admin (`contact.us@centraders.com`) receives a full detail table +
+  the GST cert as an attachment + a deep link to `/admin/retailer-requests`.
+  Applicant gets a "registration under review" confirmation.
+- After successful registration the retailer is **auto-logged-in** and
+  lands on `/retailer/pending`.
+
+**2. `/retailer/pending` "Under Processing" screen**
+- Big clock icon + "Your registration is under review. You&rsquo;ll receive
+  an email as soon as your account is approved."
+- Auto-polls `/retailer-auth/me` every 30s; when status flips to `verified`
+  the retailer is redirected to `/retailer/dashboard`.
+- `revoked` status swaps the icon to amber `ShieldAlert` and the heading
+  to "Account access revoked".
+- Layout status gate in `app/retailer/layout.js` redirects any retailer
+  with `status !== 'verified' && status !== 'active'` (legacy accounts)
+  away from `/retailer/dashboard` back to `/retailer/pending`.
+
+**3. Admin panel at `/admin/retailer-requests`**
+- Filter pills: All / Under Processing / Verified / Revoked / Suspended
+  (with live counts). Search-free list, newest first.
+- Per-row actions with data-testids:
+  - **Approve** → status='verified', sets `is_verified=true`, mirrors
+    cert to `legal_documents.gst_certificate` so the dashboard "Action
+    Required" alerts stop firing.
+  - **Revoke** (with optional reason) → status='revoked', `is_verified=false`.
+  - **Suspend** (reason ≥ 3 chars required) → status='suspended', kills
+    all live sessions immediately. Login is blocked with the reason
+    shown in the error.
+  - **Unsuspend** → back to `under_processing` for re-review.
+  - **Note** → append to `admin_notes[]` (author, body, timestamp).
+  - **View Cert** → opens the stored GST certificate in a new tab
+    (streamed via `GET /api/admin/retailer-requests/{id}/certificate`).
+  - **Delete** → hard-deletes retailer + all sessions; the cert path is
+    soft-deleted (Emergent Object Storage has no delete API).
+- Every status transition appends an automatic **audit note** to
+  `admin_notes[]` with kind='audit' — full transition history preserved.
+- Inline "Suspended: <reason>" / "Revoked: <reason>" now correctly gated
+  on current status (won't render after a subsequent transition).
+
+**4. Backend service & routing**
+- New router: `routers/admin/admin_retailer_requests.py` with 9 endpoints
+  (list, get, get-cert, approve, revoke, suspend, unsuspend, notes, delete).
+  Wired via `routers/admin/__init__.py` → mounted at `/api/admin`.
+- Certificate-fetch failure now returns 404 (not 502) so the edge/CDN
+  doesn't swap in an HTML gateway error page.
+- Retailer login response now includes `business_name` and `status` so
+  the pending screen renders correctly on first paint.
+
+**5. Storage — Emergent Object Storage**
+- Reused existing `services/object_storage.py`. Verified init + put + get
+  round-trip against `sk-emergent-…` key at startup.
+- Retention: cert is stored until admin deletes the request; storage has
+  no native delete API so we soft-delete via `gst_certificate.is_deleted`
+  and stop serving.
+
+**6. Retailer login page — "Register as a retailer" link**
+- Replaced the old "Contact Admin" mailto with a proper `/retailer/register`
+  Link (data-testid=`login-register-link`).
+
+Tests: `/app/backend/tests/test_iter100_retailer_kyc.py` — 12/12 green
+(register hard-block, mime rejection, format rejection, list, filter,
+approve, revoke, suspend, suspend-reason-required, unsuspend, add-note,
+delete). Testing agent covered UI E2E for /register, /pending, and the
+admin panel (`/app/test_reports/iteration_100.json` — 95%).
+
+**Known limitation & note on OTP**
+- OTP verification against a GST-registered mobile/email remains
+  infeasible via Appyflow (GSTN masks both from third-party lookup APIs).
+- A future iteration can add Twilio SMS OTP on the phone number the
+  retailer types in.
+
+---
+
+
 ### 🔧 Feb 2026 (Iteration 100) — GST hard-block, admin notification email, login legibility
 
 **1. GST auto-verification is now MANDATORY on `/retailer/waitlist`**

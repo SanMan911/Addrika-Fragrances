@@ -37,15 +37,36 @@ function RetailerLayoutInner({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [metrics, setMetrics] = useState(null);
 
-  // Check if we're on the login page - don't apply auth layout to login
+  // Check if we're on the login/register/pending page - don't apply auth layout to them
   const isLoginPage = pathname === '/retailer/login';
+  const isRegisterPage = pathname === '/retailer/register';
+  const isPendingPage = pathname === '/retailer/pending';
+  const isSetupPasswordPage = pathname === '/retailer/setup-password';
+  const isPublicPage = isLoginPage || isRegisterPage || isPendingPage || isSetupPasswordPage;
 
-  // Check auth - only redirect if not on login page
+  // Check auth - only redirect if not on a public page
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !isLoginPage) {
+    if (!isLoading && !isAuthenticated && !isPublicPage) {
       router.push('/retailer/login');
     }
-  }, [isAuthenticated, isLoading, router, isLoginPage]);
+  }, [isAuthenticated, isLoading, router, isPublicPage]);
+
+  // Status gate — retailers whose account isn't verified see Under Processing
+  useEffect(() => {
+    if (
+      !isLoading &&
+      isAuthenticated &&
+      retailer &&
+      retailer.status &&
+      retailer.status !== 'verified' &&
+      retailer.status !== 'active' && // legacy active accounts stay put
+      !isPendingPage &&
+      !isLoginPage &&
+      !isRegisterPage
+    ) {
+      router.replace('/retailer/pending');
+    }
+  }, [isAuthenticated, isLoading, retailer, router, isPendingPage, isLoginPage, isRegisterPage]);
 
   // Fetch metrics for badges
   const fetchMetrics = useCallback(async () => {
@@ -77,8 +98,8 @@ function RetailerLayoutInner({ children }) {
     router.push('/retailer/login');
   };
 
-  // For login page, just render children without the layout
-  if (isLoginPage) {
+  // For login/register/pending pages, just render children without the layout chrome
+  if (isPublicPage) {
     return <>{children}</>;
   }
 

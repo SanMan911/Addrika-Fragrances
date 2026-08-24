@@ -7,6 +7,7 @@ from .admin_users import router as users_router
 from .admin_analytics import router as analytics_router
 from .admin_shiprocket import router as shiprocket_router
 from .admin_retailers import router as retailers_router
+from .admin_retailer_requests import router as retailer_requests_router
 from .admin_maintenance import router as maintenance_router
 from .admin_rto_vouchers import router as rto_vouchers_router
 from .admin_products import router as products_router
@@ -22,6 +23,7 @@ router.include_router(users_router)
 router.include_router(analytics_router)
 router.include_router(shiprocket_router)
 router.include_router(retailers_router)
+router.include_router(retailer_requests_router)
 router.include_router(maintenance_router)
 router.include_router(rto_vouchers_router)
 router.include_router(products_router)

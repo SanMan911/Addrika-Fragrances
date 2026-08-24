@@ -476,14 +476,15 @@ export default function RetailerLoginPage() {
         </form>
         {/* Help Text */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-600">
             Don&apos;t have an account?{' '}
-            <a 
-              href="mailto:contact.us@centraders.com" 
+            <Link
+              href="/retailer/register"
               className="font-medium text-[#D4AF37] hover:underline"
+              data-testid="login-register-link"
             >
-              Contact Admin
-            </a>
+              Register as a retailer
+            </Link>
           </p>
         </div>
         {/* Footer */}
