@@ -158,3 +158,9 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **DONE**: Twilio SMS OTP "verify phone" step in retailer registration. Mandatory for +91 numbers, blocks Register until verified. Auto-activates real SMS when TWILIO_ACCOUNT_SID/AUTH_TOKEN/VERIFY_SERVICE_SID are set in backend/.env (currently empty → DEV OTP fallback returns code in API response). Endpoints: `/api/retailer-auth/phone/send-otp`, `/phone/verify-otp`.
 - **DONE**: Belpatra product image swapped to new uploaded jar image (B2C + B2B + live DB).
 - **PENDING (user)**: paste Twilio credentials into backend/.env → restart backend to enable real SMS. Real-SMS path not yet verified.
+
+### Update 2026-09-21 (Iter102)
+- **DONE**: Mobile (Aaroviah) full retailer registration screen (GST + certificate upload + phone OTP + password) mirroring web; plus passwordless OTP login on registered number (backend verifies the number is registered before sending OTP).
+- **DONE**: External machine-to-machine stock API (`/api/external/v1/stock`) secured by admin-managed API keys (generate/label/revoke/delete via /admin/api-keys; raw key shown once). Reads MongoDB source of truth; Supabase mirror carries same data.
+- **DONE**: Supabase consistency — retailer register + admin status changes mirror to Supabase; OTP + api_key collections blocklisted from mirroring.
+- **PENDING (user)**: paste Twilio Verify keys into backend/.env to switch OTP from DEV mode to real SMS. Mobile app needs an EAS/dev build to run the new native document-picker screen on a device.
