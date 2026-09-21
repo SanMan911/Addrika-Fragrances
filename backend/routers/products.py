@@ -155,11 +155,11 @@ _DEFAULT_PRODUCTS = [
         "type": "agarbatti", "category": "agarbatti", "comingSoon": True, "isActive": True,
         "description": "Experience the divine fragrance of Belpatra\u2014a sacred blend inspired by the revered bael leaf, offered in traditional worship to Lord Shiva. This premium agarbatti captures the essence of spiritual devotion with earthy, herbal notes blended with subtle floral undertones. Each stick creates a purifying atmosphere that elevates your daily rituals and meditation practices.",
         "notes": ["Bael Leaf", "Sacred Herbs", "Subtle Florals"],
-        "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/82eb095d8e73cc34f8daa37d10cebfc02578fa81cd77d69238cc06a2fa3c22c6.png",
+        "image": "https://customer-assets-agu9un31.emergentagent.net/job_55496025-cc94-4754-a9e1-bef6e996857a/artifacts/wdwvr3ar_ChatGPT%20Image%20Sep%2021%2C%202026%2C%2003_54_18%20PM.png",
         "burnTime": "40+ minutes",
         "sizes": [
             {"size": "50g", "mrp": 110, "price": 110, "images": [
-                "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/82eb095d8e73cc34f8daa37d10cebfc02578fa81cd77d69238cc06a2fa3c22c6.png"
+                "https://customer-assets-agu9un31.emergentagent.net/job_55496025-cc94-4754-a9e1-bef6e996857a/artifacts/wdwvr3ar_ChatGPT%20Image%20Sep%2021%2C%202026%2C%2003_54_18%20PM.png"
             ]}
         ],
         "rating": 0, "reviews": 0,

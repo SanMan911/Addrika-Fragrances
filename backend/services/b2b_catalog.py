@@ -225,7 +225,7 @@ _SEED_PRODUCTS = [
         "id": "belpatra-dhoop-b2b", "product_id": "bilvapatra-fragrance",
         "name": "Belpatra Dhoop",
         "category": "dhoop",
-        "image": "https://static.prod-images.emergentagent.com/jobs/af48cbf1-bc52-4569-9f0b-819136e78a82/images/82eb095d8e73cc34f8daa37d10cebfc02578fa81cd77d69238cc06a2fa3c22c6.png",
+        "image": "https://customer-assets-agu9un31.emergentagent.net/job_55496025-cc94-4754-a9e1-bef6e996857a/artifacts/wdwvr3ar_ChatGPT%20Image%20Sep%2021%2C%202026%2C%2003_54_18%20PM.png",
         "net_weight": "100g", "units_per_box": 32, "mrp_per_unit": 149,
         "pieces_per_carton": 32,
         "price_per_box": calculate_carton_price(32, 149),
