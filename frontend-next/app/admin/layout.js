@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Package, TrendingUp, Users, Tag, MessageSquare,
   Boxes, FileText, Settings, ChevronLeft, ChevronRight, LogOut,
-  ShieldCheck, Menu, X, Moon, Sun, Store, Briefcase, FileEdit, Activity, TreePine, Bell, Sparkles, KeyRound
+  ShieldCheck, Menu, X, Moon, Sun, Store, Briefcase, FileEdit, Activity, TreePine, Bell, Sparkles, KeyRound, Webhook
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
@@ -43,6 +43,7 @@ const navItems = [
   { path: '/admin/inventory', label: 'Inventory', icon: Boxes },
   { path: '/admin/inquiries', label: 'Inquiries', icon: MessageSquare },
   { path: '/admin/api-keys', label: 'API Keys', icon: KeyRound },
+  { path: '/admin/stock-webhooks', label: 'Stock Webhooks', icon: Webhook },
   { path: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

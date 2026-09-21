@@ -116,6 +116,14 @@ async def adjust_stock(
         "b2b-inventory: %s %+d pieces (was %d → %d) reason=%s",
         product_id, delta_pieces, before, after, reason,
     )
+
+    # Fire live stock-change webhooks (best-effort, non-blocking)
+    try:
+        from services.stock_webhooks import fire_stock_event
+        await fire_stock_event({**prod, "stock_pieces": after}, before, after, reason)
+    except Exception as e:
+        logger.warning("Stock webhook fire failed for %s: %s", product_id, e)
+
     return {"product_id": product_id, "before": before, "after": after, "entry": entry}
 
 
