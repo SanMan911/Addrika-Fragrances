@@ -25,6 +25,12 @@ export default function RetailerRegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [gstStatus, setGstStatus] = useState({ state: 'idle' });
   const [certFile, setCertFile] = useState(null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpDevHint, setOtpDevHint] = useState('');
   const [form, setForm] = useState({
     business_name: '',
     contact_name: '',
@@ -91,8 +97,69 @@ export default function RetailerRegisterPage() {
     };
   }, [form.gst_number]);
 
-  const onFileChange = (e) => {
-    const f = e.target.files?.[0];
+  // Reset phone verification whenever the number or country code changes
+  const requiresOtp = form.country_code === '+91';
+  useEffect(() => {
+    setPhoneVerified(false);
+    setOtpSent(false);
+    setOtpCode('');
+    setOtpDevHint('');
+  }, [form.phone, form.country_code]);
+
+  const sendOtp = async () => {
+    const digits = (form.phone || '').replace(/\D/g, '');
+    if (requiresOtp && digits.length !== 10) {
+      toast.error('Enter a valid 10-digit mobile number first');
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      const res = await fetch(`${API_URL}/api/retailer-auth/phone/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ country_code: form.country_code, phone: form.phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not send OTP');
+      setOtpSent(true);
+      if (data.dev_mode && data.dev_code) {
+        setOtpDevHint(String(data.dev_code));
+        toast.info(`Dev mode — your code is ${data.dev_code}`);
+      } else {
+        setOtpDevHint('');
+        toast.success('OTP sent via SMS to your phone');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Could not send OTP');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if ((otpCode || '').length < 4) {
+      toast.error('Enter the code sent to your phone');
+      return;
+    }
+    setVerifyingOtp(true);
+    try {
+      const res = await fetch(`${API_URL}/api/retailer-auth/phone/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ country_code: form.country_code, phone: form.phone, code: otpCode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Verification failed');
+      setPhoneVerified(true);
+      toast.success('Phone number verified ✓');
+    } catch (err) {
+      toast.error(err.message || 'Verification failed');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const onFileChange = (e) => {    const f = e.target.files?.[0];
     if (!f) return;
     if (!ALLOWED_MIME.includes(f.type)) {
       toast.error('GST certificate must be PDF, JPG, PNG or WebP');
@@ -124,6 +191,10 @@ export default function RetailerRegisterPage() {
     }
     if (!form.business_name || !form.contact_name || !form.email || !form.phone) {
       toast.error('Please fill business, contact, email and phone');
+      return;
+    }
+    if (requiresOtp && !phoneVerified) {
+      toast.error('Please verify your phone number via the SMS OTP first');
       return;
     }
     if (form.password.length < 8) {
@@ -301,6 +372,62 @@ export default function RetailerRegisterPage() {
                   data-testid="register-phone"
                 />
               </div>
+
+              {/* Inline phone OTP verification (mandatory for +91) */}
+              <div className="sm:col-span-2 rounded-lg p-3 border border-[#D4AF37]/40 bg-white/60" data-testid="register-otp-block">
+                {phoneVerified ? (
+                  <p className="flex items-center gap-2 text-sm font-medium text-emerald-700" data-testid="register-phone-verified">
+                    <CheckCircle2 className="w-4 h-4" /> Phone number verified
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-[#2B3A4A] uppercase tracking-wider">
+                        Verify phone {requiresOtp && <span className="text-red-600">*</span>}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={sendOtp}
+                        disabled={sendingOtp || !form.phone}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#2B3A4A] text-white hover:bg-[#1a252f] disabled:opacity-50 transition"
+                        data-testid="register-send-otp"
+                      >
+                        {sendingOtp ? 'Sending…' : otpSent ? 'Resend OTP' : 'Send OTP'}
+                      </button>
+                    </div>
+                    {otpSent && (
+                      <div className="flex gap-2" data-testid="register-otp-input-row">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Enter 6-digit code"
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] tracking-widest font-mono focus:border-[#D4AF37] outline-none"
+                          data-testid="register-otp-code"
+                        />
+                        <button
+                          type="button"
+                          onClick={verifyOtp}
+                          disabled={verifyingOtp || otpCode.length < 4}
+                          className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#D4AF37] text-white hover:opacity-90 disabled:opacity-50 transition"
+                          data-testid="register-verify-otp"
+                        >
+                          {verifyingOtp ? 'Verifying…' : 'Verify'}
+                        </button>
+                      </div>
+                    )}
+                    {otpDevHint && (
+                      <p className="text-xs text-amber-700" data-testid="register-otp-dev-hint">
+                        Dev mode (SMS not configured): use code <strong>{otpDevHint}</strong>
+                      </p>
+                    )}
+                    {otpSent && !otpDevHint && (
+                      <p className="text-xs text-gray-500">Enter the code we texted to {form.country_code} {form.phone}</p>
+                    )}
+                  </div>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder="City"
@@ -400,7 +527,7 @@ export default function RetailerRegisterPage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || (requiresOtp && !phoneVerified)}
             className="w-full py-3 rounded-xl bg-[#2B3A4A] text-white font-semibold hover:bg-[#1a252f] disabled:opacity-50 transition"
             data-testid="register-submit"
           >

@@ -995,7 +995,7 @@ async def send_rto_voucher_email(
         try:
             expiry_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
             expiry_str = expiry_date.strftime('%d %B %Y')
-        except:
+        except Exception:
             expiry_str = "15 days from today"
         
         html = f"""

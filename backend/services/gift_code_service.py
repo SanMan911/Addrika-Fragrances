@@ -323,7 +323,7 @@ async def ensure_festival_code_exists(festival_name: str, start_date: str, end_d
     # Create new festival code
     try:
         end_datetime = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)  # Valid until end of end_date
-    except:
+    except Exception:
         end_datetime = now + timedelta(days=14)
     
     discount_code = {

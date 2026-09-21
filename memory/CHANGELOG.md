@@ -1278,3 +1278,13 @@ Fix: `CSRSection.js` now fetches `/api/impact/trees` and renders the exact live 
 - **To flip on**: sign up free at https://app.sandbox.co.in/signup → API Keys → set `SANDBOX_API_KEY` + `SANDBOX_API_SECRET` in `backend/.env`, restart backend. Free tier ~100 calls/month for PAN + Aadhaar.
 - **Side fix**: cleaned up duplicate stale lines at bottom of `components/ZohoSyncHealthCard.js` that were causing webpack build errors. Added `data-testid="zoho-sync-health-card"` (root) and renamed Backfill testid to `zoho-backfill-button` per testing-agent feedback.
 
+
+## Iter101 — Twilio SMS OTP phone verification (retailer registration) + Belpatra image swap — 2026-09-21
+- **Belpatra image**: replaced stock image across `routers/products.py` (`bilvapatra-fragrance` main + size gallery), `services/b2b_catalog.py` (`belpatra-dhoop-b2b`), and live MongoDB `products`/`b2b_products` docs. New URL: customer-assets .../wdwvr3ar_ChatGPT Image Sep 21 2026 ...png. Verified via live API.
+- **Phone OTP (Twilio Verify)**: new `services/phone_otp.py`. Uses Twilio Verify when `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_VERIFY_SERVICE_SID` are set; otherwise DEV mode generates a local 6-digit code returned in the API response + logged (no real SMS). Flips to real SMS automatically once the 3 env keys are populated.
+- **Endpoints** (in `routers/retailer_auth.py`): `POST /api/retailer-auth/phone/send-otp`, `POST /api/retailer-auth/phone/verify-otp`. 30s resend cooldown, max 5 verify attempts, 10-min code TTL, verified phone valid 120 min. Collections: `phone_otps`, `phone_verifications`.
+- **Register gate**: `/register` now hard-blocks +91 numbers unless the exact `country_code+phone` was OTP-verified within 120 min. Non-+91 numbers are not required to verify (per user choice).
+- **Frontend** (`app/retailer/register/page.js`): inline "Send OTP" button + 6-digit code box directly under the phone field; verified badge; submit button disabled for +91 until verified; DEV code hint shown when Twilio unconfigured.
+- **Env**: added empty `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_VERIFY_SERVICE_SID` to `backend/.env`. `twilio==9.11.1` added to requirements.txt.
+- **Lint**: fixed 26 pre-existing `E722` bare-except across admin/*, retailer_dashboard, retailers, email_service, gift_code_service, scheduler_service, zoho_sheets_service, test_user_addresses (→ `except Exception:`).
+- **Tested**: backend curl — send/verify (correct+wrong), register gate blocks unverified +91, phone-length validation, cooldown. Frontend e2e screenshot — DEV OTP fetched, verified badge + toast shown, mobile 390px layout clean. Real-Twilio SMS path NOT verified (keys pending from user).

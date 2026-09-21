@@ -1071,7 +1071,7 @@ async def get_retailer_profile_summary(
             days_until_expiry = (expiry - datetime.now()).days
             if days_until_expiry < 30:
                 alerts.append(f"GST certificate expires in {days_until_expiry} days - please renew")
-        except:
+        except Exception:
             pass
     
     summary = {
