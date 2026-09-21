@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 101 — OTP passwordless retailer login + External API-key system (admin panel + machine-to-machine /api/external/v1). Ran 13 backend pytest cases (all pass) and full Playwright UI flow on /admin/api-keys (create, one-time reveal, E2E use as X-API-Key, revoke, revoked-rejection, delete). Every requested behaviour verified.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/admin/api-keys (dark mode default)", "issues": ["Page title 'External API Keys' uses text-[#1e3a52] (very dark navy) rendered directly on the dark-slate admin background, producing near-zero contrast. Same #1e3a52 is reused for section headings ('GENERATE A NEW KEY', 'Active & revoked keys') and for the input's typed-value color. Consider dark-mode variants (e.g. text-slate-100 / dark:text-white) for headings, section titles, key-name value and the input text/placeholder."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter101_otp_apikeys.py",
+    "/app/test_reports/pytest/iter101_results.xml"
+  ],
+  "action_items": [
+    "(Optional/design) Add dark-mode text color classes on /admin/api-keys — headings, input, and key-name value are hard to read on the default dark admin theme."
+  ],
+  "critical_code_review_comments": [
+    "services/api_keys.verify_key updates last_used_at even when required_scope check fails or when the key is inactive-post-lookup? — currently the guard is before the update so this is fine. OK.",
+    "external_api._require_key correctly reads X-API-Key header OR Authorization: Bearer; good.",
+    "retailer_auth._find_retailer_by_phone uses a $regex ending in the last N digits which will also match longer stored numbers (e.g. '19999999999'). For +91 the endpoint already enforces 10 digits so risk is low, but consider adding an equality clause on country_code for stricter match.",
+    "phone/login-send-otp reveals whether a number is registered by returning 404 vs 200 with business_name. This is by design per spec but is a soft enumeration surface; may want IP-based rate-limit follow-up.",
+    "Admin API-keys router uses require_admin which supports Bearer & cookie — good. All endpoints return proper 401/404. OK.",
+    "phone_otp DEV fallback: dev_code is returned in HTTP body & logged at WARNING — acceptable while Twilio is unset; ensure logs aren't shipped to a public sink."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter101_otp_apikeys.py (new)"
+  ],
+  "success_rate": { "backend": "100% (13/13)", "frontend": "100% (all UI + E2E steps passed)" },
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499 via 2FA (OTP read from Mongo admin_2fa_tokens.otp). Retailer OTP-login: +91 9999999999 (dev_code from response). Retailer password-login: test_b2b_retailer@example.com / Test@12345.",
+  "seed_data_creation": "Test API keys created during backend + UI runs were revoked and deleted at end of each test — no residue.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend suite /app/backend/tests/test_iter101_otp_apikeys.py covers: OTP login send/verify (unregistered→404, invalid length→400, registered dev_code flow, wrong code→400, correct code→200), password-login regression, external API 401 without key, admin CRUD (create/list/revoke/delete) with one-time raw key, external ping/stock with key returning schema-correct rows (16 SKUs), revoked-key 401. Frontend was smoke-tested via cookie+localStorage session injection after 2FA login through API — data-testids used: admin-api-keys-page, api-key-name-input, api-key-create-btn, api-key-reveal-value, api-key-row-<id>, api-key-revoke-<id>, api-key-delete-<id>. Twilio still in DEV mode.",
+  "rca of the issue": "N/A — no defects found. Implementation aligns with review-request contract."
+}
