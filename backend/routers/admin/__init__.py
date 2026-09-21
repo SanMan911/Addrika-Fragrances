@@ -11,6 +11,7 @@ from .admin_retailer_requests import router as retailer_requests_router
 from .admin_maintenance import router as maintenance_router
 from .admin_rto_vouchers import router as rto_vouchers_router
 from .admin_products import router as products_router
+from .admin_api_keys import router as api_keys_router
 
 # Create main admin router
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -27,3 +28,4 @@ router.include_router(retailer_requests_router)
 router.include_router(maintenance_router)
 router.include_router(rto_vouchers_router)
 router.include_router(products_router)
+router.include_router(api_keys_router)

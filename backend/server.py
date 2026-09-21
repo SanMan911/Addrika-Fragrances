@@ -65,6 +65,7 @@ from routers.admin.admin_b2b_preorders import router as admin_b2b_preorders_rout
 from routers.nudge_tracking import router as nudge_tracking_router
 from routers.fragrance_rewards import router as fragrance_rewards_router
 from routers.admin.admin_supabase_mirror import router as admin_supabase_mirror_router
+from routers.external_api import router as external_api_router
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -95,6 +96,7 @@ async def health_check():
 # ---------- Public storefront ----------
 app.include_router(auth_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
+app.include_router(external_api_router, prefix="/api")
 app.include_router(brochure_router, prefix="/api")
 app.include_router(docs_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")

@@ -75,6 +75,122 @@ async def phone_verify_otp(data: VerifyOtpRequest):
     return {"verified": True}
 
 
+# ---------------------------------------------------------------------------
+# Passwordless login via SMS OTP (registered numbers only)
+# ---------------------------------------------------------------------------
+
+class LoginOtpSendRequest(BaseModel):
+    country_code: str = Field(default="+91")
+    phone: str = Field(min_length=6, max_length=20)
+
+
+class LoginOtpVerifyRequest(BaseModel):
+    country_code: str = Field(default="+91")
+    phone: str = Field(min_length=6, max_length=20)
+    code: str = Field(min_length=4, max_length=8)
+
+
+async def _find_retailer_by_phone(country_code: str, phone: str) -> Optional[dict]:
+    """Find a non-deleted retailer whose stored phone ends with the given digits."""
+    target = "".join(c for c in (phone or "") if c.isdigit())
+    if not target:
+        return None
+    return await db.retailers.find_one({
+        "phone": {"$regex": f"{re.escape(target)}$"},
+        "status": {"$ne": "deleted"},
+    })
+
+
+@router.post("/phone/login-send-otp")
+async def phone_login_send_otp(data: LoginOtpSendRequest):
+    """OTP login step 1 — only send a code if a retailer is registered with this number."""
+    if not await get_b2b_enabled(db):
+        raise HTTPException(status_code=403, detail="Retailer portal is currently unavailable.")
+    from services.phone_otp import to_e164, send_otp
+    cc = (data.country_code or "+91").strip()
+    if not cc.startswith("+"):
+        cc = f"+{cc}"
+    digits = "".join(c for c in data.phone if c.isdigit())
+    if cc == "+91" and len(digits) != 10:
+        raise HTTPException(status_code=400, detail="Enter a valid 10-digit Indian mobile number.")
+
+    retailer = await _find_retailer_by_phone(cc, data.phone)
+    if not retailer:
+        raise HTTPException(
+            status_code=404,
+            detail="No retailer account is registered with this number. Please register first.",
+        )
+    if retailer.get("status") == "suspended":
+        reason = retailer.get("suspended_reason") or "Please contact admin."
+        raise HTTPException(status_code=403, detail=f"Your account has been suspended. Reason: {reason}")
+
+    result = await send_otp(to_e164(cc, data.phone))
+    if result.get("status") == "cooldown":
+        raise HTTPException(status_code=429, detail=f"Please wait {result.get('retry_after')}s before requesting another code.")
+    if result.get("status") == "error":
+        raise HTTPException(status_code=503, detail=result.get("error"))
+    return {
+        "sent": True,
+        "dev_mode": result.get("dev_mode", False),
+        "dev_code": result.get("dev_code"),
+        "business_name": retailer.get("business_name"),
+    }
+
+
+@router.post("/phone/login-verify")
+async def phone_login_verify(data: LoginOtpVerifyRequest, response: Response):
+    """OTP login step 2 — verify the code and issue a retailer session."""
+    if not await get_b2b_enabled(db):
+        raise HTTPException(status_code=403, detail="Retailer portal is currently unavailable.")
+    from services.phone_otp import to_e164, verify_otp
+    cc = (data.country_code or "+91").strip()
+    if not cc.startswith("+"):
+        cc = f"+{cc}"
+
+    retailer = await _find_retailer_by_phone(cc, data.phone)
+    if not retailer:
+        raise HTTPException(status_code=404, detail="No retailer account is registered with this number.")
+    if retailer.get("status") == "suspended":
+        reason = retailer.get("suspended_reason") or "Please contact admin."
+        raise HTTPException(status_code=403, detail=f"Your account has been suspended. Reason: {reason}")
+    if retailer.get("status") == "deleted":
+        raise HTTPException(status_code=403, detail="Account not found")
+
+    result = await verify_otp(to_e164(cc, data.phone), data.code)
+    if not result.get("verified"):
+        raise HTTPException(status_code=400, detail=result.get("error") or "Verification failed.")
+
+    email = retailer.get("email")
+    session_token = await create_retailer_session(retailer["retailer_id"], email)
+    response.set_cookie(
+        key="retailer_session",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=RETAILER_SESSION_EXPIRY_DAYS * 24 * 60 * 60,
+    )
+    await db.retailers.update_one(
+        {"retailer_id": retailer["retailer_id"]},
+        {"$set": {"last_login": datetime.now(timezone.utc).isoformat()}},
+    )
+    logger.info(f"Retailer OTP-login: {retailer['retailer_id']} status={retailer.get('status')}")
+    return {
+        "message": "Login successful",
+        "retailer": {
+            "retailer_id": retailer["retailer_id"],
+            "name": retailer.get("name"),
+            "business_name": retailer.get("business_name"),
+            "email": retailer.get("email"),
+            "status": retailer.get("status", "under_processing"),
+            "city": retailer.get("city"),
+            "district": retailer.get("district"),
+            "state": retailer.get("state"),
+        },
+        "token": session_token,
+    }
+
+
 @router.get("/portal-status")
 async def get_portal_status():
     """Public endpoint: whether the B2B retailer portal is currently enabled."""
@@ -578,6 +694,13 @@ async def retailer_register(
         "self_registered": True,
     }
     await db.retailers.insert_one(retailer)
+
+    # ---- Best-effort Supabase mirror (never blocks, strips password) ----
+    try:
+        from services.supabase_sync import mirror_user_upsert
+        mirror_user_upsert({k: v for k, v in retailer.items() if k != "password_hash"}, kind="retailer")
+    except Exception:
+        pass
 
     # ---- Best-effort admin + applicant emails ----
     try:

@@ -202,6 +202,15 @@ async def _apply_status(
         await db.retailer_sessions.delete_many({"retailer_id": retailer_id})
 
     updated = await db.retailers.find_one({"retailer_id": retailer_id}, {"_id": 0, "password_hash": 0})
+
+    # Keep Supabase mirror in sync with the new status / is_verified flag.
+    try:
+        from services.supabase_sync import mirror_user_upsert
+        if updated:
+            mirror_user_upsert(updated, kind="retailer")
+    except Exception:
+        pass
+
     logger.info(f"Retailer {retailer_id} → {new_status} by {admin_email}")
     return _serialize(updated)
 
