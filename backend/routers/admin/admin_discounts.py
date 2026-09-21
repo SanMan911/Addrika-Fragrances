@@ -130,7 +130,7 @@ async def delete_discount_code(code_id: str, request: Request, session_token: Op
     # Try to find by _id first, then by code
     try:
         result = await db.discount_codes.delete_one({"_id": ObjectId(code_id)})
-    except:
+    except Exception:
         result = await db.discount_codes.delete_one({"code": code_id.upper()})
     
     if result.deleted_count == 0:
@@ -151,7 +151,7 @@ async def update_discount_code(code_id: str, request: Request, session_token: Op
     # Find existing code
     try:
         existing = await db.discount_codes.find_one({"_id": ObjectId(code_id)})
-    except:
+    except Exception:
         existing = await db.discount_codes.find_one({"code": code_id.upper()})
     
     if not existing:
@@ -246,7 +246,7 @@ async def update_discount_code(code_id: str, request: Request, session_token: Op
             {"_id": ObjectId(code_id)},
             {"$set": update_data}
         )
-    except:
+    except Exception:
         result = await db.discount_codes.update_one(
             {"code": code_id.upper()},
             {"$set": update_data}
@@ -258,7 +258,7 @@ async def update_discount_code(code_id: str, request: Request, session_token: Op
     # Fetch updated code
     try:
         updated = await db.discount_codes.find_one({"_id": ObjectId(code_id)})
-    except:
+    except Exception:
         updated = await db.discount_codes.find_one({"code": code_id.upper()})
     
     if updated:
@@ -281,7 +281,7 @@ async def toggle_discount_code(code_id: str, request: Request, session_token: Op
     # Find existing code
     try:
         existing = await db.discount_codes.find_one({"_id": ObjectId(code_id)})
-    except:
+    except Exception:
         existing = await db.discount_codes.find_one({"code": code_id.upper()})
     
     if not existing:
@@ -299,7 +299,7 @@ async def toggle_discount_code(code_id: str, request: Request, session_token: Op
                 "blocked_at": datetime.now(timezone.utc).isoformat() if not new_status else None
             }}
         )
-    except:
+    except Exception:
         await db.discount_codes.update_one(
             {"code": code_id.upper()},
             {"$set": {
@@ -478,7 +478,7 @@ async def purge_all_discount_codes(request: Request, session_token: Optional[str
     try:
         body = await request.json()
         confirm = body.get('confirm')
-    except:
+    except Exception:
         confirm = None
     
     if confirm != 'PURGE_ALL_DISCOUNTS':
@@ -511,7 +511,7 @@ async def purge_all_coupon_usage(request: Request, session_token: Optional[str] 
     try:
         body = await request.json()
         confirm = body.get('confirm')
-    except:
+    except Exception:
         confirm = None
     
     if confirm != 'PURGE_ALL_USAGE':

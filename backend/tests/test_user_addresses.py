@@ -49,7 +49,7 @@ class TestUserAddresses:
         for addr_id in self.created_addresses:
             try:
                 self.session.delete(f"{BASE_URL}/api/user/addresses/{addr_id}")
-            except:
+            except Exception:
                 pass
     
     def test_get_addresses_authenticated(self):

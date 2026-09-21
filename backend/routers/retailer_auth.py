@@ -29,6 +29,52 @@ ALLOWED_CERT_MIME = {
 MAX_CERT_BYTES = 8 * 1024 * 1024  # 8 MB
 
 
+class SendOtpRequest(BaseModel):
+    country_code: str = Field(default="+91")
+    phone: str = Field(min_length=6, max_length=20)
+
+
+class VerifyOtpRequest(BaseModel):
+    country_code: str = Field(default="+91")
+    phone: str = Field(min_length=6, max_length=20)
+    code: str = Field(min_length=4, max_length=8)
+
+
+@router.post("/phone/send-otp")
+async def phone_send_otp(data: SendOtpRequest):
+    """Send an SMS OTP to prove ownership of the phone number typed during registration."""
+    from services.phone_otp import to_e164, send_otp
+    cc = (data.country_code or "+91").strip()
+    digits = "".join(c for c in (data.phone or "") if c.isdigit())
+    if cc.lstrip("+") == "91" and len(digits) != 10:
+        raise HTTPException(status_code=400, detail="Enter a valid 10-digit Indian mobile number.")
+    e164 = to_e164(cc, data.phone)
+    result = await send_otp(e164)
+    if result.get("status") == "cooldown":
+        raise HTTPException(
+            status_code=429,
+            detail=f"Please wait {result.get('retry_after')}s before requesting another code.",
+        )
+    if result.get("status") == "error":
+        raise HTTPException(status_code=503, detail=result.get("error"))
+    return {
+        "sent": True,
+        "dev_mode": result.get("dev_mode", False),
+        "dev_code": result.get("dev_code"),  # only present in DEV mode (no Twilio keys)
+    }
+
+
+@router.post("/phone/verify-otp")
+async def phone_verify_otp(data: VerifyOtpRequest):
+    """Verify the OTP code the user typed. On success the number is remembered as verified."""
+    from services.phone_otp import to_e164, verify_otp
+    e164 = to_e164(data.country_code, data.phone)
+    result = await verify_otp(e164, data.code)
+    if not result.get("verified"):
+        raise HTTPException(status_code=400, detail=result.get("error") or "Verification failed.")
+    return {"verified": True}
+
+
 @router.get("/portal-status")
 async def get_portal_status():
     """Public endpoint: whether the B2B retailer portal is currently enabled."""
@@ -412,6 +458,18 @@ async def retailer_register(
     gst = (gst_number or "").upper().strip()
     if not GST_PATTERN.match(gst):
         raise HTTPException(status_code=400, detail="Invalid GST number format")
+
+    # ---- Phone ownership (OTP) required for Indian (+91) numbers ----
+    cc_check = (country_code or "+91").strip()
+    if not cc_check.startswith("+"):
+        cc_check = f"+{cc_check}"
+    if cc_check == "+91":
+        from services.phone_otp import to_e164, is_phone_verified
+        if not await is_phone_verified(to_e164(cc_check, phone)):
+            raise HTTPException(
+                status_code=400,
+                detail="Please verify your phone number via the SMS OTP before registering.",
+            )
 
     # ---- Validate certificate BEFORE any DB writes ----
     if not gst_certificate:

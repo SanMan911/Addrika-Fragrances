@@ -1012,7 +1012,7 @@ async def get_performance_metrics(
                     hours = (delivered - created).total_seconds() / 3600
                     total_hours += hours
                     valid_count += 1
-            except:
+            except Exception:
                 pass
         if valid_count > 0:
             avg_pickup_hours = round(total_hours / valid_count, 1)
@@ -1372,7 +1372,7 @@ async def get_retailer_badges(
                         awarded_date = datetime.fromisoformat(awarded_at.replace('Z', '+00:00'))
                         days = (datetime.now(timezone.utc) - awarded_date).days
                         partner_duration = days
-                    except:
+                    except Exception:
                         pass
                 break
     

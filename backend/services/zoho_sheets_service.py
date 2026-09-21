@@ -297,7 +297,7 @@ async def sync_delivered_order(order: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(created_at, str):
         try:
             date_str = datetime.fromisoformat(created_at.replace("Z", "+00:00")).strftime("%Y-%m-%d")
-        except:
+        except Exception:
             date_str = datetime.utcnow().strftime("%Y-%m-%d")
     else:
         date_str = datetime.utcnow().strftime("%Y-%m-%d")

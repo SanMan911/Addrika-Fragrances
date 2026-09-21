@@ -253,7 +253,7 @@ async def process_coin_expiry_and_reminders():
         if isinstance(expiry_date, str):
             try:
                 expiry_date = datetime.fromisoformat(expiry_date.replace('Z', '+00:00'))
-            except:
+            except Exception:
                 continue
         
         # Check if expired

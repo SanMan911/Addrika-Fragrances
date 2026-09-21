@@ -58,7 +58,7 @@ async def admin_login_initiate(request: Request):
         body = await request.json()
         email = body.get('email', '')
         pin = body.get('pin', '')
-    except:
+    except Exception:
         raise HTTPException(status_code=400, detail="Invalid request body")
     
     if not email or not pin:
@@ -103,7 +103,7 @@ async def admin_login_verify_otp(response: Response, request: Request):
         body = await request.json()
         token_id = body.get('token_id', '')
         otp = body.get('otp', '')
-    except:
+    except Exception:
         raise HTTPException(status_code=400, detail="Invalid request body")
     
     if not token_id or not otp:
@@ -214,7 +214,7 @@ async def admin_change_password(request: Request, session_token: Optional[str] =
         current_password = body.get('currentPassword') or body.get('current_password')
         new_password = body.get('newPassword') or body.get('new_password')
         confirm_password = body.get('confirmPassword') or body.get('confirm_password')
-    except:
+    except Exception:
         raise HTTPException(status_code=400, detail="Invalid request body")
     
     # Validation
@@ -309,7 +309,7 @@ async def admin_forgot_pin_initiate(request: Request):
     try:
         body = await request.json()
         email = body.get('email', '').strip().lower()
-    except:
+    except Exception:
         raise HTTPException(status_code=400, detail="Invalid request body")
     
     if not email:
@@ -367,7 +367,7 @@ async def admin_forgot_pin_verify_otp(request: Request):
         body = await request.json()
         recovery_token = body.get('recovery_token', '')
         otp = body.get('otp', '')
-    except:
+    except Exception:
         raise HTTPException(status_code=400, detail="Invalid request body")
     
     if not recovery_token or not otp:
@@ -426,7 +426,7 @@ async def admin_forgot_pin_reset(request: Request):
         body = await request.json()
         recovery_token = body.get('recovery_token', '')
         new_pin = body.get('new_pin', '')
-    except:
+    except Exception:
         raise HTTPException(status_code=400, detail="Invalid request body")
     
     if not recovery_token or not new_pin:

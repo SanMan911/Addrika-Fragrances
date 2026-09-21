@@ -309,7 +309,7 @@ async def generate_rto_voucher_manual(
     try:
         body = await request.json()
         percentage = body.get('percentage', 100)
-    except:
+    except Exception:
         percentage = 100
     
     logger.info(f"[RTO VOUCHER] Percentage requested: {percentage}%")
@@ -471,7 +471,7 @@ async def purge_all_orders(request: Request, session_token: Optional[str] = Cook
     try:
         body = await request.json()
         confirm = body.get('confirm')
-    except:
+    except Exception:
         confirm = None
     
     if confirm != 'PURGE_ALL_ORDERS':
@@ -531,7 +531,7 @@ async def restore_order(request: Request, session_token: Optional[str] = Cookie(
     
     try:
         order_data = await request.json()
-    except:
+    except Exception:
         raise HTTPException(status_code=400, detail="Invalid order data")
     
     # Required fields
@@ -590,7 +590,7 @@ async def wipe_all_data(request: Request, session_token: Optional[str] = Cookie(
     try:
         body = await request.json()
         confirm = body.get('confirm')
-    except:
+    except Exception:
         confirm = None
     
     if confirm != 'WIPE_ALL_DATA':

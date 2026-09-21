@@ -152,3 +152,9 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 ## Testing Credentials
 - Admin: `contact.us@centraders.com` / PIN `050499` (master override: `addrika_admin_override`)
 - B2B Test Retailer: `test_b2b_retailer@example.com` / `Test@12345`
+
+---
+### Update 2026-09-21 (Iter101)
+- **DONE**: Twilio SMS OTP "verify phone" step in retailer registration. Mandatory for +91 numbers, blocks Register until verified. Auto-activates real SMS when TWILIO_ACCOUNT_SID/AUTH_TOKEN/VERIFY_SERVICE_SID are set in backend/.env (currently empty → DEV OTP fallback returns code in API response). Endpoints: `/api/retailer-auth/phone/send-otp`, `/phone/verify-otp`.
+- **DONE**: Belpatra product image swapped to new uploaded jar image (B2C + B2B + live DB).
+- **PENDING (user)**: paste Twilio credentials into backend/.env → restart backend to enable real SMS. Real-SMS path not yet verified.
