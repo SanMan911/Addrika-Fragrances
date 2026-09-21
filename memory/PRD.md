@@ -164,3 +164,8 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **DONE**: External machine-to-machine stock API (`/api/external/v1/stock`) secured by admin-managed API keys (generate/label/revoke/delete via /admin/api-keys; raw key shown once). Reads MongoDB source of truth; Supabase mirror carries same data.
 - **DONE**: Supabase consistency — retailer register + admin status changes mirror to Supabase; OTP + api_key collections blocklisted from mirroring.
 - **PENDING (user)**: paste Twilio Verify keys into backend/.env to switch OTP from DEV mode to real SMS. Mobile app needs an EAS/dev build to run the new native document-picker screen on a device.
+
+### Update 2026-09-21 (Iter103)
+- **DONE**: Live stock-change webhooks (stock.changed/low/out) fired from adjust_stock, HMAC-signed, admin-managed at /admin/stock-webhooks (register/test/pause/delete + delivery log). For Field Sales Manager etc. — real-time low-stock alerts, no polling.
+- **DONE (queued)**: EAS Android preview build initiated for the updated Aaroviah app (registration + OTP login). Build URL: https://expo.dev/accounts/sanman911/projects/addrika-mobile/builds/4d504f85-3185-434e-9cd4-1ee48a49ae29
+- **IMPORTANT**: Mobile app targets the Render production backend (app.json apiBaseUrl). Deploy backend (OTP/registration/webhook/external-API changes) to Render so the built app's new screens work in production.
