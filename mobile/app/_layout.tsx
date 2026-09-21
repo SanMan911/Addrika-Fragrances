@@ -24,7 +24,7 @@ function useAuthGate() {
 
   useEffect(() => {
     if (loading) return;
-    const inAuth = segments[0] === 'login';
+    const inAuth = segments[0] === 'login' || segments[0] === 'register';
     if (!session && !inAuth) {
       router.replace('/login');
     } else if (session && inAuth) {
@@ -75,6 +75,7 @@ function StackNav() {
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="register" options={{ title: 'Retailer Registration' }} />
       <Stack.Screen name="products" options={{ title: 'Catalogue' }} />
       <Stack.Screen name="cart" options={{ title: 'Your Cart' }} />
       <Stack.Screen

@@ -49,6 +49,8 @@ export type SessionContextValue = {
   loading: boolean;
   loginCustomer: (identifier: string, password: string) => Promise<void>;
   loginRetailer: (identifier: string, password: string) => Promise<void>;
+  loginRetailerOtp: (countryCode: string, phone: string, code: string) => Promise<void>;
+  applyRetailerSession: (token: string, name: string, email?: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -57,6 +59,8 @@ export const SessionContext = createContext<SessionContextValue>({
   loading: true,
   loginCustomer: async () => {},
   loginRetailer: async () => {},
+  loginRetailerOtp: async () => {},
+  applyRetailerSession: async () => {},
   logout: async () => {},
 });
 
@@ -111,6 +115,27 @@ export function useSessionState(): SessionContextValue {
     setSession(s);
   }, []);
 
+  const loginRetailerOtp = useCallback(async (countryCode: string, phone: string, code: string) => {
+    const data = await apiFetch<{ token: string; retailer: { name: string; email: string } }>(
+      '/api/retailer-auth/phone/login-verify',
+      { method: 'POST', body: JSON.stringify({ country_code: countryCode, phone, code }) }
+    );
+    const s: Session = {
+      kind: 'retailer',
+      token: data.token,
+      displayName: data.retailer?.name || data.retailer?.email || 'Retailer',
+      email: data.retailer?.email,
+    };
+    await persist(s);
+    setSession(s);
+  }, []);
+
+  const applyRetailerSession = useCallback(async (token: string, name: string, email?: string) => {
+    const s: Session = { kind: 'retailer', token, displayName: name || email || 'Retailer', email };
+    await persist(s);
+    setSession(s);
+  }, []);
+
   const logout = useCallback(async () => {
     // Clear the B2B "new order" snapshot so the next retailer on this
     // device doesn't inherit a stale trigger.
@@ -119,5 +144,5 @@ export function useSessionState(): SessionContextValue {
     setSession(null);
   }, []);
 
-  return { session, loading, loginCustomer, loginRetailer, logout };
+  return { session, loading, loginCustomer, loginRetailer, loginRetailerOtp, applyRetailerSession, logout };
 }

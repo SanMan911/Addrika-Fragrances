@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { useSession } from '../lib/session';
 import { fetchAppConfig, type AppConfig } from '../lib/config';
-import { openWebUrl, openWhatsAppTo } from '../lib/web';
+import { apiFetch } from '../lib/api';
+import { useRouter } from 'expo-router';
+import { openWhatsAppTo } from '../lib/web';
 import { MOBILE_BRAND_NAME, MOBILE_BRAND_TAGLINE } from '../lib/brand';
 
 /**
@@ -28,13 +30,25 @@ import { MOBILE_BRAND_NAME, MOBILE_BRAND_TAGLINE } from '../lib/brand';
  */
 const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
 
+const COUNTRY_CODE = '+91';
+
 export default function LoginScreen() {
+  const router = useRouter();
+  const [mode, setMode] = useState<'password' | 'otp'>('password');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<AppConfig | null>(null);
-  const { loginRetailer } = useSession();
+  const { loginRetailer, loginRetailerOtp } = useSession();
+
+  // OTP-login state
+  const [otpPhone, setOtpPhone] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpDevHint, setOtpDevHint] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const otpDigits = otpPhone.replace(/\D/g, '');
 
   useEffect(() => {
     fetchAppConfig().then(setConfig).catch(() => { /* offline is fine */ });
@@ -61,6 +75,40 @@ export default function LoginScreen() {
     }
   }
 
+  async function sendLoginOtp() {
+    if (otpDigits.length !== 10) { setError('Enter your registered 10-digit mobile number'); return; }
+    setError(null);
+    setSendingOtp(true);
+    try {
+      const data = await apiFetch<{ dev_mode?: boolean; dev_code?: string }>(
+        '/api/retailer-auth/phone/login-send-otp',
+        { method: 'POST', body: JSON.stringify({ country_code: COUNTRY_CODE, phone: otpDigits }) }
+      );
+      setOtpSent(true);
+      setOtpDevHint(data.dev_mode && data.dev_code ? String(data.dev_code) : '');
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : 'Could not send OTP';
+      setError(/404/.test(raw)
+        ? 'No account is registered with this number. Tap "Register" below.'
+        : raw);
+    } finally {
+      setSendingOtp(false);
+    }
+  }
+
+  async function verifyLoginOtp() {
+    if (otpCode.length < 4) { setError('Enter the code sent to your phone'); return; }
+    setError(null);
+    setSubmitting(true);
+    try {
+      await loginRetailerOtp(COUNTRY_CODE, otpDigits, otpCode);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Verification failed');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   // Retailers don't have a self-serve reset UI yet — WhatsApp admin.
   const openReset = () =>
     openWhatsAppTo(
@@ -68,7 +116,7 @@ export default function LoginScreen() {
       `Hi, I'm a ${MOBILE_BRAND_NAME} retailer and need help resetting my B2B password. My registered email/username is: `,
     );
 
-  const openRetailerSignup = () => openWebUrl('/');
+  const openRetailerSignup = () => router.push('/register');
 
   return (
     <KeyboardAvoidingView
@@ -88,53 +136,135 @@ export default function LoginScreen() {
           <Text style={styles.cardTitle}>Retailer Sign-in</Text>
           <Text style={styles.cardSub}>Use the same credentials you use on centraders.com</Text>
 
-          <Text style={styles.label}>Email or username</Text>
-          <TextInput
-            testID="login-identifier"
-            value={identifier}
-            onChangeText={setIdentifier}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            style={styles.input}
-            placeholder="retailer@shop.com"
-            placeholderTextColor="#a89f8b"
-          />
-          <Text style={styles.hint} testID="login-identifier-hint">
-            The email you used to apply. New retailer? Apply on centraders.com — our team will email you a set-password link once your GSTIN is verified.
-          </Text>
+          {/* Mode toggle: password vs OTP */}
+          <View style={styles.toggleRow} testID="login-mode-toggle">
+            <Pressable
+              testID="login-mode-password"
+              onPress={() => { setMode('password'); setError(null); }}
+              style={[styles.toggleBtn, mode === 'password' && styles.toggleBtnActive]}
+            >
+              <Text style={[styles.toggleTxt, mode === 'password' && styles.toggleTxtActive]}>Password</Text>
+            </Pressable>
+            <Pressable
+              testID="login-mode-otp"
+              onPress={() => { setMode('otp'); setError(null); }}
+              style={[styles.toggleBtn, mode === 'otp' && styles.toggleBtnActive]}
+            >
+              <Text style={[styles.toggleTxt, mode === 'otp' && styles.toggleTxtActive]}>OTP on phone</Text>
+            </Pressable>
+          </View>
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            testID="login-password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-            placeholder="••••••••"
-            placeholderTextColor="#a89f8b"
-          />
-          <Text style={styles.hint} testID="login-password-hint">
-            You set this via the invite link emailed to you after onboarding.
-          </Text>
+          {mode === 'password' ? (
+            <>
+              <Text style={styles.label}>Email or username</Text>
+              <TextInput
+                testID="login-identifier"
+                value={identifier}
+                onChangeText={setIdentifier}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                style={styles.input}
+                placeholder="retailer@shop.com"
+                placeholderTextColor="#a89f8b"
+              />
+              <Text style={styles.hint} testID="login-identifier-hint">
+                The email you used to apply. New retailer? Tap Register below.
+              </Text>
 
-          {error ? (
-            <Text style={styles.error} testID="login-error">{error}</Text>
-          ) : null}
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                testID="login-password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor="#a89f8b"
+              />
+              <Text style={styles.hint} testID="login-password-hint">
+                You set this via the invite link emailed to you after onboarding.
+              </Text>
 
-          <Pressable
-            testID="login-submit"
-            style={({ pressed }) => [styles.cta, (submitting || pressed) && styles.ctaPressed]}
-            onPress={submit}
-            disabled={submitting || !identifier || !password}
-            android_ripple={{ color: 'rgba(212, 175, 55, 0.25)' }}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#d4af37" />
-            ) : (
-              <Text style={styles.ctaText}>Sign in</Text>
-            )}
-          </Pressable>
+              {error ? (
+                <Text style={styles.error} testID="login-error">{error}</Text>
+              ) : null}
+
+              <Pressable
+                testID="login-submit"
+                style={({ pressed }) => [styles.cta, (submitting || pressed) && styles.ctaPressed]}
+                onPress={submit}
+                disabled={submitting || !identifier || !password}
+                android_ripple={{ color: 'rgba(212, 175, 55, 0.25)' }}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#d4af37" />
+                ) : (
+                  <Text style={styles.ctaText}>Sign in</Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.label}>Registered mobile number</Text>
+              <View style={styles.phoneRow}>
+                <View style={styles.ccBox}><Text style={styles.ccText}>{COUNTRY_CODE}</Text></View>
+                <TextInput
+                  testID="login-otp-phone"
+                  value={otpPhone}
+                  onChangeText={(t) => { setOtpPhone(t.replace(/\D/g, '').slice(0, 10)); setOtpSent(false); setOtpCode(''); setOtpDevHint(''); }}
+                  keyboardType="number-pad"
+                  style={[styles.input, styles.phoneInput]}
+                  placeholder="10-digit number"
+                  placeholderTextColor="#a89f8b"
+                />
+              </View>
+
+              {!otpSent ? (
+                <Pressable
+                  testID="login-otp-send"
+                  style={({ pressed }) => [styles.cta, (sendingOtp || pressed) && styles.ctaPressed]}
+                  onPress={sendLoginOtp}
+                  disabled={sendingOtp || otpDigits.length !== 10}
+                >
+                  {sendingOtp ? <ActivityIndicator color="#d4af37" /> : <Text style={styles.ctaText}>Send OTP</Text>}
+                </Pressable>
+              ) : (
+                <>
+                  <Text style={styles.label}>Enter code</Text>
+                  <TextInput
+                    testID="login-otp-code"
+                    value={otpCode}
+                    onChangeText={(t) => setOtpCode(t.replace(/\D/g, '').slice(0, 6))}
+                    keyboardType="number-pad"
+                    style={[styles.input, { letterSpacing: 4 }]}
+                    placeholder="6-digit code"
+                    placeholderTextColor="#a89f8b"
+                  />
+                  {otpDevHint ? (
+                    <Text style={styles.devHint} testID="login-otp-dev-hint">Dev mode: use code {otpDevHint}</Text>
+                  ) : (
+                    <Text style={styles.hint}>We texted a code to {COUNTRY_CODE} {otpPhone}</Text>
+                  )}
+                  <Pressable
+                    testID="login-otp-verify"
+                    style={({ pressed }) => [styles.cta, (submitting || pressed) && styles.ctaPressed]}
+                    onPress={verifyLoginOtp}
+                    disabled={submitting || otpCode.length < 4}
+                  >
+                    {submitting ? <ActivityIndicator color="#d4af37" /> : <Text style={styles.ctaText}>Verify & sign in</Text>}
+                  </Pressable>
+                  <Pressable testID="login-otp-resend" onPress={sendLoginOtp} disabled={sendingOtp} style={styles.forgotBtn}>
+                    <Text style={styles.forgotTxt}>{sendingOtp ? 'Sending…' : 'Resend code'}</Text>
+                  </Pressable>
+                </>
+              )}
+
+              {error ? (
+                <Text style={styles.error} testID="login-error">{error}</Text>
+              ) : null}
+            </>
+          )}
 
           <Pressable
             testID="forgot-password-link"
@@ -154,7 +284,7 @@ export default function LoginScreen() {
             android_ripple={{ color: 'rgba(30, 58, 82, 0.15)' }}
           >
             <Text style={styles.signupLink}>
-              Start retailer onboarding on centraders.com →
+              Register as a retailer →
             </Text>
           </Pressable>
         </View>
@@ -231,6 +361,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontStyle: 'italic',
   },
+  toggleRow: {
+    flexDirection: 'row',
+    backgroundColor: '#efe9dd',
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 10,
+    gap: 4,
+  },
+  toggleBtn: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center' },
+  toggleBtnActive: { backgroundColor: '#1e3a52' },
+  toggleTxt: { fontSize: 13, fontWeight: '700', color: '#6b6357' },
+  toggleTxtActive: { color: '#d4af37' },
+  phoneRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  ccBox: { borderWidth: 1, borderColor: '#d8cfbc', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: '#f0ece3' },
+  ccText: { fontSize: 15, color: '#1e3a52', fontWeight: '600' },
+  phoneInput: { flex: 1 },
+  devHint: { color: '#b45309', fontSize: 12, marginTop: 6, fontWeight: '600' },
   label: {
     fontSize: 11,
     color: '#6b6357',
