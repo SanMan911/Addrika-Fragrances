@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { User, Package, Heart, Settings, LogOut, ChevronRight, MapPin, Bell, CreditCard } from 'lucide-react';
+import BRAND from '../../lib/brand.config';
 
 export default function AccountPage() {
   const router = useRouter();
