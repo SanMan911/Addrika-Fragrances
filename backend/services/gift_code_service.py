@@ -1,5 +1,5 @@
 """
-Birthday, Anniversary & Festival Gift Code Service for Addrika
+Birthday, Anniversary & Festival Gift Code Service for AAROHMM
 
 Code Types:
 1. HAPPYBDAY - 20% off, usable by any user during their birthday period (±7 days)

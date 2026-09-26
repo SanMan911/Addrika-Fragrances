@@ -1,5 +1,5 @@
 """
-Zoho Books integration for Addrika B2B.
+Zoho Books integration for AAROHMM B2B.
 
 - Single-tenant (one Zoho org connected via OAuth refresh-token).
 - All calls are best-effort and gated behind env vars; if creds are missing,
@@ -251,7 +251,7 @@ def _distribute_discount(order: dict) -> list[dict]:
 
 
 async def push_sales_order(order: dict, retailer: dict) -> Optional[dict]:
-    """Create a Zoho Sales Order from an Addrika B2B order. Returns Zoho payload or None."""
+    """Create a Zoho Sales Order from an AAROHMM B2B order. Returns Zoho payload or None."""
     if not await is_configured():
         return None
     contact_id = await upsert_customer(retailer)
@@ -264,7 +264,7 @@ async def push_sales_order(order: dict, retailer: dict) -> Optional[dict]:
         "reference_number": order["order_id"],
         "date": (order.get("created_at") or datetime.now(timezone.utc).isoformat())[:10],
         "line_items": line_items,
-        "notes": "Synced from Addrika B2B portal",
+        "notes": "Synced from AAROHMM B2B portal",
     }
     res = await _request("POST", "salesorders", json_body=payload)
     so = (res or {}).get("salesorder")
@@ -287,7 +287,7 @@ async def push_payment(order: dict, retailer: dict, amount: float,
         "amount": float(amount),
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "reference_number": razorpay_payment_id,
-        "description": f"Razorpay payment for Addrika B2B order {order['order_id']}",
+        "description": f"Razorpay payment for AAROHMM B2B order {order['order_id']}",
     }
     res = await _request("POST", "customerpayments", json_body=payload)
     pmt = (res or {}).get("payment")

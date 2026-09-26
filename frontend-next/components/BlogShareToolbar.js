@@ -85,7 +85,7 @@ export default function BlogShareToolbar({
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `addrika-${(title || 'post').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.png`;
+      a.download = `aarohmm-${(title || 'post').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.png`;
       a.click();
       URL.revokeObjectURL(a.href);
       toast.success('Image downloaded — caption ready to paste');

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 async def send_b2b_admin_notification_email(order: dict, retailer: dict) -> None:
-    """Email Addrika admin (contact.us@centraders.com) when a B2B order is placed.
+    """Email AAROHMM admin (contact.us@centraders.com) when a B2B order is placed.
     B2B orders bypass ShipRocket — admin handles delivery manually.
     """
     from services.email_service import send_email
@@ -105,7 +105,7 @@ async def send_b2b_admin_notification_email(order: dict, retailer: dict) -> None
     <body style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
             <tr><td style="background:#1e3a52;padding:24px;text-align:center;">
-                <h1 style="color:#d4af37;margin:0;">ADDRIKA</h1>
+                <h1 style="color:#d4af37;margin:0;">AAROHMM</h1>
                 <p style="color:#fff;margin:4px 0 0;">New B2B Order Received</p>
             </td></tr>
             <tr><td style="padding:24px;">
@@ -148,7 +148,7 @@ async def send_b2b_admin_notification_email(order: dict, retailer: dict) -> None
                 </div>
             </td></tr>
             <tr><td style="background:#1e3a52;padding:14px;text-align:center;">
-                <p style="color:#d4af37;margin:0;font-size:12px;">Addrika B2B • {NOTIFICATION_EMAIL}</p>
+                <p style="color:#d4af37;margin:0;font-size:12px;">AAROHMM B2B • {NOTIFICATION_EMAIL}</p>
             </td></tr>
         </table>
     </body>
@@ -196,7 +196,7 @@ async def send_b2b_order_confirmation_email(order: dict, retailer: dict) -> None
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
+                    <h1 style="color: #d4af37; margin: 0;">AAROHMM</h1>
                     <p style="color: #ffffff; margin: 5px 0 0 0;">B2B Order Confirmation</p>
                 </td>
             </tr>
@@ -244,7 +244,7 @@ async def send_b2b_order_confirmation_email(order: dict, retailer: dict) -> None
             </tr>
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0;">ADDRIKA - Premium Agarbattis</p>
+                    <p style="color: #d4af37; margin: 0;">AAROHMM - Premium Agarbattis</p>
                     <p style="color: #999; font-size: 12px; margin: 10px 0 0 0;">Questions? Contact contact.us@centraders.com</p>
                 </td>
             </tr>
@@ -255,7 +255,7 @@ async def send_b2b_order_confirmation_email(order: dict, retailer: dict) -> None
 
     await send_email(
         to_email=retailer["email"],
-        subject=f"B2B Order Confirmed: {order['order_id']} | Addrika",
+        subject=f"B2B Order Confirmed: {order['order_id']} | AAROHMM",
         html_content=html,
     )
 

@@ -225,7 +225,7 @@ def _html_msg(body: str, success: bool = True) -> str:
     <html><head><title>Zoho OAuth</title></head>
     <body style='font-family:Arial,sans-serif;background:#1e3a52;color:#fff;padding:48px;text-align:center;'>
       <div style='max-width:560px;margin:0 auto;background:{bg};color:#1e3a52;border-radius:14px;padding:32px;border-top:6px solid {border};'>
-        <h1 style='margin:0 0 12px;color:#1e3a52;'>Addrika · Zoho Connect</h1>
+        <h1 style='margin:0 0 12px;color:#1e3a52;'>AAROHMM · Zoho Connect</h1>
         <div style='font-size:15px;line-height:1.6;text-align:left;'>{body}</div>
       </div>
     </body></html>

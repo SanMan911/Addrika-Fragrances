@@ -1,4 +1,4 @@
-// API Configuration for Addrika Frontend
+// API Configuration for AAROHMM Frontend
 // 
 // IMPORTANT FOR VERCEL DEPLOYMENT:
 // Set NEXT_PUBLIC_BACKEND_URL in your Vercel Environment Variables

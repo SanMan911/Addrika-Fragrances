@@ -48,7 +48,7 @@ export default function CheckoutPage() {
   
   // Tree donation state
   const [treeDonation, setTreeDonation] = useState(false);
-  const TREE_DONATION_AMOUNT = 5; // Customer pays ₹5, Addrika matches ₹5
+  const TREE_DONATION_AMOUNT = 5; // Customer pays ₹5, brand matches ₹5
   
   // Retailers for pickup
   const [retailers, setRetailers] = useState([]);
@@ -208,7 +208,8 @@ export default function CheckoutPage() {
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.detail || 'Failed to create order');
+        const d = data.detail;
+        throw new Error((d && typeof d === 'object' ? d.message : d) || 'Failed to create order');
       }
       
       // Initialize Razorpay

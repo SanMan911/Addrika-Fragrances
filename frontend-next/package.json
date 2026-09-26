@@ -1,13 +1,15 @@
 {
-  "name": "addrika-nextjs",
+  "name": "aarohmm-nextjs",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "lint": "next lint",
-    "brand-audit": "node ../scripts/brand-audit.js"
+    "lint": "next lint --max-warnings=200",
+    "brand-audit": "node ../scripts/brand-audit.js",
+    "lint:strict": "next lint --max-warnings=0",
+    "ci": "yarn -s lint && yarn -s brand-audit"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.8",
@@ -48,6 +50,8 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.20",
+    "eslint": "8",
+    "eslint-config-next": "14.2.28",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17"
   }

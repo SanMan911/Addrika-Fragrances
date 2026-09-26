@@ -84,7 +84,7 @@ async def admin_email_b2b_invoice(
     <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
       <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;'>
         <tr><td style='background:#1e3a52;padding:20px;text-align:center;'>
-          <h1 style='color:#d4af37;margin:0;'>ADDRIKA</h1>
+          <h1 style='color:#d4af37;margin:0;'>AAROHMM</h1>
           <p style='color:#fff;margin:4px 0 0;'>Tax Invoice · {order_id}</p>
         </td></tr>
         <tr><td style='padding:24px;'>
@@ -93,7 +93,7 @@ async def admin_email_b2b_invoice(
           <b>{order_id}</b>, totalling <b>₹{float(order.get('grand_total') or 0):,.2f}</b>.</p>
           <p>For any queries, reply to this email or contact us at
           <a href='mailto:contact.us@centraders.com'>contact.us@centraders.com</a>.</p>
-          <p style='margin-top:24px;color:#888;font-size:12px;'>— Addrika B2B Team</p>
+          <p style='margin-top:24px;color:#888;font-size:12px;'>— AAROHMM B2B Team</p>
         </td></tr>
       </table>
     </body></html>
@@ -101,7 +101,7 @@ async def admin_email_b2b_invoice(
 
     sent = await send_email(
         to_email=retailer["email"],
-        subject=f"Addrika · Tax Invoice {order_id}",
+        subject=f"AAROHMM · Tax Invoice {order_id}",
         html_content=html,
         attachments=[{"filename": f"invoice-{order_id}.pdf", "content": pdf_bytes}],
     )
@@ -128,7 +128,7 @@ async def admin_email_b2b_invoice_to_admin(
     request: Request,
     session_token: Optional[str] = Cookie(None),
 ):
-    """Regenerate the tax-invoice PDF and email it to the Addrika ops inbox
+    """Regenerate the tax-invoice PDF and email it to the AAROHMM ops inbox
     (contact.us@centraders.com). Useful when the on-order-creation admin
     notification email fails or the admin wants a fresh copy."""
     await require_admin(request, session_token)
@@ -374,7 +374,8 @@ ORDER_STATUSES = [
     "shipped",
     "delivered",
     "returned",
-    "modified"
+    "modified",
+    "cancelled",
 ]
 
 
@@ -389,6 +390,8 @@ async def admin_list_b2b_orders(
     session_token: Optional[str] = Cookie(None),
     status: Optional[str] = None,
     retailer_id: Optional[str] = None,
+    channel: Optional[str] = None,
+    payment_status: Optional[str] = None,
     page: int = 1,
     limit: int = 50
 ):
@@ -402,6 +405,10 @@ async def admin_list_b2b_orders(
         query["order_status"] = status
     if retailer_id:
         query["retailer_id"] = retailer_id
+    if channel:
+        query["channel"] = channel
+    if payment_status:
+        query["payment_status"] = payment_status
     
     orders = await db.b2b_orders.find(
         query,
@@ -409,6 +416,15 @@ async def admin_list_b2b_orders(
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
     total = await db.b2b_orders.count_documents(query)
+
+    # Attach retailer display names in one query
+    rids = list({o.get("retailer_id") for o in orders if o.get("retailer_id")})
+    names = {}
+    if rids:
+        async for r in db.retailers.find({"retailer_id": {"$in": rids}}, {"_id": 0, "retailer_id": 1, "business_name": 1, "trade_name": 1}):
+            names[r["retailer_id"]] = r.get("business_name") or r.get("trade_name")
+    for o in orders:
+        o["retailer_name"] = names.get(o.get("retailer_id")) or o.get("retailer_email") or o.get("retailer_id")
     
     # Get status counts
     status_counts = {}
@@ -479,23 +495,40 @@ async def admin_update_b2b_order_status(
     old_status = order.get("order_status")
     now = datetime.now(timezone.utc)
     
-    await db.b2b_orders.update_one(
-        {"order_id": order_id},
-        {
-            "$set": {
-                "order_status": status_data.status,
-                "updated_at": now.isoformat()
-            },
-            "$push": {
-                "status_history": {
-                    "status": status_data.status,
-                    "timestamp": now.isoformat(),
-                    "note": status_data.note,
-                    "updated_by": admin.get("email", "admin")
+    if status_data.status == "cancelled":
+        # Engine path releases any stock reserved/deducted for this order
+        from services.b2b_order_engine import cancel_order
+        try:
+            await cancel_order(
+                db, order,
+                reason=status_data.note or "Cancelled by admin",
+                actor=admin.get("email", "admin"),
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+    else:
+        await db.b2b_orders.update_one(
+            {"order_id": order_id},
+            {
+                "$set": {
+                    "order_status": status_data.status,
+                    "updated_at": now.isoformat()
+                },
+                "$push": {
+                    "status_history": {
+                        "status": status_data.status,
+                        "timestamp": now.isoformat(),
+                        "note": status_data.note,
+                        "updated_by": admin.get("email", "admin")
+                    }
                 }
             }
-        }
-    )
+        )
+        try:
+            from services.supabase_sync import mirror_order_snapshot
+            await mirror_order_snapshot(db, order_id=order_id, collection="b2b_orders")
+        except Exception:
+            pass
     
     logger.info(f"B2B order {order_id} status updated to {status_data.status}")
     
@@ -523,6 +556,49 @@ async def admin_update_b2b_order_status(
         "order_id": order_id,
         "new_status": status_data.status,
         "email_sent": True
+    }
+
+
+class MarkPaidBody(BaseModel):
+    method: str = Field(..., pattern="^(cash|upi|bank_transfer|cheque|credit_settled|other)$")
+    reference: Optional[str] = Field(None, max_length=120, description="UTR / receipt no.")
+    note: Optional[str] = Field(None, max_length=300)
+
+
+@router.post("/orders/{order_id}/mark-paid")
+async def admin_mark_b2b_order_paid(
+    order_id: str,
+    body: MarkPaidBody,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Confirm an offline payment (cash / UPI / bank transfer) for a credit,
+    pay-later or FSM order. Runs the same post-payment pipeline as Razorpay:
+    stock deduction (idempotent vs. the placement reservation), Fragrance
+    Rewards accrual, Zoho sync, milestones and the retailer confirmation e-mail."""
+    admin = await require_admin(request, session_token)
+    order = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.get("payment_status") == "paid":
+        return {"message": "Order already marked paid", "order_id": order_id, "payment_status": "paid"}
+    if order.get("order_status") == "cancelled":
+        raise HTTPException(status_code=409, detail="Cancelled orders cannot be marked paid")
+    retailer = await db.retailers.find_one({"retailer_id": order["retailer_id"]}, {"_id": 0, "password_hash": 0}) or {}
+    from services.b2b_order_engine import mark_order_paid
+    ref = body.reference or f"offline-{body.method}"
+    fresh = await mark_order_paid(
+        db, order, retailer,
+        payment_ref=ref, method=body.method,
+        note=body.note or f"Offline payment confirmed ({body.method}{': ' + body.reference if body.reference else ''})",
+        actor=admin.get("email", "admin"),
+    )
+    logger.info("B2B order %s marked paid offline (%s) by %s", order_id, body.method, admin.get("email"))
+    return {
+        "message": "Payment recorded",
+        "order_id": order_id,
+        "payment_status": fresh.get("payment_status"),
+        "order_status": fresh.get("order_status"),
     }
 
 
@@ -581,7 +657,7 @@ async def send_b2b_status_change_email(order: dict, retailer: dict, old_status: 
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 25px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 24px;">ADDRIKA</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 24px;">AAROHMM</h1>
                     <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">B2B Order Update</p>
                 </td>
             </tr>
@@ -634,7 +710,7 @@ async def send_b2b_status_change_email(order: dict, retailer: dict, old_status: 
             </tr>
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0; font-size: 14px;">ADDRIKA - Premium Agarbattis</p>
+                    <p style="color: #d4af37; margin: 0; font-size: 14px;">AAROHMM - Premium Agarbattis</p>
                     <p style="color: #999; font-size: 12px; margin: 8px 0 0 0;">Questions? Contact contact.us@centraders.com</p>
                 </td>
             </tr>
@@ -643,7 +719,7 @@ async def send_b2b_status_change_email(order: dict, retailer: dict, old_status: 
     </html>
     """
     
-    subject = f"B2B Order {order['order_id']} - {new_display['name']} | Addrika"
+    subject = f"B2B Order {order['order_id']} - {new_display['name']} | AAROHMM"
     
     await send_email(
         to_email=retailer["email"],
@@ -884,7 +960,7 @@ async def send_credit_note_email(credit_note: dict, retailer: dict):
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
+                    <h1 style="color: #d4af37; margin: 0;">AAROHMM</h1>
                     <p style="color: #ffffff; margin: 5px 0 0 0;">Credit Note Issued</p>
                 </td>
             </tr>
@@ -919,7 +995,7 @@ async def send_credit_note_email(credit_note: dict, retailer: dict):
             </tr>
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0;">ADDRIKA - Premium Agarbattis</p>
+                    <p style="color: #d4af37; margin: 0;">AAROHMM - Premium Agarbattis</p>
                     <p style="color: #999; font-size: 12px; margin: 10px 0 0 0;">Questions? Contact contact.us@centraders.com</p>
                 </td>
             </tr>
@@ -930,7 +1006,7 @@ async def send_credit_note_email(credit_note: dict, retailer: dict):
     
     await send_email(
         to_email=retailer["email"],
-        subject=f"Credit Note Issued: {credit_note['code']} - ₹{credit_note['amount']:,.0f} | Addrika",
+        subject=f"Credit Note Issued: {credit_note['code']} - ₹{credit_note['amount']:,.0f} | AAROHMM",
         html_content=html
     )
 

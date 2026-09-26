@@ -1,5 +1,5 @@
 """
-Cart API Routes for Addrika
+Cart API Routes for AAROHMM
 Handles cart sync and abandoned cart management
 """
 from fastapi import APIRouter, HTTPException, Request, Cookie, Depends

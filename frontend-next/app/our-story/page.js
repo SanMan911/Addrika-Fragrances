@@ -5,7 +5,7 @@ import Footer from '../../components/Footer';
 import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: `Our Story | ${BRAND.name} - The Journey Behind Premium Incense`,
+  title: `Our Story — The Journey Behind Premium Incense`,
   description: `Discover the story behind ${BRAND.name} - born from a belief that everyday rituals deserve care and intention. Learn about our mission, vision, and journey into mindful creation and ethical fragrance crafting.`,
   keywords: [`${BRAND.name.toLowerCase()} story`, 'incense brand story', 'premium agarbatti brand', 'ethical incense', 'mindful fragrance', 'centsible traders story', `${BRAND.name.toLowerCase()} mission`, `${BRAND.name.toLowerCase()} vision`],
   openGraph: {

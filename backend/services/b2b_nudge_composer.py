@@ -101,14 +101,14 @@ def _wrap_email(subject: str, inner_html: str, retailer_name: str) -> str:
     <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
       <table cellpadding='0' cellspacing='0' style='max-width:640px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;'>
         <tr><td style='background:#1e3a52;padding:22px;text-align:center;'>
-          <h1 style='color:#d4af37;margin:0;letter-spacing:1.8px;'>ADDRIKA</h1>
+          <h1 style='color:#d4af37;margin:0;letter-spacing:1.8px;'>AAROHMM</h1>
           <p style='color:#fff;margin:6px 0 0;font-size:13px;'>{subject}</p>
         </td></tr>
         <tr><td style='padding:26px;color:#1e3a52;'>
           <p style='margin:0 0 12px;font-size:14px;'>Namaste {retailer_name},</p>
           <div style='font-size:14px;line-height:1.55;color:#333;'>{inner_html}</div>
           <p style='margin:22px 0 0;font-size:12px;color:#888;'>
-            Head to your Addrika B2B portal to explore.
+            Head to your AAROHMM B2B portal to explore.
             Reply here or WhatsApp us at +91 62023 11736 if you'd like help.
           </p>
         </td></tr>

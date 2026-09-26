@@ -172,8 +172,14 @@ async def calculate_b2b_order(
         # "in_stock" and topping up stock_pieces.
         from services.b2b_catalog import pack_size_for
         ppc = pack_size_for(product)
-        stock_pieces = int(product.get("stock_pieces") or 0)
-        current_status = (product.get("stock_status") or "").lower()
+        # Always read live stock from Mongo (source of truth) — the in-memory
+        # catalog cache can lag behind order deductions by other channels.
+        live = await db.b2b_products.find_one(
+            {"id": product["id"]},
+            {"_id": 0, "stock_pieces": 1, "stock_status": 1, "restock_eta_days": 1},
+        ) or {}
+        stock_pieces = int(live.get("stock_pieces", product.get("stock_pieces")) or 0)
+        current_status = (live.get("stock_status") or product.get("stock_status") or "").lower()
         if not current_status:
             current_status = "in_stock" if stock_pieces > 0 else "out_of_stock"
 

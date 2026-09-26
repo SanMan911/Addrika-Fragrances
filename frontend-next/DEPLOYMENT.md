@@ -1,4 +1,4 @@
-# Addrika Next.js Deployment Guide
+# AAROHMM Next.js Deployment Guide
 
 ## Quick Start: Deploy to Vercel
 

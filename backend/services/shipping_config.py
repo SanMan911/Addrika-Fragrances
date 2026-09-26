@@ -1,5 +1,5 @@
 """
-Shipping Configuration Service for Addrika
+Shipping Configuration Service for AAROHMM
 Simplified shipping logic based on cart value tiers
 """
 import os

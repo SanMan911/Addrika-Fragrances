@@ -1,4 +1,4 @@
-"""Nightly B2B low-stock digest email to Addrika ops.
+"""Nightly B2B low-stock digest email to AAROHMM ops.
 
 Scans `b2b_products` for any active SKU whose remaining pieces are below
 one carton/packet AND emails a summary to `NOTIFICATION_EMAIL` so
@@ -74,7 +74,7 @@ async def send_low_stock_digest(db, *, force: bool = False) -> dict:
         return {"sent": False, "count": 0, "skipped_reason": "no_low_stock_skus"}
 
     html = _render_html(low_items)
-    subject = f"[Addrika B2B] {len(low_items)} SKU(s) low on stock — restock soon"
+    subject = f"[AAROHMM B2B] {len(low_items)} SKU(s) low on stock — restock soon"
     sent = await send_email(
         to_email=NOTIFICATION_EMAIL, subject=subject, html_content=html,
     )
@@ -115,7 +115,7 @@ def _render_html(items: list[dict]) -> str:
     <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
       <table cellpadding='0' cellspacing='0' style='max-width:720px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;'>
         <tr><td style='background:#1e3a52;padding:24px;text-align:center;'>
-          <h1 style='color:#d4af37;margin:0;'>ADDRIKA</h1>
+          <h1 style='color:#d4af37;margin:0;'>AAROHMM</h1>
           <p style='color:#fff;margin:4px 0 0;font-size:14px;'>Nightly B2B Low-Stock Digest</p>
         </td></tr>
         <tr><td style='padding:22px;'>

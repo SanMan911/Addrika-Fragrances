@@ -257,7 +257,7 @@ async def get_max_redemption_for_cart(
 async def get_rewards_program_info():
     """Get information about the rewards program (public endpoint)"""
     return {
-        "program_name": "Addrika Rewards",
+        "program_name": "AAROHMM Rewards",
         "earning": {
             "rate": COINS_PER_125_RUPEES,
             "per_amount": 125,

@@ -33,11 +33,12 @@ export default function Header() {
   }, []);
 
   const navItems = [
-    { label: 'Fragrances', href: '#fragrances', type: 'scroll' },
+    { label: 'Fragrances', href: '/products', type: 'route' },
     { label: 'Our Story', href: '/our-story', type: 'route' },
     { label: 'Sustainability', href: '/sustainability', type: 'route' },
     { label: 'Blog', href: '/blog', type: 'route' },
     { label: 'Find Retailers', href: '/find-retailers', type: 'route' },
+    { label: 'Wholesale', href: '/wholesale', type: 'route', accent: true },
     { label: 'Track Order', href: 'https://www.centraders.com/track-order', type: 'external' },
     { label: 'Contact', href: '#contact', type: 'scroll' }
   ];
@@ -76,21 +77,23 @@ export default function Header() {
           <Link href="/" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
             <img 
               src={BRAND.logo.srcGold}
-              alt={`${BRAND.name} - Elegance in Every Scent`} 
-              className="h-16 md:h-20 w-auto"
-              style={{ maxWidth: '200px' }}
+              alt={`${BRAND.name} - ${BRAND.tagline}`} 
+              className="h-12 md:h-14 w-auto"
+              style={{ maxWidth: '240px' }}
+              data-testid="header-logo"
             />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8 ml-16">
+          <nav className="hidden md:flex items-center space-x-6 ml-10">
             {navItems.map((item) => (
               item.type === 'route' ? (
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="text-sm font-medium transition-colors hover:text-[#D4AF37]"
-                  style={{ color: '#e8e6e3' }}
+                  className={`text-sm font-medium transition-colors hover:text-[#D4AF37] ${item.accent ? 'px-3 py-1 rounded-full border border-[#D4AF37]/50' : ''}`}
+                  style={{ color: item.accent ? '#D4AF37' : '#e8e6e3' }}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   {item.label}
                 </Link>
@@ -214,7 +217,8 @@ export default function Header() {
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="text-sm font-medium transition-colors hover:text-[#D4AF37]"
-                    style={{ color: '#e8e6e3' }}
+                    style={{ color: item.accent ? '#D4AF37' : '#e8e6e3' }}
+                    data-testid={`mobile-nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     {item.label}
                   </Link>

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Brand audit — fails when any new frontend file hardcodes the capital
- * brand string "Addrika" outside the single source of truth
+ * brand string ("Addrika" legacy, "AAROHMM" current) outside the single source of truth
  * (`frontend-next/lib/brand.config.js`).
  *
  * Why case-sensitive?
@@ -32,7 +32,8 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..', 'frontend-next');
 const SCAN_DIRS = ['app', 'components', 'context', 'lib'];
 const EXTS = new Set(['.js', '.jsx', '.ts', '.tsx']);
-const NEEDLE = 'Addrika'; // case-sensitive on purpose (see file header)
+const NEEDLES = ['Addrika', 'AAROHMM', 'Aarohmm']; // case-sensitive on purpose (see file header)
+const NEEDLE = NEEDLES.join('|');
 
 /** Files that are allowed to reference the brand string literally. */
 const FILE_WHITELIST = new Set([
@@ -42,6 +43,8 @@ const FILE_WHITELIST = new Set([
 /** Identifier prefixes tied to SEO route slugs — safe as identifiers. */
 const IDENTIFIER_WHITELIST = [
   /\bWhyChooseAddrika[A-Za-z0-9_]*/g,
+  /\bWhyChooseAarohmm[A-Za-z0-9_]*/g,
+  /X-Aarohmm-[A-Za-z]+/g, // webhook protocol header names — not brand copy
 ];
 
 function walk(dir, out) {
@@ -80,7 +83,7 @@ function scanFile(file) {
   const cleanedLines = cleaned.split(/\r?\n/);
   const hits = [];
   cleanedLines.forEach((cLine, idx) => {
-    if (cLine.includes(NEEDLE)) {
+    if (NEEDLES.some((n) => cLine.includes(n))) {
       hits.push({
         line: idx + 1,
         snippet: rawLines[idx].trim(),
@@ -130,11 +133,11 @@ function main() {
   console.error(`\u2717 brand-audit: found ${violations.length} issue(s):\n`);
   for (const v of violations) {
     const rel = path.relative(path.dirname(ROOT), v.file);
-    const tag = v.kind === 'literal-template' ? '[literal-\${BRAND.name}]' : '[hardcoded-Addrika]';
+    const tag = v.kind === 'literal-template' ? '[literal-\${BRAND.name}]' : '[hardcoded-brand]';
     console.error(`  ${rel}:${v.line}  ${tag}  ${v.snippet}`);
   }
   console.error(
-    `\nFix (hardcoded-Addrika): import BRAND from '@/lib/brand.config' and use \`${'${BRAND.name}'}\` inside a template literal.` +
+    `\nFix (hardcoded-brand): import BRAND from '@/lib/brand.config' and use \`${'${BRAND.name}'}\` inside a template literal.` +
     `\nFix (literal-\${BRAND.name}): the string uses single/double quotes but writes \${BRAND.name} — switch to backticks OR to JSX \`{BRAND.name}\`.`,
   );
   process.exit(1);

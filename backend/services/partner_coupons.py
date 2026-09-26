@@ -1,17 +1,17 @@
 """Cross-site coupon integration with Amardeep Saanan (numerology).
 
-Addrika ↔ Amardeep share a single HMAC-SHA256 secret over the raw
+AAROHMM ↔ Amardeep share a single HMAC-SHA256 secret over the raw
 request body. This module provides:
 
   • `partner_signature(body_bytes)` / `verify_partner_signature(sig, body)` —
     symmetric HMAC helpers used on both sides of the bridge.
-  • `issue_amardeep_voucher(order)` — fires when a retail Addrika order is
+  • `issue_amardeep_voucher(order)` — fires when a retail AAROHMM order is
     paid and ≥ ₹499. Pushes an `ADRK-GIFT-*` coupon (₹99 off mobile-number
     numerology audit) into Amardeep's coupons table.
   • `validate_amardeep_coupon(code, sku)` — when a customer types an
-    `AMD-GIFT-*` code at Addrika checkout, the canonical record lives on
+    `AMD-GIFT-*` code at AAROHMM checkout, the canonical record lives on
     the Amardeep side; we proxy validation to them.
-  • `redeem_amardeep_coupon(code, order_ref)` — after a successful Addrika
+  • `redeem_amardeep_coupon(code, order_ref)` — after a successful AAROHMM
     order that used an `AMD-GIFT-*` code, mark it used on Amardeep.
 
 All outbound calls are best-effort with short timeouts so payment flows
@@ -80,7 +80,7 @@ async def issue_amardeep_voucher(
     amount_inr: float,
     db=None,
 ) -> Optional[dict]:
-    """Push a ₹99-off numerology voucher to Amardeep after a retail Addrika
+    """Push a ₹99-off numerology voucher to Amardeep after a retail AAROHMM
     order ≥ ₹499. Returns the coupon dict on success, None otherwise.
 
     Fire-and-forget from the caller's POV — never raises. When `db` is
@@ -234,7 +234,7 @@ async def redeem_amardeep_coupon(code: str, order_ref: str, db=None) -> bool:
 
 # ---------- Local DB helper: persist an incoming AMD-GIFT coupon mirror ----
 async def persist_partner_coupon_mirror(db, payload: dict) -> dict:
-    """Write an incoming AMD-GIFT-* coupon into Addrika's `discount_codes`
+    """Write an incoming AMD-GIFT-* coupon into AAROHMM's `discount_codes`
     collection so admins see it in the existing admin UI and customers see
     it on their account page. Validation at checkout time still remotely
     verifies with Amardeep (single source of truth).

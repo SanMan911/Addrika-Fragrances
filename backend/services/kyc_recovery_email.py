@@ -47,7 +47,7 @@ def _email_html(retailer: dict, missing: List[str], deep_link: str) -> str:
     </h1>
     <p style="font-size:14px;color:#475569;text-align:center;margin:0 0 24px;">
       We&rsquo;d love to process your B2B order for <b>{business}</b> —
-      but a quick KYC verification is pending on your Addrika account.
+      but a quick KYC verification is pending on your AAROHMM account.
     </p>
     <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:16px;margin:16px 0;">
       <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#92400e;">Pending verifications:</p>
@@ -66,7 +66,7 @@ def _email_html(retailer: dict, missing: List[str], deep_link: str) -> str:
     </div>
     <p style="font-size:12px;color:#94a3b8;text-align:center;margin:24px 0 0;">
       Questions? Reply to this email or reach us on WhatsApp.<br/>
-      &mdash; Team Addrika
+      &mdash; Team AAROHMM
     </p>
   </div>
 </body></html>

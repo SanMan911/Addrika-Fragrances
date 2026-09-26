@@ -62,7 +62,7 @@ async def _record_nudge(db, order_id, product_id, retailer_id, channels, meta=No
 def _balance_link(order_id: str, retailer_id: Optional[str]) -> str:
     # The retailer portal shows an "Outstanding Balance" CTA on any paid
     # pre-order whose order_status is not fulfilled — deep-link straight to it.
-    base = os.environ.get("PUBLIC_APP_URL", "https://addrika.com").rstrip("/")
+    base = os.environ.get("PUBLIC_APP_URL", "https://centraders.com").rstrip("/")
     return f"{base}/retailer/b2b/orders/{order_id}?balance=1"
 
 
@@ -77,7 +77,7 @@ def _email_html(retailer_name: str, product: dict, order: dict, balance_link: st
     <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
       <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;'>
         <tr><td style='background:#1e3a52;padding:22px;text-align:center;'>
-          <h1 style='color:#d4af37;margin:0;letter-spacing:1.5px;'>ADDRIKA</h1>
+          <h1 style='color:#d4af37;margin:0;letter-spacing:1.5px;'>AAROHMM</h1>
           <p style='color:#fff;margin:6px 0 0;font-size:13px;'>Your Batch Is Ready · settle the balance to dispatch</p>
         </td></tr>
         <tr><td style='padding:26px;'>

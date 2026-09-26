@@ -452,5 +452,5 @@ async def admin_bulk_import_template(admin=Depends(require_admin)):
     )
     return Response(
         content=csv_body, media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="addrika-products-template.csv"'},
+        headers={"Content-Disposition": 'attachment; filename="aarohmm-products-template.csv"'},
     )

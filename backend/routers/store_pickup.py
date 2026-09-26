@@ -321,7 +321,7 @@ async def send_pickup_otp_email(
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
                 <tr>
                     <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                        <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
+                        <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
                         <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Store Pickup</p>
                     </td>
                 </tr>
@@ -360,7 +360,7 @@ async def send_pickup_otp_email(
                 <tr>
                     <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
                         <p style="color: #999; margin: 0; font-size: 11px;">
-                            Addrika - Premium Agarbattis | contact.us@centraders.com
+                            AAROHMM - Premium Agarbattis | contact.us@centraders.com
                         </p>
                     </td>
                 </tr>
@@ -424,7 +424,7 @@ async def send_admin_pickup_completion_email(
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
                 <tr>
                     <td style="background-color: #1e3a52; padding: 25px; text-align: center;">
-                        <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
+                        <h1 style="color: #d4af37; margin: 0;">AAROHMM</h1>
                         <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Pickup Verification Alert</p>
                     </td>
                 </tr>
@@ -481,7 +481,7 @@ async def send_admin_pickup_completion_email(
                 </tr>
                 <tr>
                     <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                        <p style="color: #d4af37; margin: 0; font-size: 14px;">ADDRIKA - Premium Agarbattis</p>
+                        <p style="color: #d4af37; margin: 0; font-size: 14px;">AAROHMM - Premium Agarbattis</p>
                         <p style="color: #999; font-size: 12px; margin: 8px 0 0 0;">Admin Notification System</p>
                     </td>
                 </tr>
@@ -548,7 +548,7 @@ async def send_admin_order_routed_email(
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
                 <tr>
                     <td style="background-color: #1e3a52; padding: 25px; text-align: center;">
-                        <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
+                        <h1 style="color: #d4af37; margin: 0;">AAROHMM</h1>
                         <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">New Order Routed</p>
                     </td>
                 </tr>
@@ -608,7 +608,7 @@ async def send_admin_order_routed_email(
                 </tr>
                 <tr>
                     <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                        <p style="color: #d4af37; margin: 0; font-size: 14px;">ADDRIKA - Premium Agarbattis</p>
+                        <p style="color: #d4af37; margin: 0; font-size: 14px;">AAROHMM - Premium Agarbattis</p>
                         <p style="color: #999; font-size: 12px; margin: 8px 0 0 0;">Admin Order Tracking System</p>
                     </td>
                 </tr>

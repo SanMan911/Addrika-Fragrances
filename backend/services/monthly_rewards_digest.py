@@ -62,7 +62,7 @@ async def send_statement_to_retailer(db, retailer: dict) -> dict:
     <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
       <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;'>
         <tr><td style='background:#1e3a52;padding:22px;text-align:center;'>
-          <h1 style='color:#d4af37;margin:0;'>ADDRIKA</h1>
+          <h1 style='color:#d4af37;margin:0;'>AAROHMM</h1>
           <p style='color:#fff;margin:6px 0 0;font-size:13px;'>Monthly Fragrance Rewards Statement · {month_label}</p>
         </td></tr>
         <tr><td style='padding:24px;color:#2B3A4A;'>
@@ -79,10 +79,10 @@ async def send_statement_to_retailer(db, retailer: dict) -> dict:
     cc = _accountant_email_for_retailer(retailer, await _accountant_email(db))
     ok = await send_email(
         to_email=retailer["email"],
-        subject=f"Addrika · Fragrance Rewards Statement · {month_label}",
+        subject=f"AAROHMM · Fragrance Rewards Statement · {month_label}",
         html_content=html,
         cc=cc,
-        attachments=[{"filename": f"addrika-rewards-{retailer['retailer_id']}.pdf", "content": pdf}],
+        attachments=[{"filename": f"aarohmm-rewards-{retailer['retailer_id']}.pdf", "content": pdf}],
     )
     await db.rewards_monthly_digest_log.insert_one({
         "retailer_id": retailer["retailer_id"],

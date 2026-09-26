@@ -103,7 +103,7 @@ async def _authenticate() -> Optional[str]:
                 body_text = r.text or ""
             lower = body_text.lower()
             if "subscription" in lower and "expired" in lower:
-                _token_cache["last_error"] = "Sandbox eKYC subscription has expired. Please contact Addrika support to renew."
+                _token_cache["last_error"] = "Sandbox eKYC subscription has expired. Please contact AAROHMM support to renew."
             elif r.status_code in (401, 403):
                 _token_cache["last_error"] = "Sandbox eKYC credentials invalid. Admin: update the keys in Integrations."
             else:

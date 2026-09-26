@@ -7,7 +7,7 @@ name across every backend-generated artefact — welcome emails, invoice
 PDFs, brochure, RSS feed titles, sitemap `<title>`s, receipt copy, etc.
 
 Convention: any user-facing string that includes the brand name should
-call `brand.name` instead of hard-coding `"Addrika"`. When the trademark
+call `brand.name` instead of hard-coding `"AAROHMM"`. When the trademark
 clears (or is denied) and a rename is required, the swap is a single env
 var flip + redeploy — no code touched.
 """
@@ -49,14 +49,14 @@ class Brand:
 
 
 BRAND = Brand(
-    name=os.environ.get("BRAND_NAME", "Addrika"),
+    name=os.environ.get("BRAND_NAME", "AAROHMM"),
     legal_name=os.environ.get("BRAND_LEGAL_NAME", "Centraders (India) Private Limited"),
-    tagline=os.environ.get("BRAND_TAGLINE", "Elevate Your Everyday Rituals"),
+    tagline=os.environ.get("BRAND_TAGLINE", "Where Fragrance Becomes Atmosphere…"),
     domain=os.environ.get("BRAND_DOMAIN", "centraders.com"),
     monogram=os.environ.get("BRAND_MONOGRAM", "A"),
     email=os.environ.get("BRAND_EMAIL", "contact.us@centraders.com"),
     phone=os.environ.get("BRAND_PHONE", "+91 8377020402"),
     whatsapp=os.environ.get("BRAND_WHATSAPP", "+91 8377020402"),
-    instagram=os.environ.get("BRAND_INSTAGRAM", "@addrika.official"),
+    instagram=os.environ.get("BRAND_INSTAGRAM", "@aarohmm.fragrances"),
     colors=BrandColors(),
 )

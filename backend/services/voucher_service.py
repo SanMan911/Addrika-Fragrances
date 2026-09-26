@@ -1,4 +1,4 @@
-"""RTO Voucher Service for Addrika"""
+"""RTO Voucher Service for AAROHMM"""
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional

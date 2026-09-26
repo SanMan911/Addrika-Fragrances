@@ -180,6 +180,36 @@ export default function RetailerOrderDetailPage() {
           )}
         </div>
 
+        {order.payment_link_url && order.payment_status !== 'paid' && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-5" data-testid="payment-link-card">
+            <div className="flex items-start gap-3">
+              <Wallet size={22} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h2 className="font-bold text-amber-900 dark:text-amber-100">Payment pending — {inr(order.grand_total)}</h2>
+                <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                  {order.channel === 'fsm' ? 'Your field sales representative placed this order for you. ' : ''}
+                  Pay securely via Razorpay (UPI, cards, net-banking). Your order confirms automatically once paid.
+                </p>
+                <a
+                  href={order.payment_link_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#2B3A4A] hover:bg-[#1e3a52] text-[#D4AF37] font-semibold"
+                  data-testid="pay-link-btn"
+                >
+                  <Wallet size={16} /> Pay now
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {order.payment_method === 'pay_later' && order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
+          <div className="bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm text-slate-700 dark:text-slate-300" data-testid="pay-later-banner">
+            Placed by {order.placed_by?.name || 'your field sales representative'} · payment to be collected offline (cash / UPI / bank transfer). Stock has been reserved for you.
+          </div>
+        )}
+
         {canPay && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-5" data-testid="balance-cta-card">
             <div className="flex items-start gap-3">

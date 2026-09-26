@@ -185,7 +185,7 @@ export default function StockWebhooksPage() {
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          Each delivery is signed — verify the <code className="bg-gray-100 dark:bg-slate-700 dark:text-slate-200 px-1 rounded">X-Addrika-Signature</code> header (HMAC-SHA256 of the body, keyed by your secret).
+          Each delivery is signed — verify the <code className="bg-gray-100 dark:bg-slate-700 dark:text-slate-200 px-1 rounded">X-Aarohmm-Signature</code> header (HMAC-SHA256 of the body, keyed by your secret).
         </div>
       </div>
 

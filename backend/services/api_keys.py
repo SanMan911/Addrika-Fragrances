@@ -8,7 +8,7 @@ creation; only a SHA-256 hash is stored. Each key carries a set of scopes.
 Collection: `api_keys`
     id          str    e.g. "ak_<uuid10>"
     name        str    human label ("Field Sales Manager")
-    key_prefix  str    first chars of the raw key, for display ("addk_ab12…")
+    key_prefix  str    first chars of the raw key, for display ("arhk_ab12…")
     key_hash    str    sha256(raw_key)
     scopes      [str]  e.g. ["stock:read"]
     is_active   bool
@@ -25,8 +25,21 @@ from typing import Optional
 
 from dependencies import db
 
-KEY_PLAINTEXT_PREFIX = "addk_"
-AVAILABLE_SCOPES = ("stock:read",)
+KEY_PLAINTEXT_PREFIX = "arhk_"   # legacy "addk_" keys keep working (hash lookup)
+AVAILABLE_SCOPES = (
+    "stock:read",       # live per-SKU stock
+    "catalog:read",     # wholesale catalogue + prices + pack math
+    "retailers:read",   # look up onboarded retailers
+    "orders:write",     # place / preview / cancel B2B orders on behalf of a retailer
+    "orders:read",      # order + payment status
+)
+SCOPE_DESCRIPTIONS = {
+    "stock:read": "Read live stock per SKU",
+    "catalog:read": "Read wholesale catalogue, prices and carton math",
+    "retailers:read": "Look up onboarded retailers (by GSTIN / phone / name)",
+    "orders:write": "Place, preview and cancel B2B orders for a retailer (Field Sales)",
+    "orders:read": "Read order status, payment state and payment links",
+}
 
 
 def _now() -> str:

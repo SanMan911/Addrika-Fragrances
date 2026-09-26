@@ -294,14 +294,14 @@ async def get_tree_donation_metrics(
         "total_trees_funded": 0,
         "total_orders_with_donation": 0,
         "average_donation": 0,
-        "tree_cost": 10  # ₹5 customer + ₹5 Addrika = ₹10 per tree
+        "tree_cost": 10  # ₹5 customer + ₹5 AAROHMM = ₹10 per tree
     }
     
     if results and results[0]:
         data = results[0]
         customer_total = data.get("total_customer_donations", 0)
         summary["total_customer_donations"] = customer_total
-        summary["total_addrika_match"] = customer_total  # Addrika matches 1:1
+        summary["total_addrika_match"] = customer_total  # AAROHMM matches 1:1
         summary["total_combined"] = customer_total * 2
         summary["total_trees_funded"] = int(summary["total_combined"] / 10)  # ₹10 per tree
         summary["total_orders_with_donation"] = data.get("total_orders_with_donation", 0)

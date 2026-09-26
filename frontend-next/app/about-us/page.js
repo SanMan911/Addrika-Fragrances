@@ -5,7 +5,7 @@ import Footer from '../../components/Footer';
 import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: `About Us | Centsibl Traders - ${BRAND.name} Premium Incense Manufacturer`,
+  title: `About Us — Centraders (India) Private Limited, Premium Incense Manufacturer`,
   description: `Centsibl Traders Private Limited - A purpose-driven Indian enterprise creating ${BRAND.name} premium incense. Built on ethical trade, inclusive growth, and responsible entrepreneurship.`,
   keywords: ['centsible traders', `${BRAND.name.toLowerCase()} manufacturer`, 'incense company india', 'ethical incense brand', 'premium agarbatti company'],
   openGraph: {

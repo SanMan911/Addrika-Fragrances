@@ -48,6 +48,14 @@ const nextConfig = {
   // Order tracking is centralised on the parent Centraders domain
   async redirects() {
     return [
+      // Mobile app-config deep-link alias
+      { source: '/collection', destination: '/products', permanent: true },
+      // Legacy brand slug → new brand slug (preserve SEO backlinks)
+      {
+        source: '/why-choose-addrika',
+        destination: '/why-choose-aarohmm',
+        permanent: true,
+      },
       {
         source: '/track-order',
         destination: 'https://www.centraders.com/track-order',

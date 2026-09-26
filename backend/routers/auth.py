@@ -561,6 +561,7 @@ async def logout_user(response: Response, request: Request, session_token: Optio
 # ============================================================================
 
 HANDOFF_TTL_SECONDS = 60
+HANDOFF_RATE_LIMIT = 5  # nonces per subject per rolling minute
 
 
 class HandoffConsumeBody(BaseModel):
@@ -595,6 +596,17 @@ async def create_auth_handoff(request: Request, session_token: Optional[str] = C
 
     if not subject_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
+
+    # Burst-mint guard: max HANDOFF_RATE_LIMIT nonces per subject per minute
+    window_start = datetime.now(timezone.utc) - timedelta(seconds=60)
+    subject_field = "user_id" if kind == "customer" else "retailer_id"
+    recent = await db.auth_handoffs.count_documents({subject_field: subject_id, "created_at": {"$gte": window_start}})
+    if recent >= HANDOFF_RATE_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many handoff requests — max {HANDOFF_RATE_LIMIT} per minute. Try again shortly.",
+            headers={"Retry-After": "60"},
+        )
 
     import uuid as _uuid
     now = datetime.now(timezone.utc)
@@ -952,12 +964,12 @@ async def forgot_username(data: ForgotUsernameRequest):
             from services.email_service import send_email
             await send_email(
                 to_email=email,
-                subject="Your Addrika Username",
+                subject="Your AAROHMM Username",
                 html_content=f"""
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div style="text-align: center; margin-bottom: 30px;">
-                        <h1 style="color: #D4AF37; font-family: 'Playfair Display', serif;">ADDRIKA</h1>
-                        <p style="color: #666;">Elegance in Every Scent</p>
+                        <h1 style="color: #D4AF37; font-family: 'Playfair Display', serif;">AAROHMM</h1>
+                        <p style="color: #666;">Where Fragrance Becomes Atmosphere…</p>
                     </div>
                     <h2 style="color: #1a1a2e;">Your Username Recovery</h2>
                     <p>Hello {user.get('name', 'Valued Customer')},</p>

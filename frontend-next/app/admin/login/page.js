@@ -115,7 +115,7 @@ export default function AdminLoginPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <img 
-              src={BRAND.logo.srcBrandNameGoldTransparent} 
+              src={BRAND.logo.srcWordmark} 
               alt={`${BRAND.name}`} 
               className="h-10 w-auto"
               style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}

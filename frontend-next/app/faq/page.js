@@ -5,7 +5,7 @@ import Footer from '../../components/Footer';
 import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: `FAQs | ${BRAND.name} Fragrances - Charcoal-Free Low Smoke Incense Questions`,
+  title: `FAQs — Charcoal-Free, Low Smoke Incense Questions Answered`,
   description: `Find answers to common questions about ${BRAND.name} Fragrances charcoal-free, low smoke incense sticks, bambooless dhoop, and Arabian bakhoor. Learn about ethically sourced ingredients, health benefits, burn time, indoor safety, meditation use, and more.`,
   keywords: [
     `${BRAND.name.toLowerCase()} faq`, `${BRAND.name.toLowerCase()} fragrances questions`, 'low smoke incense questions', 'charcoal-free agarbatti faq',

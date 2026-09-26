@@ -55,15 +55,15 @@ VALID_STATS = {
 
 DEFAULT_MILESTONES = [
     {"name": "Cedar Patron",       "aroma_tag": "cedar",       "stat": STAT_LIFETIME_ORDERS, "threshold": 5,      "order": 10,
-     "description": "Awarded on your fifth lifetime order — welcome to the Addrika inner circle."},
+     "description": "Awarded on your fifth lifetime order — welcome to the AAROHMM inner circle."},
     {"name": "Sandalwood Sage",    "aroma_tag": "sandalwood",  "stat": STAT_LIFETIME_ORDERS, "threshold": 20,     "order": 20,
      "description": "Twenty orders in — a true sage of our sandalwood lineage."},
     {"name": "Oudh Master",        "aroma_tag": "oudh",        "stat": STAT_LIFETIME_ORDERS, "threshold": 50,     "order": 30,
-     "description": "Fifty orders across our catalog — mastery of the Addrika range."},
+     "description": "Fifty orders across our catalog — mastery of the AAROHMM range."},
     {"name": "Musk Maven",         "aroma_tag": "musk",        "stat": STAT_LIFETIME_GMV,    "threshold": 100000, "order": 40,
      "description": "₹1,00,000 lifetime purchases — a maven of our finest fragrances."},
     {"name": "Amber Guardian",     "aroma_tag": "amber",       "stat": STAT_ACTIVE_MONTHS,   "threshold": 12,     "order": 50,
-     "description": "A full year of active partnership — you guard the Addrika flame."},
+     "description": "A full year of active partnership — you guard the AAROHMM flame."},
 ]
 
 
@@ -227,7 +227,7 @@ async def _notify_milestone_unlocked(
             if is_email_service_available() and retailer.get("email"):
                 await send_email(
                     to_email=retailer["email"],
-                    subject=f"🎉 You just earned {tag} · Addrika Patron Journey",
+                    subject=f"🎉 You just earned {tag} · AAROHMM Patron Journey",
                     html_content=_milestone_email_html(first_name, tag, aroma, row),
                 )
         except Exception as e:
@@ -253,14 +253,14 @@ def _milestone_email_html(name: str, tag: str, aroma: str, row: dict) -> str:
       <div style='max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;'>
         <div style='background:linear-gradient(135deg,#D4AF37,#B8860B);padding:32px;text-align:center;color:#1e3a52;'>
           <div style='font-size:44px;margin-bottom:6px;'>🎉</div>
-          <div style='font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:0.75;'>Addrika Patron Journey</div>
+          <div style='font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:0.75;'>AAROHMM Patron Journey</div>
           <div style='font-size:28px;font-weight:700;margin-top:6px;'>{tag}</div>
         </div>
         <div style='padding:26px;'>
           <p style='font-size:15px;margin:0 0 12px;'>Namaste {name},</p>
           <p style='font-size:14px;color:#333;margin:0 0 12px;'>
             You&apos;ve just unlocked <b>{tag}</b> — a permanent aroma-themed patron
-            tag in your Addrika journey. Earned on {achieved_at} · this timestamp
+            tag in your AAROHMM journey. Earned on {achieved_at} · this timestamp
             is set in stone, immutable in our audit history.
           </p>
           <p style='font-size:13px;color:#666;margin:16px 0 4px;'>
@@ -282,7 +282,7 @@ def _milestone_email_html(name: str, tag: str, aroma: str, row: dict) -> str:
 
 def _milestone_whatsapp_body(name: str, tag: str) -> str:
     return (
-        f"🎉 Congrats {name}! You just earned *{tag}* — a permanent patron tag on your Addrika journey.\n\n"
+        f"🎉 Congrats {name}! You just earned *{tag}* — a permanent patron tag on your AAROHMM journey.\n\n"
         f"Every tag you earn is dated the moment you crossed the threshold and stays with you forever.\n\n"
         f"See it 👉 https://centraders.com/retailer/b2b/rewards"
     )

@@ -250,7 +250,7 @@ class RetailerUpdateRequest(BaseModel):
     gst_verified: Optional[bool] = None
     
     # Badges & Labels
-    is_addrika_verified_partner: Optional[bool] = None  # "Addrika Verified Partner" badge
+    is_addrika_verified_partner: Optional[bool] = None  # "AAROHMM Verified Partner" badge
     retailer_label: Optional[str] = None  # "top_retailer_month", "star_retailer_quarter", etc.
     label_period: Optional[str] = None  # e.g., "March 2026", "Q1 2026"
 
@@ -348,7 +348,7 @@ async def admin_update_retailer(
         badge_history_events.append({
             "event_id": str(uuid.uuid4()),
             "badge_type": "verified_partner",
-            "badge_name": "Addrika Verified Partner",
+            "badge_name": "AAROHMM Verified Partner",
             "action": "awarded",
             "awarded_at": now.isoformat(),
             "awarded_by": admin.get('email', 'admin')
@@ -357,7 +357,7 @@ async def admin_update_retailer(
         badge_history_events.append({
             "event_id": str(uuid.uuid4()),
             "badge_type": "verified_partner",
-            "badge_name": "Addrika Verified Partner",
+            "badge_name": "AAROHMM Verified Partner",
             "action": "revoked",
             "revoked_at": now.isoformat(),
             "revoked_by": admin.get('email', 'admin')

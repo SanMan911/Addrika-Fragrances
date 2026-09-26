@@ -3,7 +3,7 @@ import { Award, Leaf, Shield, CheckCircle, Star, Users, Factory, Heart, Droplets
 import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: `Our Quality Standards | Premium Incense Craftsmanship | ${BRAND.name}`,
+  title: `Our Quality Standards | Premium Incense Craftsmanship`,
   description: `Discover ${BRAND.name}\'s uncompromising quality standards. Learn about our ethically sourced ingredients, artisan craftsmanship, rigorous testing, and the traditional techniques behind our premium zero-charcoal incense sticks.`,
   keywords: [
     `${BRAND.name.toLowerCase()} quality`, 'premium incense quality', 'ethical incense ingredients', 'artisan incense',

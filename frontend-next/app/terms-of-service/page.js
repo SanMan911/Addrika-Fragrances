@@ -5,7 +5,7 @@ import Footer from '../../components/Footer';
 import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: `Terms of Service | ${BRAND.name} by Centsibl Traders`,
+  title: `Terms of Service`,
   description: `Read ${BRAND.name}\'s terms of service. Understand the terms and conditions for purchasing premium incense products from Centsibl Traders.`,
   robots: { index: true, follow: true },
 };

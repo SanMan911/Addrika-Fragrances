@@ -509,7 +509,7 @@ async def create_shiprocket_order(order_data: Dict[str, Any]) -> Dict[str, Any]:
         "order_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "pickup_location": pickup_location_name,
         "channel_id": "",
-        "comment": "Order from Addrika website",
+        "comment": "Order from AAROHMM website",
         "billing_customer_name": billing.get("name", "Customer"),
         "billing_last_name": "",
         "billing_address": billing.get("address", "") or "Address",

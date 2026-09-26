@@ -98,6 +98,26 @@ async def adjust_stock(
         {"id": product_id},
         {"$set": {"stock_pieces": after, "stock_updated_at": _now()}},
     )
+    # Keep the in-memory catalog cache in step so web catalog reads and the
+    # pricing stock-guard see the new count immediately.
+    try:
+        from services import b2b_catalog as _cat
+        for cached in _cat.B2B_PRODUCTS:
+            if cached.get("id") == product_id:
+                cached["stock_pieces"] = after
+                cached["stock_updated_at"] = _now()
+                if not cached.get("stock_status") or cached.get("stock_status") in ("in_stock", "out_of_stock"):
+                    cached["stock_status"] = "in_stock" if after > 0 else "out_of_stock"
+                break
+    except Exception as e:
+        logger.debug("catalog cache sync skipped: %s", e)
+    # Auto-flip the persisted status for the two automatic states only
+    # (restocking / manufacturing / delayed are admin-controlled).
+    if (prod.get("stock_status") in (None, "", "in_stock", "out_of_stock")):
+        await db.b2b_products.update_one(
+            {"id": product_id},
+            {"$set": {"stock_status": "in_stock" if after > 0 else "out_of_stock"}},
+        )
     entry = {
         "id": f"INV-{uuid.uuid4().hex[:10].upper()}",
         "product_id": product_id,
@@ -124,13 +144,27 @@ async def adjust_stock(
     except Exception as e:
         logger.warning("Stock webhook fire failed for %s: %s", product_id, e)
 
+    # Push the new count to the Supabase mirror so the mobile app / FSM
+    # readers see the change within seconds (fire-and-forget)
+    try:
+        from services.supabase_sync import mirror_product_upsert
+        mirror_product_upsert({**prod, "stock_pieces": after, "stock_updated_at": _now()}, channel="b2b")
+    except Exception as e:
+        logger.debug("Supabase stock mirror skipped for %s: %s", product_id, e)
+
     return {"product_id": product_id, "before": before, "after": after, "entry": entry}
 
 
-async def deduct_for_paid_order(db, order: dict) -> list[dict]:
-    """Deduct pieces from stock for every item in a paid B2B order.
-    Idempotent — skips if an `order_paid` log row already exists for this
-    order_id + product_id combination.
+DEDUCTION_REASONS = ("order_placed", "order_paid")
+
+
+async def reserve_for_order(db, order: dict, reason: str = "order_placed") -> list[dict]:
+    """Deduct pieces for every line of an order exactly once.
+
+    Idempotent across reasons: if a row for (order_id, product_id) already
+    exists with `order_placed` (reserved at placement) or `order_paid`
+    (deducted at payment), the SKU is skipped — so an order reserved at
+    placement is never deducted a second time when payment lands.
     """
     order_id = order.get("order_id")
     if not order_id:
@@ -140,22 +174,18 @@ async def deduct_for_paid_order(db, order: dict) -> list[dict]:
         pid = item.get("product_id")
         if not pid:
             continue
-        # Idempotency guard
         existing = await db.b2b_inventory_log.find_one({
             "source_order_id": order_id,
             "product_id": pid,
-            "reason": "order_paid",
+            "reason": {"$in": list(DEDUCTION_REASONS)},
         })
         if existing:
             continue
-
         prod = await db.b2b_products.find_one({"id": pid}, {"_id": 0})
         if not prod:
             continue
         qty_boxes = float(item.get("quantity_boxes") or 0)
-        if qty_boxes <= 0:
-            continue
-        pieces = pieces_for_quantity(prod, qty_boxes)
+        pieces = pieces_for_quantity(prod, qty_boxes) if qty_boxes > 0 else 0
         if pieces <= 0:
             continue
         try:
@@ -163,14 +193,52 @@ async def deduct_for_paid_order(db, order: dict) -> list[dict]:
                 db,
                 product_id=pid,
                 delta_pieces=-pieces,
-                reason="order_paid",
+                reason=reason,
                 admin_email="system",
-                note=f"Auto-deduct on paid B2B order",
+                note="Reserved at order placement" if reason == "order_placed" else "Auto-deduct on paid B2B order",
                 source_order_id=order_id,
             )
             results.append(res)
         except Exception as e:
             logger.warning("Stock deduction failed for %s / %s: %s", order_id, pid, e)
+    return results
+
+
+async def deduct_for_paid_order(db, order: dict) -> list[dict]:
+    """Deduct pieces from stock for every item in a paid B2B order (idempotent)."""
+    return await reserve_for_order(db, order, reason="order_paid")
+
+
+async def release_for_cancelled_order(db, order: dict) -> list[dict]:
+    """Give back every piece previously deducted for this order. Idempotent."""
+    order_id = order.get("order_id")
+    if not order_id:
+        return []
+    results: list[dict] = []
+    async for row in db.b2b_inventory_log.find(
+        {"source_order_id": order_id, "reason": {"$in": list(DEDUCTION_REASONS)}}, {"_id": 0}
+    ):
+        pid = row.get("product_id")
+        already = await db.b2b_inventory_log.find_one(
+            {"source_order_id": order_id, "product_id": pid, "reason": "order_cancelled"}
+        )
+        if already:
+            continue
+        pieces = abs(int(row.get("delta_pieces") or 0))
+        if pieces <= 0:
+            continue
+        try:
+            results.append(await adjust_stock(
+                db,
+                product_id=pid,
+                delta_pieces=pieces,
+                reason="order_cancelled",
+                admin_email="system",
+                note="Released on order cancellation",
+                source_order_id=order_id,
+            ))
+        except Exception as e:
+            logger.warning("Stock release failed for %s / %s: %s", order_id, pid, e)
     return results
 
 

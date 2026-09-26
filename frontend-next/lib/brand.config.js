@@ -3,47 +3,51 @@
  *
  * ONE-FILE RENAME
  * ===============
- * When the trademark clears or the brand needs to change (name / logo /
- * accent colour / product sizes / variants), edit THIS file only. Every
- * user-facing brand touchpoint (headers, footers, page titles, emails,
+ * Every user-facing brand touchpoint (headers, footers, page titles, emails,
  * brochure, PDF invoices, meta tags, PWA manifest, sitemap, social share
- * cards, JSON-LD Schema.org markup) reads from here through the
- * `BRAND` import.
+ * cards, JSON-LD Schema.org markup) reads from here through the `BRAND`
+ * import. To rename / re-logo again, edit THIS file and:
+ *   backend/.env      → BRAND_NAME / BRAND_TAGLINE / BRAND_INSTAGRAM
+ *   Vercel env panel  → same three keys
+ *   logo assets       → run `python3 scripts/build_brand_logos.py <master>`
+ *                       (see public/images/logos/LOGO_INDEX.md)
  *
- * When you change `name` here, also set the same value in
- *   backend/.env      → BRAND_NAME=NewBrand
- *   backend/.env      → BRAND_TAGLINE="Some tagline"
- *   Vercel env panel  → BRAND_NAME + BRAND_TAGLINE
- *
- * Every existing hardcoded "Addrika" reference (~200 across 61 files)
- * has been migrated to consume BRAND.name. Grep the codebase before
- * merging any new copy: no user-visible file should reintroduce a
- * literal brand string.
+ * Internal technical identifiers (cookie `addrika_session_token`, localStorage
+ * `addrika_cart`, DB name `addrika_db`, badge key `addrika_verified_partner`)
+ * intentionally keep their legacy spelling — renaming them would log every
+ * user out and orphan carts for zero visible benefit.
  */
 
-const NAME = 'Addrika';                       // ← flip this to rename everywhere
+const NAME = 'AAROHMM';                        // ← flip this to rename everywhere
 const LEGAL_NAME = 'Centraders (India) Private Limited';
-const TAGLINE = 'Elevate Your Everyday Rituals';
+const TAGLINE = 'Where Fragrance Becomes Atmosphere…';
 const DOMAIN = 'centraders.com';
-const INSTAGRAM_HANDLE = '@addrika.fragrances';
-const INSTAGRAM_SLUG = 'addrika.fragrances';
-const TWITTER_CREATOR = '@addrika_incense';
+const INSTAGRAM_HANDLE = '@aarohmm.fragrances';
+const INSTAGRAM_SLUG = 'aarohmm.fragrances';
+const TWITTER_CREATOR = '@aarohmm_incense';
+
+const LOGO_DIR = '/images/logos';
 
 const BRAND = {
   // ---- Identity ----
   name: NAME,
   nameUpper: NAME.toUpperCase(),
+  nameTitle: NAME.charAt(0) + NAME.slice(1).toLowerCase(), // "Aarohmm" for prose
   legalName: LEGAL_NAME,
   tagline: TAGLINE,
   domain: DOMAIN,
 
-  // ---- Logo & imagery ----
+  // ---- Logo & imagery (all derived from ONE master via scripts/build_brand_logos.py) ----
   logo: {
-    src: '/images/logos/addrika-logo.png',
-    srcGold: '/images/logos/addrika-logo-gold.png',
-    srcBrandNameGoldTransparent: '/images/logos/addrika-brand-name-gold-transparent.png',
-    srcGoldCropped: '/images/logos/addrika-logo-gold-cropped.png',
-    logoUrlAbs: `https://${DOMAIN}/images/logos/addrika-logo-gold-cropped.png`,
+    src: `${LOGO_DIR}/aarohmm-logo-horizontal.png`,           // footer (emblem + wordmark, one row)
+    srcGold: `${LOGO_DIR}/aarohmm-logo-horizontal.png`,       // header
+    srcBrandNameGoldTransparent: `${LOGO_DIR}/aarohmm-logo-full.png`, // hero (emblem + wordmark + tagline)
+    srcFull: `${LOGO_DIR}/aarohmm-logo-full.png`,
+    srcLockup: `${LOGO_DIR}/aarohmm-logo-lockup.png`,         // emblem over wordmark, no tagline
+    srcWordmark: `${LOGO_DIR}/aarohmm-wordmark-gold.png`,     // "AAROHMM®" text only — admin bars, compact headers
+    srcGoldCropped: `${LOGO_DIR}/aarohmm-emblem-gold.png`,    // favicon / square emblem
+    srcEmblem: `${LOGO_DIR}/aarohmm-emblem-gold.png`,
+    logoUrlAbs: `https://${DOMAIN}${LOGO_DIR}/aarohmm-emblem-gold.png`, // JSON-LD + og
     alt: `${NAME} logo`,
     monogram: NAME.charAt(0),
     width: 160,
@@ -63,7 +67,7 @@ const BRAND = {
   // ---- SEO ----
   seo: {
     keywords: [
-      NAME.toLowerCase(), `${NAME.toLowerCase()} fragrances`,
+      NAME.toLowerCase(), `${NAME.toLowerCase()} fragrances`, `${NAME.toLowerCase()} incense`,
       'premium incense', 'luxury incense sticks', 'incense sticks for meditation',
       'agarbatti', 'charcoal-free incense', 'low smoke agarbatti',
       'kesar chandan incense', 'regal rose incense', 'oriental oudh',

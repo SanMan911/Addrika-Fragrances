@@ -178,7 +178,7 @@ def _email_body(retailer_name: str, product: dict, remaining_days: int) -> str:
     <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
       <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;'>
         <tr><td style='background:#1e3a52;padding:22px;text-align:center;'>
-          <h1 style='color:#d4af37;margin:0;letter-spacing:1.5px;'>ADDRIKA</h1>
+          <h1 style='color:#d4af37;margin:0;letter-spacing:1.5px;'>AAROHMM</h1>
           <p style='color:#fff;margin:6px 0 0;font-size:13px;'>Restock heads-up · pre-book your carton</p>
         </td></tr>
         <tr><td style='padding:26px;'>
@@ -207,7 +207,7 @@ def _email_body(retailer_name: str, product: dict, remaining_days: int) -> str:
 def _whatsapp_body(retailer_name: str, product: dict, remaining_days: int) -> str:
     eta_pretty = "tomorrow" if remaining_days == 1 else f"in {remaining_days} days"
     return (
-        f"Hi {retailer_name}! 🌸 Just a heads-up from Team Addrika — "
+        f"Hi {retailer_name}! 🌸 Just a heads-up from Team AAROHMM — "
         f"*{product.get('name')} ({product.get('net_weight') or ''})* is back in stock {eta_pretty}. "
         f"Pre-book your carton on the B2B portal before the batch is spoken for. "
         f"Reply here if you'd like us to reserve one for you."

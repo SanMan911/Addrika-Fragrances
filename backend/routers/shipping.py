@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Shipping"])
 
-# Default pickup pincode (Addrika warehouse)
+# Default pickup pincode (AAROHMM warehouse)
 DEFAULT_PICKUP_PINCODE = os.environ.get("ADDRIKA_PICKUP_PINCODE", "110078")
 
 # ShipRocket Webhook Token (for validation) - REQUIRED in production
@@ -328,7 +328,7 @@ async def check_pincode(
     Returns serviceability status along with city/state info.
     Offline fallback: `state` is resolvable via first-two-digit India-Post
     PIN mapping even when Shiprocket is unconfigured, so client forms can
-    always auto-fill State (a mandatory field in every Addrika form).
+    always auto-fill State (a mandatory field in every AAROHMM form).
     """
     if not pincode.isdigit():
         raise HTTPException(status_code=400, detail="Invalid pincode format")

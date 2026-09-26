@@ -1,4 +1,4 @@
-"""Authentication service for Addrika"""
+"""Authentication service for AAROHMM"""
 import os
 import uuid
 import logging

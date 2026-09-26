@@ -1,0 +1,51 @@
+name: CI — lint + brand audit
+
+# Gates every PR / push on:
+#   • next lint (ESLint, non-interactive, .eslintrc.json)  — frontend-next
+#   • brand-audit (no hardcoded brand strings outside lib/brand.config.js)
+#   • ruff (backend Python)
+#   • expo-doctor (mobile) — advisory, does not fail the build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  web:
+    name: Web · lint + brand audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+          cache-dependency-path: frontend-next/yarn.lock
+      - run: yarn --cwd frontend-next install --frozen-lockfile
+      - run: yarn --cwd frontend-next -s lint
+      - run: yarn --cwd frontend-next -s brand-audit
+
+  backend:
+    name: Backend · ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install ruff
+      - run: ruff check backend --select F821,F811,F822,F823,E9 --exclude backend/tests
+
+  mobile:
+    name: Mobile · expo-doctor (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: yarn --cwd mobile install --frozen-lockfile
+      - run: npx --yes expo-doctor@latest
+        working-directory: mobile

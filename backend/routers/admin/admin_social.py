@@ -81,7 +81,7 @@ async def test_social_post(
     from services.social_crosspost import POSTER
     r = await POSTER[platform](
         cfg[platform],
-        text="🧪 Test post from Addrika admin — safe to ignore.",
+        text="🧪 Test post from AAROHMM admin — safe to ignore.",
         image_url=None,
         link_url="https://centraders.com",
     )

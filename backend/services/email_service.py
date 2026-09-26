@@ -1,4 +1,4 @@
-"""Email service for Addrika using Resend"""
+"""Email service for AAROHMM using Resend"""
 import os
 import asyncio
 import logging
@@ -43,8 +43,8 @@ def get_otp_email_html(otp: str) -> str:
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
-                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Elegance in Every Scent</p>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
+                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Where Fragrance Becomes Atmosphere…</p>
                 </td>
             </tr>
             <tr>
@@ -71,7 +71,7 @@ def get_otp_email_html(otp: str) -> str:
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
                     <p style="color: #999; margin: 0; font-size: 11px;">
-                        Addrika - Premium Agarbattis | contact.us@centraders.com
+                        AAROHMM - Premium Agarbattis | contact.us@centraders.com
                     </p>
                 </td>
             </tr>
@@ -86,7 +86,7 @@ async def send_otp_email(email: str, otp: str) -> bool:
     html = get_otp_email_html(otp)
     return await send_email(
         to_email=email,
-        subject="Verify Your Email - Addrika",
+        subject="Verify Your Email - AAROHMM",
         html_content=html
     )
 
@@ -101,7 +101,7 @@ def get_admin_2fa_email_html(otp: str) -> str:
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
                     <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Admin Panel</p>
                 </td>
             </tr>
@@ -129,7 +129,7 @@ def get_admin_2fa_email_html(otp: str) -> str:
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
                     <p style="color: #999; margin: 0; font-size: 11px;">
-                        Addrika Admin Portal | Secure Access
+                        AAROHMM Admin Portal | Secure Access
                     </p>
                 </td>
             </tr>
@@ -144,7 +144,7 @@ async def send_admin_2fa_otp(email: str, otp: str) -> bool:
     html = get_admin_2fa_email_html(otp)
     return await send_email(
         to_email=email,
-        subject="🔐 Admin Login Verification - Addrika",
+        subject="🔐 Admin Login Verification - AAROHMM",
         html_content=html
     )
 
@@ -181,8 +181,8 @@ def get_order_confirmation_html(order: dict) -> str:
             <!-- Header -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">ADDRIKA</h1>
-                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Elegance in Every Scent</p>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">AAROHMM</h1>
+                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Where Fragrance Becomes Atmosphere…</p>
                 </td>
             </tr>
             
@@ -193,7 +193,7 @@ def get_order_confirmation_html(order: dict) -> str:
                         <span style="color: white; font-size: 30px;">✓</span>
                     </div>
                     <h2 style="color: #1e3a52; margin: 0 0 10px 0;">Order Confirmed!</h2>
-                    <p style="color: #666; margin: 0;">Thank you for shopping with Addrika</p>
+                    <p style="color: #666; margin: 0;">Thank you for shopping with AAROHMM</p>
                 </td>
             </tr>
             
@@ -289,9 +289,9 @@ def get_order_confirmation_html(order: dict) -> str:
             <!-- Footer -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">ADDRIKA</p>
+                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">AAROHMM</p>
                     <p style="color: #ffffff; margin: 0; font-size: 12px;">
-                        Premium Agarbattis | Elegance in Every Scent
+                        Premium Agarbattis | Where Fragrance Becomes Atmosphere…
                     </p>
                     <p style="color: #999; margin: 15px 0 0 0; font-size: 11px;">
                         Questions? Contact us at contact.us@centraders.com
@@ -326,7 +326,7 @@ def get_order_status_update_html(order: dict, new_status: str) -> str:
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
                 </td>
             </tr>
             <tr>
@@ -344,7 +344,7 @@ def get_order_status_update_html(order: dict, new_status: str) -> str:
             </tr>
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                    <p style="color: #999; margin: 0; font-size: 12px;">Addrika - Premium Agarbattis</p>
+                    <p style="color: #999; margin: 0; font-size: 12px;">AAROHMM - Premium Agarbattis</p>
                 </td>
             </tr>
         </table>
@@ -380,7 +380,7 @@ async def send_email(
         resend.api_key = api_key
 
         params = {
-            "from": f"Addrika <{sender_email}>",
+            "from": f"AAROHMM <{sender_email}>",
             "to": [to_email],
             "subject": subject,
             "html": html_content,
@@ -422,7 +422,7 @@ async def send_order_confirmation(order: dict):
         html = get_order_confirmation_html(order)
         customer_result = await send_email(
             to_email=customer_email,
-            subject=f"Order Confirmed - {order_number} | Addrika",
+            subject=f"Order Confirmed - {order_number} | AAROHMM",
             html_content=html
         )
         results.append(('customer', customer_result))
@@ -434,7 +434,7 @@ async def send_order_confirmation(order: dict):
     admin_html = get_admin_order_notification_html(order)
     admin_result = await send_email(
         to_email=admin_email,
-        subject=f"🛒 New Order Received - {order_number} | Addrika Admin",
+        subject=f"🛒 New Order Received - {order_number} | AAROHMM Admin",
         html_content=admin_html
     )
     results.append(('admin', admin_result))
@@ -476,7 +476,7 @@ def get_admin_order_notification_html(order: dict) -> str:
             <!-- Header -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">ADDRIKA ADMIN</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">AAROHMM ADMIN</h1>
                     <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">New Order Notification</p>
                 </td>
             </tr>
@@ -589,12 +589,12 @@ def get_admin_order_notification_html(order: dict) -> str:
             <!-- Footer -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">ADDRIKA</p>
+                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">AAROHMM</p>
                     <p style="color: #ffffff; margin: 0; font-size: 12px;">
                         Admin Order Notification
                     </p>
                     <p style="color: #999; margin: 15px 0 0 0; font-size: 11px;">
-                        This is an automated notification from your Addrika admin system.
+                        This is an automated notification from your AAROHMM admin system.
                     </p>
                 </td>
             </tr>
@@ -614,7 +614,7 @@ async def send_order_status_update(order: dict, new_status: str):
     html = get_order_status_update_html(order, new_status)
     return await send_email(
         to_email=email,
-        subject=f"Order {new_status.title()} - {order.get('orderNumber', 'N/A')} | Addrika",
+        subject=f"Order {new_status.title()} - {order.get('orderNumber', 'N/A')} | AAROHMM",
         html_content=html
     )
 
@@ -755,8 +755,8 @@ def get_order_status_update_v2_html(order: dict, new_status: str, rto_voucher: d
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
-                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Elegance in Every Scent</p>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
+                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Where Fragrance Becomes Atmosphere…</p>
                 </td>
             </tr>
             <tr>
@@ -784,8 +784,8 @@ def get_order_status_update_v2_html(order: dict, new_status: str, rto_voucher: d
             </tr>
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0 0 5px 0; font-weight: bold;">ADDRIKA</p>
-                    <p style="color: #999; margin: 0; font-size: 12px;">Premium Agarbattis | Elegance in Every Scent</p>
+                    <p style="color: #d4af37; margin: 0 0 5px 0; font-weight: bold;">AAROHMM</p>
+                    <p style="color: #999; margin: 0; font-size: 12px;">Premium Agarbattis | Where Fragrance Becomes Atmosphere…</p>
                     <p style="color: #999; margin: 10px 0 0 0; font-size: 11px;">
                         Questions? Contact us at contact.us@centraders.com
                     </p>
@@ -809,9 +809,9 @@ async def send_order_status_update_v2(order: dict, new_status: str, rto_voucher:
     
     # Special subject for RTO
     if new_status == 'rto':
-        subject = f"RTO Voucher Generated - {order_number} | Addrika"
+        subject = f"RTO Voucher Generated - {order_number} | AAROHMM"
     else:
-        subject = f"Order {new_status.title()} - {order_number} | Addrika"
+        subject = f"Order {new_status.title()} - {order_number} | AAROHMM"
     
     return await send_email(
         to_email=email,
@@ -834,13 +834,13 @@ def get_welcome_subscriber_html(name: str = None) -> str:
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
-                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Elegance in Every Scent</p>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
+                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Where Fragrance Becomes Atmosphere…</p>
                 </td>
             </tr>
             <tr>
                 <td style="padding: 40px 30px;">
-                    <h2 style="color: #1e3a52; margin: 0 0 20px 0;">Welcome to the Addrika Family! 🙏</h2>
+                    <h2 style="color: #1e3a52; margin: 0 0 20px 0;">Welcome to the AAROHMM Family! 🙏</h2>
                     <p style="color: #333;">{greeting}</p>
                     <p style="color: #666; line-height: 1.6;">
                         Thank you for subscribing to our newsletter! You'll now be the first to know about:
@@ -861,13 +861,13 @@ def get_welcome_subscriber_html(name: str = None) -> str:
             <tr>
                 <td style="background-color: #f9f7f4; padding: 20px 30px; text-align: center;">
                     <p style="color: #666; margin: 0; font-size: 14px;">Follow us on Instagram</p>
-                    <a href="https://instagram.com/addrika.fragrances" style="color: #d4af37; font-weight: bold;">@addrika.fragrances</a>
+                    <a href="https://instagram.com/aarohmm.fragrances" style="color: #d4af37; font-weight: bold;">@aarohmm.fragrances</a>
                 </td>
             </tr>
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
                     <p style="color: #999; margin: 0; font-size: 11px;">
-                        You're receiving this because you subscribed to Addrika updates.
+                        You're receiving this because you subscribed to AAROHMM updates.
                         <br><a href="https://centraders.com/unsubscribe" style="color: #d4af37;">Unsubscribe</a>
                     </p>
                 </td>
@@ -891,7 +891,7 @@ def get_instagram_notification_html(post_url: str, caption: str = None, image_ur
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
                 </td>
             </tr>
             <tr>
@@ -910,7 +910,7 @@ def get_instagram_notification_html(post_url: str, caption: str = None, image_ur
             </tr>
             <tr>
                 <td style="background-color: #f9f7f4; padding: 20px 30px; text-align: center;">
-                    <a href="https://instagram.com/addrika.fragrances" style="color: #d4af37; font-weight: bold;">@addrika.fragrances</a>
+                    <a href="https://instagram.com/aarohmm.fragrances" style="color: #d4af37; font-weight: bold;">@aarohmm.fragrances</a>
                 </td>
             </tr>
             <tr>
@@ -938,7 +938,7 @@ def get_new_blog_notification_html(post_title: str, post_excerpt: str, post_slug
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
                 </td>
             </tr>
             <tr>
@@ -972,7 +972,7 @@ async def send_welcome_email(email: str, name: str = None):
     html = get_welcome_subscriber_html(name)
     return await send_email(
         to_email=email,
-        subject="Welcome to Addrika! 🙏",
+        subject="Welcome to AAROHMM! 🙏",
         html_content=html
     )
 
@@ -1006,8 +1006,8 @@ async def send_rto_voucher_email(
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
                 <tr>
                     <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                        <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
-                        <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 12px;">Elegance in Every Scent</p>
+                        <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
+                        <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 12px;">Where Fragrance Becomes Atmosphere…</p>
                     </td>
                 </tr>
                 <tr>
@@ -1059,7 +1059,7 @@ async def send_rto_voucher_email(
                 <tr>
                     <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
                         <p style="color: #d4af37; margin: 0; font-size: 11px;">
-                            Thank you for being a valued Addrika customer
+                            Thank you for being a valued AAROHMM customer
                         </p>
                         <p style="color: #999; margin: 10px 0 0 0; font-size: 10px;">
                             Questions? Email us at contact.us@centraders.com
@@ -1073,7 +1073,7 @@ async def send_rto_voucher_email(
         
         return await send_email(
             to_email=email,
-            subject=f"🎁 Your Addrika Voucher is Ready! - ₹{voucher_value:.0f}",
+            subject=f"🎁 Your AAROHMM Voucher is Ready! - ₹{voucher_value:.0f}",
             html_content=html
         )
     except Exception as e:
@@ -1086,7 +1086,7 @@ async def send_instagram_notification(email: str, post_url: str, caption: str = 
     html = get_instagram_notification_html(post_url, caption, image_url)
     return await send_email(
         to_email=email,
-        subject="📸 New on Instagram | Addrika",
+        subject="📸 New on Instagram | AAROHMM",
         html_content=html
     )
 
@@ -1096,7 +1096,7 @@ async def send_blog_notification(email: str, post_title: str, post_excerpt: str,
     html = get_new_blog_notification_html(post_title, post_excerpt, post_slug, featured_image)
     return await send_email(
         to_email=email,
-        subject=f"New Post: {post_title} | Addrika Blog",
+        subject=f"New Post: {post_title} | AAROHMM Blog",
         html_content=html
     )
 
@@ -1152,7 +1152,7 @@ def get_admin_inquiry_notification_html(inquiry: dict) -> str:
             <!-- Header -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">ADDRIKA ADMIN</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">AAROHMM ADMIN</h1>
                     <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">New Customer Inquiry</p>
                 </td>
             </tr>
@@ -1222,7 +1222,7 @@ def get_admin_inquiry_notification_html(inquiry: dict) -> str:
             <!-- Action Button -->
             <tr>
                 <td style="padding: 0 30px 30px; text-align: center;">
-                    <a href="mailto:{inquiry.get('email', '')}?subject=Re: Your Addrika Inquiry" style="display: inline-block; background-color: #1e3a52; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                    <a href="mailto:{inquiry.get('email', '')}?subject=Re: Your AAROHMM Inquiry" style="display: inline-block; background-color: #1e3a52; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold;">
                         Reply to Customer
                     </a>
                 </td>
@@ -1231,12 +1231,12 @@ def get_admin_inquiry_notification_html(inquiry: dict) -> str:
             <!-- Footer -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">ADDRIKA</p>
+                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">AAROHMM</p>
                     <p style="color: #ffffff; margin: 0; font-size: 12px;">
                         Admin Inquiry Notification
                     </p>
                     <p style="color: #999; margin: 15px 0 0 0; font-size: 11px;">
-                        This is an automated notification from your Addrika admin system.
+                        This is an automated notification from your AAROHMM admin system.
                     </p>
                 </td>
             </tr>
@@ -1255,7 +1255,7 @@ async def send_admin_inquiry_notification(inquiry: dict, admin_email: str = "con
     
     return await send_email(
         to_email=admin_email,
-        subject=f"📩 New {inquiry_type} Inquiry from {customer_name} | Addrika",
+        subject=f"📩 New {inquiry_type} Inquiry from {customer_name} | AAROHMM",
         html_content=html
     )
 
@@ -1286,8 +1286,8 @@ def get_review_request_html(order: dict) -> str:
             <!-- Header -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">ADDRIKA</h1>
-                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Elegance in Every Scent</p>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">AAROHMM</h1>
+                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Where Fragrance Becomes Atmosphere…</p>
                 </td>
             </tr>
             
@@ -1368,7 +1368,7 @@ def get_review_request_html(order: dict) -> str:
                 <td style="padding: 0 30px 30px;">
                     <div style="background-color: #fef9e7; padding: 20px; border-radius: 8px; text-align: center;">
                         <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
-                            🙏 <strong>Thank you for choosing Addrika!</strong><br>
+                            🙏 <strong>Thank you for choosing AAROHMM!</strong><br>
                             Your support helps us continue our mission of crafting premium, sustainable incense while supporting Women Self-Help Groups.
                         </p>
                     </div>
@@ -1378,9 +1378,9 @@ def get_review_request_html(order: dict) -> str:
             <!-- Footer -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">ADDRIKA</p>
+                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">AAROHMM</p>
                     <p style="color: #ffffff; margin: 0; font-size: 12px;">
-                        Premium Agarbattis | Elegance in Every Scent
+                        Premium Agarbattis | Where Fragrance Becomes Atmosphere…
                     </p>
                     <p style="color: #999; margin: 15px 0 0 0; font-size: 11px;">
                         Questions? Contact us at contact.us@centraders.com
@@ -1418,7 +1418,7 @@ async def send_review_request_email(order: dict) -> bool:
     
     result = await send_email(
         to_email=customer_email,
-        subject=f"⭐ How was your Addrika experience? | Order {order_number}",
+        subject=f"⭐ How was your AAROHMM experience? | Order {order_number}",
         html_content=html
     )
     
@@ -1491,8 +1491,8 @@ async def send_coin_expiry_reminder_email(email: str, name: str, coins_balance: 
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
                 <tr>
                     <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                        <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
-                        <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Elegance in Every Scent</p>
+                        <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
+                        <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Where Fragrance Becomes Atmosphere…</p>
                     </td>
                 </tr>
                 <tr>
@@ -1501,7 +1501,7 @@ async def send_coin_expiry_reminder_email(email: str, name: str, coins_balance: 
                             <span style="font-size: 40px;">🪙</span>
                         </div>
                         
-                        <h2 style="color: #1e3a52; margin: 0 0 10px 0;">Your Addrika Coins Are Expiring Soon!</h2>
+                        <h2 style="color: #1e3a52; margin: 0 0 10px 0;">Your AAROHMM Coins Are Expiring Soon!</h2>
                         <p style="color: #666; margin: 0 0 30px 0;">
                             Hi {name}, don't let your rewards go to waste!
                         </p>
@@ -1533,7 +1533,7 @@ async def send_coin_expiry_reminder_email(email: str, name: str, coins_balance: 
                         <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; margin-top: 30px; text-align: left;">
                             <h3 style="color: #1e3a52; margin: 0 0 15px 0; font-size: 14px;">How to Redeem:</h3>
                             <ul style="color: #666; margin: 0; padding-left: 20px; font-size: 14px;">
-                                <li style="margin-bottom: 8px;">Add your favorite Addrika fragrances to cart</li>
+                                <li style="margin-bottom: 8px;">Add your favorite AAROHMM fragrances to cart</li>
                                 <li style="margin-bottom: 8px;">At checkout, enter the coins you want to redeem</li>
                                 <li style="margin-bottom: 8px;">Each coin = ₹0.60 discount (up to 50% of order value)</li>
                                 <li>Complete your order and enjoy your savings!</li>
@@ -1544,10 +1544,10 @@ async def send_coin_expiry_reminder_email(email: str, name: str, coins_balance: 
                 <tr>
                     <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
                         <p style="color: #d4af37; margin: 0 0 10px 0; font-size: 14px;">
-                            Addrika Rewards - Earn More, Save More
+                            AAROHMM Rewards - Earn More, Save More
                         </p>
                         <p style="color: #999; margin: 0; font-size: 11px;">
-                            You received this email because you have reward coins in your Addrika account.
+                            You received this email because you have reward coins in your AAROHMM account.
                         </p>
                     </td>
                 </tr>
@@ -1558,7 +1558,7 @@ async def send_coin_expiry_reminder_email(email: str, name: str, coins_balance: 
         
         result = await send_email(
             to_email=email,
-            subject=f"⚠️ Your {coins_balance:.0f} Addrika Coins Expire Soon - Use Them Now!",
+            subject=f"⚠️ Your {coins_balance:.0f} AAROHMM Coins Expire Soon - Use Them Now!",
             html_content=html_content
         )
         
@@ -1589,7 +1589,7 @@ async def send_coins_earned_email(email: str, name: str, coins_earned: float, ne
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
                 <tr>
                     <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                        <h1 style="color: #d4af37; margin: 0; font-size: 28px;">ADDRIKA</h1>
+                        <h1 style="color: #d4af37; margin: 0; font-size: 28px;">AAROHMM</h1>
                         <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Rewards</p>
                     </td>
                 </tr>
@@ -1599,7 +1599,7 @@ async def send_coins_earned_email(email: str, name: str, coins_earned: float, ne
                             <span style="font-size: 40px;">🎉</span>
                         </div>
                         
-                        <h2 style="color: #38a169; margin: 0 0 10px 0;">You've Earned Addrika Coins!</h2>
+                        <h2 style="color: #38a169; margin: 0 0 10px 0;">You've Earned AAROHMM Coins!</h2>
                         <p style="color: #666; margin: 0 0 30px 0;">
                             Thank you for your order #{order_number}, {name}!
                         </p>
@@ -1633,7 +1633,7 @@ async def send_coins_earned_email(email: str, name: str, coins_earned: float, ne
                             Earn 6.9 coins for every ₹125 spent
                         </p>
                         <p style="color: #999; margin: 0; font-size: 11px;">
-                            Addrika - Premium Agarbattis | contact.us@centraders.com
+                            AAROHMM - Premium Agarbattis | contact.us@centraders.com
                         </p>
                     </td>
                 </tr>
@@ -1644,7 +1644,7 @@ async def send_coins_earned_email(email: str, name: str, coins_earned: float, ne
         
         result = await send_email(
             to_email=email,
-            subject=f"🪙 You earned {coins_earned:.2f} Addrika Coins!",
+            subject=f"🪙 You earned {coins_earned:.2f} AAROHMM Coins!",
             html_content=html_content
         )
         
@@ -1708,8 +1708,8 @@ def get_abandoned_cart_email_html(name: str, items: list, cart_total: float) -> 
             <!-- Header -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">ADDRIKA</h1>
-                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Elegance in Every Scent</p>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">AAROHMM</h1>
+                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Where Fragrance Becomes Atmosphere…</p>
                 </td>
             </tr>
             
@@ -1776,9 +1776,9 @@ def get_abandoned_cart_email_html(name: str, items: list, cart_total: float) -> 
             <!-- Footer -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">ADDRIKA</p>
+                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">AAROHMM</p>
                     <p style="color: #ffffff; margin: 0; font-size: 12px;">
-                        Premium Agarbattis | Elegance in Every Scent
+                        Premium Agarbattis | Where Fragrance Becomes Atmosphere…
                     </p>
                     <p style="color: #999; margin: 15px 0 0 0; font-size: 11px;">
                         Questions? Contact us at contact.us@centraders.com
@@ -1797,7 +1797,7 @@ async def send_abandoned_cart_email(email: str, name: str, items: list, cart_tot
         html = get_abandoned_cart_email_html(name, items, cart_total)
         return await send_email(
             to_email=email,
-            subject=f"Your cart is waiting for you, {name}! | Addrika",
+            subject=f"Your cart is waiting for you, {name}! | AAROHMM",
             html_content=html
         )
     except Exception as e:
@@ -1847,7 +1847,7 @@ def get_admin_abandoned_cart_notification_html(abandoned_carts: list) -> str:
             <!-- Header -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">ADDRIKA ADMIN</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 28px; font-weight: bold;">AAROHMM ADMIN</h1>
                     <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Abandoned Cart Alert</p>
                 </td>
             </tr>
@@ -1899,7 +1899,7 @@ def get_admin_abandoned_cart_notification_html(abandoned_carts: list) -> str:
             <!-- Footer -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">ADDRIKA</p>
+                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold;">AAROHMM</p>
                     <p style="color: #999; margin: 0; font-size: 11px;">
                         Automated Admin Notification
                     </p>
@@ -1922,7 +1922,7 @@ async def send_admin_abandoned_cart_notification(abandoned_carts: list, admin_em
         
         return await send_email(
             to_email=admin_email,
-            subject=f"🛒 {len(abandoned_carts)} Abandoned Carts (₹{total_value:.0f}) | Addrika Admin",
+            subject=f"🛒 {len(abandoned_carts)} Abandoned Carts (₹{total_value:.0f}) | AAROHMM Admin",
             html_content=html
         )
     except Exception as e:

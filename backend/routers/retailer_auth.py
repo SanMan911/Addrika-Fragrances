@@ -353,7 +353,7 @@ async def retailer_login(login_data: RetailerLoginRequest, response: Response):
     if not await get_b2b_enabled(db):
         raise HTTPException(
             status_code=403,
-            detail="Retailer portal is currently unavailable. Please contact Addrika for access.",
+            detail="Retailer portal is currently unavailable. Please contact AAROHMM for access.",
         )
 
     identifier = login_data.email or login_data.username
@@ -568,7 +568,7 @@ async def retailer_register(
     if not await get_b2b_enabled(db):
         raise HTTPException(
             status_code=403,
-            detail="Retailer portal is currently unavailable. Please contact Addrika.",
+            detail="Retailer portal is currently unavailable. Please contact AAROHMM.",
         )
 
     gst = (gst_number or "").upper().strip()
@@ -729,7 +729,7 @@ async def retailer_register(
               <p style='color:#fff;margin:4px 0 0;font-size:12px;'>Awaiting manual verification</p>
             </td></tr>
             <tr><td style='padding:22px;color:#1e3a52;'>
-              <p style='margin:0 0 12px;'>A new retailer has registered on the Addrika B2B portal and is waiting for your approval.</p>
+              <p style='margin:0 0 12px;'>A new retailer has registered on the AAROHMM B2B portal and is waiting for your approval.</p>
               <p style='margin:0 0 16px;'>{gst_badge}</p>
               <table cellpadding='6' cellspacing='0' style='width:100%;border-collapse:collapse;font-size:14px;'>
                 <tr><td style='background:#f5f0e8;font-weight:600;width:38%;'>Retailer ID</td><td style='background:#faf7f2;font-family:monospace;'>{retailer_id}</td></tr>
@@ -755,7 +755,7 @@ async def retailer_register(
         """
         await send_email(
             to_email=admin_email,
-            subject=f"[Addrika B2B] New retailer registration — {retailer['business_name']}",
+            subject=f"[AAROHMM B2B] New retailer registration — {retailer['business_name']}",
             html_content=admin_html,
             attachments=[{
                 "filename": retailer['gst_certificate']['original_filename'],
@@ -767,12 +767,12 @@ async def retailer_register(
         <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
           <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;'>
             <tr><td style='background:#1e3a52;padding:24px;text-align:center;'>
-              <h1 style='color:#d4af37;margin:0;'>ADDRIKA</h1>
+              <h1 style='color:#d4af37;margin:0;'>AAROHMM</h1>
               <p style='color:#fff;margin:6px 0 0;'>Registration received · under review</p>
             </td></tr>
             <tr><td style='padding:24px;color:#1e3a52;'>
               <p>Hi {retailer['contact_name'] or 'there'},</p>
-              <p>Thanks for registering as an Addrika retailer. Our team is verifying your details against your GST certificate. You&rsquo;ll receive a follow-up email as soon as your account is activated (typically within 1 business day).</p>
+              <p>Thanks for registering as an AAROHMM retailer. Our team is verifying your details against your GST certificate. You&rsquo;ll receive a follow-up email as soon as your account is activated (typically within 1 business day).</p>
               <p style='background:#f5f0e8;padding:12px;border-radius:6px;font-size:13px;'>
                 <strong>Business:</strong> {retailer['business_name']}<br/>
                 <strong>GSTIN:</strong> <span style='font-family:monospace;'>{gst}</span><br/>
@@ -786,7 +786,7 @@ async def retailer_register(
         """
         await send_email(
             to_email=retailer["email"],
-            subject="Addrika B2B — your registration is under review",
+            subject="AAROHMM B2B — your registration is under review",
             html_content=applicant_html,
         )
     except Exception as e:

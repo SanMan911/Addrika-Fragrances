@@ -5,7 +5,7 @@ import Footer from '../../components/Footer';
 import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: `Privacy Policy | ${BRAND.name} by Centsibl Traders`,
+  title: `Privacy Policy`,
   description: `Read ${BRAND.name}\'s privacy policy. Learn how we collect, use, and protect your personal information when you shop for premium incense products.`,
   robots: { index: true, follow: true },
 };

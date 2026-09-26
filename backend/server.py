@@ -1,5 +1,5 @@
 """
-Addrika Backend API Server
+AAROHMM Backend API Server
 Refactored with modular routers for maintainability
 """
 from dotenv import load_dotenv
@@ -74,7 +74,7 @@ db = client[os.environ['DB_NAME']]
 
 # Create the FastAPI app
 app = FastAPI(
-    title="Addrika API",
+    title="AAROHMM API",
     description="Premium Incense Brand E-commerce Backend",
     version="2.0.0"
 )
@@ -83,7 +83,7 @@ app = FastAPI(
 # Root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Addrika API v2.0 - Premium Incense Brand"}
+    return {"message": "AAROHMM API v2.0 - Premium Incense Brand"}
 
 
 # Health check
@@ -238,7 +238,7 @@ async def startup_db_client():
     asyncio.create_task(auto_blog_scheduler(db))
     print("Auto-blog scheduler started")
 
-    # Partner cross-site coupon reconciliation (Addrika ↔ Amardeep)
+    # Partner cross-site coupon reconciliation (AAROHMM ↔ Amardeep)
     try:
         from services.partner_reconcile import reconcile_scheduler_loop
         asyncio.create_task(reconcile_scheduler_loop(db))

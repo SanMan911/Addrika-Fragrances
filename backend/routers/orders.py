@@ -7,9 +7,10 @@ import razorpay
 import hmac
 import hashlib
 import logging
-
+import os
 import re
 
+from config.brand import BRAND
 from models.ecommerce import OrderCreate
 from services.email_service import send_order_confirmation
 from services.shiprocket_service import create_shiprocket_order, get_domestic_shipping_rates
@@ -213,6 +214,13 @@ async def create_order(order_data: OrderCreate, background_tasks: BackgroundTask
             "weight": size_variant.get("weight", 50 if item_size == "50g" else 200)
         })
     
+    # Shared-inventory guard: never sell what B2B / mobile / field sales have
+    # already reserved. Lines without a tracked SKU pass through.
+    from services.product_sync import check_stock_for_b2c_items
+    stock_problems = await check_stock_for_b2c_items(db, order_items)
+    if stock_problems:
+        raise HTTPException(status_code=409, detail={"error": "out_of_stock", "message": " ".join(stock_problems), "problems": stock_problems})
+
     # Determine shipping address (use billing if shipping not provided or same)
     billing = order_data.billing
     if order_data.use_different_shipping and order_data.shipping:
@@ -506,7 +514,7 @@ async def create_order(order_data: OrderCreate, background_tasks: BackgroundTask
             "amount": razorpay_order["amount"],
             "currency": razorpay_order["currency"],
             "name": "Centsibl Traders Private Limited",
-            "description": "Payment for Addrika Order",
+            "description": "Payment for AAROHMM Order",
             "prefill": {
                 "name": billing.name if billing else "",
                 "email": billing.email if billing else "",
@@ -693,11 +701,11 @@ async def verify_payment(
         )
 
     # ============================================================================
-    # PARTNER CROSS-SITE COUPON HOOKS (Addrika ↔ Amardeep Saanan)
-    # - If this Addrika order qualifies (≥ ₹499), push an ADRK-GIFT-* voucher
+    # PARTNER CROSS-SITE COUPON HOOKS (AAROHMM ↔ Amardeep Saanan)
+    # - If this AAROHMM order qualifies (≥ ₹499), push an ADRK-GIFT-* voucher
     #   to Amardeep so the customer gets ₹99 off a Mobile Number Numerology
     #   Audit.
-    # - If this Addrika order used an AMD-GIFT-* coupon, mark it redeemed on
+    # - If this AAROHMM order used an AMD-GIFT-* coupon, mark it redeemed on
     #   Amardeep's side.
     # Both calls are best-effort (fire-and-forget style) — a partner outage
     # must never break a paying customer's checkout.
@@ -861,7 +869,7 @@ async def verify_payment(
                 customer_email = order.get("billing", {}).get("email") or order.get("shipping", {}).get("email")
                 customer_phone = order.get("billing", {}).get("phone") or order.get("shipping", {}).get("phone", "")
                 retailer_id = pickup_store.get("id") or pickup_store.get("retailer_id", "")
-                retailer_name = pickup_store.get("name", "Addrika Store")
+                retailer_name = pickup_store.get("name", "AAROHMM Store")
                 balance_amount = order.get("balance_at_store", 0)
                 
                 otp_result = await create_pickup_otp(
@@ -1445,7 +1453,7 @@ async def send_retailer_address_change_notification(
         html_content = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #1a365d, #2d3748); padding: 20px; text-align: center;">
-                <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
+                <h1 style="color: #d4af37; margin: 0;">AAROHMM</h1>
                 <p style="color: #fff; margin: 5px 0 0;">Address Change Alert</p>
             </div>
             
@@ -1484,13 +1492,13 @@ async def send_retailer_address_change_notification(
             </div>
             
             <div style="background: #1a365d; padding: 15px; text-align: center;">
-                <p style="color: #d4af37; margin: 0; font-size: 12px;">Addrika - Elegance in Every Scent</p>
+                <p style="color: #d4af37; margin: 0; font-size: 12px;">AAROHMM - Where Fragrance Becomes Atmosphere…</p>
             </div>
         </div>
         """
         
         resend_client.emails.send({
-            "from": "Addrika Orders <orders@addrika.in>",
+            "from": f"{BRAND.name} Orders <{os.environ.get('SENDER_EMAIL')}>",
             "to": [retailer_email],
             "subject": f"ADDRESS CHANGE - Order #{order_number}",
             "html": html_content
@@ -1532,7 +1540,7 @@ async def send_admin_address_change_notification(
         html_content = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #1a365d, #2d3748); padding: 20px; text-align: center;">
-                <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
+                <h1 style="color: #d4af37; margin: 0;">AAROHMM</h1>
                 <p style="color: #fff; margin: 5px 0 0;">Admin Alert - Address Change</p>
             </div>
             
@@ -1585,13 +1593,13 @@ async def send_admin_address_change_notification(
             </div>
             
             <div style="background: #1a365d; padding: 15px; text-align: center;">
-                <p style="color: #d4af37; margin: 0; font-size: 12px;">Addrika Admin Portal</p>
+                <p style="color: #d4af37; margin: 0; font-size: 12px;">AAROHMM Admin Portal</p>
             </div>
         </div>
         """
         
         resend_client.emails.send({
-            "from": "Addrika System <system@addrika.in>",
+            "from": f"{BRAND.name} System <{os.environ.get('SENDER_EMAIL')}>",
             "to": [ADMIN_EMAIL],
             "subject": f"⚠️ ADDRESS CHANGE - Order #{order_number}",
             "html": html_content
@@ -1628,7 +1636,7 @@ async def send_customer_address_change_confirmation(
         html_content = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #1a365d, #2d3748); padding: 20px; text-align: center;">
-                <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
+                <h1 style="color: #d4af37; margin: 0;">AAROHMM</h1>
                 <p style="color: #fff; margin: 5px 0 0;">Address Change Confirmation</p>
             </div>
             
@@ -1667,7 +1675,7 @@ async def send_customer_address_change_confirmation(
                         The following parties have been notified of your address change:
                     </p>
                     <ul style="margin: 10px 0; color: #2c5282;">
-                        <li>✓ <strong>Addrika Admin Team</strong> - For record keeping and quality assurance</li>
+                        <li>✓ <strong>AAROHMM Admin Team</strong> - For record keeping and quality assurance</li>
                         <li>✓ <strong>{retailer_name}</strong> - The store handling your order</li>
                     </ul>
                     <p style="margin: 5px 0; color: #2c5282; font-size: 13px;">
@@ -1677,7 +1685,7 @@ async def send_customer_address_change_confirmation(
                 
                 <p style="color: #718096; font-size: 13px;">
                     If you did not make this change or have any concerns, please contact us immediately at 
-                    <a href="mailto:support@addrika.in" style="color: #d4af37;">support@addrika.in</a>
+                    <a href="mailto:contact.us@centraders.com" style="color: #d4af37;">contact.us@centraders.com</a>
                 </p>
                 
                 <p style="color: #718096; font-size: 12px; margin-top: 20px;">
@@ -1686,7 +1694,7 @@ async def send_customer_address_change_confirmation(
             </div>
             
             <div style="background: #1a365d; padding: 15px; text-align: center;">
-                <p style="color: #d4af37; margin: 0; font-size: 12px;">Addrika - Elegance in Every Scent</p>
+                <p style="color: #d4af37; margin: 0; font-size: 12px;">AAROHMM - Where Fragrance Becomes Atmosphere…</p>
                 <p style="color: #a0aec0; margin: 5px 0 0; font-size: 11px;">
                     Thank you for shopping with us!
                 </p>
@@ -1695,7 +1703,7 @@ async def send_customer_address_change_confirmation(
         """
         
         resend_client.emails.send({
-            "from": "Addrika <orders@addrika.in>",
+            "from": f"{BRAND.name} <{os.environ.get('SENDER_EMAIL')}>",
             "to": [customer_email],
             "subject": f"✓ Address Updated - Order #{order_number}",
             "html": html_content

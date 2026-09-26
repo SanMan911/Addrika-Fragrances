@@ -44,6 +44,8 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
   if (!isOpen || !product) return null;
 
   const isComingSoon = product.comingSoon === true;
+  const selectedStock = typeof selectedSize?.stock === 'number' ? selectedSize.stock : null;
+  const isOutOfStock = selectedStock !== null && selectedStock <= 0;
 
   // Get all images
   const allImages = [];
@@ -64,6 +66,14 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
   const handleAddToCart = async () => {
     if (!selectedSize) {
       toast.error('Please select a size');
+      return;
+    }
+    if (isOutOfStock) {
+      toast.error(`${product.name} (${selectedSize.size}) is out of stock right now`);
+      return;
+    }
+    if (selectedStock !== null && quantity > selectedStock) {
+      toast.error(`Only ${selectedStock} left in stock`);
       return;
     }
     
@@ -293,8 +303,13 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
               
               {/* Actions */}
               <div className="flex gap-3 mt-auto">
-                {isComingSoon ? (
-                  <NotifyMeButton productId={product.id} />
+                {isComingSoon || isOutOfStock ? (
+                  <div className="flex-1">
+                    {isOutOfStock && !isComingSoon && (
+                      <p className="text-xs text-rose-300 mb-2" data-testid="quick-view-oos">Out of stock — notify me when it&apos;s back</p>
+                    )}
+                    <NotifyMeButton productId={product.id} />
+                  </div>
                 ) : (
                 <>
                 <button

@@ -10,7 +10,7 @@
 ## 1. Confirm the correct commit landed
 
 1. Open <https://vercel.com/dashboard>.
-2. Find the **`addrika-frontend-next`** (or equivalent) project.
+2. Find the **`aarohmm-frontend-next`** (formerly `addrika-frontend-next`) project.
 3. On the **Deployments** tab, verify the top row shows:
    - **Status**: `Ready` (green)
    - **Commit SHA**: matches `git rev-parse --short HEAD` from your local `main` branch
@@ -136,3 +136,35 @@ If any of the above fails and you need to revert:
 ---
 
 _Last updated: Feb 2026 — after cart deep-link + brand-audit + track-order external redirect._
+
+---
+
+## 7. AAROHMM rebrand (June 2026) — verify after deploy
+
+```bash
+curl -sI https://www.centraders.com/why-choose-addrika | head -2        # → 308 → /why-choose-aarohmm
+curl -s  https://www.centraders.com/ | grep -o '<title>[^<]*'            # → AAROHMM - Premium Incense | Where Fragrance Becomes Atmosphere…
+curl -sI https://www.centraders.com/images/logos/aarohmm-logo-horizontal.png | head -1   # → 200
+curl -sI https://www.centraders.com/products  | head -1                  # → 200 (new listing page)
+curl -sI https://www.centraders.com/wholesale | head -1                  # → 200 (new B2B landing)
+curl -s  https://www.centraders.com/manifest.json | grep short_name       # → "AAROHMM"
+```
+
+Backend (Render) env vars to set alongside this deploy — the code defaults already say AAROHMM,
+these just make it explicit and let ops flip copy without a redeploy:
+
+| Key | Value |
+| --- | --- |
+| `BRAND_NAME` | `AAROHMM` |
+| `BRAND_TAGLINE` | `Where Fragrance Becomes Atmosphere…` |
+| `BRAND_INSTAGRAM` | `@aarohmm.fragrances` |
+| `SELLER_BRAND` | `AAROHMM` (invoice + brochure PDFs) |
+| `APP_DEEP_LINK_SCHEME` | `aaroviah` |
+| `RAZORPAY_WEBHOOK_SECRET` | from Razorpay dashboard → Webhooks (event `payment_link.paid`, URL `https://<backend>/api/retailer-dashboard/b2b/razorpay/webhook`) |
+| `PUBLIC_APP_URL` | `https://www.centraders.com` (payment-link callback + e-mail deep links) |
+
+Also run once against production Mongo (idempotent): `python backend/scripts/migrate_brand_content.py`
+(rewrites "Addrika" inside stored blog posts / admin messages / milestone copy).
+
+Logo swap later: drop the sharper master at `mobile/assets/aarohmm-src.webp` and run
+`python3 scripts/build_brand_logos.py` — see `public/images/logos/LOGO_INDEX.md`.

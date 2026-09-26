@@ -13,7 +13,7 @@ import BRAND from '../lib/brand.config';
 
 export const metadata = {
   title: {
-    default: `${BRAND.name} - Premium Incense | Sacred Luxury in Every Scent`,
+    default: `${BRAND.name} - Premium Incense | ${BRAND.tagline}`,
     template: `%s | ${BRAND.name} Premium Incense`
   },
   description: `${BRAND.name} Fragrances by Centsibl Traders — India\'s premium charcoal-free incense brand. Shop luxury agarbatti (Kesar Chandan, Regal Rose, Oriental Oudh), bambooless dhoop, and authentic Arabian bakhoor (Omani & Yemeni). Over 60% less smoke, ethically sourced ingredients. Perfect for meditation, yoga, puja, and luxury home fragrance. Free shipping above ₹499.`,
@@ -158,7 +158,7 @@ export default function RootLayout({ children }) {
                 "@type": "Brand",
                 "name": BRAND.name,
                 "alternateName": `${BRAND.name} Fragrances`,
-                "slogan": "Sacred Luxury in Every Scent",
+                "slogan": BRAND.tagline,
                 "logo": BRAND.logo.logoUrlAbs
               }
             })

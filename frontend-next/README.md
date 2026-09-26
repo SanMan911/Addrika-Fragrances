@@ -1,4 +1,4 @@
-# Addrika - Next.js Frontend
+# AAROHMM - Next.js Frontend
 
 Premium incense e-commerce platform built with Next.js 14.
 

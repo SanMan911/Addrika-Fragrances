@@ -318,15 +318,14 @@ def get_b2b_catalog() -> list[dict]:
 
 async def refresh_b2b_catalog(db) -> int:
     """Repopulate the in-memory cache from MongoDB. Returns size."""
-    global B2B_PRODUCTS
     docs = await db.b2b_products.find(
         {"$or": [{"is_active": {"$ne": False}}, {"is_active": {"$exists": False}}]},
         {"_id": 0},
     ).sort("id", 1).to_list(500)
-    if docs:
-        B2B_PRODUCTS = docs
-    else:
-        B2B_PRODUCTS = list(_SEED_PRODUCTS)
+    # Mutate IN PLACE — other modules hold a reference to this list via
+    # `from services.b2b_catalog import B2B_PRODUCTS`; rebinding the name
+    # would leave them serving the stale seed list forever.
+    B2B_PRODUCTS[:] = docs if docs else list(_SEED_PRODUCTS)
     logger.info(f"B2B catalog cache refreshed: {len(B2B_PRODUCTS)} products")
     return len(B2B_PRODUCTS)
 
