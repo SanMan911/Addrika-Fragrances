@@ -30,7 +30,11 @@ class CreateKeyBody(BaseModel):
     scopes: Optional[list[str]] = Field(default=None)
     retailer_ids: Optional[list[str]] = Field(
         default=None,
-        description="Restrict this key to these retailers. Empty/omitted = all retailers.",
+        description=(
+            "Restrict this key to these retailer_ids. OMITTED OR EMPTY = UNRESTRICTED "
+            "(the key can read/write orders for every retailer) — always set this for "
+            "third-party or field-sales keys."
+        ),
     )
 
 

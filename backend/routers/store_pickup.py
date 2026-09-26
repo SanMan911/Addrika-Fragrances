@@ -34,7 +34,6 @@ class OTPVerifyRequest(BaseModel):
     order_number: str
     otp_code: Optional[str] = None
     retailer_id: str
-    use_master_password: Optional[bool] = False  # legacy field, ignored
     admin_override: Optional[bool] = False  # admins only: verify without the customer OTP
 
 
@@ -149,7 +148,7 @@ async def verify_pickup_otp(
         }
 
     # Admin override — no customer OTP needed, but admin auth is mandatory
-    is_admin_override = bool(otp_data.admin_override or otp_data.use_master_password)
+    is_admin_override = bool(otp_data.admin_override)
     if is_admin_override and not is_admin:
         raise HTTPException(status_code=403, detail="Admin authentication required for override verification")
     

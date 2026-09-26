@@ -1,0 +1,42 @@
+{
+  "summary": "SECURITY VERIFICATION run for iteration 108. Wrote /app/backend/tests/test_iter108_security_audit.py — 23/23 tests pass against public preview URL. All five SEC findings (SEC-001..SEC-005) are closed. Dev-OTP gate, password-strength policy (backend 422 + frontend meter), and regressions (GSTIN login, FSM key /ping) all verified.",
+  "sec_findings_status": {
+    "SEC-001_store_pickup_verify_otp": "CLOSED — (a) no cookies → 401 'Authentication required'; (b) old exploit payload {use_master_password:true, otp:'AddrikaAdmin@2026'} → 401; (c) retailer session on order belonging to another store → 403 'This order is assigned to a different store'; (d) retailer + correct customer OTP for own order → success:true, order.order_status='delivered', verification_method='customer_otp'; (e) 5 wrong OTPs then 6th → 429 'Too many incorrect OTP attempts'; (f) admin_override with retailer session → 403, admin_override with real admin session → success, verification_method='admin_override', no password required anywhere. Master-password code path fully removed.",
+    "SEC-002_public_retailer_pii": "CLOSED — /api/retailers/by-location projects only PUBLIC_FIELDS whitelist (business_name, trade_name, name, retailer_id, id, address, registered_address, city, district, state, pincode, coordinates, is_addrika_verified_partner, retailer_label). Zero occurrences of email/phone/gst_number/spoc/admin_notes/legal_documents/password_hash/is_verified/kyc*/bank* in any returned record. Same whitelist applied in /api/retailers/public (map endpoint) — no leakage.",
+    "SEC-003_admin_pin_backdoor": "CLOSED — /api/admin/forgot-pin/verify-otp with otp='addrika_admin_override' → 400 'Invalid OTP. N attempts remaining.' verify uses secrets.compare_digest against the emailed OTP only. /forgot-pin/reset without a verified token returns 4xx.",
+    "SEC-004_fail_closed_secrets": "CLOSED — services/auth_service.py reads os.environ['JWT_SECRET_KEY'] and os.environ['ADMIN_DEFAULT_PIN']; backend booted cleanly (no KeyError in /var/log/supervisor/backend.err.log). Full admin login flow (initiate → 2FA OTP from admin_2fa_tokens → verify-otp) works end-to-end. Wrong PIN rejected.",
+    "SEC-005_external_api": "CLOSED — (a) Rate limit: primed api_key_rate_limits _id '<key_id>:<YYYYMMDDHHMM>' count=500 → next /api/external/v1/ping returned 429 'Rate limit exceeded'. Limiter now covers /ping too. (b) Scoping: created a new key with retailer_ids=['RTL_TEST_B2B'] via POST /api/admin/api-keys; that key's /retailers only listed RTL_TEST_B2B, /orders only returned that retailer's orders, cross-retailer order placement → 403/422. FSM unrestricted key (retailer_ids empty) remains fully functional. Key deleted afterwards. (c) SSRF guard rejects 127.0.0.1, localhost, 169.254.169.254, and 10.0.0.5 with 422 'private or reserved address'; https://example.com/hook accepted (deleted after)."
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "backend/tests/test_store_pickup_hybrid_verification.py", "issue": "STALE — asserts the removed master-password behaviour. Expected to fail. Not a product bug; suggest deleting or marking with pytest.mark.skip(reason='pre-SEC-001 legacy — master password removed')."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter108_security_audit.py",
+    "/app/test_reports/pytest/iter108.xml"
+  ],
+  "action_items": [
+    "Delete or @pytest.mark.skip the legacy tests/test_store_pickup_hybrid_verification.py so CI stays green."
+  ],
+  "critical_code_review_comments": [
+    "store_pickup.py line 152: `is_admin_override = bool(otp_data.admin_override or otp_data.use_master_password)` — using use_master_password as a legacy alias is fine, but consider dropping the field from the OTPVerifyRequest schema entirely to avoid audit confusion (it currently still 'works' if an admin is authenticated).",
+    "external_api scoping: verified with a scoped key + admin_cookie; ensure backwards-compat clause (retailer_ids=[] means unrestricted) is explicitly documented in admin UI so a partial rollout doesn't accidentally leave a key wide open."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter108_security_audit.py (new)"
+  ],
+  "success_rate": {"backend": "100% (23/23)", "frontend": "100% (reset-password strength meter + storefront verified)"},
+  "test_credentials": "Retailer GSTIN 07AAAAA0000A1Z5 / Test@12345 (restored at end); Admin contact.us@centraders.com / PIN 050499 + 2FA OTP from admin_2fa_tokens; FSM key arhk_C2yoApjyj2zmmGZ6bM2qC47bxiJ--9o7ElyaRtbmPqk unchanged.",
+  "seed_data_creation": "Test rows with order_number prefix SECTEST- inserted in orders + store_pickup_otps then deleted per-test. A UI-only PWR-UI- reset row was minted and cleaned. No permanent seed data left behind.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 5 security remediations are verified closed. Legacy test_store_pickup_hybrid_verification.py should be removed/skipped — it hard-codes the removed master-password path. For future iterations, reuse /app/backend/tests/test_iter108_security_audit.py as regression coverage for the audit remediations.",
+  "rca of the issue": "Two test fixes only: (1) SEC-003 body field is `recovery_token` (not `token_id`); (2) reset-password body key is `password` (not `new_password`) and raw reset token is never in a JSON response — mint tokens by inserting sha256(token) into retailer_password_resets directly. No product code changes were made."
+}

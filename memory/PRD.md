@@ -182,3 +182,8 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **DONE**: Admin-gated "your GSTIN is now your login ID" notice at `/admin/notices` with preview, recipient count and per-retailer sent stamp. **4 live retailers still PENDING — the owner clicks Send.**
 - **DONE**: Brand rename to **Aarohmm** across all user-visible web/mobile/email/PDF copy; internal identifiers (DB name, storage keys, secrets, Expo slug, deep-link scheme, `/why-choose-addrika` redirect) intentionally unchanged.
 - **OPEN**: send the login-ID notice; Vercel redeploy (code is deploy-ready, not deployed); Twilio Verify still DEV-mode.
+
+### Update 2026-06-26 (Iter108 — security)
+- **DONE**: All 5 security-audit findings remediated and verified (unauthenticated pickup completion + hard-coded master password, public retailer PII/GSTIN leak, admin PIN-recovery backdoor, fail-closed JWT/PIN secrets, external-API scoping + rate limits + webhook SSRF). Dev-OTP echo now gated behind `ALLOW_DEV_OTP` (must remain UNSET in production). Retailer password policy + strength meter added.
+- **DONE**: GSTIN login-ID notice emailed to the 2 real retailers; mobile app.json bumped to 0.2.0 / versionCode 2 for the Aarohmm store rename build.
+- **OPEN (P1)**: run `eas build` for the renamed app; **OPEN (P2)**: WhatsApp/Instagram restock broadcast (needs API credentials); Twilio Verify still DEV-mode.
