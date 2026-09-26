@@ -3,7 +3,7 @@
 #
 # This file pins:
 #   - pythonVersion to 3.11.6 (matches runtime.txt + .python-version)
-#   - PIP_EXTRA_INDEX_URL so emergentintegrations resolves from Emergent's CDN
+#   - all dependencies resolve from public PyPI (no private index required)
 #
 # If your service is already created in Render, this file is optional, but it
 # becomes the source-of-truth on the next "Sync Blueprint" action.
@@ -17,7 +17,5 @@ services:
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn server:app --host 0.0.0.0 --port $PORT"
     envVars:
-      - key: PIP_EXTRA_INDEX_URL
-        value: "https://d33sy5i8bnduwe.cloudfront.net/simple/"
       - key: PYTHON_VERSION
         value: "3.11.6"
