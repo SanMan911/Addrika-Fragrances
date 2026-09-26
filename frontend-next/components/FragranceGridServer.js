@@ -19,6 +19,13 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
     trackedSizes.length > 0 &&
     trackedSizes.length === (product.sizes || []).length &&
     trackedSizes.every(s => s.stock <= 0);
+  // Urgency nudge: lowest positive stock across sizes, shown at 12 or fewer.
+  const positiveStocks = trackedSizes.map(s => s.stock).filter(n => n > 0);
+  const lowStockLeft =
+    !isComingSoon && !isOutOfStock && positiveStocks.length > 0
+      ? Math.min(...positiveStocks)
+      : null;
+  const isLowStock = lowStockLeft !== null && lowStockLeft <= 12;
   
   // Get all images from all sizes
   const allImages = useMemo(() => {
@@ -120,6 +127,25 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
         >
           {isComingSoon ? 'Coming Soon' : isOutOfStock ? 'Out of Stock' : product.type === 'dhoop' ? 'Dhoop' : product.type === 'bakhoor' ? 'Bakhoor' : 'Agarbatti'}
         </div>
+
+        {/* Low-stock urgency nudge */}
+        {isLowStock && (
+          <div
+            className="absolute bottom-4 left-4 px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur-sm flex items-center gap-1.5"
+            style={{
+              background: 'rgba(245,158,11,0.16)',
+              color: '#fbbf24',
+              border: '1px solid rgba(245,158,11,0.45)'
+            }}
+            data-testid={`product-low-stock-${product.id}`}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{ background: '#fbbf24' }}
+            />
+            Only {lowStockLeft} left
+          </div>
+        )}
 
         {/* Action Buttons */}
         {!isComingSoon && (

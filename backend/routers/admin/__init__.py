@@ -13,6 +13,7 @@ from .admin_rto_vouchers import router as rto_vouchers_router
 from .admin_products import router as products_router
 from .admin_api_keys import router as api_keys_router
 from .admin_stock_webhooks import router as stock_webhooks_router
+from .admin_restock_alerts import router as restock_alerts_router
 
 # Create main admin router
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -31,3 +32,4 @@ router.include_router(rto_vouchers_router)
 router.include_router(products_router)
 router.include_router(api_keys_router)
 router.include_router(stock_webhooks_router)
+router.include_router(restock_alerts_router)
