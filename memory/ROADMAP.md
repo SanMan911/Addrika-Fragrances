@@ -30,9 +30,9 @@ _None currently._
   consumed (skip on `?cart=` presence in the initial URL).
 - **Split `b2b_orders.py` further** — calculate/order-body already extracted;
   pull remaining verify-payment + post-payment hooks into `services/`.
-- **Retailer Onboarding Video** — 60-second walkthrough of Aaroviah cart →
-  auto-login → `/retailer/b2b` hydration → Order Placed celebration flow,
-  pinned inside the retailer portal's first-login tour.
+- **Pin the onboarding walkthrough into the first-login tour** — the 60-second
+  animated walkthrough now lives at `/retailer/onboarding` (iter106); surface it
+  inside `RetailerFirstLoginTour` and the retailer portal sidebar too.
 - **Order Mirror Analytics endpoint** — `/api/admin/supabase-mirror/orders-summary`
   surfacing mirror lag + row counts for ops.
 - **Wipe-utility mirror consistency** — `wipe_all_data` and admin
@@ -46,8 +46,11 @@ _None currently._
 ## 🟢 P3 (low)
 - Additional customer-facing forms: apply the `formHelpers.js` normalisation
   rules to any newly-added forms.
-- Add a `<NewsletterSubscribeForm />` on `/blog` to start populating the
-  auto-blog email blast list (currently 0 subscribers → blasts are no-ops).
+- Grow the `/blog` newsletter list — the SmokeSignal form is wired and verified
+  (iter106); the blast list is still near-empty, so blasts stay low-impact.
+- **Retailer self-serve password reset** — GSTIN is now the login ID (iter106) and
+  recovery is still a manual email to contact.us@centraders.com; add a
+  "reset link to my registered email" endpoint + screen.
 
 ---
 
