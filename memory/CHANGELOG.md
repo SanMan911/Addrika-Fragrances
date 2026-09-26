@@ -1335,3 +1335,27 @@ Fix: `CSRSection.js` now fetches `/api/impact/trees` and renders the exact live 
 - UI: web login label/placeholder/hint + password-recovery line, `register-gst-is-login-id` callout, `retailer-login-id` on the dashboard, `sidebar-login-id` in the retailer sidebar; mobile `login.tsx`/`register.tsx` GSTIN labels and `lib/session.ts` posts `{gstin}`.
 - Migration outcome in this environment: 7 accounts aligned, 6 GSTIN-less accounts deactivated, 4 leftover `onboard_pytest_*` duplicate-GSTIN rows soft-deleted. Second boot: 0/0 (idempotent).
 - NOTE: `royal-kewda` stock is deliberately left at 7 pieces to keep the low-stock nudge demonstrable.
+
+## Iter107 — Retailer password reset + auto-open walkthrough + login-ID notice + Aarohmm rename — 2026-06-26
+Tested: `/app/test_reports/iteration_107.json` (19/20 backend, 100% of spec points; all frontend flows pass). Suite: `backend/tests/test_iter107_password_reset_and_notices.py`.
+
+**1. Self-serve password reset (GSTIN in → link to the email on file)**
+- `services/retailer_password_reset.py`: sha256-hashed tokens at rest (raw token only in the email), single-use, 60-min TTL index, a new request supersedes outstanding tokens, throttle 3/hour per GSTIN **or** IP.
+- `retailer_auth.py`: `POST /forgot-password` (always the same generic 200 — no GSTIN probing, 429 when throttled), `GET /reset-password/validate/{token}`, `POST /reset-password` (re-hashes with bcrypt, marks the token used, **deletes every retailer_session**, clears the login lockout, sends a "your password changed" email).
+- New public pages `/retailer/forgot-password` and `/retailer/reset-password` (both added to the retailer-layout public allowlist); login page now links to them; mobile `login.tsx` has a "Forgot password? Reset it with your GSTIN" link that opens the web page (WhatsApp help kept as a secondary button).
+
+**2. Onboarding walkthrough auto-opens once**
+- `components/WalkthroughModal.js` wraps `AarohmmWalkthrough` and auto-opens ~1s after the dashboard loads when `walkthrough_seen` is falsy (localStorage guard too). Skip / "Got it" → `POST /api/retailer-dashboard/b2b/walkthrough-seen` (new endpoint in `b2b_orders.py`) stamps `walkthrough_seen`. Sidebar has a permanent **Walkthrough** item → `/retailer/onboarding` for replays.
+- Fixed a latent sidebar bug surfaced by the 11th nav item: the retailer sidebar is now `flex flex-col` with `overflow-y-auto` nav and a static footer (was an absolutely-positioned footer that overlapped the nav). Verified at 1920 and 390.
+
+**3. Admin "your GSTIN is your login ID" notice**
+- `routers/admin/admin_retailer_notices.py`: `GET /api/admin/retailer-notices/gstin-login` (subject, pending/sent lists, `preview_html`) and `POST .../send` (stamps `gstin_login_notice_sent_at` per retailer only on a successful send, so failures stay retry-able). New admin page `/admin/notices` (nav: "Retailer Notices") with recipient counts, an iframe preview and one-click send.
+- Send path verified with a real delivered email; the **4 live retailers are still pending** on purpose — the user clicks Send when ready.
+
+**4. Brand rename: Addrika/Aaroviah → Aarohmm (user-visible only, by explicit choice)**
+- Web copy now uses `BRAND.nameTitle` ("Aarohmm"): `/wholesale`, `/retailer/onboarding`, `/admin/b2b` order-source labels, walkthrough script + phone-mockup header (`BRAND.nameUpper`).
+- `components/AarovihaWalkthrough.js` → `components/AarohmmWalkthrough.js` (CSS classes + `data-testid` now `aarohmm-*`).
+- Backend copy/comments: order source string "Order placed by retailer (AAROHMM app)", handoff comments, `EXTERNAL_API.md`, notice email; notify-me email footer now says centraders.com (was addrika.com).
+- Mobile: `app.json` display name + `mobileBrandName` → **Aarohmm**, `lib/brand.ts` default, README, EAS guide.
+- `scripts/brand-audit.js` now also fails on `Aaroviah`/`AAROVIAH` (whitelisting the `AarohmmWalkthrough` identifier); `backend/scripts/migrate_brand_content.py` gained Aaroviah rules — dry-run reported 0 stored documents needing a rewrite.
+- **Deliberately untouched (user's choice):** `DB_NAME=addrika_db`, `addrika_session_token` / `addrika_cart` / `addrika_wishlist` localStorage keys, object-storage prefix, JWT secret, admin master passwords, `is_addrika_verified_partner`, Expo slug `addrika-mobile`, deep-link scheme `aaroviah`, and the `/why-choose-addrika` SEO redirect. Renaming any of these would drop data, sign everyone out or break installed apps.
