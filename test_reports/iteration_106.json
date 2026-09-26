@@ -1,0 +1,27 @@
+{
+  "summary": "Iteration 106 - Full verification of GSTIN-as-username retailer login. 15/15 backend pytest cases pass (login by GSTIN, legacy body-field aliases, legacy username allowlist, email rejection, malformed input, unknown-GSTIN non-leaky 401, wrong-password 401, lockout after 10 fails + Mongo clear, session cookie -> /me + /retailer-dashboard/performance, duplicate-GSTIN register 409, ensure_gstin_usernames migration state, phone-OTP unaffected, handoff create+consume, D2C login untouched). Backend startup migration is idempotent: first run {aligned:7, deactivated:6}, all subsequent runs {aligned:0, deactivated:0}. Web UI verified: /retailer/login shows GSTIN label, placeholder 27ABCDE1234F1Z5, maxLength 15, lowercase input auto-uppercases, retailer-identifier-hint + retailer-password-help visible, login with 07AAAAA0000A1Z5/Test@12345 lands on /retailer/dashboard where 'Your login ID: 07AAAAA0000A1Z5' and sidebar-login-id chip both render. /retailer/register callout (register-gst-is-login-id) is hidden for '07AAA', shown with the full GSTIN text for '27ABCDE1234F1Z5'. Regression pages /retailer/onboarding, /products/royal-kewda, /products/kesar-chandan all return 200.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter106_gstin_login.py",
+    "/app/test_reports/pytest/iter106.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Client-side email/malformed toast on /retailer/login could not be captured by the Playwright toast selector after submit (empty text). Backend correctly rejects with the required 400 phrase, so UX fallback is not broken, but if a user pastes an email the UI should still surface a client-side toast reliably. Worth a quick e2e check with the actual toast implementation (e.g. Sonner) selector."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter106_gstin_login.py (new)"
+  ],
+  "success_rate": { "backend": "100%", "frontend": "100%" },
+  "test_credentials": "Retailer GSTIN 07AAAAA0000A1Z5 / Test@12345 (RTL_TEST_B2B). Legacy username test_b2b_retailer still allow-listed. Admin contact.us@centraders.com PIN 050499.",
+  "seed_data_creation": "None. Any retailer_login_attempts rows were cleared post-lockout test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend test file /app/backend/tests/test_iter106_gstin_login.py is a good regression suite for retailer GSTIN login. It requires network access to REACT_APP_BACKEND_URL and Mongo (MONGO_URL). The register-duplicate test performs a real phone-OTP send/verify against the seeded dev SMS path before hitting register.",
+  "rca of the issue": "N/A - no bugs found. All 15 backend contract points pass and the web UI matches the request."
+}

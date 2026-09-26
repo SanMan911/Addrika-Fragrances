@@ -169,3 +169,9 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **DONE**: Live stock-change webhooks (stock.changed/low/out) fired from adjust_stock, HMAC-signed, admin-managed at /admin/stock-webhooks (register/test/pause/delete + delivery log). For Field Sales Manager etc. — real-time low-stock alerts, no polling.
 - **DONE (queued)**: EAS Android preview build initiated for the updated Aaroviah app (registration + OTP login). Build URL: https://expo.dev/accounts/sanman911/projects/addrika-mobile/builds/4d504f85-3185-434e-9cd4-1ee48a49ae29
 - **IMPORTANT**: Mobile app targets the Render production backend (app.json apiBaseUrl). Deploy backend (OTP/registration/webhook/external-API changes) to Render so the built app's new screens work in production.
+
+### Update 2026-06-26 (Iter105 + Iter106)
+- **DONE (iter105)**: D2C out-of-stock UI corrected on the PDP and the product grid. Root cause of the earlier false failures: the web app runs as a PRODUCTION `next start` build with NO hot reload (see `memory/ENV_NOTES.md`).
+- **DONE (iter106)**: Retailer onboarding walkthrough (`/retailer/onboarding`, animated 60s, public), "Only X left" low-stock nudge (≤12 pieces), approval-gated Notify-Me restock alerts (`/admin/notify-me`), blog newsletter capture verified.
+- **DONE (iter106)**: **GSTIN is now the retailer username for ALL B2B accounts.** Email no longer logs a retailer in — it is recovery/comms only. Duplicate GSTIN registration is hard-blocked; accounts with no GSTIN were deactivated; `RTL_TEST_B2B`'s legacy username stays allowlisted. Login has a 10-fail / 15-minute lockout per GSTIN.
+- **OPEN**: Retailer self-serve password reset (recovery is currently a manual email to contact.us@centraders.com), Vercel redeploy (code verified deploy-ready — `yarn build` + `yarn ci` clean — NOT deployed on purpose), Twilio Verify still in DEV mode pending real credentials.
