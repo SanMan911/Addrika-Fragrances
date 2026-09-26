@@ -20,6 +20,7 @@ from services.stock_webhooks import (
     recent_deliveries,
     send_test_event,
     toggle_webhook,
+    update_webhook,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,20 @@ class ToggleBody(BaseModel):
     is_active: bool
 
 
+class UpdateWebhookBody(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=120)
+    url: Optional[str] = Field(None, min_length=8, max_length=500)
+    events: Optional[list[str]] = None
+    threshold_cartons: Optional[float] = Field(None, ge=0)
+
+    @field_validator("url")
+    @classmethod
+    def _valid_url(cls, v):
+        if v is not None and not _URL_RE.match(v.strip()):
+            raise ValueError("URL must start with http:// or https://")
+        return v.strip() if v is not None else v
+
+
 @router.get("")
 async def get_webhooks(request: Request, session_token: Optional[str] = Cookie(None)):
     await require_admin(request, session_token)
@@ -64,6 +79,21 @@ async def add_webhook(body: CreateWebhookBody, request: Request, session_token: 
     )
     logger.info(f"Stock webhook created: {created['id']} ({created['name']}) by {admin.get('email')}")
     return created  # includes one-time secret
+
+
+@router.patch("/{webhook_id}")
+async def edit_webhook(webhook_id: str, body: UpdateWebhookBody, request: Request, session_token: Optional[str] = Cookie(None)):
+    await require_admin(request, session_token)
+    updated = await update_webhook(
+        webhook_id,
+        name=body.name,
+        url=body.url,
+        events=body.events,
+        threshold_cartons=body.threshold_cartons,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Webhook not found")
+    return updated
 
 
 @router.post("/{webhook_id}/toggle")

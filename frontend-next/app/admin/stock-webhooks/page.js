@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Webhook, Plus, RefreshCw, Copy, Trash2, Send, Power, PowerOff, ShieldCheck, X, Activity,
+  Webhook, Plus, RefreshCw, Copy, Trash2, Send, Power, PowerOff, ShieldCheck, X, Activity, Pencil, Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
@@ -26,6 +26,11 @@ export default function StockWebhooksPage() {
   const [url, setUrl] = useState('');
   const [threshold, setThreshold] = useState('1');
   const [events, setEvents] = useState([...ALL_EVENTS]);
+
+  const [editingId, setEditingId] = useState(null);
+  const [editUrl, setEditUrl] = useState('');
+  const [editThreshold, setEditThreshold] = useState('1');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -103,6 +108,33 @@ export default function StockWebhooksPage() {
       toast.success('Webhook deleted');
       load();
     } catch (e) { toast.error(e.message); }
+  };
+
+  const startEdit = (w) => {
+    setEditingId(w.id);
+    setEditUrl(w.url || '');
+    setEditThreshold(String(w.threshold_cartons ?? 1));
+  };
+
+  const saveEdit = async (id) => {
+    if (!/^https?:\/\//i.test(editUrl.trim())) { toast.error('Enter a valid http(s) URL'); return; }
+    setSavingEdit(true);
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/stock-webhooks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: editUrl.trim(), threshold_cartons: parseFloat(editThreshold) || 1 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Update failed');
+      toast.success('Webhook updated (secret unchanged)');
+      setEditingId(null);
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   return (
@@ -190,7 +222,8 @@ export default function StockWebhooksPage() {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-slate-700">
             {items.map((w) => (
-              <div key={w.id} className="px-5 py-4 flex items-center justify-between gap-4 flex-wrap" data-testid={`webhook-row-${w.id}`}>
+              <div key={w.id} className="px-5 py-4" data-testid={`webhook-row-${w.id}`}>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-[#1e3a52] dark:text-slate-100">{w.name}</span>
@@ -211,6 +244,9 @@ export default function StockWebhooksPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button onClick={() => startEdit(w)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 text-sm hover:bg-gray-50 dark:hover:bg-slate-700" data-testid={`webhook-edit-${w.id}`}>
+                    <Pencil className="w-4 h-4" /> Edit
+                  </button>
                   <button onClick={() => test(w.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D4AF37] text-[#8a6d1f] dark:text-[#D4AF37] text-sm hover:bg-amber-50 dark:hover:bg-slate-700" data-testid={`webhook-test-${w.id}`}>
                     <Send className="w-4 h-4" /> Test
                   </button>
@@ -221,6 +257,28 @@ export default function StockWebhooksPage() {
                     <Trash2 className="w-4 h-4" /> Delete
                   </button>
                 </div>
+                </div>
+                {editingId === w.id && (
+                  <div className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 flex flex-wrap items-end gap-3" data-testid={`webhook-edit-panel-${w.id}`}>
+                    <div className="flex-1 min-w-[220px]">
+                      <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1">Endpoint URL</label>
+                      <input value={editUrl} onChange={(e) => setEditUrl(e.target.value)} placeholder="https://your-app.com/webhooks/stock"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[#1e3a52] dark:text-slate-100 focus:border-[#D4AF37] outline-none" data-testid={`webhook-edit-url-${w.id}`} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1">Low at (cartons)</label>
+                      <input type="number" min="0" step="0.5" value={editThreshold} onChange={(e) => setEditThreshold(e.target.value)}
+                        className="w-20 px-2 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-[#1e3a52] dark:text-slate-100" data-testid={`webhook-edit-threshold-${w.id}`} />
+                    </div>
+                    <button onClick={() => saveEdit(w.id)} disabled={savingEdit} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1e3a52] text-white text-sm font-semibold disabled:opacity-50" data-testid={`webhook-edit-save-${w.id}`}>
+                      <Save className="w-4 h-4" /> {savingEdit ? 'Saving…' : 'Save'}
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 text-sm">
+                      <X className="w-4 h-4" /> Cancel
+                    </button>
+                    <p className="w-full text-xs text-gray-400 dark:text-slate-500">Editing keeps the same signing secret — just point it at your real endpoint and Enable it.</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

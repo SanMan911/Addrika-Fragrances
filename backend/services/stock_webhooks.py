@@ -122,6 +122,29 @@ async def toggle_webhook(webhook_id: str, is_active: bool) -> bool:
     return res.matched_count > 0
 
 
+async def update_webhook(webhook_id: str, *, name=None, url=None, events=None, threshold_cartons=None) -> Optional[dict]:
+    """Edit an existing webhook's name/url/events/threshold WITHOUT rotating its
+    secret (so you can point it at the real endpoint later and just flip it on)."""
+    updates: dict = {}
+    if name is not None:
+        updates["name"] = str(name).strip()[:120]
+    if url is not None:
+        updates["url"] = str(url).strip()
+    if events is not None:
+        valid = [e for e in events if e in ALL_EVENTS]
+        updates["events"] = valid or DEFAULT_EVENTS
+    if threshold_cartons is not None:
+        updates["threshold_cartons"] = float(threshold_cartons)
+    if not updates:
+        doc = await db.stock_webhooks.find_one({"id": webhook_id}, {"_id": 0})
+        return _public(doc) if doc else None
+    res = await db.stock_webhooks.update_one({"id": webhook_id}, {"$set": updates})
+    if res.matched_count == 0:
+        return None
+    doc = await db.stock_webhooks.find_one({"id": webhook_id}, {"_id": 0})
+    return _public(doc)
+
+
 async def delete_webhook(webhook_id: str) -> bool:
     res = await db.stock_webhooks.delete_one({"id": webhook_id})
     return res.deleted_count > 0
