@@ -1307,3 +1307,9 @@ Fix: `CSRSection.js` now fetches `/api/impact/trees` and renders the exact live 
 - **EAS build**: installed eas-cli 24.7.0; aligned `mobile/app.json` slug → `addrika-mobile` to match the existing EAS project. Queued Android **preview** APK build (internal distribution, existing remote keystore). Build: https://expo.dev/accounts/sanman911/projects/addrika-mobile/builds/4d504f85-3185-434e-9cd4-1ee48a49ae29
   - NOTE: the built app points at the Render production backend (`app.json extra.apiBaseUrl`), so the new OTP/registration endpoints must be deployed to Render for the app's new screens to work in production.
 - **Side fix**: `frontend-next/app/account/page.js` used `BRAND` without importing it (latent ReferenceError) — added `import BRAND from '../../lib/brand.config'`.
+
+## Iter104 — FSM webhook pre-wired (paused) + webhook Edit endpoint — 2026-09-21
+- **Webhook Edit**: added `PATCH /api/admin/stock-webhooks/{id}` + `update_webhook()` — edit name/url/events/threshold WITHOUT rotating the signing secret. Admin UI got a per-row "Edit" panel (URL + threshold, Save/Cancel).
+- **FSM pre-wire**: created a "Field Sales Manager" webhook, PAUSED (is_active=false), placeholder URL `https://fsm.example.invalid/webhooks/stock`, all 3 events, 1-carton threshold, secret `whsec_uYgE5hdrGaTgGp9V2FHta3rFt45MlwbKOfX1B0PPeR0`. When the real FSM endpoint exists: Edit the URL, then Enable — no secret change.
+- **Signature proof**: verified HMAC-SHA256 `X-Addrika-Signature` end-to-end via a throwaway webhook + local receiver (SIGNATURE VALID: True), then deleted it. Cleared internal test delivery logs + reset FSM last_status so the panel is pristine.
+- NOTE: webhook receiver test script must live under /root (or /app) — /tmp is wiped on pod inactivity.
