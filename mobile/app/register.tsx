@@ -212,8 +212,10 @@ export default function RegisterScreen() {
         </View>
 
         <Text style={styles.label}>GSTIN*</Text>
-        <TextInput testID="reg-gst" style={styles.input} value={gst} onChangeText={(t) => setGst(t.toUpperCase())} autoCapitalize="characters" maxLength={15} placeholder="15-character GST number" placeholderTextColor="#a89f8b" />
-
+        <TextInput testID="reg-gst" style={styles.input} value={gst} onChangeText={(t) => setGst(t.toUpperCase())} autoCapitalize="characters" maxLength={15} placeholder="27ABCDE1234F1Z5" placeholderTextColor="#a89f8b" />
+        <Text style={styles.hint} testID="reg-gst-is-login-id">
+          This GSTIN is your login ID — you&apos;ll sign in with it on the app and the website.
+        </Text>
         <Text style={styles.label}>GST certificate*</Text>
         <Pressable testID="reg-cert-pick" onPress={pickCertificate} style={({ pressed }) => [styles.fileBtn, pressed && styles.pressed]}>
           <Text style={styles.fileBtnText} numberOfLines={1}>
@@ -278,6 +280,7 @@ const styles = StyleSheet.create({
   ctaText: { color: '#d4af37', fontWeight: '700', fontSize: 15, letterSpacing: 1 },
   pressed: { opacity: 0.85 },
   note: { fontSize: 11, color: '#8a8272', marginTop: 14, lineHeight: 16, fontStyle: 'italic', textAlign: 'center' },
+  hint: { fontSize: 11, color: '#8a6d1f', marginTop: 6, lineHeight: 15 },
   linkBtn: { alignItems: 'center', paddingVertical: 8, marginTop: 6 },
   link: { color: '#1e3a52', fontWeight: '700', fontSize: 14 },
   help: { color: '#8a6d1f', fontWeight: '600', fontSize: 13 },

@@ -150,7 +150,7 @@ async def admin_create_retailer(
         "trade_name": retailer_data.trade_name or retailer_data.business_name,
         "gst_number": retailer_data.gst_number,
         "gst_state_code": retailer_data.gst_number[:2],
-        "username": retailer_data.username.lower() if retailer_data.username else None,
+        "username": retailer_data.gst_number,  # GSTIN is the login username
         "email": retailer_data.email.lower(),
         "phone_country_code": retailer_data.phone_country_code or '+91',
         "phone": retailer_data.phone,

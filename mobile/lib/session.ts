@@ -98,9 +98,8 @@ export function useSessionState(): SessionContextValue {
   }, []);
 
   const loginRetailer = useCallback(async (identifier: string, password: string) => {
-    const body = identifier.includes('@')
-      ? { email: identifier, password }
-      : { username: identifier, password };
+    // GSTIN is the retailer username for every B2B account.
+    const body = { gstin: identifier.trim().toUpperCase(), password };
     const data = await apiFetch<{ token: string; retailer: { name: string; email: string } }>(
       '/api/retailer-auth/login',
       { method: 'POST', body: JSON.stringify(body) }

@@ -76,6 +76,15 @@ export default function RetailerDashboardPage() {
             Welcome, {retailer?.store_name || retailer?.storeName || 'Partner'}!
           </h1>
           <p className="text-gray-500 mt-1">Here&apos;s your store performance at a glance</p>
+          {(retailer?.gst_number || retailer?.username) && (
+            <p className="text-xs text-gray-500 mt-2" data-testid="retailer-login-id">
+              Your login ID:{' '}
+              <span className="font-mono tracking-wider font-semibold text-[#2B3A4A]">
+                {retailer.gst_number || retailer.username}
+              </span>
+              <span className="text-gray-400"> · sign in with your GSTIN</span>
+            </p>
+          )}
         </div>
         <button
           onClick={fetchData}

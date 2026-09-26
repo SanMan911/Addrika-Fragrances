@@ -185,7 +185,9 @@ function RetailerLayoutInner({ children }) {
           {retailer && (
             <div className="mb-4 px-4">
               <p className="text-white font-medium truncate">{retailer.store_name || retailer.storeName}</p>
-              <p className="text-white/60 text-sm truncate">{retailer.email}</p>
+              <p className="text-white/60 text-xs font-mono tracking-wider truncate" data-testid="sidebar-login-id">
+                {retailer.gst_number || retailer.username || retailer.email}
+              </p>
             </div>
           )}
           <button
