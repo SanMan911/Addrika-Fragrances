@@ -12,6 +12,13 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const isComingSoon = product.comingSoon === true;
+  // Shared inventory: `stock` per size. Number = tracked; undefined = not tracked.
+  const trackedSizes = (product.sizes || []).filter(s => typeof s.stock === 'number');
+  const isOutOfStock =
+    !isComingSoon &&
+    trackedSizes.length > 0 &&
+    trackedSizes.length === (product.sizes || []).length &&
+    trackedSizes.every(s => s.stock <= 0);
   
   // Get all images from all sizes
   const allImages = useMemo(() => {
@@ -105,12 +112,13 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
         <div 
           className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm"
           style={{ 
-            background: isComingSoon ? 'rgba(168,85,247,0.8)' : 'rgba(26,26,46,0.8)',
-            color: isComingSoon ? 'white' : '#D4AF37',
-            border: isComingSoon ? '1px solid rgba(168,85,247,0.5)' : '1px solid rgba(212,175,55,0.3)'
+            background: isComingSoon ? 'rgba(168,85,247,0.8)' : isOutOfStock ? 'rgba(244,63,94,0.85)' : 'rgba(26,26,46,0.8)',
+            color: isComingSoon || isOutOfStock ? 'white' : '#D4AF37',
+            border: isComingSoon ? '1px solid rgba(168,85,247,0.5)' : isOutOfStock ? '1px solid rgba(244,63,94,0.5)' : '1px solid rgba(212,175,55,0.3)'
           }}
+          data-testid={isOutOfStock ? `product-oos-badge-${product.id}` : `product-badge-${product.id}`}
         >
-          {isComingSoon ? 'Coming Soon' : product.type === 'dhoop' ? 'Dhoop' : product.type === 'bakhoor' ? 'Bakhoor' : 'Agarbatti'}
+          {isComingSoon ? 'Coming Soon' : isOutOfStock ? 'Out of Stock' : product.type === 'dhoop' ? 'Dhoop' : product.type === 'bakhoor' ? 'Bakhoor' : 'Agarbatti'}
         </div>
 
         {/* Action Buttons */}
