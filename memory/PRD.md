@@ -187,3 +187,9 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **DONE**: All 5 security-audit findings remediated and verified (unauthenticated pickup completion + hard-coded master password, public retailer PII/GSTIN leak, admin PIN-recovery backdoor, fail-closed JWT/PIN secrets, external-API scoping + rate limits + webhook SSRF). Dev-OTP echo now gated behind `ALLOW_DEV_OTP` (must remain UNSET in production). Retailer password policy + strength meter added.
 - **DONE**: GSTIN login-ID notice emailed to the 2 real retailers; mobile app.json bumped to 0.2.0 / versionCode 2 for the Aarohmm store rename build.
 - **OPEN (P1)**: run `eas build` for the renamed app; **OPEN (P2)**: WhatsApp/Instagram restock broadcast (needs API credentials); Twilio Verify still DEV-mode.
+
+### Update 2026-06-27 (Iter109 — Render deploy blocker)
+- **DONE**: Removed `emergentintegrations==0.1.0` from `backend/requirements.txt` (private-CDN-only package that broke Render's `pip install`). Removed `PIP_EXTRA_INDEX_URL` from `render.yaml`. **All 150 remaining pins verified resolvable from public PyPI.** No functional replacement required — nothing imported the SDK; `services/object_storage.py` already uses plain `requests` + `EMERGENT_LLM_KEY` and was verified working (put/get round trip).
+- **DONE**: Deleted stale `backend/tests/test_store_pickup_hybrid_verification.py` (iter108 action item) so CI stays green.
+- **Regression**: 23/23 iter108 security tests, GSTIN login, FSM external API all green (`/app/test_reports/iteration_109.json`).
+- **OPEN (user action)**: push to GitHub via "Save to Github", then redeploy on Render; `eas build` for the renamed Aarohmm app; WhatsApp/Instagram restock broadcast (needs paid API creds); Twilio Verify still DEV-mode.

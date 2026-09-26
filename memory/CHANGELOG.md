@@ -1373,3 +1373,15 @@ Verified: `/app/test_reports/iteration_108.json` — 23/23 security tests pass, 
 - **GSTIN login-ID notice SENT** (user approved): delivered to M.G. Shoppie (07AAKCC0327P1ZF) and Mela Stores (10AAJFM6283C1ZL). The 2 remaining pending rows are `@example.com` test accounts that Resend rejects — they stay retry-able.
 - **Mobile rename build prep** — `app.json`: version 0.2.0, android versionCode 2, display name Aarohmm (slug/scheme/bundle IDs deliberately unchanged). User runs `eas build -p android --profile preview` from `/app/mobile`.
 - **Deferred by user**: WhatsApp/Instagram restock broadcast (needs paid API credentials) — keep on the backlog. Low-stock nudge stays at 12 pieces. Vercel deploy is done manually by the user.
+
+## Iter109 — Render deploy blocker: dropped `emergentintegrations` (PyPI-only deps) — 2026-06-27
+Verified: `/app/test_reports/iteration_109.json` — 100% backend pass, 0 issues, 0 action items.
+
+- **Root cause**: `backend/requirements.txt` pinned `emergentintegrations==0.1.0`, which is published only on Emergent's private CDN (`d33sy5i8bnduwe.cloudfront.net`) and does **not** exist on public PyPI. Render's build ran plain `pip install -r requirements.txt` and failed to resolve it.
+- **Fix**: removed the `emergentintegrations==0.1.0` pin; removed the `PIP_EXTRA_INDEX_URL` env var (and its comment) from `/app/render.yaml`. Repo-wide grep for `emergentintegrations` and `d33sy5i8bnduwe.cloudfront.net` now returns **0 hits**.
+- **No functional replacement was needed** — no Python module ever imported the SDK. The only Emergent-branded feature, `services/object_storage.py`, already talks to `https://integrations.emergentagent.com/objstore/api/v1/storage` over the plain `requests` package using `EMERGENT_LLM_KEY`. Testing agent confirmed a full `put_object` → `get_object` round trip (34 bytes, content-type preserved).
+- **All 150 remaining pins verified present on public PyPI** (PyPI JSON API check, 0 failures). Backend boots clean — no ImportError/ModuleNotFoundError.
+- **Regressions re-run green**: 23/23 iter108 security-audit tests, GSTIN retailer login (+ email rejection), FSM external API `/ping` and `/stock`, `ALLOW_DEV_OTP` gate intact, brand audit still Aarohmm.
+- **CI hygiene**: deleted the stale `backend/tests/test_store_pickup_hybrid_verification.py` (asserted the master-password path removed in SEC-001). Nothing else imports it.
+- **Test-harness change by testing agent**: `tests/test_iter108_security_audit.py` `BASE_URL` is now `os.environ.get("TEST_BASE_URL", "http://localhost:8001")` — Mongo-seeding tests must run against the local pod; override the env var to point elsewhere.
+- **NEXT (user action)**: push to GitHub via the **"Save to Github"** button in the chat input, then trigger the Render redeploy.
