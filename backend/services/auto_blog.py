@@ -189,7 +189,7 @@ async def _pick_topic(db, cycle_count: int) -> dict:
 # ---------------------------------------------------------------------------
 # Text generation — Gemini 2.0 Flash via direct REST (free tier)
 # ---------------------------------------------------------------------------
-SYSTEM_PROMPT = """You are the senior content editor for Addrika, a premium small-batch, charcoal-free agarbatti & dhoop brand made in Delhi (centraders.com).
+SYSTEM_PROMPT = """You are the senior content editor for AAROHMM, a premium small-batch, charcoal-free agarbatti & dhoop brand made in Delhi (centraders.com).
 
 Voice:
 - Warm, knowledgeable, gently poetic. Uses Indian English. Familiar with Vastu, Ayurveda, festivals, and ritual.
@@ -198,13 +198,13 @@ Voice:
 
 Constraints:
 - 900-1300 word body in clean Markdown (use ##, ###, **, lists, > blockquotes).
-- Mention Addrika products by name where natural. Never invent claims.
+- Mention AAROHMM products by name where natural. Never invent claims.
 - Always include a 4-6 question FAQ section at the end (under "## Frequently Asked Questions" with each Q as ###).
 - The article must be SEO-strong (keyword-rich H2s, internal-link suggestions to /products, /our-story, /blog) AND GEO-friendly (clearly-cited facts, simple Q&A structure that LLM search engines can quote).
 
 You always respond with strict JSON matching the requested schema. NO preamble, NO markdown code fences."""
 
-USER_TEMPLATE = """Write today's blog post for Addrika.
+USER_TEMPLATE = """Write today's blog post for AAROHMM.
 
 Topic source: {source}
 {seed_section}
@@ -495,7 +495,7 @@ async def run_one_cycle(db, force: bool = False, admin_email: str = "system:auto
         "content": md_to_html(gen["content"]),
         "tags": gen.get("tags") or [],
         "author_id": "auto-blog",
-        "author_name": "Addrika Editorial",
+        "author_name": "AAROHMM Editorial",
         "is_published": is_published,
         "views": 0,
         "created_at": now,
@@ -634,10 +634,10 @@ def _build_jsonld(gen: dict, slug: str, topic: dict, hero_path: Optional[str], p
         "image": [image_url],
         "datePublished": datetime.now(timezone.utc).isoformat(),
         "dateModified": datetime.now(timezone.utc).isoformat(),
-        "author": {"@type": "Organization", "name": "Addrika"},
+        "author": {"@type": "Organization", "name": "AAROHMM"},
         "publisher": {
             "@type": "Organization",
-            "name": "Addrika",
+            "name": "AAROHMM",
             "logo": {"@type": "ImageObject", "url": f"{base}/logo.png"},
         },
         "mainEntityOfPage": {"@type": "WebPage", "@id": f"{base}/blog/{slug}"},

@@ -1,4 +1,4 @@
-"""Public route to download the Addrika tri-fold product brochure as PDF."""
+"""Public route to download the AAROHMM tri-fold product brochure as PDF."""
 from datetime import datetime, timezone
 
 from fastapi import APIRouter

@@ -1,5 +1,5 @@
 """
-Gift Code API Routes for Addrika
+Gift Code API Routes for AAROHMM
 Admin endpoints for birthday/anniversary/festival gift code management
 """
 from fastapi import APIRouter, HTTPException, Request, Cookie, Depends

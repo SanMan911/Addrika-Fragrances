@@ -33,7 +33,7 @@ from reportlab.platypus import (
 
 SELLER_INFO = {
     "name": os.environ.get("SELLER_NAME", "Centsibl Traders"),
-    "brand": os.environ.get("SELLER_BRAND", "Addrika"),
+    "brand": os.environ.get("SELLER_BRAND", "AAROHMM"),
     "address": os.environ.get(
         "SELLER_ADDRESS",
         "H-1/5, Sector 16, Rohini, Delhi - 110089, India",

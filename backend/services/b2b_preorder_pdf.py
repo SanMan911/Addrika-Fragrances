@@ -37,7 +37,7 @@ def build_preorder_receipt_pdf(order: dict, retailer: dict) -> bytes:
         buf, pagesize=A4,
         leftMargin=15 * mm, rightMargin=15 * mm,
         topMargin=15 * mm, bottomMargin=15 * mm,
-        title=f"Addrika · Pre-Order Receipt · {order.get('order_id')}",
+        title=f"AAROHMM · Pre-Order Receipt · {order.get('order_id')}",
     )
     styles = getSampleStyleSheet()
     h1 = ParagraphStyle("h1", parent=styles["Heading1"], fontSize=18,

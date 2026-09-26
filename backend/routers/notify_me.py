@@ -108,7 +108,7 @@ async def admin_send_blast(product_id: str, admin=Depends(require_admin)):
                 <table width="100%" cellpadding="0" cellspacing="0"
                        style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">
                     <tr><td style="background:#1e3a52;padding:24px;text-align:center;">
-                        <h1 style="color:#d4af37;margin:0;letter-spacing:2px;">ADDRIKA</h1>
+                        <h1 style="color:#d4af37;margin:0;letter-spacing:2px;">AAROHMM</h1>
                         <p style="color:#fff;margin:6px 0 0;font-size:13px;">It's available!</p>
                     </td></tr>
                     <tr><td style="padding:24px;">
@@ -119,7 +119,7 @@ async def admin_send_blast(product_id: str, admin=Depends(require_admin)):
                             <strong>{name}</strong> just landed on our shelf and is ready to ship.
                         </p>
                         <p style="text-align:center;margin:24px 0;">
-                            <a href="https://addrika.com/products/{product_id}"
+                            <a href="https://centraders.com/products/{product_id}"
                                style="background:#d4af37;color:#1e3a52;padding:12px 28px;border-radius:8px;
                                       text-decoration:none;font-weight:bold;">
                                 Shop now

@@ -65,7 +65,7 @@ DEFAULT_CONFIG_ROW = {
     "telegram": {
         "enabled": False,
         "bot_token": "",             # from @BotFather
-        "channel_id": "",            # "@addrikaofficial" or -100...
+        "channel_id": "",            # "@aarohmmofficial" or -100...
         "endpoint": "https://api.telegram.org",
     },
     "whatsapp": {

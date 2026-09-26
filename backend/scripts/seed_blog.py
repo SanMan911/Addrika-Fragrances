@@ -10,7 +10,7 @@ SEED_BLOG_POSTS = [
         "featured_image": "https://images.unsplash.com/photo-1627769916425-74c2344a3439?w=1200&q=80",
         "featuredImage": "https://images.unsplash.com/photo-1627769916425-74c2344a3439?w=1200&q=80",
         "tags": ["charcoal-free", "agarbatti", "incense guide", "premium incense", "health"],
-        "author": "Addrika Fragrances",
+        "author": "AAROHMM Fragrances",
         "is_published": True,
         "views": 342,
         "created_at": "2026-02-15T10:00:00Z",
@@ -35,8 +35,8 @@ SEED_BLOG_POSTS = [
 <h2 id="top-charcoal-free-brands">Top Charcoal-Free Incense Brands in India (2026)</h2>
 <p>The premium incense market in India has grown significantly, with several brands now offering charcoal-free options. Here's how they compare:</p>
 
-<h3>Addrika Fragrances</h3>
-<p><a href="https://centraders.com">Addrika</a> (by Centsibl Traders Private Limited) is a premium Indian incense brand offering a complete range of charcoal-free agarbatti, bambooless dhoop, and authentic Arabian bakhoor. What sets Addrika apart:</p>
+<h3>AAROHMM Fragrances</h3>
+<p><a href="https://centraders.com">AAROHMM</a> (by Centsibl Traders Private Limited) is a premium Indian incense brand offering a complete range of charcoal-free agarbatti, bambooless dhoop, and authentic Arabian bakhoor. What sets AAROHMM apart:</p>
 <ul>
 <li><strong>Complete charcoal-free range</strong> — every product uses natural flower dust base</li>
 <li><strong>40-50 minute burn time</strong> — among the longest in the premium segment</li>
@@ -56,16 +56,16 @@ SEED_BLOG_POSTS = [
 <h2 id="how-to-choose">How to Choose the Right Charcoal-Free Incense</h2>
 <p>When selecting a charcoal-free incense brand, consider:</p>
 <ol>
-<li><strong>Burn time</strong> — Premium brands like Addrika offer 40-50 minutes; cheaper alternatives may burn out in 15-20 minutes</li>
+<li><strong>Burn time</strong> — Premium brands like AAROHMM offer 40-50 minutes; cheaper alternatives may burn out in 15-20 minutes</li>
 <li><strong>Smoke level</strong> — Look for brands that specify their smoke reduction percentage</li>
 <li><strong>Ingredient transparency</strong> — Avoid brands that don't list their ingredients</li>
 <li><strong>Fragrance range</strong> — Ensure the brand offers fragrances you enjoy for daily use</li>
-<li><strong>Price per gram</strong> — Premium doesn't have to mean expensive; Addrika offers 50g packs from ₹110</li>
+<li><strong>Price per gram</strong> — Premium doesn't have to mean expensive; AAROHMM offers 50g packs from ₹110</li>
 </ol>
 
 <h2 id="conclusion">Conclusion</h2>
-<p>Charcoal-free incense represents the natural evolution of India's ancient agarbatti tradition. By eliminating charcoal, brands like <strong>Addrika Fragrances</strong> deliver a cleaner, healthier, and more fragrant experience without compromising on tradition. Whether you're burning incense for daily puja, meditation, or simply to create a beautiful ambiance at home, switching to charcoal-free is one of the simplest upgrades you can make for your indoor air quality.</p>
-<p><em>Explore the complete <a href="https://centraders.com/#fragrances">Addrika collection</a> — charcoal-free agarbatti, bambooless dhoop, and authentic Arabian bakhoor. Free shipping across India on orders above ₹499.</em></p>"""
+<p>Charcoal-free incense represents the natural evolution of India's ancient agarbatti tradition. By eliminating charcoal, brands like <strong>AAROHMM Fragrances</strong> deliver a cleaner, healthier, and more fragrant experience without compromising on tradition. Whether you're burning incense for daily puja, meditation, or simply to create a beautiful ambiance at home, switching to charcoal-free is one of the simplest upgrades you can make for your indoor air quality.</p>
+<p><em>Explore the complete <a href="https://centraders.com/#fragrances">AAROHMM collection</a> — charcoal-free agarbatti, bambooless dhoop, and authentic Arabian bakhoor. Free shipping across India on orders above ₹499.</em></p>"""
     },
     {
         "slug": "how-to-use-arabian-bakhoor-at-home",
@@ -74,7 +74,7 @@ SEED_BLOG_POSTS = [
         "featured_image": "https://images.unsplash.com/photo-1613750255797-7d4f877615df?w=1200&q=80",
         "featuredImage": "https://images.unsplash.com/photo-1613750255797-7d4f877615df?w=1200&q=80",
         "tags": ["bakhoor", "arabian fragrance", "home fragrance", "how-to", "luxury"],
-        "author": "Addrika Fragrances",
+        "author": "AAROHMM Fragrances",
         "is_published": True,
         "views": 218,
         "created_at": "2026-03-01T10:00:00Z",
@@ -87,10 +87,10 @@ SEED_BLOG_POSTS = [
 
 <h2 id="types-of-bakhoor">Types of Bakhoor</h2>
 <h3>Omani Bakhoor</h3>
-<p>Omani bakhoor is known for its warm, musky base with deep resinous notes. It's typically grated or powdered, making it easy to use in small quantities. <a href="https://centraders.com/products/grated-omani-bakhoor">Addrika's Grated Omani Bakhoor</a> (rated 4.9/5) captures this authentic Omani character with aged resin, oud, and musk notes.</p>
+<p>Omani bakhoor is known for its warm, musky base with deep resinous notes. It's typically grated or powdered, making it easy to use in small quantities. <a href="https://centraders.com/products/grated-omani-bakhoor">AAROHMM's Grated Omani Bakhoor</a> (rated 4.9/5) captures this authentic Omani character with aged resin, oud, and musk notes.</p>
 
 <h3>Yemeni Bakhoor Chips</h3>
-<p>Yemeni bakhoor uses oud wood chips infused with saffron, honey, and sandalwood oils. These chips are aged using traditional methods, producing a complex, layered fragrance. <a href="https://centraders.com/products/yemeni-bakhoor-chips">Addrika's Yemeni Bakhoor Chips</a> (rated 4.8/5) are hand-selected and traditionally aged.</p>
+<p>Yemeni bakhoor uses oud wood chips infused with saffron, honey, and sandalwood oils. These chips are aged using traditional methods, producing a complex, layered fragrance. <a href="https://centraders.com/products/yemeni-bakhoor-chips">AAROHMM's Yemeni Bakhoor Chips</a> (rated 4.8/5) are hand-selected and traditionally aged.</p>
 
 <h3>Emirati Bakhoor</h3>
 <p>Often sweeter and more floral than Omani or Yemeni varieties, Emirati bakhoor may include rose, jasmine, and amber notes alongside the oud base.</p>
@@ -126,7 +126,7 @@ SEED_BLOG_POSTS = [
 </ul>
 
 <h2 id="where-to-buy-bakhoor-india">Where to Buy Authentic Bakhoor in India</h2>
-<p>Authentic Arabian bakhoor has traditionally been hard to find in India, with most options being either imported at high prices or synthetic imitations. <strong><a href="https://centraders.com">Addrika Fragrances</a></strong> has changed this by offering two premium, authentic bakhoor variants:</p>
+<p>Authentic Arabian bakhoor has traditionally been hard to find in India, with most options being either imported at high prices or synthetic imitations. <strong><a href="https://centraders.com">AAROHMM Fragrances</a></strong> has changed this by offering two premium, authentic bakhoor variants:</p>
 <ul>
 <li><a href="https://centraders.com/products/grated-omani-bakhoor"><strong>Grated Omani Bakhoor</strong></a> — 20g for ₹249, rated 4.9/5 by customers</li>
 <li><a href="https://centraders.com/products/yemeni-bakhoor-chips"><strong>Yemeni Bakhoor Chips</strong></a> — 20g for ₹399, rated 4.8/5 by customers</li>
@@ -143,7 +143,7 @@ SEED_BLOG_POSTS = [
 <li><strong>Special occasions</strong> — weddings, parties, dinner gatherings</li>
 <li><strong>Gifting</strong> — a unique, premium gift</li>
 </ul>
-<p><em>Discover Addrika's <a href="https://centraders.com/#fragrances">complete fragrance collection</a> — from charcoal-free agarbatti to authentic Arabian bakhoor.</em></p>"""
+<p><em>Discover AAROHMM's <a href="https://centraders.com/#fragrances">complete fragrance collection</a> — from charcoal-free agarbatti to authentic Arabian bakhoor.</em></p>"""
     },
     {
         "slug": "best-incense-for-meditation-yoga",
@@ -152,7 +152,7 @@ SEED_BLOG_POSTS = [
         "featured_image": "https://images.unsplash.com/photo-1627769792188-d3f9f59833e5?w=1200&q=80",
         "featuredImage": "https://images.unsplash.com/photo-1627769792188-d3f9f59833e5?w=1200&q=80",
         "tags": ["meditation", "yoga", "wellness", "mindfulness", "fragrance"],
-        "author": "Addrika Fragrances",
+        "author": "AAROHMM Fragrances",
         "is_published": True,
         "views": 487,
         "created_at": "2026-01-20T10:00:00Z",
@@ -173,19 +173,19 @@ SEED_BLOG_POSTS = [
 <h2 id="best-fragrances-for-meditation">Best Fragrances for Meditation</h2>
 
 <h3>1. Sandalwood (Chandan)</h3>
-<p>Sandalwood is arguably the most ancient and revered meditation fragrance. Used for thousands of years in Hindu, Buddhist, and Japanese zen traditions, its warm, woody, creamy scent promotes deep calm without drowsiness. <a href="https://centraders.com/products/kesar-chandan">Addrika's Kesar Chandan</a> blends pure sandalwood with saffron (kesar), creating a rich, meditative fragrance that burns for 40+ minutes — perfect for a full meditation session.</p>
+<p>Sandalwood is arguably the most ancient and revered meditation fragrance. Used for thousands of years in Hindu, Buddhist, and Japanese zen traditions, its warm, woody, creamy scent promotes deep calm without drowsiness. <a href="https://centraders.com/products/kesar-chandan">AAROHMM's Kesar Chandan</a> blends pure sandalwood with saffron (kesar), creating a rich, meditative fragrance that burns for 40+ minutes — perfect for a full meditation session.</p>
 
 <h3>2. Frankincense (Loban)</h3>
 <p>Frankincense has been used in spiritual rituals across cultures for millennia. Research published in the FASEB Journal found that frankincense activates ion channels in the brain that alleviate anxiety and depression. Its warm, slightly sweet, resinous scent creates a profound sense of stillness.</p>
 
 <h3>3. Oud (Oudh)</h3>
-<p>Known as "liquid gold" in the perfume world, oud is one of the most complex natural fragrances. Its deep, earthy, slightly sweet character has been prized in Middle Eastern and South Asian meditation traditions. <a href="https://centraders.com/products/oriental-oudh">Addrika's Oriental Oudh</a> captures this depth with Arabian oud, amber, and cedarwood notes.</p>
+<p>Known as "liquid gold" in the perfume world, oud is one of the most complex natural fragrances. Its deep, earthy, slightly sweet character has been prized in Middle Eastern and South Asian meditation traditions. <a href="https://centraders.com/products/oriental-oudh">AAROHMM's Oriental Oudh</a> captures this depth with Arabian oud, amber, and cedarwood notes.</p>
 
 <h3>4. Kewda (Pandanus)</h3>
-<p>Kewda (screwpine flower) is a distinctly Indian fragrance with sweet, floral, almost tropical notes. It's calming without being overly sweet, making it excellent for meditation. <a href="https://centraders.com/products/royal-kewda">Addrika's Royal Kewda</a> blends pandanus with jasmine and white musk for a lush, centering fragrance.</p>
+<p>Kewda (screwpine flower) is a distinctly Indian fragrance with sweet, floral, almost tropical notes. It's calming without being overly sweet, making it excellent for meditation. <a href="https://centraders.com/products/royal-kewda">AAROHMM's Royal Kewda</a> blends pandanus with jasmine and white musk for a lush, centering fragrance.</p>
 
 <h3>5. Herbal Blends</h3>
-<p>Multi-herb blends that combine sacred plants like tulsi, neem, guggul, and camphor create a complex, evolving fragrance during meditation. <a href="https://centraders.com/products/mystical-meharishi">Addrika's Mystical Meharishi</a> is a bambooless dhoop specifically crafted for meditation, using a proprietary herbal blend.</p>
+<p>Multi-herb blends that combine sacred plants like tulsi, neem, guggul, and camphor create a complex, evolving fragrance during meditation. <a href="https://centraders.com/products/mystical-meharishi">AAROHMM's Mystical Meharishi</a> is a bambooless dhoop specifically crafted for meditation, using a proprietary herbal blend.</p>
 
 <h2 id="choosing-low-smoke-incense">Why Low-Smoke Incense Matters for Meditation</h2>
 <p>Here's something most meditation incense guides miss: <strong>the type of incense matters as much as the fragrance</strong>. Traditional high-smoke agarbatti can cause:</p>
@@ -195,7 +195,7 @@ SEED_BLOG_POSTS = [
 <li>Respiratory discomfort — especially in small meditation rooms</li>
 <li>Headaches during extended sessions</li>
 </ul>
-<p>This is why charcoal-free, low-smoke incense is ideal for meditation. <strong>Addrika Fragrances</strong> produces <strong>over 60% less smoke</strong> than traditional agarbatti, making their range specifically suited for enclosed meditation spaces, yoga studios, and home practice rooms.</p>
+<p>This is why charcoal-free, low-smoke incense is ideal for meditation. <strong>AAROHMM Fragrances</strong> produces <strong>over 60% less smoke</strong> than traditional agarbatti, making their range specifically suited for enclosed meditation spaces, yoga studios, and home practice rooms.</p>
 
 <h2 id="practical-tips">Practical Tips for Using Incense in Meditation</h2>
 <ol>
@@ -207,8 +207,8 @@ SEED_BLOG_POSTS = [
 <li><strong>Try bambooless dhoop</strong> — for meditation, dhoop provides a purer fragrance without the bamboo undertone</li>
 </ol>
 
-<h2 id="addrika-meditation-range">The Addrika Meditation Collection</h2>
-<p><a href="https://centraders.com">Addrika Fragrances</a> offers a range specifically suited for meditation and yoga practice:</p>
+<h2 id="addrika-meditation-range">The AAROHMM Meditation Collection</h2>
+<p><a href="https://centraders.com">AAROHMM Fragrances</a> offers a range specifically suited for meditation and yoga practice:</p>
 <ul>
 <li><a href="https://centraders.com/products/kesar-chandan"><strong>Kesar Chandan</strong></a> — Saffron and sandalwood, the classic meditation fragrance (50g from ₹110)</li>
 <li><a href="https://centraders.com/products/mystical-meharishi"><strong>Mystical Meharishi</strong></a> — Sacred herbal dhoop blend, bambooless (100g, ₹149)</li>
@@ -224,7 +224,7 @@ SEED_BLOG_POSTS = [
         "featured_image": "https://images.unsplash.com/photo-1627769916472-3e8e3efa6dfb?w=1200&q=80",
         "featuredImage": "https://images.unsplash.com/photo-1627769916472-3e8e3efa6dfb?w=1200&q=80",
         "tags": ["charcoal-free", "agarbatti", "health", "comparison", "incense"],
-        "author": "Addrika Fragrances",
+        "author": "AAROHMM Fragrances",
         "is_published": True,
         "views": 156,
         "created_at": "2026-03-10T10:00:00Z",
@@ -255,13 +255,13 @@ SEED_BLOG_POSTS = [
 <h2 id="comparison-table">Side-by-Side Comparison</h2>
 <table>
 <thead>
-<tr><th>Feature</th><th>Regular Agarbatti</th><th>Charcoal-Free (e.g., Addrika)</th></tr>
+<tr><th>Feature</th><th>Regular Agarbatti</th><th>Charcoal-Free (e.g., AAROHMM)</th></tr>
 </thead>
 <tbody>
 <tr><td><strong>Smoke Level</strong></td><td>High (thick, visible smoke)</td><td>Low (60%+ less smoke)</td></tr>
 <tr><td><strong>Soot/Residue</strong></td><td>Black soot on walls, ceilings</td><td>Minimal to no soot</td></tr>
 <tr><td><strong>Fragrance Purity</strong></td><td>Masked by charcoal smell</td><td>Pure, clean fragrance</td></tr>
-<tr><td><strong>Burn Time</strong></td><td>15-30 minutes typical</td><td>40-50 minutes (Addrika)</td></tr>
+<tr><td><strong>Burn Time</strong></td><td>15-30 minutes typical</td><td>40-50 minutes (AAROHMM)</td></tr>
 <tr><td><strong>Indoor Air Quality</strong></td><td>Higher particulate emissions</td><td>Significantly lower emissions</td></tr>
 <tr><td><strong>Eye/Throat Irritation</strong></td><td>Common, especially in closed rooms</td><td>Rare</td></tr>
 <tr><td><strong>Price</strong></td><td>₹20-50 per pack (mass market)</td><td>₹110+ per 50g (premium)</td></tr>
@@ -291,12 +291,12 @@ SEED_BLOG_POSTS = [
 <h2 id="is-it-worth-the-premium">Is Charcoal-Free Worth the Premium?</h2>
 <p>At first glance, charcoal-free agarbatti costs more per pack than mass-market options. But consider:</p>
 <ul>
-<li><strong>Burn time</strong>: A 40-50 minute stick (like Addrika) outlasts two 20-minute regular sticks</li>
+<li><strong>Burn time</strong>: A 40-50 minute stick (like AAROHMM) outlasts two 20-minute regular sticks</li>
 <li><strong>No wall damage</strong>: Save on repainting costs from soot buildup</li>
 <li><strong>Health</strong>: Reduced respiratory irritation — especially valuable for daily burners</li>
 <li><strong>Fragrance quality</strong>: Pure essential oils deliver a superior sensory experience</li>
 </ul>
-<p>At ₹110 for a 50g pack (approximately 30+ sticks), <a href="https://centraders.com">Addrika's charcoal-free agarbatti</a> costs roughly ₹3.5 per stick — for a 40+ minute, premium fragrance experience with dramatically lower smoke. That's less than the price of a cup of tea.</p>
+<p>At ₹110 for a 50g pack (approximately 30+ sticks), <a href="https://centraders.com">AAROHMM's charcoal-free agarbatti</a> costs roughly ₹3.5 per stick — for a 40+ minute, premium fragrance experience with dramatically lower smoke. That's less than the price of a cup of tea.</p>
 
 <h2 id="making-the-switch">Making the Switch</h2>
 <p>If you've been using regular agarbatti and want to try charcoal-free, here's what to expect:</p>
@@ -306,7 +306,7 @@ SEED_BLOG_POSTS = [
 <li><strong>Different fragrance experience</strong> — you'll smell the actual essential oils, not charcoal + fragrance</li>
 <li><strong>Longer burn</strong> — each stick lasts significantly longer</li>
 </ul>
-<p><em><a href="https://centraders.com/#fragrances">Explore Addrika's charcoal-free collection</a> — Kesar Chandan, Regal Rose, Oriental Oudh, Bold Bakhoor, Royal Kewda, and Mystical Meharishi dhoop. All starting from ₹110. Free shipping above ₹499 across India.</em></p>"""
+<p><em><a href="https://centraders.com/#fragrances">Explore AAROHMM's charcoal-free collection</a> — Kesar Chandan, Regal Rose, Oriental Oudh, Bold Bakhoor, Royal Kewda, and Mystical Meharishi dhoop. All starting from ₹110. Free shipping above ₹499 across India.</em></p>"""
     },
 ]
 

@@ -42,11 +42,12 @@ export default function Footer() {
             <img 
               src={BRAND.logo.src} 
               alt={`${BRAND.name}`} 
-              className="h-24 w-auto mb-4"
+              className="h-14 w-auto mb-4"
               style={{ filter: 'brightness(0) invert(1)' }}
+              data-testid="footer-logo"
             />
             <p className="mb-3" style={{ color: 'var(--text-light)' }}>
-              Elegance in Every Scent
+              {BRAND.tagline}
             </p>
             <p className="text-sm mb-1" style={{ color: 'var(--text-light)' }}>
               {companyInfo.companyName}
@@ -61,7 +62,7 @@ export default function Footer() {
             <h4 className="text-lg font-semibold mb-4 text-white">Quick Links</h4>
             <ul className="space-y-2">
               {[
-                { label: 'Fragrances', href: '/#fragrances' },
+                { label: 'All Fragrances', href: '/products' },
                 { label: 'Our Story', href: '/our-story' },
                 { label: 'About Us', href: '/about-us' },
                 { label: 'Blog', href: '/blog' },
@@ -155,15 +156,6 @@ export default function Footer() {
             <h4 className="text-lg font-semibold mb-4 text-white">Follow Us</h4>
             <div className="flex gap-3 mb-6">
               <a 
-                href="https://facebook.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-              >
-                <Facebook size={18} className="text-white" />
-              </a>
-              <a 
                 href={BRAND.social.instagramUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
@@ -173,15 +165,36 @@ export default function Footer() {
                 <Instagram size={18} className="text-white" />
               </a>
               <a 
-                href="https://twitter.com" 
+                href={`https://twitter.com/${BRAND.social.twitterCreator.replace('@', '')}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110"
                 style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                data-testid="footer-twitter"
               >
                 <Twitter size={18} className="text-white" />
               </a>
             </div>
+
+            <h4 className="text-lg font-semibold mb-3 text-white">For Business</h4>
+            <ul className="space-y-2">
+              {[
+                { label: 'Wholesale Programme', href: '/wholesale' },
+                { label: 'Become a Retailer', href: '/retailer/register' },
+                { label: 'Retailer Login', href: '/retailer/login' },
+              ].map(link => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="hover:opacity-70 transition-opacity"
+                    style={{ color: 'var(--text-light)' }}
+                    data-testid={`footer-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 

@@ -3,7 +3,7 @@ import { CheckCircle, XCircle, Leaf, Wind, Heart, Award, ArrowRight, FlaskConica
 import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: `Why Zero Charcoal Incense? | Benefits of Charcoal-Free Agarbatti | ${BRAND.name}`,
+  title: `Why Zero Charcoal Incense? | Benefits of Charcoal-Free Agarbatti`,
   description: `Learn why ${BRAND.name}\'s zero charcoal incense is better than traditional agarbatti. Discover the health benefits, environmental advantages, and superior fragrance of charcoal-free, bambooless incense sticks.`,
   keywords: [
     'zero charcoal incense benefits', 'charcoal-free agarbatti advantages', 'why bambooless incense',
@@ -89,14 +89,14 @@ export default function WhyZeroCharcoalPage() {
   ];
 
   const comparisonTable = [
-    { aspect: "Smoke Production", traditional: "Heavy, dense smoke", addrika: "60%+ less smoke - minimal and light" },
-    { aspect: "Air Quality", traditional: "Releases PM2.5 particles", addrika: "Cleaner air, fewer particles" },
-    { aspect: "Health Impact", traditional: "Can irritate respiratory system", addrika: "Gentler on breathing" },
-    { aspect: "Residue", traditional: "Black soot and heavy ash", addrika: "Light, minimal ash" },
-    { aspect: "Fragrance Purity", traditional: "Masked by charcoal smell", addrika: "Pure essential oil fragrance" },
-    { aspect: "Indoor Use", traditional: "Can overwhelm small spaces", addrika: "Perfect for apartments" },
-    { aspect: "For Meditation", traditional: "Smoke can distract", addrika: "Ideal for deep breathing" },
-    { aspect: "Eco-Friendliness", traditional: "Charcoal production impacts forests", addrika: "Sustainable ingredients" },
+    { aspect: "Smoke Production", traditional: "Heavy, dense smoke", brand: "60%+ less smoke - minimal and light" },
+    { aspect: "Air Quality", traditional: "Releases PM2.5 particles", brand: "Cleaner air, fewer particles" },
+    { aspect: "Health Impact", traditional: "Can irritate respiratory system", brand: "Gentler on breathing" },
+    { aspect: "Residue", traditional: "Black soot and heavy ash", brand: "Light, minimal ash" },
+    { aspect: "Fragrance Purity", traditional: "Masked by charcoal smell", brand: "Pure essential oil fragrance" },
+    { aspect: "Indoor Use", traditional: "Can overwhelm small spaces", brand: "Perfect for apartments" },
+    { aspect: "For Meditation", traditional: "Smoke can distract", brand: "Ideal for deep breathing" },
+    { aspect: "Eco-Friendliness", traditional: "Charcoal production impacts forests", brand: "Sustainable ingredients" },
   ];
 
   return (
@@ -248,7 +248,7 @@ export default function WhyZeroCharcoalPage() {
                       <td className="p-4 text-green-700">
                         <span className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-500" />
-                          {row.addrika}
+                          {row.brand}
                         </span>
                       </td>
                     </tr>

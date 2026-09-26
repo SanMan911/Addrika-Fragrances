@@ -1,6 +1,6 @@
 const { BRAND } = require('../../lib/brand.config');
 export const metadata = {
-  title: `Forgot Password | ${BRAND.name} - Reset Your Password`,
+  title: `Forgot Password — Reset Your Password`,
   description: `Reset your ${BRAND.name} account password securely. We will send you instructions to recover your account.`,
   robots: {
     index: false,

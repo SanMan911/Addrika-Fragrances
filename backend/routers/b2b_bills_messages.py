@@ -465,7 +465,7 @@ async def admin_send_message(
         retailer_id=retailer_id,
         sender_type="admin",
         sender_id=admin.get("email", "admin"),
-        sender_name="Addrika Team",
+        sender_name="AAROHMM Team",
         message=data.message,
         attachments=data.attachments,
     )

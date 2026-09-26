@@ -8,7 +8,7 @@ import BRAND from '../../lib/brand.config';
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
 
 export const metadata = {
-  title: `Blog | ${BRAND.name} Fragrances — Incense Guides, Aromatherapy Tips & Fragrance Wisdom`,
+  title: `Blog — Incense Guides, Aromatherapy Tips & Fragrance Wisdom`,
   description: `Read the ${BRAND.name} Journal for expert guides on charcoal-free incense, Arabian bakhoor, meditation fragrances, and aromatherapy tips. Discover which premium agarbatti is best for your home.`,
   keywords: [`${BRAND.name.toLowerCase()} blog`, 'incense guide', 'charcoal-free agarbatti guide', 'best incense for meditation', 'how to use bakhoor', 'aromatherapy tips', 'premium incense india', 'agarbatti health benefits', 'low smoke incense', 'incense buying guide'],
   openGraph: {

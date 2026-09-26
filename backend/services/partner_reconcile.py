@@ -1,4 +1,4 @@
-"""Nightly reconciliation cron for the Addrika ↔ Amardeep partner bridge.
+"""Nightly reconciliation cron for the AAROHMM ↔ Amardeep partner bridge.
 
 Why this exists
 ---------------

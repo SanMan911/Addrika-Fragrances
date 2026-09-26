@@ -55,14 +55,14 @@ APP_CONFIG_SCHEMA_VERSION = "2"
 MIN_SUPPORTED_APP_VERSION = 1  # bump when we ship a breaking client change
 
 DEFAULT_BRAND = {
-    "name": "Addrika",
-    "tagline": "Sacred Luxury in Every Scent",
+    "name": "AAROHMM",
+    "tagline": "Where Fragrance Becomes Atmosphere…",
     "primary_color": "#D4AF37",   # gold
     "secondary_color": "#2B3A4A", # navy
     "accent_color": "#8B4513",    # saddle brown
     "background_dark": "#0f1419",
     "background_light": "#FDFCF7",
-    "logo_url": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png",
+    "logo_url": "https://centraders.com/images/logos/aarohmm-emblem-gold.png",
     "font_family_serif": "Playfair Display",
     "font_family_sans": "Inter",
 }
@@ -75,7 +75,7 @@ DEFAULT_CONTACT = {
 }
 
 DEFAULT_SOCIAL = {
-    "instagram": "https://www.instagram.com/addrika.fragrances",
+    "instagram": "https://www.instagram.com/aarohmm.fragrances",
     "website": "https://centraders.com",
 }
 

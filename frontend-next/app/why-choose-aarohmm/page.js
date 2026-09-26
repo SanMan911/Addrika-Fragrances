@@ -14,7 +14,7 @@ export const metadata = {
   openGraph: {
     title: `Why Choose ${BRAND.name}? | Premium Indian Incense`,
     description: `Compare ${BRAND.name}\'s premium zero-charcoal incense with other luxury brands.`,
-    url: 'https://centraders.com/why-choose-addrika',
+    url: 'https://centraders.com/why-choose-aarohmm',
     type: 'website',
   },
 };
@@ -40,12 +40,12 @@ function ComparisonSchema() {
             "name": "Centsibl Traders Private Limited",
             "logo": {
               "@type": "ImageObject",
-              "url": "https://centraders.com/images/logos/addrika-logo-gold-cropped.png"
+              "url": "https://centraders.com/images/logos/aarohmm-emblem-gold.png"
             }
           },
           "datePublished": "2026-01-01",
           "dateModified": "2026-03-18",
-          "mainEntityOfPage": "https://centraders.com/why-choose-addrika",
+          "mainEntityOfPage": "https://centraders.com/why-choose-aarohmm",
           "about": {
             "@type": "Product",
             "name": `${BRAND.name} Premium Incense`,
@@ -59,8 +59,8 @@ function ComparisonSchema() {
   );
 }
 
-export default function WhyChooseAddrikaPage() {
-  const addrikaUSPs = [
+export default function WhyChooseAarohmmPage() {
+  const brandUSPs = [
     {
       icon: Wind,
       title: "Zero Charcoal Formula",
@@ -102,56 +102,56 @@ export default function WhyChooseAddrikaPage() {
   const comparisonTable = [
     { 
       feature: "Charcoal Content", 
-      addrika: "Zero - 100% Charcoal-free", 
-      addrikaGood: true,
+      brand: "Zero - 100% Charcoal-free", 
+      brandGood: true,
       others: "Many use charcoal as burning agent"
     },
     { 
       feature: "Burn Time", 
-      addrika: "40-50 minutes extended burn", 
-      addrikaGood: true,
+      brand: "40-50 minutes extended burn", 
+      brandGood: true,
       others: "Typically 20-35 minutes"
     },
     { 
       feature: "Smoke Level", 
-      addrika: "60%+ less smoke (Low smoke)", 
-      addrikaGood: true,
+      brand: "60%+ less smoke (Low smoke)", 
+      brandGood: true,
       others: "Varies - often moderate to high"
     },
     { 
       feature: "Ingredients", 
-      addrika: "Ethically Sourced - Pure essential oils", 
-      addrikaGood: true,
+      brand: "Ethically Sourced - Pure essential oils", 
+      brandGood: true,
       others: "Mix of natural and synthetic"
     },
     { 
       feature: "Bamboo Core", 
-      addrika: "Bambooless design", 
-      addrikaGood: true,
+      brand: "Bambooless design", 
+      brandGood: true,
       others: "Most have bamboo core"
     },
     { 
       feature: "Indoor Suitability", 
-      addrika: "Excellent - safe for small spaces", 
-      addrikaGood: true,
+      brand: "Excellent - safe for small spaces", 
+      brandGood: true,
       others: "May overwhelm small rooms"
     },
     { 
       feature: "Safe with Children/Pets", 
-      addrika: "Yes - Non-toxic formula", 
-      addrikaGood: true,
+      brand: "Yes - Non-toxic formula", 
+      brandGood: true,
       others: "Varies by brand"
     },
     { 
       feature: "Fragrance Retention", 
-      addrika: "3-4 hours post-burn aroma", 
-      addrikaGood: true,
+      brand: "3-4 hours post-burn aroma", 
+      brandGood: true,
       others: "1-2 hours typically"
     },
     { 
       feature: "Country of Origin", 
-      addrika: "India", 
-      addrikaGood: true,
+      brand: "India", 
+      brandGood: true,
       others: "India/Import"
     },
   ];
@@ -198,7 +198,7 @@ export default function WhyChooseAddrikaPage() {
     },
     {
       platform: "Amazon India",
-      url: "https://www.amazon.in/s?k=addrika+incense",
+      url: "https://www.amazon.in/s?k=aarohmm+incense",
       description: "Fast delivery, easy returns, customer reviews",
       highlight: "Available"
     }
@@ -216,7 +216,7 @@ export default function WhyChooseAddrikaPage() {
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link href="/#fragrances" className="hover:text-[#D4AF37]">Products</Link>
-            <Link href="/why-choose-addrika" className="text-[#D4AF37] font-medium">{`Why ${BRAND.name}?`}</Link>
+            <Link href="/why-choose-aarohmm" className="text-[#D4AF37] font-medium">{`Why ${BRAND.name}?`}</Link>
             <Link href="/our-quality" className="hover:text-[#D4AF37]">Quality</Link>
             <Link href="/faq" className="hover:text-[#D4AF37]">FAQs</Link>
           </nav>
@@ -251,7 +251,7 @@ export default function WhyChooseAddrikaPage() {
             </p>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {addrikaUSPs.map((usp, index) => (
+              {brandUSPs.map((usp, index) => (
                 <div key={index} className="bg-[#F5F0E8] rounded-xl p-6 relative overflow-hidden">
                   <span className="absolute top-4 right-4 bg-[#D4AF37] text-white text-xs font-bold px-2 py-1 rounded">
                     {usp.highlight}
@@ -291,7 +291,7 @@ export default function WhyChooseAddrikaPage() {
                       <td className="p-4">
                         <span className="flex items-center gap-2 text-green-700">
                           <CheckCircle className="w-4 h-4 text-green-500" />
-                          {row.addrika}
+                          {row.brand}
                         </span>
                       </td>
                       <td className="p-4 text-gray-500 text-sm">{row.others}</td>

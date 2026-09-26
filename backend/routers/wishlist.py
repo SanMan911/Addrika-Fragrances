@@ -1,5 +1,5 @@
 """
-Wishlist Routes for Addrika
+Wishlist Routes for AAROHMM
 Handles wishlist CRUD operations and shareable wishlists
 """
 from fastapi import APIRouter, HTTPException, Request, Cookie

@@ -1,5 +1,5 @@
 """
-Abandoned Cart Service for Addrika
+Abandoned Cart Service for AAROHMM
 Handles cart tracking and abandoned cart reminder emails
 """
 import asyncio

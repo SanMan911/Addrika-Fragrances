@@ -5,7 +5,7 @@ import Footer from '../../components/Footer';
 import BRAND from '../../lib/brand.config';
 
 export const metadata = {
-  title: `Shipping & Returns Policy | ${BRAND.name} Premium Incense`,
+  title: `Shipping & Returns Policy`,
   description: `Free shipping on orders above Rs. 499. Fast delivery across India with real-time tracking for all ${BRAND.name} incense orders. No returns on incense products due to hygiene reasons.`,
   keywords: [`${BRAND.name.toLowerCase()} shipping`, 'incense delivery india', 'agarbatti shipping policy', 'free shipping incense'],
 };

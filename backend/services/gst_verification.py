@@ -93,7 +93,7 @@ def _friendly_upstream_error(raw: str) -> str:
     if "maintenance" in r or "503" in r or "under maintenance" in r:
         return "GST verification service is temporarily under maintenance. Please try again in a few minutes."
     if "credit" in r or "limit" in r or "insufficient" in r or "expire" in r:
-        return "GST verification credits exhausted. Please contact Addrika support to top up."
+        return "GST verification credits exhausted. Please contact AAROHMM support to top up."
     if "invalid" in r and "key" in r:
         return "GST verification key invalid. Admin: update the Appyflow key in Integrations."
     if "not found" in r or "invalid gstin" in r or "invalid gst" in r:

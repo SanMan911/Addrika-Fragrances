@@ -108,7 +108,7 @@ export default function AdminB2BInventoryPage() {
       const a = document.createElement('a');
       a.href = url;
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      a.download = `addrika-inventory-log-${stamp}.csv`;
+      a.download = `aarohmm-inventory-log-${stamp}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();

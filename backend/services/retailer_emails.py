@@ -1,5 +1,5 @@
 """
-Retailer Email Notifications for Addrika
+Retailer Email Notifications for AAROHMM
 Handles order notifications to retailers for pickup and shipping orders
 """
 from datetime import datetime, timezone
@@ -106,7 +106,7 @@ async def send_retailer_order_notification(
         <table width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 25px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0;">ADDRIKA - RETAILER NOTIFICATION</h1>
+                    <h1 style="color: #d4af37; margin: 0;">AAROHMM - RETAILER NOTIFICATION</h1>
                     <p style="color: #ffffff; margin: 10px 0 0 0;">{order_type.upper()} ORDER</p>
                 </td>
             </tr>
@@ -148,7 +148,7 @@ async def send_retailer_order_notification(
             </tr>
             <tr>
                 <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0;">ADDRIKA</p>
+                    <p style="color: #d4af37; margin: 0;">AAROHMM</p>
                     <p style="color: #999; margin: 5px 0 0 0; font-size: 11px;">For issues, contact admin at contact.us@centraders.com</p>
                 </td>
             </tr>
@@ -159,7 +159,7 @@ async def send_retailer_order_notification(
     
     result = await send_email(
         to_email=retailer_email,
-        subject=f"[{order_type}] Order #{order_number} - Stock Verification Required | Addrika",
+        subject=f"[{order_type}] Order #{order_number} - Stock Verification Required | AAROHMM",
         html_content=html
     )
     
@@ -206,8 +206,8 @@ async def send_pickup_confirmation_to_customer(email: str, order: dict, store_in
         <table width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
-                    <p style="color: #ffffff; margin: 5px 0 0 0;">Elegance in Every Scent</p>
+                    <h1 style="color: #d4af37; margin: 0;">AAROHMM</h1>
+                    <p style="color: #ffffff; margin: 5px 0 0 0;">Where Fragrance Becomes Atmosphere…</p>
                 </td>
             </tr>
             <tr>
@@ -251,7 +251,7 @@ async def send_pickup_confirmation_to_customer(email: str, order: dict, store_in
             </tr>
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0;">ADDRIKA</p>
+                    <p style="color: #d4af37; margin: 0;">AAROHMM</p>
                     <p style="color: #999; margin: 5px 0 0 0; font-size: 11px;">Questions? Contact us at contact.us@centraders.com</p>
                 </td>
             </tr>
@@ -262,7 +262,7 @@ async def send_pickup_confirmation_to_customer(email: str, order: dict, store_in
     
     result = await send_email(
         to_email=email,
-        subject=f"Order Reserved for Pickup - #{order_number} | Addrika",
+        subject=f"Order Reserved for Pickup - #{order_number} | AAROHMM",
         html_content=html
     )
     

@@ -4,13 +4,18 @@ export default function robots() {
 
   const publicContentPaths = [
     '/',
+    '/products',
     '/products/',
+    '/wholesale',
+    '/retailer/register',
+    '/retailer/login',
+    '/community',
     '/about-us',
     '/our-story',
     '/our-quality',
     '/sustainability',
     '/ingredients',
-    '/why-choose-addrika',
+    '/why-choose-aarohmm',
     '/why-zero-charcoal',
     '/zero-charcoal',
     '/low-smoke-incense',
@@ -29,7 +34,7 @@ export default function robots() {
     '/auth/',
   ];
 
-  // AI crawlers that should be able to read Addrika content
+  // AI crawlers that should be able to read brand content
   const aiCrawlers = [
     'GPTBot',
     'ChatGPT-User',

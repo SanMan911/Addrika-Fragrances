@@ -11,9 +11,9 @@ Events:
     stock.out      — remaining pieces hit zero
 
 Security: each delivery carries
-    X-Addrika-Event:     <event>
-    X-Addrika-Delivery:  <uuid>
-    X-Addrika-Signature: sha256=<hmac hex of the raw JSON body, keyed by the webhook secret>
+    X-Aarohmm-Event:     <event>
+    X-Aarohmm-Delivery:  <uuid>
+    X-Aarohmm-Signature: sha256=<hmac hex of the raw JSON body, keyed by the webhook secret>
 
 Collections:
     stock_webhooks             registered endpoints (secret stored in full — needed to sign)
@@ -163,10 +163,10 @@ async def _deliver(webhook: dict, event: str, payload: dict) -> None:
     body = json.dumps(payload, default=str).encode()
     headers = {
         "Content-Type": "application/json",
-        "X-Addrika-Event": event,
-        "X-Addrika-Delivery": delivery_id,
-        "X-Addrika-Signature": _sign(webhook.get("secret", ""), body),
-        "User-Agent": "Addrika-StockWebhook/1",
+        "X-Aarohmm-Event": event,
+        "X-Aarohmm-Delivery": delivery_id,
+        "X-Aarohmm-Signature": _sign(webhook.get("secret", ""), body),
+        "User-Agent": "Aarohmm-StockWebhook/1",
     }
     status_code: Optional[int] = None
     ok = False

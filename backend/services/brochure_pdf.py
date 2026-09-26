@@ -1,5 +1,5 @@
 """
-Generates a professional, share-ready tri-fold brochure PDF for Addrika.
+Generates a professional, share-ready tri-fold brochure PDF for AAROHMM.
 
 Layout:
   - Page size: A4 landscape (297 x 210 mm) — letter-fold tri-fold.
@@ -30,8 +30,8 @@ from reportlab.pdfgen import canvas
 
 # ----- Brand & Company -----
 COMPANY_NAME = os.environ.get("SELLER_NAME", "Centsibl Traders Private Limited")
-BRAND_NAME = os.environ.get("SELLER_BRAND", "Addrika")
-TAGLINE = "Elegance in Every Scent"
+BRAND_NAME = os.environ.get("SELLER_BRAND", "AAROHMM")
+TAGLINE = "Where Fragrance Becomes Atmosphere…"
 COMPANY_CIN = "U46491DL2022PTC392334"
 COMPANY_ADDRESS = os.environ.get(
     "SELLER_ADDRESS",
@@ -40,7 +40,7 @@ COMPANY_ADDRESS = os.environ.get(
 COMPANY_EMAIL = os.environ.get("SELLER_EMAIL", "contact.us@centraders.com")
 COMPANY_PHONE = os.environ.get("SELLER_PHONE", "+91 96672 69711")
 COMPANY_WEBSITE = "centraders.com"
-INSTAGRAM = "@addrika.fragrances"
+INSTAGRAM = "@aarohmm.fragrances"
 
 # ----- Fonts (Noto Sans bundled with the repo — has the ₹ glyph) -----
 # Fonts ship inside the repo at backend/fonts/ so they survive container
@@ -423,7 +423,7 @@ def _draw_back_cover(c: canvas.Canvas, x: float):
                         "NotoSans-Bold", 9, GOLD)
     _draw_paragraph(
         c,
-        "Become an authorised Addrika partner. GST-verified onboarding, "
+        "Become an authorised AAROHMM partner. GST-verified onboarding, "
         "transparent margins, dedicated SPOC. Visit centraders.com/find-retailers",
         x + INNER_PAD + 4, box_y + box_h - 14 * MM,
         max_width=PANEL_W - 2 * INNER_PAD - 8,
@@ -456,7 +456,7 @@ def _draw_inner_flap(c: canvas.Canvas, x: float, active_count: int):
                         "NotoSans-Bold", 14, INK_BLUE)
 
     body = (
-        "Addrika was born from a simple belief: incense should carry more "
+        "AAROHMM was born from a simple belief: incense should carry more "
         "than a fragrance — it should carry livelihoods and a lighter "
         "footprint on the earth.\n\n"
         "Every stick is crafted in equal-participation workshops across "
@@ -608,7 +608,7 @@ def _draw_inside_panel(c, x, header, products, panel_index):
     _draw_corner_ornaments(c, x, GOLD_DARK, inset=4 * MM, length=7 * MM)
 
     # Tiny eyebrow tag
-    _draw_centered_text(c, "ADDRIKA · COLLECTION",
+    _draw_centered_text(c, "AAROHMM · COLLECTION",
                         cx, PAGE_H - 13 * MM, "NotoSans-Bold", 6.5, SOFT_GREY)
 
     _draw_centered_text(c, header.upper(), cx, PAGE_H - 22 * MM,

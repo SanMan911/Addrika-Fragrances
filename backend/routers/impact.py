@@ -11,7 +11,7 @@ Formula:
   total = base_trees + floor((now - start_date_utc) / (7 days / trees_per_week))
 
 An admin can set a `manual_boost` from `/admin/settings/impact` when
-Addrika actually plants a bigger batch (e.g. Miyawaki drive).
+AAROHMM actually plants a bigger batch (e.g. Miyawaki drive).
 
 Config is kept in `db.settings.tree_counter`:
   {

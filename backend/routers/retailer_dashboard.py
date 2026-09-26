@@ -250,7 +250,7 @@ async def send_admin_delivery_notification(order: dict, retailer: dict, notes: s
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
                 <tr>
                     <td style="background-color: #1e3a52; padding: 25px; text-align: center;">
-                        <h1 style="color: #d4af37; margin: 0;">ADDRIKA</h1>
+                        <h1 style="color: #d4af37; margin: 0;">AAROHMM</h1>
                         <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Delivery Verification Alert</p>
                     </td>
                 </tr>
@@ -301,7 +301,7 @@ async def send_admin_delivery_notification(order: dict, retailer: dict, notes: s
                 </tr>
                 <tr>
                     <td style="background-color: #1e3a52; padding: 20px; text-align: center;">
-                        <p style="color: #d4af37; margin: 0; font-size: 14px;">ADDRIKA - Premium Agarbattis</p>
+                        <p style="color: #d4af37; margin: 0; font-size: 14px;">AAROHMM - Premium Agarbattis</p>
                         <p style="color: #999; font-size: 12px; margin: 8px 0 0 0;">Admin Verification System</p>
                     </td>
                 </tr>
@@ -1284,7 +1284,7 @@ async def get_retailer_badges(
         
         current_badges.append({
             "type": "verified_partner",
-            "name": "Addrika Verified Partner",
+            "name": "AAROHMM Verified Partner",
             "description": "Trusted and verified retail partner",
             "icon": "trophy",
             "color": "#d4af37",

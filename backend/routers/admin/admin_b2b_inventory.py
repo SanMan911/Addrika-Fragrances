@@ -187,7 +187,7 @@ async def admin_inventory_log_csv(
 
     csv_bytes = buf.getvalue().encode("utf-8")
     stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    filename = f"addrika-inventory-log-{stamp}.csv"
+    filename = f"aarohmm-inventory-log-{stamp}.csv"
     return StreamingResponse(
         iter([csv_bytes]),
         media_type="text/csv",
@@ -287,7 +287,7 @@ class StockStatusBody(BaseModel):
 async def admin_trigger_low_stock_digest(
     request: Request, session_token: Optional[str] = Cookie(None),
 ):
-    """Manually trigger the low-stock digest email to Addrika ops (bypasses
+    """Manually trigger the low-stock digest email to AAROHMM ops (bypasses
     the 20h throttle). Useful when a batch just finished production and
     admin wants a fresh view."""
     await require_admin(request, session_token)

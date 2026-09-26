@@ -219,6 +219,37 @@ async def deduct_stock_for_b2c_order(db, order: dict) -> list[dict]:
     return results
 
 
+async def find_sku_for_b2c_line(db, pid: str, size: str) -> Optional[dict]:
+    """Shared-inventory SKU for a B2C product/size, or None when not tracked."""
+    prod = await db.b2b_products.find_one({"product_id": pid, "net_weight": size}, {"_id": 0})
+    if not prod:
+        prod = await db.b2b_products.find_one({"id": _b2b_id_for(pid, size)}, {"_id": 0})
+    return prod
+
+
+async def check_stock_for_b2c_items(db, items: list[dict]) -> list[str]:
+    """Return human-readable problems for lines that exceed live shared stock.
+    Lines without a mirrored SKU are not stock-tracked and always pass."""
+    problems: list[str] = []
+    for item in items or []:
+        pid = item.get("productId") or item.get("product_id")
+        size = item.get("size")
+        qty = int(item.get("quantity") or 0)
+        if not pid or not size or qty <= 0:
+            continue
+        sku = await find_sku_for_b2c_line(db, pid, size)
+        if not sku:
+            continue
+        stock = int(sku.get("stock_pieces") or 0)
+        status = (sku.get("stock_status") or "").lower()
+        name = f"{item.get('name') or sku.get('name')} ({size})"
+        if stock <= 0 or (status and status != "in_stock"):
+            problems.append(f"{name} is out of stock right now.")
+        elif qty > stock:
+            problems.append(f"Only {stock} left for {name} — please reduce the quantity.")
+    return problems
+
+
 def enrich_b2c_products_with_stock(products: list[dict], b2b_rows: list[dict]) -> list[dict]:
     """Attach the shared stock number onto B2C product sizes so the
     storefront can show "Only X left" from the same source of truth.

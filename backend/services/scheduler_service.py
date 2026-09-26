@@ -1,5 +1,5 @@
 """
-Background Task Scheduler for Addrika
+Background Task Scheduler for AAROHMM
 Handles scheduled tasks like review request emails
 """
 import asyncio

@@ -1,5 +1,5 @@
 """
-Badge Notification Service for Addrika
+Badge Notification Service for AAROHMM
 Sends congratulatory emails when retailers receive badges/labels
 """
 import logging
@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 # Badge display names and descriptions
 BADGE_INFO = {
     'is_addrika_verified_partner': {
-        'name': 'Addrika Verified Partner',
+        'name': 'AAROHMM Verified Partner',
         'emoji': '🏆',
         'color': '#d4af37',
-        'description': 'You have been recognized as a trusted and verified partner of Addrika.',
+        'description': 'You have been recognized as a trusted and verified partner of AAROHMM.',
         'benefits': [
             'Priority product allocations during high-demand periods',
             'Early access to new product launches',
@@ -66,7 +66,7 @@ LABEL_INFO = {
 
 
 def get_verified_partner_email_html(retailer: dict) -> str:
-    """Generate HTML email for Addrika Verified Partner badge"""
+    """Generate HTML email for AAROHMM Verified Partner badge"""
     business_name = retailer.get('business_name', 'Partner')
     spoc_name = retailer.get('spoc', {}).get('name', business_name)
     
@@ -79,7 +79,7 @@ def get_verified_partner_email_html(retailer: dict) -> str:
             <!-- Header with Gold Gradient -->
             <tr>
                 <td style="background: linear-gradient(135deg, #1e3a52 0%, #2d4a6a 50%, #1e3a52 100%); padding: 40px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 32px; font-weight: bold;">ADDRIKA</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 32px; font-weight: bold;">AAROHMM</h1>
                     <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 14px; letter-spacing: 2px;">VERIFIED PARTNER PROGRAM</p>
                 </td>
             </tr>
@@ -104,10 +104,10 @@ def get_verified_partner_email_html(retailer: dict) -> str:
                     <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 3px solid #d4af37; border-radius: 16px; padding: 30px; text-align: center; box-shadow: 0 8px 30px rgba(212, 175, 55, 0.2);">
                         <p style="color: #92400e; font-size: 14px; text-transform: uppercase; letter-spacing: 3px; margin: 0 0 10px 0;">Official Badge</p>
                         <h3 style="color: #1e3a52; font-size: 24px; margin: 0; font-weight: bold;">
-                            🏆 ADDRIKA VERIFIED PARTNER
+                            🏆 AAROHMM VERIFIED PARTNER
                         </h3>
                         <p style="color: #78350f; margin: 15px 0 0 0; font-size: 14px;">
-                            A trusted and verified retail partner of Addrika
+                            A trusted and verified retail partner of AAROHMM
                         </p>
                     </div>
                 </td>
@@ -144,7 +144,7 @@ def get_verified_partner_email_html(retailer: dict) -> str:
                     <div style="background-color: #dcfce7; padding: 20px; border-radius: 12px; border: 1px solid #22c55e;">
                         <p style="color: #166534; margin: 0; font-weight: bold;">📋 Display Your Badge!</p>
                         <p style="color: #166534; margin: 10px 0 0 0; font-size: 14px;">
-                            You can proudly display the "Addrika Verified Partner" badge at your store. 
+                            You can proudly display the "AAROHMM Verified Partner" badge at your store. 
                             A printable certificate will be sent to you separately.
                         </p>
                     </div>
@@ -163,8 +163,8 @@ def get_verified_partner_email_html(retailer: dict) -> str:
             <!-- Footer -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold; font-size: 18px;">ADDRIKA</p>
-                    <p style="color: #ffffff; margin: 0; font-size: 13px;">Elegance in Every Scent</p>
+                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold; font-size: 18px;">AAROHMM</p>
+                    <p style="color: #ffffff; margin: 0; font-size: 13px;">Where Fragrance Becomes Atmosphere…</p>
                     <p style="color: #999; margin: 15px 0 0 0; font-size: 11px;">
                         Thank you for being a valued partner.<br>
                         Questions? Contact us at contact.us@centraders.com
@@ -197,7 +197,7 @@ def get_retailer_label_email_html(retailer: dict, label_key: str, label_period: 
             <!-- Header -->
             <tr>
                 <td style="background: linear-gradient(135deg, #1e3a52 0%, #2d4a6a 50%, #1e3a52 100%); padding: 40px; text-align: center;">
-                    <h1 style="color: #d4af37; margin: 0; font-size: 32px; font-weight: bold;">ADDRIKA</h1>
+                    <h1 style="color: #d4af37; margin: 0; font-size: 32px; font-weight: bold;">AAROHMM</h1>
                     <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 14px; letter-spacing: 2px;">RETAILER RECOGNITION</p>
                 </td>
             </tr>
@@ -280,8 +280,8 @@ def get_retailer_label_email_html(retailer: dict, label_key: str, label_period: 
             <!-- Footer -->
             <tr>
                 <td style="background-color: #1e3a52; padding: 30px; text-align: center;">
-                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold; font-size: 18px;">ADDRIKA</p>
-                    <p style="color: #ffffff; margin: 0; font-size: 13px;">Elegance in Every Scent</p>
+                    <p style="color: #d4af37; margin: 0 0 10px 0; font-weight: bold; font-size: 18px;">AAROHMM</p>
+                    <p style="color: #ffffff; margin: 0; font-size: 13px;">Where Fragrance Becomes Atmosphere…</p>
                     <p style="color: #999; margin: 15px 0 0 0; font-size: 11px;">
                         Keep up the amazing work!<br>
                         Questions? Contact us at contact.us@centraders.com
@@ -295,7 +295,7 @@ def get_retailer_label_email_html(retailer: dict, label_key: str, label_period: 
 
 
 async def send_verified_partner_notification(retailer: dict) -> bool:
-    """Send Addrika Verified Partner badge notification email"""
+    """Send AAROHMM Verified Partner badge notification email"""
     email = retailer.get('email')
     if not email:
         logger.warning(f"No email for retailer {retailer.get('retailer_id')}, skipping badge notification")
@@ -306,7 +306,7 @@ async def send_verified_partner_notification(retailer: dict) -> bool:
     
     result = await send_email(
         to_email=email,
-        subject=f"🏆 Congratulations! {business_name} is now an Addrika Verified Partner",
+        subject=f"🏆 Congratulations! {business_name} is now an AAROHMM Verified Partner",
         html_content=html
     )
     

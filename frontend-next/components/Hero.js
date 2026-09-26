@@ -67,13 +67,14 @@ export default function Hero({ onBuyClick }) {
         <div className="mb-8 sm:mb-12 animate-fade-in-up">
           <img 
             src={BRAND.logo.srcBrandNameGoldTransparent}
-            alt={`${BRAND.name} - Elegance in Every Scent`} 
+            alt={`${BRAND.name} - ${BRAND.tagline}`} 
             className="mx-auto"
+            data-testid="hero-logo"
             style={{ 
               filter: isDarkMode 
                 ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
                 : 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
-              height: 'clamp(280px, 50vw, 480px)',
+              height: 'clamp(220px, 40vw, 400px)',
               width: 'auto'
             }}
           />
@@ -87,7 +88,7 @@ export default function Hero({ onBuyClick }) {
             color: isDarkMode ? '#e8e6e3' : 'var(--japanese-indigo)'
           }}
         >
-          Elegance in Every Scent
+          {BRAND.tagline}
         </h1>
 
         {/* Subtitle */}

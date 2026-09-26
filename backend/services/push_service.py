@@ -207,7 +207,7 @@ async def send_order_status_push(
         },
         'delivered': {
             'title': 'Order Delivered! 🎉',
-            'body': f'{order_number} has been delivered. Enjoy your Addrika fragrances!'
+            'body': f'{order_number} has been delivered. Enjoy your AAROHMM fragrances!'
         },
         'rto': {
             'title': 'Order Returned',

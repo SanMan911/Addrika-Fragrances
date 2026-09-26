@@ -8,7 +8,7 @@ export default function ZeroCharcoalRedirect() {
 }
 
 export const metadata = {
-  title: `Zero Charcoal Incense | ${BRAND.name}`,
+  title: `Zero Charcoal Incense`,
   description: `Learn about ${BRAND.name}\'s zero charcoal incense formula.`,
   robots: {
     index: false,

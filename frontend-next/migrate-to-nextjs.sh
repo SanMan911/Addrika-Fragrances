@@ -4,7 +4,7 @@
 # This script replaces the current React frontend with Next.js
 
 echo "==================================="
-echo "Addrika Frontend Migration Script"
+echo "AAROHMM Frontend Migration Script"
 echo "React -> Next.js"
 echo "==================================="
 

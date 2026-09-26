@@ -110,7 +110,7 @@ async def retailer_download_statement(request: Request):
 
     from datetime import datetime as _dt
     stamp = _dt.utcnow().strftime("%Y%m%d")
-    filename = f"addrika-rewards-{rid}-{stamp}.pdf"
+    filename = f"aarohmm-rewards-{rid}-{stamp}.pdf"
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",

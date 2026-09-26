@@ -1,5 +1,5 @@
 """
-Order Pricing Service for Addrika
+Order Pricing Service for AAROHMM
 Handles all pricing calculations including discounts, shipping, and delivery mode logic
 """
 from typing import Dict, Any, List

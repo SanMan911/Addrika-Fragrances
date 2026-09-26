@@ -17,6 +17,8 @@ function fmtDate(s) {
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState([]);
   const [scopes, setScopes] = useState(['stock:read']);
+  const [scopeHelp, setScopeHelp] = useState({});
+  const [selectedScopes, setSelectedScopes] = useState(['stock:read']);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -30,6 +32,7 @@ export default function ApiKeysPage() {
       const data = await res.json();
       setKeys(data.items || []);
       setScopes(data.available_scopes || ['stock:read']);
+      setScopeHelp(data.scope_descriptions || {});
     } catch (e) {
       toast.error(e.message || 'Could not load API keys');
     } finally {
@@ -46,7 +49,7 @@ export default function ApiKeysPage() {
       const res = await authFetch(`${API_URL}/api/admin/api-keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim(), scopes: ['stock:read'] }),
+        body: JSON.stringify({ name: newName.trim(), scopes: selectedScopes.length ? selectedScopes : ['stock:read'] }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Could not create key');
@@ -60,6 +63,11 @@ export default function ApiKeysPage() {
       setCreating(false);
     }
   };
+
+  const toggleScope = (sc) =>
+    setSelectedScopes((prev) => (prev.includes(sc) ? prev.filter((x) => x !== sc) : [...prev, sc]));
+
+  const presetFsm = () => setSelectedScopes(['stock:read', 'catalog:read', 'retailers:read', 'orders:write', 'orders:read']);
 
   const copyKey = (val) => {
     navigator.clipboard?.writeText(val);
@@ -95,7 +103,7 @@ export default function ApiKeysPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-[#1e3a52] dark:text-slate-100">External API Keys</h1>
-            <p className="text-sm text-gray-500 dark:text-slate-400">Grant related apps (Field Sales Manager, etc.) live read access to stock.</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400">Grant related apps (Field Sales Manager, analytics, etc.) scoped access — live stock, catalogue, retailer lookup and order placement.</p>
           </div>
         </div>
         <button onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800" data-testid="api-keys-refresh">
@@ -123,9 +131,22 @@ export default function ApiKeysPage() {
             <Plus className="w-4 h-4" /> {creating ? 'Creating…' : 'Create key'}
           </button>
         </div>
-        <div className="flex items-center gap-2 mt-3 text-xs text-gray-500 dark:text-slate-400">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          Scope: <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200">{scopes.join(', ')}</code> — read-only stock access.
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400"><ShieldCheck className="w-4 h-4 text-emerald-600" /> Scopes</span>
+            <button type="button" onClick={presetFsm} className="text-xs text-[#1e3a52] dark:text-[#D4AF37] underline" data-testid="api-key-preset-fsm">Field Sales Manager preset (all)</button>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2" data-testid="api-key-scope-list">
+            {scopes.map((sc) => (
+              <label key={sc} className={`flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer text-sm ${selectedScopes.includes(sc) ? 'border-[#D4AF37] bg-amber-50 dark:bg-amber-900/10' : 'border-gray-200 dark:border-slate-700'}`}>
+                <input type="checkbox" className="mt-0.5 accent-[#D4AF37]" checked={selectedScopes.includes(sc)} onChange={() => toggleScope(sc)} data-testid={`api-key-scope-${sc.replace(':', '-')}`} />
+                <span className="min-w-0">
+                  <code className="text-[#1e3a52] dark:text-slate-100 font-semibold">{sc}</code>
+                  <span className="block text-xs text-gray-500 dark:text-slate-400">{scopeHelp[sc] || ''}</span>
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -148,11 +169,27 @@ export default function ApiKeysPage() {
             </div>
           </div>
           <p className="mt-3 text-xs text-amber-800">
-            Use it as header <code className="bg-white px-1 rounded">X-API-Key</code> against
-            <code className="bg-white px-1 rounded ml-1">GET /api/external/v1/stock</code>.
+            Send it as header <code className="bg-white px-1 rounded">X-API-Key</code> on every call to
+            <code className="bg-white px-1 rounded ml-1">/api/external/v1/*</code>.
           </p>
         </div>
       )}
+
+      {/* Integration guide */}
+      <details className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm" data-testid="api-integration-guide">
+        <summary className="px-5 py-3 cursor-pointer text-sm font-semibold text-[#1e3a52] dark:text-slate-200">Integration guide — Field Sales Manager ordering flow</summary>
+        <div className="px-5 pb-5 text-sm text-gray-700 dark:text-slate-300 space-y-3">
+          <p>Base URL: <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">{typeof window !== 'undefined' ? window.location.origin : ''}/api/external/v1</code> · header <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">X-API-Key: &lt;key&gt;</code></p>
+          <ol className="list-decimal pl-5 space-y-1.5">
+            <li><code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">GET /retailers?gstin=…</code> or <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">?phone=…</code> → pick the retailer (<em>retailers:read</em>)</li>
+            <li><code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">GET /catalog?orderable_only=true</code> → live prices, carton math and stock (<em>catalog:read</em>)</li>
+            <li><code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">POST /orders/preview</code> → totals with GST / discounts / shipping before confirming</li>
+            <li><code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">POST /orders</code> with <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">{'{ retailer_id, items:[{product_id, quantity_boxes}], payment_mode: "pay_later" | "razorpay_link", placed_by, client_ref }'}</code> (<em>orders:write</em>). Stock is reserved instantly and pushed to every channel.</li>
+            <li><code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">GET /orders/{'{order_id}'}</code> → status + payment state; <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">POST /orders/{'{order_id}'}/cancel</code> releases stock (<em>orders:read / orders:write</em>)</li>
+          </ol>
+          <p className="text-xs text-gray-500 dark:text-slate-400">Pay-later orders are confirmed from <strong>B2B Orders → Mark paid</strong>. Payment-link orders confirm automatically when Razorpay reports payment. For push updates on stock subscribe a webhook under <strong>Stock Webhooks</strong>. Full schema: <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">/api/openapi.json</code>.</p>
+        </div>
+      </details>
 
       {/* List */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">

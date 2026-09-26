@@ -2,11 +2,11 @@
 
 Exposes `POST /api/partner/coupons/issue` — the endpoint Amardeep Saanan
 calls whenever one of their orders ≥ ₹499 qualifies the customer for a
-free Mystical Meharishi Dhoop on Addrika. Incoming requests are
+free Mystical Meharishi Dhoop on AAROHMM. Incoming requests are
 HMAC-SHA256 verified against `PARTNER_SHARED_SECRET` over the raw body.
 
 Also exposes a small admin convenience (`GET /partner/coupons/list`,
-`POST /partner/coupons/suspend/{code}`) so the Addrika admin can inspect
+`POST /partner/coupons/suspend/{code}`) so the AAROHMM admin can inspect
 and suspend partner-issued coupons from the existing admin discount UI.
 """
 from __future__ import annotations
@@ -75,7 +75,7 @@ async def list_partner_coupons(
 async def suspend_partner_coupon(
     code: str, request: Request, session_token: Optional[str] = Cookie(None)
 ):
-    """Admin-only: suspend (deactivate) a partner coupon on Addrika's side."""
+    """Admin-only: suspend (deactivate) a partner coupon on AAROHMM's side."""
     await require_admin(request, session_token)
     res = await db.discount_codes.update_one(
         {"code": code.upper(), "partner_source": {"$exists": True}},

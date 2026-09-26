@@ -332,7 +332,7 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
               <p style='color:#fff;margin:4px 0 0;font-size:12px;'>Waitlist entry captured — action needed</p>
             </td></tr>
             <tr><td style='padding:22px;color:#1e3a52;'>
-              <p style='margin:0 0 12px;'>A new retailer has applied to join Addrika's B2B portal.</p>
+              <p style='margin:0 0 12px;'>A new retailer has applied to join AAROHMM's B2B portal.</p>
               <p style='margin:0 0 16px;'>{gst_line}</p>
               <table cellpadding='6' cellspacing='0' style='width:100%;border-collapse:collapse;font-size:14px;'>
                 <tr><td style='background:#f5f0e8;font-weight:600;width:38%;'>Business Name</td><td style='background:#faf7f2;'>{_titlecase(data.business_name) or '—'}</td></tr>
@@ -354,7 +354,7 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
         """
         await send_email(
             to_email=admin_email,
-            subject=f"[Addrika B2B] New retailer signup — {_titlecase(data.business_name)}",
+            subject=f"[AAROHMM B2B] New retailer signup — {_titlecase(data.business_name)}",
             html_content=admin_html,
         )
 
@@ -363,26 +363,26 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
         <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
           <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;'>
             <tr><td style='background:#1e3a52;padding:24px;text-align:center;'>
-              <h1 style='color:#d4af37;margin:0;'>ADDRIKA</h1>
+              <h1 style='color:#d4af37;margin:0;'>AAROHMM</h1>
               <p style='color:#fff;margin:6px 0 0;'>You're on the wholesale waitlist</p>
             </td></tr>
             <tr><td style='padding:24px;color:#1e3a52;'>
               <p>Hi {_titlecase(data.contact_name) or 'there'},</p>
-              <p>Thanks for applying to become an Addrika retailer. We've captured your details and our team will reach out shortly to complete your KYC and set up your account.</p>
+              <p>Thanks for applying to become an AAROHMM retailer. We've captured your details and our team will reach out shortly to complete your KYC and set up your account.</p>
               <p style='background:#f5f0e8;padding:12px;border-radius:6px;font-size:13px;'>
                 <strong>Your GSTIN:</strong> <span style='font-family:monospace;'>{gst}</span><br/>
                 <strong>Business:</strong> {_titlecase(data.business_name)}<br/>
                 <strong>Registered email:</strong> {data.email}
               </p>
               <p style='color:#6b6357;font-size:13px;margin-top:20px;'>Have questions? Reply to this email or reach us at <a href='mailto:{admin_email}'>{admin_email}</a>.</p>
-              <p style='margin-top:24px;color:#888;font-size:12px;'>— Addrika B2B Team</p>
+              <p style='margin-top:24px;color:#888;font-size:12px;'>— AAROHMM B2B Team</p>
             </td></tr>
           </table>
         </body></html>
         """
         await send_email(
             to_email=data.email.lower(),
-            subject="Addrika B2B — we've got your application",
+            subject="AAROHMM B2B — we've got your application",
             html_content=applicant_html,
         )
     except Exception as e:
@@ -543,12 +543,12 @@ async def admin_onboard_waitlist_retailer(
         <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
           <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;'>
             <tr><td style='background:#1e3a52;padding:24px;text-align:center;'>
-              <h1 style='color:#d4af37;margin:0;'>ADDRIKA</h1>
+              <h1 style='color:#d4af37;margin:0;'>AAROHMM</h1>
               <p style='color:#fff;margin:4px 0 0;'>Welcome to our wholesale family</p>
             </td></tr>
             <tr><td style='padding:24px;'>
               <p>Hi {retailer['name']},</p>
-              <p>You've been onboarded to Addrika's B2B Retailer Portal.
+              <p>You've been onboarded to AAROHMM's B2B Retailer Portal.
               Your account <b>{retailer['business_name']}</b> ({retailer['gst_number']}) is ready.</p>
               <p style='text-align:center;margin:28px 0;'>
                 <a href='{link}' style='background:#d4af37;color:#1e3a52;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;'>
@@ -556,14 +556,14 @@ async def admin_onboard_waitlist_retailer(
                 </a>
               </p>
               <p style='color:#888;font-size:12px;'>This link expires in 24 hours. If it doesn't work, paste this in your browser:<br/><code>{link}</code></p>
-              <p style='margin-top:24px;color:#888;font-size:12px;'>— Addrika B2B Team · contact.us@centraders.com</p>
+              <p style='margin-top:24px;color:#888;font-size:12px;'>— AAROHMM B2B Team · contact.us@centraders.com</p>
             </td></tr>
           </table>
         </body></html>
         """
         await send_email(
             to_email=retailer["email"],
-            subject="Welcome to Addrika B2B — set your password (link expires in 24h)",
+            subject="Welcome to AAROHMM B2B — set your password (link expires in 24h)",
             html_content=html,
         )
     except Exception as e:

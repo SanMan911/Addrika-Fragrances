@@ -87,7 +87,7 @@ def early_access_hint(product: dict) -> Optional[dict]:
         "product_id": product.get("id"),
         "name": product.get("name"),
         "available_from": product.get("early_access_until"),
-        "message": "🌸 Launching soon — join the waitlist or ask your Addrika rep for early access.",
+        "message": "🌸 Launching soon — join the waitlist or ask your AAROHMM rep for early access.",
     }
 
 
@@ -126,7 +126,7 @@ async def launch_sku(db, product: dict, admin_email: str, *,
     }
 
     if broadcast:
-        base_url = os.environ.get("PUBLIC_APP_URL", "https://addrika.com").rstrip("/")
+        base_url = os.environ.get("PUBLIC_APP_URL", "https://centraders.com").rstrip("/")
         preview_full = f"{base_url}{preview_path}"
         wa_msg = _launch_broadcast_message(product, preview_full)
         email_html = _launch_email_html(product, preview_full)
@@ -208,7 +208,7 @@ def _accountant_email_html(product: dict, admin_email: str, summary: dict) -> st
       <div style='max-width:600px;margin:0 auto;background:#fff;border-radius:8px;padding:24px;'>
         <h2 style='color:#1e3a52;margin:0 0 12px;'>New Revenue Line Live</h2>
         <p style='font-size:14px;color:#333;'>
-          A new SKU just went live in the Addrika catalog.
+          A new SKU just went live in the AAROHMM catalog.
         </p>
         <table style='width:100%;font-size:13px;color:#333;border-collapse:collapse;'>
           <tr><td style='padding:4px 0;color:#888;'>Product</td><td>{product.get('name')}</td></tr>
@@ -218,7 +218,7 @@ def _accountant_email_html(product: dict, admin_email: str, summary: dict) -> st
           <tr><td style='padding:4px 0;color:#888;'>Early access until</td><td>{summary.get('early_access_until')}</td></tr>
         </table>
         <p style='font-size:12px;color:#888;margin-top:20px;'>
-          Automated notification from the Addrika Launch Composer.
+          Automated notification from the AAROHMM Launch Composer.
         </p>
       </div>
     </body></html>

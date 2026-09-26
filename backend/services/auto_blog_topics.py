@@ -1,6 +1,6 @@
 """
 Topic bank for the auto-blog scheduler. Curated list of evergreen + seasonal
-themes for Addrika's brand voice (premium incense, low-smoke, mindful living).
+themes for AAROHMM's brand voice (premium incense, low-smoke, mindful living).
 The orchestrator alternates between this static bank and trend-driven cycles
 (see `auto_blog.py`).
 """
@@ -29,7 +29,7 @@ TOPIC_BANK = [
      ["aromatherapy India", "ayurvedic incense", "stress relief fragrance"]),
     ("How to choose B2B-grade agarbatti for your store: a buyer's guide", "b2b", None,
      ["b2b agarbatti", "wholesale incense India", "premium agarbatti supplier"]),
-    ("The Addrika promise: small-batch, charcoal-free, made in Delhi", "brand", "Delhi",
+    ("The AAROHMM promise: small-batch, charcoal-free, made in Delhi", "brand", "Delhi",
      ["addrika incense", "delhi agarbatti supplier", "premium small batch incense"]),
     ("Mumbai shopkeepers' favourite incense: the SKUs that always sell", "b2b", "Mumbai",
      ["mumbai agarbatti supplier", "incense bestseller", "wholesale fragrance Mumbai"]),
@@ -51,7 +51,7 @@ TOPIC_BANK = [
      ["festival incense India", "holi agarbatti", "religious fragrance"]),
     ("The 7-day fragrance reset: incense routine for sleep, focus, calm", "wellness", None,
      ["incense for sleep", "focus fragrance", "calming agarbatti"]),
-    ("From the rolling room: how Addrika makes a single Belpatra stick", "behind-scenes", None,
+    ("From the rolling room: how AAROHMM makes a single Belpatra stick", "behind-scenes", None,
      ["how agarbatti is made", "addrika manufacturing", "small batch incense"]),
     ("Why your incense smells different in monsoon (and what to do)", "seasonal", None,
      ["monsoon incense", "incense storage", "humidity agarbatti"]),

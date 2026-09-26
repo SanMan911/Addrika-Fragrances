@@ -12,6 +12,12 @@ export default function ProductActions({ product }) {
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const isComingSoon = product.comingSoon === true;
+  // Shared inventory: `stock` is attached per size from the unified B2B pool.
+  // Undefined stock = not tracked (orderable); a number = live availability.
+  const sizeStock = (size) => (typeof size?.stock === 'number' ? size.stock : null);
+  const selectedStock = sizeStock(selectedSize);
+  const isOutOfStock = selectedStock !== null && selectedStock <= 0;
+  const maxQty = selectedStock !== null && selectedStock > 0 ? selectedStock : Infinity;
   
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -32,6 +38,14 @@ export default function ProductActions({ product }) {
   const handleAddToCart = async () => {
     if (!selectedSize) {
       toast.error('Please select a size');
+      return;
+    }
+    if (isOutOfStock) {
+      toast.error(`${product.name} (${selectedSize.size}) is out of stock right now`);
+      return;
+    }
+    if (quantity > maxQty) {
+      toast.error(`Only ${maxQty} left in stock for ${selectedSize.size}`);
       return;
     }
     
@@ -102,6 +116,12 @@ export default function ProductActions({ product }) {
               {size.mrp > size.price && (
                 <span className="text-xs text-gray-500 line-through ml-1">₹{size.mrp}</span>
               )}
+              {sizeStock(size) !== null && sizeStock(size) <= 0 && !isComingSoon && (
+                <span className="block text-[10px] uppercase tracking-wide text-rose-400 mt-1" data-testid={`size-${size.size}-oos`}>Out of stock</span>
+              )}
+              {sizeStock(size) !== null && sizeStock(size) > 0 && sizeStock(size) <= 12 && (
+                <span className="block text-[10px] uppercase tracking-wide text-amber-400 mt-1" data-testid={`size-${size.size}-low`}>Only {sizeStock(size)} left</span>
+              )}
             </button>
           ))}
         </div>
@@ -129,8 +149,9 @@ export default function ProductActions({ product }) {
               {quantity}
             </span>
             <button
-              onClick={() => setQuantity(quantity + 1)}
-              className="p-3 hover:bg-white/10 rounded-r-lg transition-colors"
+              onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
+              className="p-3 hover:bg-white/10 rounded-r-lg transition-colors disabled:opacity-40"
+              disabled={quantity >= maxQty}
               data-testid="increase-qty"
             >
               <Plus size={18} className="text-white" />
@@ -150,8 +171,13 @@ export default function ProductActions({ product }) {
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-4 pt-4">
-        {isComingSoon ? (
-          <div className="flex-1">
+        {isComingSoon || isOutOfStock ? (
+          <div className="flex-1 space-y-2">
+            {isOutOfStock && !isComingSoon && (
+              <p className="text-sm text-rose-300" data-testid="out-of-stock-msg">
+                This size is out of stock — get notified the moment it&apos;s back.
+              </p>
+            )}
             <NotifyMeButton productId={product.id} />
           </div>
         ) : (

@@ -2,7 +2,7 @@
 
 ## Status: ✅ MIGRATION COMPLETE
 
-This directory contains the Next.js version of the Addrika e-commerce application.
+This directory contains the Next.js version of the AAROHMM e-commerce application.
 
 ---
 

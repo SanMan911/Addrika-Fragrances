@@ -87,23 +87,23 @@ def _build_post(leader: dict, month_label: str) -> dict:
         city = leader.get("city")
         city_line = f" from <b>{city}</b>" if city else ""
         title = f"This Month's Constant Companion — {who} · {month_label}"
-        subhead = f"{who}{city_line} has kept an unbroken monthly ordering streak with Addrika for <b>{streak} months</b> running."
+        subhead = f"{who}{city_line} has kept an unbroken monthly ordering streak with AAROHMM for <b>{streak} months</b> running."
         excerpt = (
             f"{who} is our Constant Companion for {month_label}, with "
-            f"{streak} unbroken months of ordering Addrika. Honoured on our leaderboard."
+            f"{streak} unbroken months of ordering AAROHMM. Honoured on our leaderboard."
         )
     else:
         title = f"This Month's Constant Companion — {month_label}"
-        subhead = f"An Addrika retailer has quietly kept an unbroken monthly ordering streak alive for <b>{streak} months</b> running."
+        subhead = f"An AAROHMM retailer has quietly kept an unbroken monthly ordering streak alive for <b>{streak} months</b> running."
         excerpt = (
             f"Meet this month's Constant Companion — {streak} unbroken months "
-            f"of ordering Addrika. Honoured on our leaderboard."
+            f"of ordering AAROHMM. Honoured on our leaderboard."
         )
 
     tag_html_intro = (
         "<p>Every month we spotlight a retailer who best embodies the "
         "<b>Constant Companion</b> spirit — the partner whose monthly rhythm "
-        "with Addrika has never skipped a beat.</p>"
+        "with AAROHMM has never skipped a beat.</p>"
     )
 
     body_paragraphs = [
@@ -115,7 +115,7 @@ def _build_post(leader: dict, month_label: str) -> dict:
         "us. Season after season, festival after festival, restock after "
         "restock. That's what we mean by <em>constant</em>.</p>",
         "<h2>Why the Constant Companion honour matters</h2>",
-        "<p>At Addrika, we don't just count orders — we count "
+        "<p>At AAROHMM, we don't just count orders — we count "
         "<em>consistency</em>. Our Patron Journey rewards depth of "
         "partnership: aroma-themed tags like Cedar Patron, Sandalwood Sage "
         "and Oudh Master mark milestones you cross forever. But the "
@@ -143,7 +143,7 @@ def _build_post(leader: dict, month_label: str) -> dict:
         "content": body_html,
         "tags": ["community", "constant-companion", "leaderboard", "retailer-spotlight"],
         "author_id": "auto-shoutout",
-        "author_name": "Addrika Community",
+        "author_name": "AAROHMM Community",
         "is_published": True,
         "views": 0,
         "created_at": now,
@@ -159,8 +159,8 @@ def _build_post(leader: dict, month_label: str) -> dict:
              "a": "Only if you want your name shown publicly. Streaks are tracked either way — you can opt in from your Rewards page any time."},
         ],
         "social_caption": (
-            f"🎉 This month's Addrika Constant Companion is celebrating "
-            f"{streak} unbroken months. #AddrikaCommunity #ConstantCompanion"
+            f"🎉 This month's AAROHMM Constant Companion is celebrating "
+            f"{streak} unbroken months. #AarohmmCommunity #ConstantCompanion"
         ),
         "shoutout_month": _month_key(),
         "shoutout_retailer_id": leader["retailer_id"] if named else None,

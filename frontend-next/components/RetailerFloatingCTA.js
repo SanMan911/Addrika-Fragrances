@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Handshake, Download, X, FileText, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { Handshake, Download, X, FileText, ChevronRight, PhoneCall, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 import RetailerPartnershipModal from './RetailerPartnershipModal';
 import BRAND from '../lib/brand.config';
@@ -126,22 +127,40 @@ export default function RetailerFloatingCTA() {
           </div>
 
           <div className="px-3 pb-3 space-y-2">
-            <button
-              type="button"
-              onClick={openPartnership}
+            <Link
+              href="/retailer/register"
+              onClick={() => setOpen(false)}
               className="w-full group flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg transition-transform hover:translate-x-0.5"
               style={{
                 background:
                   'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
                 color: '#1a1a2e',
               }}
-              data-testid="retailer-cta-partner"
+              data-testid="retailer-cta-register"
             >
               <span className="flex items-center gap-2.5 text-sm font-bold">
                 <Handshake size={16} />
-                Become a Retailer
+                Register in 5 minutes
               </span>
               <ChevronRight size={16} className="opacity-70 group-hover:opacity-100" />
+            </Link>
+
+            <button
+              type="button"
+              onClick={openPartnership}
+              className="w-full group flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg transition-colors"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(212,175,55,0.3)',
+                color: '#fff',
+              }}
+              data-testid="retailer-cta-partner"
+            >
+              <span className="flex items-center gap-2.5 text-sm font-semibold">
+                <PhoneCall size={15} />
+                Request a callback
+              </span>
+              <ChevronRight size={14} className="opacity-50 group-hover:opacity-90" />
             </button>
 
             <button
@@ -165,13 +184,16 @@ export default function RetailerFloatingCTA() {
           </div>
 
           <div
-            className="px-4 py-2 text-[10px] text-white/50 text-center"
+            className="px-4 py-2 text-[11px] text-white/60 flex items-center justify-between"
             style={{
               background: 'rgba(255,255,255,0.025)',
               borderTop: '1px solid rgba(212,175,55,0.18)',
             }}
           >
-            Pan-India shipping · 12 signature fragrances
+            <span>Already a partner?</span>
+            <Link href="/retailer/login" onClick={() => setOpen(false)} className="inline-flex items-center gap-1 font-semibold" style={{ color: '#D4AF37' }} data-testid="retailer-cta-login">
+              <LogIn size={12} /> Retailer login
+            </Link>
           </div>
         </div>
       )}

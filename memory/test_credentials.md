@@ -24,3 +24,13 @@
 ## Notes
 - For email OTP testing, if email service is not configured, OTP is displayed in the API response (DEV MODE)
 - Admin 2FA is always enabled and requires OTP verification
+
+## External API (Field Sales Manager) — added June 2026
+- **API key** (all 5 scopes: stock:read, catalog:read, retailers:read, orders:write, orders:read): `arhk_C2yoApjyj2zmmGZ6bM2qC47bxiJ--9o7ElyaRtbmPqk`
+- Header: `X-API-Key: <key>` against `/api/external/v1/*` (ping, stock, catalog, retailers, orders, orders/preview, orders/{id}, orders/{id}/cancel)
+- Test retailer for FSM orders: retailer_id `RTL_TEST_B2B` (GSTIN 07AAAAA0000A1Z5). Only SKU with stock: `bold-bakhoor-b2b` (100 pieces = 8.33 cartons of 12).
+- Razorpay keys in this environment FAIL authentication → `payment_mode: razorpay_link` orders are placed with `payment_link_url: null`; D2C checkout returns "Payment gateway error". Not a code bug — needs valid keys.
+
+## Admin 2FA note
+- POST /api/admin/login/initiate `{"email":"contact.us@centraders.com","pin":"050499"}` → returns `token_id`; the 6-digit OTP is e-mailed AND stored in Mongo collection `admin_2fa_tokens` (`{token_id, email, otp}`) — read it from the DB for automated tests (`mongosh $MONGO_URL/addrika_db --eval 'db.admin_2fa_tokens.find().sort({created_at:-1}).limit(1)'`), then POST /api/admin/login/verify-otp `{"token_id":..., "otp":...}` → sets `session_token` cookie (also returned in JSON).
+- Admin UI login: /admin/login (PIN step → OTP step).

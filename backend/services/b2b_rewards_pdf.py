@@ -60,7 +60,7 @@ def build_rewards_statement_pdf(retailer: dict, ledger: list[dict]) -> bytes:
         buf, pagesize=A4,
         leftMargin=15 * mm, rightMargin=15 * mm,
         topMargin=15 * mm, bottomMargin=15 * mm,
-        title="Addrika · Fragrance Rewards Statement",
+        title="AAROHMM · Fragrance Rewards Statement",
     )
     styles = getSampleStyleSheet()
     h1 = ParagraphStyle(
@@ -206,7 +206,7 @@ def build_rewards_statement_pdf(retailer: dict, ledger: list[dict]) -> bytes:
 
     # ── Footer ─────────────────────────────────────────────────────────
     story.append(Paragraph(
-        "<i>Fragrance Rewards is Addrika's B2B trade-credit programme. "
+        "<i>Fragrance Rewards is AAROHMM's B2B trade-credit programme. "
         "Credit accrues at 100 / 110 / 125% of the shipping charge on qualifying "
         f"invoices (\u2265 {INR}1,000). Streak resets after 45 days of inactivity. "
         f"Redemption threshold: {INR}2,500 · applies to invoice value only "

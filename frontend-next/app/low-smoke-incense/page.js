@@ -6,7 +6,7 @@ import BRAND from '../../lib/brand.config';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export const metadata = {
-  title: `Low Smoke Agarbatti | Charcoal-Free Incense Sticks | ${BRAND.name} Fragrances`,
+  title: `Low Smoke Agarbatti | Charcoal-Free Incense Sticks`,
   description: `Discover ${BRAND.name}\'s premium low smoke agarbatti - charcoal-free incense sticks with ethically sourced ingredients. Made with pure essential oils and flower dust. Ideal for meditation, small apartments, and health-conscious users. Over 60% less smoke than traditional agarbatti.`,
   keywords: [
     'low smoke agarbatti', 'charcoal-free incense', 'charcoal-free agarbatti', 
@@ -158,12 +158,12 @@ export default async function LowSmokeIncensePage() {
   ];
 
   const comparisonData = [
-    { feature: "Smoke Output", addrika: "Low (60%+ less)", traditional: "High" },
-    { feature: "Charcoal Content", addrika: "Zero - Charcoal-free", traditional: "Contains charcoal" },
-    { feature: "Ingredients", addrika: "Ethically Sourced", traditional: "Often synthetic" },
-    { feature: "Residue", addrika: "Minimal ash", traditional: "Heavy ash & soot" },
-    { feature: "Indoor Suitability", addrika: "Excellent", traditional: "Limited" },
-    { feature: "Health Impact", addrika: "Gentler on respiratory system", traditional: "Can irritate airways" },
+    { feature: "Smoke Output", brand: "Low (60%+ less)", traditional: "High" },
+    { feature: "Charcoal Content", brand: "Zero - Charcoal-free", traditional: "Contains charcoal" },
+    { feature: "Ingredients", brand: "Ethically Sourced", traditional: "Often synthetic" },
+    { feature: "Residue", brand: "Minimal ash", traditional: "Heavy ash & soot" },
+    { feature: "Indoor Suitability", brand: "Excellent", traditional: "Limited" },
+    { feature: "Health Impact", brand: "Gentler on respiratory system", traditional: "Can irritate airways" },
   ];
 
   return (
@@ -306,7 +306,7 @@ export default async function LowSmokeIncensePage() {
                   {comparisonData.map((row, index) => (
                     <tr key={index} className={index % 2 === 0 ? 'bg-[#F5F0E8]' : 'bg-white'}>
                       <td className="p-4 font-medium text-[#2B3A4A]">{row.feature}</td>
-                      <td className="p-4 text-green-700">{row.addrika}</td>
+                      <td className="p-4 text-green-700">{row.brand}</td>
                       <td className="p-4 text-gray-600">{row.traditional}</td>
                     </tr>
                   ))}

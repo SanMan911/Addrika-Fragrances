@@ -1,5 +1,5 @@
 """
-Database Maintenance Service for Addrika
+Database Maintenance Service for AAROHMM
 Provides utilities for database optimization and cleanup
 """
 from datetime import datetime, timezone, timedelta

@@ -1,5 +1,5 @@
 """
-Addrika Backend Models Package
+AAROHMM Backend Models Package
 Centralized data models for the application
 """
 

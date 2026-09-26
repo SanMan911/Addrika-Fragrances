@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from dependencies import require_admin
 from services.api_keys import (
     AVAILABLE_SCOPES,
+    SCOPE_DESCRIPTIONS,
     create_key,
     delete_key,
     list_keys,
@@ -32,7 +33,11 @@ class CreateKeyBody(BaseModel):
 @router.get("")
 async def list_api_keys(request: Request, session_token: Optional[str] = Cookie(None)):
     await require_admin(request, session_token)
-    return {"items": await list_keys(), "available_scopes": list(AVAILABLE_SCOPES)}
+    return {
+        "items": await list_keys(),
+        "available_scopes": list(AVAILABLE_SCOPES),
+        "scope_descriptions": SCOPE_DESCRIPTIONS,
+    }
 
 
 @router.post("")
