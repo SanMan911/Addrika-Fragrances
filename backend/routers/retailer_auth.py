@@ -349,7 +349,11 @@ async def validate_reset_token(token: str):
 @router.post("/reset-password")
 async def retailer_reset_password(data: ResetPasswordRequest):
     """Public — consumes a one-time token and sets a new password."""
-    from services.retailer_password_reset import find_valid_token, send_changed_email
+    from services.retailer_password_reset import find_valid_token, password_problems, send_changed_email
+
+    problems = password_problems(data.password)
+    if problems:
+        raise HTTPException(status_code=422, detail="; ".join(problems))
 
     row = await find_valid_token(db, data.token)
     if not row:

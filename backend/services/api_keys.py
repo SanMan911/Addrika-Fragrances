@@ -56,6 +56,7 @@ def _public(doc: dict) -> dict:
         "name": doc.get("name"),
         "key_prefix": doc.get("key_prefix"),
         "scopes": doc.get("scopes") or [],
+        "retailer_ids": doc.get("retailer_ids") or [],
         "is_active": bool(doc.get("is_active")),
         "created_at": doc.get("created_at"),
         "created_by": doc.get("created_by"),
@@ -64,7 +65,7 @@ def _public(doc: dict) -> dict:
     }
 
 
-async def create_key(name: str, scopes: list[str], created_by: str) -> dict:
+async def create_key(name: str, scopes: list[str], created_by: str, retailer_ids: Optional[list[str]] = None) -> dict:
     raw = KEY_PLAINTEXT_PREFIX + secrets.token_urlsafe(32)
     key_id = f"ak_{uuid.uuid4().hex[:10]}"
     valid_scopes = [s for s in (scopes or []) if s in AVAILABLE_SCOPES] or ["stock:read"]
@@ -74,6 +75,9 @@ async def create_key(name: str, scopes: list[str], created_by: str) -> dict:
         "key_prefix": raw[:12] + "…",
         "key_hash": _hash(raw),
         "scopes": valid_scopes,
+        # Empty list = unrestricted. Otherwise the key may only read/write
+        # orders and retailer records for these retailer_ids.
+        "retailer_ids": [str(r).strip() for r in (retailer_ids or []) if str(r).strip()],
         "is_active": True,
         "created_at": _now(),
         "created_by": created_by,

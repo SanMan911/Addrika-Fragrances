@@ -158,7 +158,44 @@ def _sign(secret: str, body: bytes) -> str:
     return "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
 
+def is_public_http_url(raw: str) -> tuple[bool, str]:
+    """SSRF guard — webhook targets must be public https/http hosts.
+
+    Rejects loopback, link-local, private and reserved ranges plus non-http
+    schemes so an admin-supplied URL can't be used to reach internal services.
+    """
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    try:
+        u = urlparse((raw or "").strip())
+    except Exception:
+        return False, "Malformed URL"
+    if u.scheme not in ("http", "https"):
+        return False, "URL must start with http:// or https://"
+    host = u.hostname or ""
+    if not host:
+        return False, "URL has no host"
+    if host.lower() in {"localhost", "metadata.google.internal"} or host.lower().endswith(".local"):
+        return False, "Internal hosts are not allowed"
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except Exception:
+        return False, "Host could not be resolved"
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            return False, "URL resolves to a private or reserved address"
+    return True, ""
+
+
 async def _deliver(webhook: dict, event: str, payload: dict) -> None:
+    ok_url, why = is_public_http_url(webhook.get("url", ""))
+    if not ok_url:
+        logger.warning("Stock webhook %s blocked: %s", webhook.get("id"), why)
+        return
     delivery_id = uuid.uuid4().hex
     body = json.dumps(payload, default=str).encode()
     headers = {

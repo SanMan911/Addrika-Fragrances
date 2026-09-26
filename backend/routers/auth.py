@@ -17,6 +17,14 @@ from services.email_service import send_otp_email, generate_otp, is_email_servic
 from dependencies import db, verify_hcaptcha, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def _dev_otp_exposed() -> bool:
+    """Only echo an OTP back to the caller when explicitly allowed (ALLOW_DEV_OTP=1)."""
+    from services.phone_otp import dev_codes_exposed
+    return dev_codes_exposed()
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -153,7 +161,7 @@ async def send_registration_otp(request: OTPRequest, captcha_token: Optional[str
         return {
             "message": "OTP generated (DEV MODE - email not configured)",
             "expires_in_minutes": 10,
-            "dev_otp": otp,
+            **({"dev_otp": otp} if _dev_otp_exposed() else {}),
             "note": "In production, OTP will be sent to email. Please configure Resend API key (re_...) for email functionality."
         }
     
@@ -164,7 +172,7 @@ async def send_registration_otp(request: OTPRequest, captcha_token: Optional[str
         return {
             "message": "OTP generated (email sending failed)",
             "expires_in_minutes": 10,
-            "dev_otp": otp,
+            **({"dev_otp": otp} if _dev_otp_exposed() else {}),
             "note": "Email sending failed. Using fallback OTP display."
         }
     
@@ -802,7 +810,7 @@ async def request_email_change(
         return {
             "message": "OTP generated (DEV MODE - email not configured)",
             "expires_in_minutes": 10,
-            "dev_otp": otp,
+            **({"dev_otp": otp} if _dev_otp_exposed() else {}),
             "note": "In production, OTP will be sent to the new email."
         }
     
@@ -812,7 +820,7 @@ async def request_email_change(
         return {
             "message": "OTP generated (email sending failed)",
             "expires_in_minutes": 10,
-            "dev_otp": otp
+            **({"dev_otp": otp} if _dev_otp_exposed() else {})
         }
     
     return {"message": "OTP sent to new email address", "expires_in_minutes": 10}

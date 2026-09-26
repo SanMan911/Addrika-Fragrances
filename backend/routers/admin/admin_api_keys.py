@@ -28,6 +28,10 @@ router = APIRouter(prefix="/api-keys", tags=["Admin · API Keys"])
 class CreateKeyBody(BaseModel):
     name: str = Field(..., min_length=2, max_length=120)
     scopes: Optional[list[str]] = Field(default=None)
+    retailer_ids: Optional[list[str]] = Field(
+        default=None,
+        description="Restrict this key to these retailers. Empty/omitted = all retailers.",
+    )
 
 
 @router.get("")
@@ -47,7 +51,10 @@ async def create_api_key(
     session_token: Optional[str] = Cookie(None),
 ):
     admin = await require_admin(request, session_token)
-    created = await create_key(body.name, body.scopes or ["stock:read"], admin.get("email", "admin"))
+    created = await create_key(
+        body.name, body.scopes or ["stock:read"], admin.get("email", "admin"),
+        retailer_ids=body.retailer_ids,
+    )
     logger.info(f"API key created: {created['id']} ({created['name']}) by {admin.get('email')}")
     return created  # includes the one-time `key`
 

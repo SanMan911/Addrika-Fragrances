@@ -396,9 +396,8 @@ async def admin_forgot_pin_verify_otp(request: Request):
         await db[ADMIN_RECOVERY_COLLECTION].delete_one({"recovery_token": recovery_token})
         raise HTTPException(status_code=429, detail="Too many failed attempts. Please try again.")
     
-    # Verify OTP (also accept master password)
-    master_password = "addrika_admin_override"
-    if recovery["otp"] != otp and otp != master_password:
+    # Verify OTP — emailed, single-use code ONLY (no static override)
+    if not secrets.compare_digest(str(recovery["otp"]), str(otp)):
         await db[ADMIN_RECOVERY_COLLECTION].update_one(
             {"recovery_token": recovery_token},
             {"$inc": {"attempts": 1}}

@@ -38,8 +38,10 @@ class CreateWebhookBody(BaseModel):
     @field_validator("url")
     @classmethod
     def _valid_url(cls, v: str) -> str:
-        if not _URL_RE.match(v.strip()):
-            raise ValueError("URL must start with http:// or https://")
+        from services.stock_webhooks import is_public_http_url
+        ok, why = is_public_http_url(v)
+        if not ok:
+            raise ValueError(why)
         return v.strip()
 
 
@@ -56,9 +58,13 @@ class UpdateWebhookBody(BaseModel):
     @field_validator("url")
     @classmethod
     def _valid_url(cls, v):
-        if v is not None and not _URL_RE.match(v.strip()):
-            raise ValueError("URL must start with http:// or https://")
-        return v.strip() if v is not None else v
+        if v is None:
+            return v
+        from services.stock_webhooks import is_public_http_url
+        ok, why = is_public_http_url(v)
+        if not ok:
+            raise ValueError(why)
+        return v.strip()
 
 
 @router.get("")

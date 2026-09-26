@@ -1011,7 +1011,25 @@ async def get_states_and_districts():
 
 @router.get("/by-location")
 async def get_retailers_by_location(state: str, district: str):
-    """Get verified retailers by state and district"""
+    """Public store-picker lookup. Whitelist projection only — never leak
+    GSTIN, email, phone, SPOC, admin notes or KYC state to anonymous callers."""
+    PUBLIC_FIELDS = {
+        "_id": 0,
+        "business_name": 1,
+        "trade_name": 1,
+        "name": 1,
+        "retailer_id": 1,
+        "id": 1,
+        "address": 1,
+        "registered_address": 1,
+        "city": 1,
+        "district": 1,
+        "state": 1,
+        "pincode": 1,
+        "coordinates": 1,
+        "is_addrika_verified_partner": 1,
+        "retailer_label": 1,
+    }
     retailers = await db.retailers.find(
         {
             "state": state,
@@ -1019,12 +1037,7 @@ async def get_retailers_by_location(state: str, district: str):
             "status": "active",
             "is_verified": True
         },
-        {
-            "_id": 0,
-            "password_hash": 0,
-            "legal_documents": 0,
-            "spoc.id_proof_document": 0
-        }
+        PUBLIC_FIELDS,
     ).to_list(50)
     
     return {"retailers": retailers}

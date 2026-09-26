@@ -11,12 +11,12 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 logger = logging.getLogger(__name__)
 
-JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'addrika_secret_key_change_in_production')
+JWT_SECRET_KEY = os.environ['JWT_SECRET_KEY']
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_DAYS = 7
 
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'contact.us@centraders.com')
-ADMIN_DEFAULT_PIN = os.environ.get('ADMIN_DEFAULT_PIN', '110078')
+ADMIN_DEFAULT_PIN = os.environ['ADMIN_DEFAULT_PIN']
 
 
 def hash_password(password: str) -> str:
@@ -232,16 +232,12 @@ async def init_admin_settings(db: AsyncIOMotorDatabase):
 
 
 async def verify_admin_pin(db: AsyncIOMotorDatabase, email: str, pin: str) -> bool:
-    """Verify admin PIN"""
+    """Verify admin PIN against the stored bcrypt hash. No plaintext fallback."""
     settings = await db.admin_settings.find_one({"admin_email": email.lower()})
-    logger.info(f"[Admin PIN] Checking for email: {email.lower()}, found: {settings is not None}")
-    if not settings:
-        # Fallback: check with default PIN if no settings exist
-        logger.info(f"[Admin PIN] No settings found, using default PIN: {ADMIN_DEFAULT_PIN}")
-        return pin == ADMIN_DEFAULT_PIN
-    result = verify_password(pin, settings["pin_hash"])
-    logger.info(f"[Admin PIN] Password verify result: {result}")
-    return result
+    if not settings or not settings.get("pin_hash"):
+        logger.warning("[Admin PIN] no admin_settings row for %s — denying", email.lower())
+        return False
+    return verify_password(pin, settings["pin_hash"])
 
 
 async def change_admin_pin(db: AsyncIOMotorDatabase, email: str, old_pin: str, new_pin: str) -> bool:

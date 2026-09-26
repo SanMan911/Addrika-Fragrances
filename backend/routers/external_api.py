@@ -19,6 +19,9 @@ fire — all channels see the new availability within seconds.
 All routes are mounted under /api/external/v1.
 """
 import logging
+import os
+import re
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request
@@ -31,6 +34,40 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/external/v1", tags=["External API"])
 
 
+RATE_LIMIT_PER_MINUTE = int(os.environ.get("EXTERNAL_API_RATE_LIMIT_PER_MINUTE", "120"))
+
+
+async def _enforce_rate_limit(key_doc: dict) -> None:
+    """Fixed 60-second window per API key."""
+    bucket = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
+    doc_id = f"{key_doc.get('id')}:{bucket}"
+    res = await db.api_key_rate_limits.find_one_and_update(
+        {"_id": doc_id},
+        {"$inc": {"count": 1}, "$setOnInsert": {"expires_at": datetime.now(timezone.utc) + timedelta(minutes=2)}},
+        upsert=True,
+        return_document=True,
+    )
+    if int((res or {}).get("count") or 0) > RATE_LIMIT_PER_MINUTE:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded ({RATE_LIMIT_PER_MINUTE} requests/minute for this API key)",
+        )
+
+
+def _allowed_retailers(key_doc: dict) -> Optional[list]:
+    """Retailer allowlist bound to the key, or None when the key is unrestricted."""
+    ids = key_doc.get("retailer_ids") or []
+    return [str(i) for i in ids] if ids else None
+
+
+def _assert_retailer_allowed(key_doc: dict, retailer_id: Optional[str]) -> None:
+    allowed = _allowed_retailers(key_doc)
+    if allowed is None:
+        return
+    if not retailer_id or str(retailer_id) not in allowed:
+        raise HTTPException(status_code=403, detail="This API key is not scoped to that retailer")
+
+
 async def _require_key(request: Request, x_api_key: Optional[str], scope: str) -> dict:
     raw = x_api_key
     if not raw:
@@ -40,6 +77,7 @@ async def _require_key(request: Request, x_api_key: Optional[str], scope: str) -
     key_doc = await verify_key(raw or "", required_scope=scope)
     if not key_doc:
         raise HTTPException(status_code=401, detail=f"Invalid or missing API key (needs scope '{scope}')")
+    await _enforce_rate_limit(key_doc)
     return key_doc
 
 
@@ -124,6 +162,7 @@ async def ping(request: Request, x_api_key: Optional[str] = Header(None, alias="
     key_doc = await verify_key(raw or "")
     if not key_doc:
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    await _enforce_rate_limit(key_doc)
     return {"ok": True, "key_name": key_doc.get("name"), "scopes": key_doc.get("scopes")}
 
 
@@ -232,18 +271,22 @@ async def list_retailers(
     limit: int = Query(50, ge=1, le=200),
 ):
     """Find onboarded retailers so the FSM app can attach an order to one."""
-    await _require_key(request, x_api_key, scope="retailers:read")
+    key_doc = await _require_key(request, x_api_key, scope="retailers:read")
     query: dict = {"is_active": {"$ne": False}}
+    allowed = _allowed_retailers(key_doc)
+    if allowed is not None:
+        query["retailer_id"] = {"$in": allowed}
     if gstin:
         query["gst_number"] = gstin.strip().upper()
     if phone:
         digits = "".join(ch for ch in phone if ch.isdigit())[-10:]
         query["phone"] = {"$regex": f"{digits}$"}
     if q:
+        safe_q = re.escape(q.strip()[:80])
         query["$or"] = [
-            {"business_name": {"$regex": q, "$options": "i"}},
-            {"trade_name": {"$regex": q, "$options": "i"}},
-            {"city": {"$regex": q, "$options": "i"}},
+            {"business_name": {"$regex": safe_q, "$options": "i"}},
+            {"trade_name": {"$regex": safe_q, "$options": "i"}},
+            {"city": {"$regex": safe_q, "$options": "i"}},
         ]
     skip = (page - 1) * limit
     cursor = db.retailers.find(query, {"_id": 0, "password_hash": 0}).sort("business_name", 1).skip(skip).limit(limit)
@@ -285,7 +328,7 @@ class ExtOrderCreate(BaseModel):
     accept_preorder_terms: bool = False
 
 
-async def _resolve_retailer(body: ExtOrderCreate) -> dict:
+async def _resolve_retailer(body: ExtOrderCreate, key_doc: dict) -> dict:
     if not body.retailer_id and not body.gstin:
         raise HTTPException(status_code=422, detail="Provide retailer_id or gstin")
     q = {"retailer_id": body.retailer_id} if body.retailer_id else {"gst_number": body.gstin.strip().upper()}
@@ -294,6 +337,7 @@ async def _resolve_retailer(body: ExtOrderCreate) -> dict:
         raise HTTPException(status_code=404, detail="Retailer not found — onboard them first")
     if retailer.get("is_active") is False:
         raise HTTPException(status_code=403, detail="Retailer account is inactive")
+    _assert_retailer_allowed(key_doc, retailer.get("retailer_id"))
     return retailer
 
 
@@ -304,11 +348,11 @@ async def preview_order(
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ):
     """Price a cart for a retailer WITHOUT placing it (totals, GST, discounts, shipping)."""
-    await _require_key(request, x_api_key, scope="orders:write")
+    key_doc = await _require_key(request, x_api_key, scope="orders:write")
     from routers.b2b_orders import require_b2b_enabled
     from services import b2b_order_engine as engine
     await require_b2b_enabled()
-    retailer = await _resolve_retailer(body)
+    retailer = await _resolve_retailer(body, key_doc)
     return await engine.calculate(db, retailer, body)
 
 
@@ -331,7 +375,7 @@ async def place_order(
     from routers.b2b_orders import require_b2b_enabled, require_kyc_complete
     from services import b2b_order_engine as engine
     await require_b2b_enabled()
-    retailer = await _resolve_retailer(body)
+    retailer = await _resolve_retailer(body, key_doc)
     await require_kyc_complete(retailer)
 
     placed_by = (body.placed_by.model_dump() if body.placed_by else {}) | {"api_key": key_doc.get("name")}
@@ -354,9 +398,16 @@ async def list_orders(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
 ):
-    await _require_key(request, x_api_key, scope="orders:read")
+    key_doc = await _require_key(request, x_api_key, scope="orders:read")
     q: dict = {}
-    if retailer_id:
+    allowed = _allowed_retailers(key_doc)
+    if allowed is not None:
+        if retailer_id:
+            _assert_retailer_allowed(key_doc, retailer_id)
+            q["retailer_id"] = retailer_id
+        else:
+            q["retailer_id"] = {"$in": allowed}
+    elif retailer_id:
         q["retailer_id"] = retailer_id
     if channel:
         q["channel"] = channel
@@ -380,10 +431,11 @@ async def get_order(
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ):
     """Order status. Pending payment-link orders are re-checked against Razorpay on every read."""
-    await _require_key(request, x_api_key, scope="orders:read")
+    key_doc = await _require_key(request, x_api_key, scope="orders:read")
     order = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    _assert_retailer_allowed(key_doc, order.get("retailer_id"))
     if order.get("payment_link_id") and order.get("payment_status") != "paid":
         from services import b2b_order_engine as engine
         order = await engine.refresh_payment_link_status(db, order)
@@ -406,6 +458,7 @@ async def cancel_order(
     order = await db.b2b_orders.find_one({"order_id": order_id}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    _assert_retailer_allowed(key_doc, order.get("retailer_id"))
     if order.get("payment_status") == "paid":
         raise HTTPException(status_code=409, detail="Paid orders can only be cancelled by admin")
     from services import b2b_order_engine as engine

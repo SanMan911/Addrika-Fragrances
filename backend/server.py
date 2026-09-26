@@ -194,6 +194,7 @@ async def startup_db_client():
         print(f"GSTIN login alignment: {res}")
         from services.retailer_password_reset import ensure_indexes as _pwr_indexes
         await _pwr_indexes(db)
+        await db.api_key_rate_limits.create_index("expires_at", expireAfterSeconds=0)
     except Exception as e:  # noqa: BLE001
         print(f"GSTIN login alignment skipped: {e}")
 
