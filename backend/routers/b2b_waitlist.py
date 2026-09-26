@@ -314,7 +314,10 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
     )
 
     # Fire-and-forget admin notification + applicant confirmation emails.
-    # Never let an email failure fail the signup itself.
+    # Never let an email failure fail the signup itself — but DO record the
+    # outcome on the waitlist record so a silent failure can't masquerade as
+    # a successful notification ("pseudo-onboard").
+    email_status = {"admin": False, "applicant": False, "error": None}
     try:
         from services.email_service import send_email
 
@@ -352,7 +355,7 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
           </table>
         </body></html>
         """
-        await send_email(
+        email_status["admin"] = await send_email(
             to_email=admin_email,
             subject=f"[AAROHMM B2B] New retailer signup — {_titlecase(data.business_name)}",
             html_content=admin_html,
@@ -380,13 +383,34 @@ async def create_waitlist_signup(data: WaitlistSignup, request: Request):
           </table>
         </body></html>
         """
-        await send_email(
+        email_status["applicant"] = await send_email(
             to_email=data.email.lower(),
             subject="AAROHMM B2B — we've got your application",
             html_content=applicant_html,
         )
+        if not email_status["admin"]:
+            email_status["error"] = (
+                "Admin notification email was NOT delivered — check RESEND_API_KEY, "
+                "SENDER_EMAIL domain verification and ADMIN_EMAIL on the server."
+            )
     except Exception as e:
         logger.error(f"B2B waitlist notification email failed for {data.email}: {e}")
+        email_status["error"] = str(e)[:300]
+
+    await db.retailer_waitlist.update_one(
+        {"email": data.email.lower()},
+        {
+            "$set": {
+                "email_notifications": email_status,
+                "email_notifications_at": now,
+            }
+        },
+    )
+    if email_status["error"]:
+        logger.error(
+            f"B2B waitlist signup {data.email} recorded WITHOUT admin email delivery: "
+            f"{email_status['error']}"
+        )
 
     return {
         "message": "Thanks — we'll be in touch soon.",
