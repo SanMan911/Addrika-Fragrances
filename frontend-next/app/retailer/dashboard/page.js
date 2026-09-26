@@ -7,6 +7,7 @@ import {
   ChevronRight, RefreshCw, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
+import WalkthroughModal from '../../../components/WalkthroughModal';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -69,6 +70,7 @@ export default function RetailerDashboardPage() {
   }
   return (
     <div className="space-y-6">
+      <WalkthroughModal retailer={retailer} />
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>

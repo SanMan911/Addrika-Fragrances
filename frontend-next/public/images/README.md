@@ -2,7 +2,7 @@
 
 ## Directory Structure
 
-- **logos/** - Contains brand logos (Addrika logo, company logo)
+- **logos/** - Contains brand logos (Aarohmm logo, company logo)
 - **products/** - Contains product fragrance photos
 
 ## Upload Your Images Here

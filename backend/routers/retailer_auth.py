@@ -274,6 +274,112 @@ class RetailerLoginRequest(BaseModel):
     password: str
 
 
+# ---------------------------------------------------------------------------
+# Self-serve password reset (GSTIN in → link to the email on file)
+# ---------------------------------------------------------------------------
+
+class ForgotPasswordRequest(BaseModel):
+    gstin: str = Field(..., min_length=6, max_length=20)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=20)
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+GENERIC_RESET_RESPONSE = {
+    "ok": True,
+    "message": "If that GSTIN is registered, we've emailed a password reset link to the address on file.",
+}
+
+
+@router.post("/forgot-password")
+async def retailer_forgot_password(data: ForgotPasswordRequest, request: Request):
+    """Public — always returns the same message so GSTINs can't be probed."""
+    from services.retailer_identity import normalize_gstin
+    from services.retailer_password_reset import (
+        issue_reset_token,
+        send_reset_email,
+        too_many_requests,
+    )
+
+    gstin = normalize_gstin(data.gstin)
+    ip = request.client.host if request.client else None
+
+    if await too_many_requests(db, gstin, ip):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many reset requests. Please try again in an hour or contact us.",
+        )
+
+    retailer = await db.retailers.find_one({
+        "$or": [{"gst_number": gstin}, {"username": gstin}, {"username": gstin.lower()}]
+    })
+
+    if retailer and retailer.get("status") != "deleted" and retailer.get("email"):
+        token = await issue_reset_token(db, retailer, ip)
+        try:
+            await send_reset_email(retailer, token)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("reset email failed for %s: %s", retailer["retailer_id"], e)
+        logger.info("password reset requested for %s", retailer["retailer_id"])
+
+    return GENERIC_RESET_RESPONSE
+
+
+@router.get("/reset-password/validate/{token}")
+async def validate_reset_token(token: str):
+    """Public — tells the reset page whether the link is still usable."""
+    from services.retailer_password_reset import find_valid_token
+
+    row = await find_valid_token(db, token)
+    if not row:
+        return {"valid": False, "reason": "This reset link is invalid or has expired"}
+    retailer = await db.retailers.find_one(
+        {"retailer_id": row["retailer_id"]},
+        {"_id": 0, "business_name": 1, "name": 1, "gst_number": 1},
+    )
+    return {
+        "valid": True,
+        "business_name": (retailer or {}).get("business_name") or (retailer or {}).get("name"),
+        "gst_number": (retailer or {}).get("gst_number"),
+    }
+
+
+@router.post("/reset-password")
+async def retailer_reset_password(data: ResetPasswordRequest):
+    """Public — consumes a one-time token and sets a new password."""
+    from services.retailer_password_reset import find_valid_token, send_changed_email
+
+    row = await find_valid_token(db, data.token)
+    if not row:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired")
+
+    retailer = await db.retailers.find_one({"retailer_id": row["retailer_id"]})
+    if not retailer or retailer.get("status") == "deleted":
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.retailers.update_one(
+        {"retailer_id": retailer["retailer_id"]},
+        {"$set": {"password_hash": hash_password(data.password), "password_set_at": now}},
+    )
+    await db.retailer_password_resets.update_one({"id": row["id"]}, {"$set": {"used_at": now}})
+
+    # Revoke every existing session + clear any login lockout
+    await db.retailer_sessions.delete_many({"retailer_id": retailer["retailer_id"]})
+    from services.retailer_identity import clear_failed_logins
+    await clear_failed_logins(db, (retailer.get("gst_number") or "").upper())
+
+    try:
+        await send_changed_email(retailer)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("password-changed email failed: %s", e)
+
+    logger.info("Retailer %s reset their password", retailer["retailer_id"])
+    return {"ok": True, "gst_number": retailer.get("gst_number")}
+
+
 class RetailerPasswordChange(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=6)

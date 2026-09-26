@@ -140,7 +140,7 @@ async def admin_send_blast(product_id: str, admin=Depends(require_admin)):
                         </p>
                         <p style="color:#666;font-size:12px;margin-top:24px;">
                             You're receiving this because you subscribed to a launch alert
-                            on addrika.com. Reply if you'd rather not hear from us again.
+                            on centraders.com. Reply if you'd rather not hear from us again.
                         </p>
                     </td></tr>
                 </table>

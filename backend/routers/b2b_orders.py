@@ -211,7 +211,7 @@ async def create_b2b_order(
     request: Request,
     retailer_session: Optional[str] = Cookie(None)
 ):
-    """Place a B2B wholesale order (web portal + Aaroviah handoff share this path)."""
+    """Place a B2B wholesale order (web portal + AAROHMM app handoff share this path)."""
     await require_b2b_enabled()
     retailer = await get_current_retailer(request, retailer_session)
     if not retailer:
@@ -611,6 +611,26 @@ async def mark_retailer_tour_complete(
         {"$set": {
             "tour_completed": True,
             "tour_completed_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    return {"ok": True}
+
+
+@router.post("/walkthrough-seen")
+async def mark_walkthrough_seen(
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Persist that this retailer has watched (or skipped) the 60-second
+    AAROHMM app onboarding walkthrough, so it only auto-opens once."""
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    await db.retailers.update_one(
+        {"retailer_id": retailer["retailer_id"]},
+        {"$set": {
+            "walkthrough_seen": True,
+            "walkthrough_seen_at": datetime.now(timezone.utc).isoformat(),
         }},
     )
     return {"ok": True}

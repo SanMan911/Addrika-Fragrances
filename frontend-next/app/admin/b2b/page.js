@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
+import BRAND from '../../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -30,7 +31,7 @@ const statusColors = {
 
 const channelMeta = {
   web: { label: 'Web portal', Icon: Globe, cls: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200' },
-  mobile: { label: 'Aaroviah app', Icon: Smartphone, cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
+  mobile: { label: `${BRAND.nameTitle} app`, Icon: Smartphone, cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
   fsm: { label: 'Field Sales', Icon: Users, cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
 };
 
@@ -233,7 +234,7 @@ export default function AdminB2BPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-white">B2B Wholesale Orders</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1" data-testid="b2b-orders-count">
-            {orders.length} shown · {totalOrders} total across web, Aaroviah app and Field Sales
+            {orders.length} shown · {totalOrders} total across web, {BRAND.nameTitle} app and Field Sales
           </p>
         </div>
         <button onClick={fetchOrders} disabled={loading} className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" data-testid="b2b-orders-refresh">
@@ -259,7 +260,7 @@ export default function AdminB2BPage() {
         <select value={channelFilter} onChange={(e) => setChannelFilter(e.target.value)} className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white" data-testid="b2b-filter-channel">
           <option value="">All channels</option>
           <option value="web">Web portal</option>
-          <option value="mobile">Aaroviah app</option>
+          <option value="mobile">{BRAND.nameTitle} app</option>
           <option value="fsm">Field Sales</option>
         </select>
         <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)} className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white" data-testid="b2b-filter-payment">

@@ -486,11 +486,10 @@ export default function RetailerLoginPage() {
         {/* Help Text */}
         <div className="mt-6 text-center space-y-2">
           <p className="text-xs text-gray-500" data-testid="retailer-password-help">
-            Forgot your password? Write to{' '}
-            <a href="mailto:contact.us@centraders.com" className="font-medium text-[#2B3A4A] hover:underline">
-              contact.us@centraders.com
-            </a>{' '}
-            from your registered email and we&apos;ll send a reset link.
+            <Link href="/retailer/forgot-password" className="font-semibold text-[#2B3A4A] hover:underline" data-testid="retailer-forgot-password-link">
+              Forgot your password?
+            </Link>{' '}
+            Enter your GSTIN and we&apos;ll email a reset link to your registered address.
           </p>
           <p className="text-sm text-gray-600">
             Don&apos;t have an account?{' '}

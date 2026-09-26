@@ -32,7 +32,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..', 'frontend-next');
 const SCAN_DIRS = ['app', 'components', 'context', 'lib'];
 const EXTS = new Set(['.js', '.jsx', '.ts', '.tsx']);
-const NEEDLES = ['Addrika', 'AAROHMM', 'Aarohmm']; // case-sensitive on purpose (see file header)
+const NEEDLES = ['Addrika', 'Aaroviah', 'AAROVIAH', 'AAROHMM', 'Aarohmm']; // case-sensitive on purpose (see file header)
 const NEEDLE = NEEDLES.join('|');
 
 /** Files that are allowed to reference the brand string literally. */
@@ -44,6 +44,7 @@ const FILE_WHITELIST = new Set([
 const IDENTIFIER_WHITELIST = [
   /\bWhyChooseAddrika[A-Za-z0-9_]*/g,
   /\bWhyChooseAarohmm[A-Za-z0-9_]*/g,
+  /\bAarohmmWalkthrough\b/g, // component identifier, not user-facing copy
   /X-Aarohmm-[A-Za-z]+/g, // webhook protocol header names — not brand copy
 ];
 

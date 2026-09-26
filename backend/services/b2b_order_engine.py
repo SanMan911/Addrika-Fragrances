@@ -1,6 +1,6 @@
 """Channel-agnostic B2B order engine.
 
-ONE code path places every wholesale order — web portal, Aaroviah mobile
+ONE code path places every wholesale order — web portal, AAROHMM mobile
 handoff, and the Field-Sales-Manager external API — so pricing, KYC gating,
 stock reservation, Supabase mirroring, Zoho sync and admin e-mails behave
 identically no matter where the order originated.
@@ -249,7 +249,7 @@ def _placement_note(channel: str, placed_by: Optional[dict]) -> str:
         who = (placed_by or {}).get("name") or (placed_by or {}).get("id") or "field sales rep"
         return f"Order placed by {who} (Field Sales app)"
     if channel == "mobile":
-        return "Order placed by retailer (Aaroviah app)"
+        return "Order placed by retailer (AAROHMM app)"
     return "Order placed by retailer"
 
 

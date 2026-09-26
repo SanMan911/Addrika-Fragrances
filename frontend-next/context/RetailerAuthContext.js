@@ -68,7 +68,7 @@ export function RetailerAuthProvider({ children }) {
 
   useEffect(() => {
     (async () => {
-      // Mobile → Web retailer session handoff. When the Aaroviah shell
+      // Mobile → Web retailer session handoff. When the Aarohmm mobile shell
       // hands the retailer over via `?handoff=hoff_<nonce>`, exchange the
       // nonce for a real `retailer_session` cookie BEFORE running
       // checkAuth so the retailer shows as logged-in on first paint.

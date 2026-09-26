@@ -12,7 +12,7 @@ Auth: `X-API-Key: <key>` (or `Authorization: Bearer <key>`). Keys are minted in 
 | `orders:write` | `POST /orders`, `POST /orders/preview`, `POST /orders/{id}/cancel` |
 | `orders:read` | `GET /orders`, `GET /orders/{id}` |
 
-Every order placed here uses the **same engine** as the web portal and Aaroviah (`services/b2b_order_engine.py`):
+Every order placed here uses the **same engine** as the web portal and the AAROHMM app (`services/b2b_order_engine.py`):
 pricing tiers, KYC gate, vouchers, rewards, Zoho sync, e-mails — and stock.
 
 ## Real-time stock model (all channels)
@@ -29,7 +29,7 @@ pricing tiers, KYC gate, vouchers, rewards, Zoho sync, e-mails — and stock.
 | Admin quick-adjust / restock | Applied instantly |
 
 Each change: updates Mongo → refreshes the in-process catalogue cache → upserts the Supabase
-`products_mirror` row (what the Aaroviah app reads) → fires **stock webhooks** (`stock.changed`,
+`products_mirror` row (what the AAROHMM app reads) → fires **stock webhooks** (`stock.changed`,
 `stock.low`, `stock.out`; signed with `X-Aarohmm-Signature`, configure in Admin → Stock Webhooks).
 D2C checkout and B2B pricing both **block** quantities above live stock.
 
