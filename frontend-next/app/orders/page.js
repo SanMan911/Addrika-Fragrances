@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Package, ArrowLeft, ChevronRight, Truck, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { Suspense } from 'react';
+import BRAND from '../../lib/brand.config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
