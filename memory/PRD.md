@@ -175,3 +175,10 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **DONE (iter106)**: Retailer onboarding walkthrough (`/retailer/onboarding`, animated 60s, public), "Only X left" low-stock nudge (≤12 pieces), approval-gated Notify-Me restock alerts (`/admin/notify-me`), blog newsletter capture verified.
 - **DONE (iter106)**: **GSTIN is now the retailer username for ALL B2B accounts.** Email no longer logs a retailer in — it is recovery/comms only. Duplicate GSTIN registration is hard-blocked; accounts with no GSTIN were deactivated; `RTL_TEST_B2B`'s legacy username stays allowlisted. Login has a 10-fail / 15-minute lockout per GSTIN.
 - **OPEN**: Retailer self-serve password reset (recovery is currently a manual email to contact.us@centraders.com), Vercel redeploy (code verified deploy-ready — `yarn build` + `yarn ci` clean — NOT deployed on purpose), Twilio Verify still in DEV mode pending real credentials.
+
+### Update 2026-06-26 (Iter107)
+- **DONE**: Retailer self-serve password reset (GSTIN → emailed single-use 60-min link, 3/hour throttle, revokes all sessions). Pages: `/retailer/forgot-password`, `/retailer/reset-password`.
+- **DONE**: 60-second walkthrough auto-opens once on a retailer's first dashboard visit (dismissible modal, replayable from the sidebar).
+- **DONE**: Admin-gated "your GSTIN is now your login ID" notice at `/admin/notices` with preview, recipient count and per-retailer sent stamp. **4 live retailers still PENDING — the owner clicks Send.**
+- **DONE**: Brand rename to **Aarohmm** across all user-visible web/mobile/email/PDF copy; internal identifiers (DB name, storage keys, secrets, Expo slug, deep-link scheme, `/why-choose-addrika` redirect) intentionally unchanged.
+- **OPEN**: send the login-ID notice; Vercel redeploy (code is deploy-ready, not deployed); Twilio Verify still DEV-mode.
