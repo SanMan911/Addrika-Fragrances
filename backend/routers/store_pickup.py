@@ -12,15 +12,16 @@ import random
 import string
 import os
 
-from dependencies import db, get_current_user
+from dependencies import db, get_current_user, require_admin
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/store-pickup", tags=["Store Pickup"])
 
-# Admin MasterPassword for override verification
-ADMIN_MASTER_PASSWORD = os.environ.get("ADMIN_MASTER_PASSWORD", "AddrikaAdmin@2026")
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "contact.us@centraders.com")
+
+MAX_OTP_ATTEMPTS = 5
+OTP_LOCKOUT_MINUTES = 15
 
 
 def generate_otp(length: int = 6) -> str:
@@ -31,9 +32,10 @@ def generate_otp(length: int = 6) -> str:
 class OTPVerifyRequest(BaseModel):
     """Request to verify OTP at pickup"""
     order_number: str
-    otp_code: str
+    otp_code: Optional[str] = None
     retailer_id: str
-    use_master_password: Optional[bool] = False  # Flag to indicate master password use
+    use_master_password: Optional[bool] = False  # legacy field, ignored
+    admin_override: Optional[bool] = False  # admins only: verify without the customer OTP
 
 
 # ===================== Customer Endpoints =====================
@@ -94,16 +96,37 @@ async def verify_pickup_otp(
     otp_data: OTPVerifyRequest,
     request: Request,
     background_tasks: BackgroundTasks = None,
-    session_token: Optional[str] = Cookie(None)
+    session_token: Optional[str] = Cookie(None),
+    retailer_session: Optional[str] = Cookie(None)
 ):
     """
-    Retailer verifies OTP when customer picks up order.
-    Called by retailer dashboard or admin.
-    
-    Supports two verification methods:
-    1. Customer OTP (primary - secure)
-    2. Admin MasterPassword (fallback - for edge cases like customer forgot phone)
+    Verify a store-pickup OTP and mark the order delivered.
+
+    Authentication is REQUIRED:
+      • the retailer the order is assigned to (retailer_session), or
+      • an admin (session_token) — admins may also set `admin_override`
+        to complete a pickup without the customer OTP (e.g. customer lost
+        their phone). There is no password-based override.
     """
+    from routers.retailer_auth import get_current_retailer
+
+    # ---- Who is calling? ----
+    is_admin = False
+    caller_retailer_id = None
+
+    retailer = await get_current_retailer(request, retailer_session)
+    if retailer:
+        caller_retailer_id = retailer.get("retailer_id")
+    else:
+        try:
+            admin = await require_admin(request, session_token)
+            is_admin = bool(admin)
+        except HTTPException:
+            is_admin = False
+
+    if not is_admin and not caller_retailer_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     # Find the OTP record
     otp_record = await db.store_pickup_otps.find_one(
         {"order_number": otp_data.order_number},
@@ -112,6 +135,10 @@ async def verify_pickup_otp(
     
     if not otp_record:
         raise HTTPException(status_code=404, detail="Order OTP not found")
+
+    # A retailer may only verify pickups for their OWN store
+    if not is_admin and otp_record.get("retailer_id") != caller_retailer_id:
+        raise HTTPException(status_code=403, detail="This order is assigned to a different store")
     
     # Check if already verified
     if otp_record.get('status') == 'verified':
@@ -120,12 +147,28 @@ async def verify_pickup_otp(
             "message": "This order has already been picked up",
             "verified_at": otp_record.get('verified_at')
         }
+
+    # Admin override — no customer OTP needed, but admin auth is mandatory
+    is_admin_override = bool(otp_data.admin_override or otp_data.use_master_password)
+    if is_admin_override and not is_admin:
+        raise HTTPException(status_code=403, detail="Admin authentication required for override verification")
     
-    # Check if using MasterPassword (admin override)
-    is_master_password_used = otp_data.use_master_password and otp_data.otp_code == ADMIN_MASTER_PASSWORD
-    
-    if not is_master_password_used:
-        # Normal OTP verification
+    if not is_admin_override:
+        # Brute-force guard on the 6-digit customer OTP
+        attempts = int(otp_record.get("failed_attempts") or 0)
+        last_failed = otp_record.get("last_failed_at")
+        if attempts >= MAX_OTP_ATTEMPTS and last_failed:
+            locked_until = datetime.fromisoformat(last_failed) + timedelta(minutes=OTP_LOCKOUT_MINUTES)
+            if locked_until > datetime.now(timezone.utc):
+                raise HTTPException(
+                    status_code=429,
+                    detail="Too many incorrect OTP attempts. Try again in 15 minutes.",
+                )
+            await db.store_pickup_otps.update_one(
+                {"order_number": otp_data.order_number},
+                {"$set": {"failed_attempts": 0}, "$unset": {"last_failed_at": ""}},
+            )
+
         # Check if expired
         expires_at = otp_record.get('expires_at')
         if expires_at:
@@ -134,17 +177,22 @@ async def verify_pickup_otp(
             if expires_at < datetime.now(timezone.utc):
                 return {
                     "success": False,
-                    "message": "OTP has expired. Please contact customer support or use admin verification."
+                    "message": "OTP has expired. Please contact customer support for admin verification."
                 }
         
         # Verify OTP
-        if otp_record.get('otp_code') != otp_data.otp_code:
+        if not otp_data.otp_code or otp_record.get('otp_code') != otp_data.otp_code:
+            await db.store_pickup_otps.update_one(
+                {"order_number": otp_data.order_number},
+                {"$inc": {"failed_attempts": 1},
+                 "$set": {"last_failed_at": datetime.now(timezone.utc).isoformat()}},
+            )
             return {
                 "success": False,
-                "message": "Invalid OTP. Please check and try again, or use admin verification."
+                "message": "Invalid OTP. Please check and try again."
             }
     
-    # Verify retailer matches (required for both OTP and MasterPassword)
+    # Verify retailer matches the order (admins pass the store they are verifying for)
     if otp_record.get('retailer_id') != otp_data.retailer_id:
         return {
             "success": False,
@@ -152,7 +200,7 @@ async def verify_pickup_otp(
         }
     
     now = datetime.now(timezone.utc)
-    verification_method = "master_password" if is_master_password_used else "customer_otp"
+    verification_method = "admin_override" if is_admin_override else "customer_otp"
     
     # Mark OTP as verified
     await db.store_pickup_otps.update_one(
@@ -162,7 +210,8 @@ async def verify_pickup_otp(
                 "status": "verified",
                 "verified_at": now.isoformat(),
                 "verified_by_retailer_id": otp_data.retailer_id,
-                "verification_method": verification_method
+                "verification_method": verification_method,
+                "failed_attempts": 0
             }
         }
     )
@@ -413,7 +462,7 @@ async def send_admin_pickup_completion_email(
         for item in order.get('items', [])[:5]:
             items_html += f"<tr><td style='padding: 8px; border-bottom: 1px solid #eee;'>{item.get('name', '')} ({item.get('size', '')})</td><td style='padding: 8px; border-bottom: 1px solid #eee; text-align: center;'>{item.get('quantity', 1)}</td></tr>"
         
-        verification_badge = "🔐 OTP Verified" if verification_method == "customer_otp" else "🔑 Admin Password Used"
+        verification_badge = "🔐 OTP Verified" if verification_method == "customer_otp" else "🔑 Admin Override"
         verification_color = "#38a169" if verification_method == "customer_otp" else "#e53e3e"
         
         html_content = f"""
@@ -474,7 +523,7 @@ async def send_admin_pickup_completion_email(
                         
                         <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #eff6ff; border-radius: 8px;">
                             <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                                <strong>Action Required:</strong> Please verify this pickup by calling the customer if verification method shows "Admin Password Used"
+                                <strong>Action Required:</strong> Please verify this pickup by calling the customer if verification method shows "Admin Override"
                             </p>
                         </div>
                     </td>

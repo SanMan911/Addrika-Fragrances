@@ -19,6 +19,21 @@ function ResetPasswordInner() {
   const [confirm, setConfirm] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const strength = (() => {
+    const p = password;
+    if (!p) return null;
+    let score = 0;
+    if (p.length >= 8) score += 1;
+    if (p.length >= 12) score += 1;
+    if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score += 1;
+    if (/[0-9]/.test(p)) score += 1;
+    if (/[^A-Za-z0-9]/.test(p)) score += 1;
+    if (/^[0-9]+$/.test(p) || new Set(p).size <= 2) score = 1;
+    const labels = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong', 'Strong'];
+    const colors = ['#e11d48', '#e11d48', '#f59e0b', '#eab308', '#22c55e', '#22c55e'];
+    return { score, label: labels[score], color: colors[score] };
+  })();
+
   useEffect(() => {
     if (!token) {
       setState('invalid');
@@ -47,6 +62,10 @@ function ResetPasswordInner() {
     e.preventDefault();
     if (password.length < 8) {
       toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (strength && strength.score <= 1) {
+      toast.error('That password is too weak — mix letters, numbers and a symbol');
       return;
     }
     if (password !== confirm) {
@@ -151,6 +170,20 @@ function ResetPasswordInner() {
                   className="w-full px-4 py-3 bg-white text-[#2B3A4A] placeholder:text-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
                   data-testid="reset-password-input"
                 />
+                {strength && (
+                  <div className="mt-2" data-testid="reset-password-strength">
+                    <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${(strength.score / 5) * 100}%`, background: strength.color }}
+                      />
+                    </div>
+                    <p className="text-xs mt-1 font-medium" style={{ color: strength.color }}>
+                      {strength.label}
+                      {strength.score <= 1 ? ' — mix letters, numbers and a symbol' : ''}
+                    </p>
+                  </div>
+                )}
               </div>
               <div>
                 <label htmlFor="pw2" className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>

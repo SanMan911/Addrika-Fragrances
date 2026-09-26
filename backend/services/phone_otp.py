@@ -36,6 +36,15 @@ def is_configured() -> bool:
     return bool(sid and token and service)
 
 
+def dev_codes_exposed() -> bool:
+    """Whether the DEV fallback code may be returned in API responses.
+
+    OFF unless ALLOW_DEV_OTP=1 is set explicitly, so production never leaks a
+    one-time code to the caller even if Twilio is misconfigured.
+    """
+    return os.environ.get("ALLOW_DEV_OTP", "").strip() == "1"
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -94,7 +103,10 @@ async def send_otp(e164: str) -> dict:
         upsert=True,
     )
     logger.warning(f"[DEV OTP] {e164} -> {code} (Twilio not configured; no real SMS sent)")
-    return {"status": "pending", "dev_mode": True, "dev_code": code}
+    out = {"status": "pending", "dev_mode": True}
+    if dev_codes_exposed():
+        out["dev_code"] = code
+    return out
 
 
 async def verify_otp(e164: str, code: str) -> dict:

@@ -25,6 +25,28 @@ logger = logging.getLogger(__name__)
 TOKEN_TTL_MINUTES = 60
 MAX_REQUESTS_PER_HOUR = 3
 
+COMMON_PASSWORDS = {
+    "password", "password1", "password123", "12345678", "123456789", "1234567890",
+    "qwerty123", "iloveyou", "admin123", "welcome1", "welcome123", "letmein1",
+    "abc12345", "test1234", "india@123", "aarohmm123", "changeme", "passw0rd",
+}
+
+
+def password_problems(password: str) -> list[str]:
+    """Server-side password policy. Returns a list of human-readable problems."""
+    problems = []
+    if len(password) < 8:
+        problems.append("Use at least 8 characters")
+    if password.lower() in COMMON_PASSWORDS:
+        problems.append("That password is too common — pick something unique")
+    if password.isdigit():
+        problems.append("Add letters, not just numbers")
+    if password.isalpha():
+        problems.append("Add a number or symbol")
+    if len(set(password)) <= 2:
+        problems.append("Too repetitive — mix in more characters")
+    return problems
+
 
 def portal_url() -> str:
     return os.environ.get(
