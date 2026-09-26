@@ -144,6 +144,13 @@ async def adjust_stock(
     except Exception as e:
         logger.warning("Stock webhook fire failed for %s: %s", product_id, e)
 
+    # Queue a Notify-Me restock alert for admin approval on 0 → in-stock moves
+    try:
+        from services.restock_alerts import record_restock_candidate
+        await record_restock_candidate(db, prod, before, after, reason)
+    except Exception as e:
+        logger.warning("Restock alert queue failed for %s: %s", product_id, e)
+
     # Push the new count to the Supabase mirror so the mobile app / FSM
     # readers see the change within seconds (fire-and-forget)
     try:

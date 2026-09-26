@@ -42,7 +42,8 @@ function RetailerLayoutInner({ children }) {
   const isRegisterPage = pathname === '/retailer/register';
   const isPendingPage = pathname === '/retailer/pending';
   const isSetupPasswordPage = pathname === '/retailer/setup-password';
-  const isPublicPage = isLoginPage || isRegisterPage || isPendingPage || isSetupPasswordPage;
+  const isOnboardingPage = pathname === '/retailer/onboarding';
+  const isPublicPage = isLoginPage || isRegisterPage || isPendingPage || isSetupPasswordPage || isOnboardingPage;
 
   // Check auth - only redirect if not on a public page
   useEffect(() => {
@@ -62,11 +63,12 @@ function RetailerLayoutInner({ children }) {
       retailer.status !== 'active' && // legacy active accounts stay put
       !isPendingPage &&
       !isLoginPage &&
-      !isRegisterPage
+      !isRegisterPage &&
+      !isOnboardingPage
     ) {
       router.replace('/retailer/pending');
     }
-  }, [isAuthenticated, isLoading, retailer, router, isPendingPage, isLoginPage, isRegisterPage]);
+  }, [isAuthenticated, isLoading, retailer, router, isPendingPage, isLoginPage, isRegisterPage, isOnboardingPage]);
 
   // Fetch metrics for badges
   const fetchMetrics = useCallback(async () => {

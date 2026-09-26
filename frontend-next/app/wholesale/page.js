@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import {
   Handshake, ShieldCheck, Truck, Coins, Smartphone, FileText, LogIn, PhoneCall,
-  Download, CheckCircle2, ArrowRight, Boxes, BadgePercent,
+  Download, CheckCircle2, ArrowRight, Boxes, BadgePercent, PlayCircle,
 } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -63,6 +63,14 @@ export default function WholesalePage() {
                 data-testid="wholesale-login-cta"
               >
                 <LogIn size={18} /> Retailer login
+              </Link>
+              <Link
+                href="/retailer/onboarding"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm border transition-colors hover:bg-white/5"
+                style={{ borderColor: 'rgba(212,175,55,0.45)', color: '#e8e6e3' }}
+                data-testid="wholesale-walkthrough-cta"
+              >
+                <PlayCircle size={18} /> Watch the 60-sec walkthrough
               </Link>
             </div>
             <div className="flex flex-wrap gap-4 mt-6 text-xs" style={{ color: 'rgba(232,230,227,0.55)' }}>

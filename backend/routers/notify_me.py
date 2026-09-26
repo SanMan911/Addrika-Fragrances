@@ -15,13 +15,25 @@ class NotifyMeRequest(BaseModel):
 
 @router.post("/notify-me")
 async def subscribe_notify(payload: NotifyMeRequest):
-    """Subscribe to notifications for a coming-soon product."""
-    # Verify product exists and is actually coming soon
+    """Subscribe to an availability alert.
+
+    Accepted for Coming-Soon products AND for live products whose shared
+    inventory is currently at zero (back-in-stock waitlist).
+    """
     product = await db.products.find_one({"id": payload.product_id}, {"_id": 0, "comingSoon": 1, "name": 1})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+
     if not product.get("comingSoon"):
-        raise HTTPException(status_code=400, detail="Product is already available")
+        # Unified stock lives on the linked B2B SKUs — sum across all sizes.
+        rows = await db.b2b_products.find(
+            {"product_id": payload.product_id}, {"_id": 0, "stock_pieces": 1}
+        ).to_list(50)
+        total_stock = sum(int(r.get("stock_pieces") or 0) for r in rows)
+        if rows and total_stock > 0:
+            raise HTTPException(status_code=400, detail="Product is already available")
+        if not rows:
+            raise HTTPException(status_code=400, detail="Product is already available")
 
     # Upsert — one entry per email+product combo
     await db.notify_me.update_one(
@@ -34,11 +46,12 @@ async def subscribe_notify(payload: NotifyMeRequest):
         },
         "$setOnInsert": {
             "created_at": datetime.now(timezone.utc).isoformat(),
-        }},
+        },
+        "$unset": {"notified_at": ""}},
         upsert=True
     )
 
-    return {"message": "You'll be notified when this product launches!"}
+    return {"message": "You'll be notified the moment this is back in stock!"}
 
 
 @router.get("/admin/notify-me")
