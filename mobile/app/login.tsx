@@ -14,7 +14,7 @@ import { useSession } from '../lib/session';
 import { fetchAppConfig, type AppConfig } from '../lib/config';
 import { apiFetch } from '../lib/api';
 import { useRouter } from 'expo-router';
-import { openWhatsAppTo } from '../lib/web';
+import { openWhatsAppTo, openWebUrl } from '../lib/web';
 import { MOBILE_BRAND_NAME, MOBILE_BRAND_TAGLINE } from '../lib/brand';
 
 /**
@@ -270,11 +270,20 @@ export default function LoginScreen() {
 
           <Pressable
             testID="forgot-password-link"
+            onPress={() => openWebUrl('/retailer/forgot-password')}
+            android_ripple={{ color: 'rgba(30, 58, 82, 0.1)' }}
+            style={styles.forgotBtnProminent}
+          >
+            <Text style={styles.forgotTxtProminent}>Forgot password? Reset it with your GSTIN</Text>
+          </Pressable>
+
+          <Pressable
+            testID="whatsapp-help-link"
             onPress={openReset}
             android_ripple={{ color: 'rgba(30, 58, 82, 0.1)' }}
             style={styles.forgotBtnProminent}
           >
-            <Text style={styles.forgotTxtProminent}>Need help? Message admin on WhatsApp</Text>
+            <Text style={styles.forgotTxtProminent}>Still stuck? Message admin on WhatsApp</Text>
           </Pressable>
         </View>
 

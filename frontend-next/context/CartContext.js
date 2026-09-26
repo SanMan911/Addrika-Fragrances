@@ -129,7 +129,7 @@ export function CartProvider({ children }) {
   }, []);
 
   // Bootstrap `?cart=…&from=mobile[-share]` deep-links coming from the
-  // Aaroviah mobile shell (self hand-off *or* WhatsApp share from a
+  // Aarohmm mobile shell (self hand-off *or* WhatsApp share from a
   // colleague). Runs after the localStorage cart is loaded so we don't
   // stomp on it.
   useEffect(() => {

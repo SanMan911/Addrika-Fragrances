@@ -1,7 +1,7 @@
-# Ship Mobile Alpha — Aaroviah APK build via EAS
+# Ship Mobile Alpha — Aarohmm APK build via EAS
 
 You now have everything on the Emergent side:
-- `mobile/app.json` — brand identity: name "Aaroviah", bundle IDs `com.centraders.aaroviah`, scheme `aaroviah`, extra: `eas.projectId`, plus **hard-coded fallback values** for Supabase URL, anon key, API base URL and web URL (so the APK still boots even if you skip step 4)
+- `mobile/app.json` — brand identity: display name "Aarohmm", bundle IDs `com.centraders.aaroviah`, scheme `aaroviah`, extra: `eas.projectId`, plus **hard-coded fallback values** for Supabase URL, anon key, API base URL and web URL (so the APK still boots even if you skip step 4)
 - `mobile/eas.json` — build profiles: `development` (dev client), `preview` (internal APK) and `production` (Play Store AAB), all env-driven
 - `mobile/assets/icon.png` + `adaptive-icon.png` + `splash.png` — the golden-lotus assets you sent
 - `mobile/lib/{session,cart,web,brand}.ts` — login-gated flow + AsyncStorage cart + web-checkout hand-off + WhatsApp cart share
@@ -14,14 +14,14 @@ You now have everything on the Emergent side:
 > **Preview build API endpoint**: `https://addrika-fragrances-backend.onrender.com` (production Render backend, HTTPS, publicly reachable). Do **not** point mobile at the ephemeral `*.preview.emergentagent.com` — that URL rotates when the container restarts.
 
 > ### ⚠️ If EAS says `slug 'aaroviah-mobile' does not match 'addrika-mobile'` — this is why
-> The local `app.json` was renamed from **Addrika → Aaroviah** during the mobile rebrand (slug: `aaroviah-mobile`). But the Expo project tied to `projectId f152117c-57fb-4506-a44a-7c53d1043dd3` was originally created under the old slug `addrika-mobile`, so EAS refuses the build.
+> The local `app.json` display name is **Aarohmm** (one brand for web + mobile); the slug stayed `aaroviah-mobile`. But the Expo project tied to `projectId f152117c-57fb-4506-a44a-7c53d1043dd3` was originally created under the old slug `addrika-mobile`, so EAS refuses the build.
 >
 > Pick **one** of the two fixes below:
 >
 > **Fix A — rename the Expo project (recommended, keeps projectId & any build history)**
 > 1. Open [expo.dev/accounts/{you}/projects/addrika-mobile/settings](https://expo.dev)
 > 2. Under **General → Slug**, change `addrika-mobile` → `aaroviah-mobile`
-> 3. Also update the **Name** field to `Aaroviah` while you're there
+> 3. Also update the **Name** field to `Aarohmm` while you're there
 > 4. Save
 > 5. Re-run `eas build --profile preview --platform android` — no local changes needed
 >
@@ -170,7 +170,7 @@ Options for getting it onto a phone:
 ### 7. First-launch sanity check
 
 Open the app on the device:
-- Splash: gold lotus on navy → home hero shows **Aaroviah**
+- Splash: gold lotus on navy → home hero shows **Aarohmm**
 - "Sign in" screen → Customer / Retailer tabs
 - Login as customer (`test.user@example.com` / `Test@123`) → home shows welcome + "Browse Products →"
 - Tap **Browse Products** → catalogue list (9 real B2C items via Supabase)

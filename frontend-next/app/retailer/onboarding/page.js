@@ -1,19 +1,19 @@
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
-import AarovihaWalkthrough from '../../../components/AarovihaWalkthrough';
+import AarohmmWalkthrough from '../../../components/AarohmmWalkthrough';
 import BRAND from '../../../lib/brand.config';
 import Link from 'next/link';
 
 export const metadata = {
-  title: `Aaroviah app walkthrough · ${BRAND.name} for retailers`,
+  title: `${BRAND.nameTitle} app walkthrough · ${BRAND.name} for retailers`,
   description:
-    'A 60-second walkthrough of the Aaroviah trade app: build a carton cart on your phone, tap continue on web, and land in your browser already signed in.',
+    `A 60-second walkthrough of the ${BRAND.nameTitle} trade app: build a carton cart on your phone, tap continue on web, and land in your browser already signed in.`,
 };
 
 const FAQ = [
   {
     q: 'Do I need to log in twice?',
-    a: 'No. Aaroviah mints a single-use handoff token when you tap “Continue on web”. The browser exchanges it for a retailer session, so you arrive signed in — your password never leaves the app.',
+    a: `No. The ${BRAND.nameTitle} app mints a single-use handoff token when you tap “Continue on web”. The browser exchanges it for a retailer session, so you arrive signed in — your password never leaves the app.`,
   },
   {
     q: 'How long is the handoff link valid?',
@@ -25,7 +25,7 @@ const FAQ = [
   },
   {
     q: 'Is the app for shops only?',
-    a: 'Yes — Aaroviah is strictly B2B. Retail customers shop on the website instead.',
+    a: `Yes — the ${BRAND.nameTitle} app is strictly B2B. Retail customers shop on the website instead.`,
   },
 ];
 
@@ -48,14 +48,14 @@ export default function RetailerOnboardingPage() {
             without logging in twice.
           </h1>
           <p className="text-base md:text-lg mt-6 max-w-2xl" style={{ color: 'rgba(232,230,227,0.72)' }}>
-            Watch how a carton cart built in the Aaroviah app lands in your web browser already signed in — cart, pricing and GST details intact.
+            Watch how a carton cart built in the {BRAND.nameTitle} app lands in your web browser already signed in — cart, pricing and GST details intact.
           </p>
         </div>
       </section>
 
       <section className="px-4 sm:px-6 lg:px-8 pb-16">
         <div className="max-w-5xl mx-auto">
-          <AarovihaWalkthrough />
+          <AarohmmWalkthrough />
         </div>
       </section>
 

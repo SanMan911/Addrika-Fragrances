@@ -37,6 +37,6 @@ OpenGraph card. No code changes needed — every consumer reads the paths from
 
 `addrika-*.png` files in this folder are no longer referenced by any code.
 
-## Mobile (Aaroviah — separate brand, untouched)
+## Mobile (Aarohmm — same brand as web)
 
 `mobile/assets/icon.png`, `adaptive-icon.png`, `splash.png`, `logo.png`, `aaroviah-src.webp`.

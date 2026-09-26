@@ -12,7 +12,7 @@ scopes:
     orders:read     read order status + payment state        GET  /orders, /orders/{id}
 
 Every order placed here goes through the SAME engine as the web portal and
-the Aaroviah app (`services/b2b_order_engine.py`), so stock is reserved in
+the AAROHMM app (`services/b2b_order_engine.py`), so stock is reserved in
 MongoDB at once, pushed to the Supabase mirror, and `stock.changed` webhooks
 fire — all channels see the new availability within seconds.
 

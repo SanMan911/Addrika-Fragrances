@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   Store, Package, MessageSquare, AlertTriangle, ShoppingBag,
-  Trophy, Award, FileEdit, LogOut, Menu, X, ChevronRight, Receipt, Headset
+  Trophy, Award, FileEdit, LogOut, Menu, X, ChevronRight, Receipt, Headset, PlayCircle
 } from 'lucide-react';
 import BRAND from '../../lib/brand.config';
 import { RetailerAuthProvider, useRetailerAuth } from '../../context/RetailerAuthContext';
@@ -26,6 +26,7 @@ const navItems = [
   { icon: FileEdit, label: 'Profile Requests', path: '/retailer/profile-requests' },
   { icon: AlertTriangle, label: 'Grievances', path: '/retailer/grievances', badgeKey: 'open_grievances' },
   { icon: MessageSquare, label: 'Messages', path: '/retailer/messages', badgeKey: 'unread_messages' },
+  { icon: PlayCircle, label: 'Walkthrough', path: '/retailer/onboarding' },
 ];
 
 // Inner layout component that uses the auth context
@@ -43,7 +44,11 @@ function RetailerLayoutInner({ children }) {
   const isPendingPage = pathname === '/retailer/pending';
   const isSetupPasswordPage = pathname === '/retailer/setup-password';
   const isOnboardingPage = pathname === '/retailer/onboarding';
-  const isPublicPage = isLoginPage || isRegisterPage || isPendingPage || isSetupPasswordPage || isOnboardingPage;
+  const isPasswordRecoveryPage =
+    pathname === '/retailer/forgot-password' || pathname === '/retailer/reset-password';
+  const isPublicPage =
+    isLoginPage || isRegisterPage || isPendingPage || isSetupPasswordPage ||
+    isOnboardingPage || isPasswordRecoveryPage;
 
   // Check auth - only redirect if not on a public page
   useEffect(() => {
@@ -64,11 +69,12 @@ function RetailerLayoutInner({ children }) {
       !isPendingPage &&
       !isLoginPage &&
       !isRegisterPage &&
-      !isOnboardingPage
+      !isOnboardingPage &&
+      !isPasswordRecoveryPage
     ) {
       router.replace('/retailer/pending');
     }
-  }, [isAuthenticated, isLoading, retailer, router, isPendingPage, isLoginPage, isRegisterPage, isOnboardingPage]);
+  }, [isAuthenticated, isLoading, retailer, router, isPendingPage, isLoginPage, isRegisterPage, isOnboardingPage, isPasswordRecoveryPage]);
 
   // Fetch metrics for badges
   const fetchMetrics = useCallback(async () => {
@@ -156,12 +162,12 @@ function RetailerLayoutInner({ children }) {
 
       {/* Sidebar */}
       <aside 
-        className={`fixed top-0 left-0 h-full w-64 z-50 transform transition-transform lg:translate-x-0 bg-[#2B3A4A] ${
+        className={`fixed top-0 left-0 h-full w-64 z-50 flex flex-col transform transition-transform lg:translate-x-0 bg-[#2B3A4A] ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-6 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#D4AF37]">
               <Store className="w-6 h-6 text-white" />
@@ -174,14 +180,14 @@ function RetailerLayoutInner({ children }) {
         </div>
 
         {/* Nav Items */}
-        <nav className="p-4 space-y-2">
+        <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
           {navItems.map((item) => (
             <NavItem key={item.path} item={item} />
           ))}
         </nav>
 
         {/* User Info & Logout */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+        <div className="shrink-0 p-4 border-t border-white/10">
           {retailer && (
             <div className="mb-4 px-4">
               <p className="text-white font-medium truncate">{retailer.store_name || retailer.storeName}</p>

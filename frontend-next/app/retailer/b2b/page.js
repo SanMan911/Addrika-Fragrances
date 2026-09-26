@@ -132,7 +132,7 @@ export default function RetailerB2BPage() {
     }
   }, [activeTab, fetchOrders]);
 
-  // Mobile → Web cart hydration. When the Aaroviah shell deep-links to
+  // Mobile → Web cart hydration. When the Aarohmm mobile shell deep-links to
   // /retailer/b2b?cart=<b64>&from=mobile, decode the payload and pre-fill
   // the quantities map with only SKUs that exist in the retailer's current
   // catalogue (so retired SKUs don't ghost-populate). Runs once, ONLY

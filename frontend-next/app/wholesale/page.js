@@ -17,7 +17,7 @@ const STEPS = [
   { n: '01', title: 'Enter your GSTIN', body: 'We auto-fill your business name and address from the GST registry — no typing.' },
   { n: '02', title: 'Verify your phone', body: 'One SMS OTP to your +91 number. Takes 30 seconds.' },
   { n: '03', title: 'Upload GST certificate', body: 'PDF or photo. Our team approves most accounts within one working day.' },
-  { n: '04', title: 'Start ordering', body: 'Wholesale catalogue, live stock, carton math and GST invoices — on web or the Aaroviah app.' },
+  { n: '04', title: 'Start ordering', body: `Wholesale catalogue, live stock, carton math and GST invoices — on web or the ${BRAND.nameTitle} app.` },
 ];
 
 const PERKS = [
@@ -25,7 +25,7 @@ const PERKS = [
   { Icon: Boxes, title: 'Live stock, no surprises', body: 'Every SKU shows real-time availability. Pre-order out-of-stock lines with a 50% token.' },
   { Icon: Coins, title: 'Fragrance Rewards', body: 'Earn trade credit on every paid order and redeem it against your next invoice.' },
   { Icon: Truck, title: 'Distance-based shipping', body: 'Transparent Shiprocket rates by pincode, or pick up from a partner store.' },
-  { Icon: Smartphone, title: 'Order from your phone', body: 'Build carts in the Aaroviah app and finish checkout on the web — signed in automatically.' },
+  { Icon: Smartphone, title: 'Order from your phone', body: `Build carts in the ${BRAND.nameTitle} app and finish checkout on the web — signed in automatically.` },
   { Icon: ShieldCheck, title: 'GST-compliant invoices', body: 'HSN-coded PDF invoices for every order, synced to our books.' },
 ];
 

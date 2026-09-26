@@ -1,6 +1,6 @@
-# Addrika Mobile (Expo + expo-router)
+# Aarohmm Mobile (Expo + expo-router)
 
-Native mobile client for the Addrika B2B / B2C platform.
+Native mobile client for the Aarohmm B2B / B2C platform.
 
 **Architecture**
 

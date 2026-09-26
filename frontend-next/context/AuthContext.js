@@ -50,7 +50,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Mobile → Web session handoff. When the Aaroviah shell hands the user
+  // Mobile → Web session handoff. When the Aarohmm mobile shell hands the user
   // over via `?handoff=hoff_<nonce>`, exchange the nonce for a real
   // session cookie BEFORE running checkAuth so the user shows as logged-in
   // on first paint. Silently no-ops if the nonce is missing / expired /

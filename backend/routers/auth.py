@@ -543,7 +543,7 @@ async def logout_user(response: Response, request: Request, session_token: Optio
 # Session Handoff (Mobile → Web auto-login)
 # ============================================================================
 # Flow:
-#   1. The mobile app (Aaroviah), while the user is logged in, calls
+#   1. The mobile app (AAROHMM), while the user is logged in, calls
 #      POST /api/auth/handoff/create with its Bearer session token.
 #   2. Backend mints a one-time, 60-second nonce (`hoff_<uuid>`) bound to that
 #      session's user_id and stores it in `auth_handoffs`.
@@ -573,8 +573,8 @@ async def create_auth_handoff(request: Request, session_token: Optional[str] = C
     """
     Mint a one-time handoff nonce for the currently authenticated caller.
 
-    Accepts BOTH a customer bearer/cookie (from the Aaroviah customer flow)
-    AND a retailer bearer/cookie (from the Aaroviah retailer flow). The
+    Accepts BOTH a customer bearer/cookie (from the AAROHMM app customer flow)
+    AND a retailer bearer/cookie (from the AAROHMM app retailer flow). The
     resulting nonce records `kind` so `/consume` knows which cookie to set.
 
     The returned nonce is valid for 60 seconds and can be consumed exactly

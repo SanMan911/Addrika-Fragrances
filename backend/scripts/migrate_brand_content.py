@@ -23,9 +23,12 @@ RULES = [
     (re.compile(r"/why-choose-addrika"), "/why-choose-aarohmm"),
     (re.compile(r"\bADDRIKA\b"), NEW),
     (re.compile(r"\bAddrika\b"), NEW),
+    (re.compile(r"\bAAROVIAH\b"), NEW),
+    (re.compile(r"\bAaroviah\b"), NEW),
     (re.compile(r"#Addrika([A-Za-z]*)"), r"#Aarohmm\1"),
     # standalone lowercase keyword/tag (not inside a slug or URL path)
     (re.compile(r"(?<![-/\w.])addrika(?![-\w.])"), "aarohmm"),
+    (re.compile(r"(?<![-/\w.])aaroviah(?![-\w.])"), "aarohmm"),
 ]
 
 # collection -> list of top-level fields whose nested strings are safe to rewrite

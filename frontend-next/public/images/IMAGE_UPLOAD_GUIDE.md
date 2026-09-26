@@ -1,11 +1,11 @@
-# Image Upload Guide for Addrika Website
+# Image Upload Guide for Aarohmm Website
 
 ## 📁 Folder Structure
 
 ```
 /app/frontend/public/images/
 ├── logos/
-│   ├── addrika-logo.png          (Your Addrika brand logo)
+│   ├── addrika-logo.png          (Your Aarohmm brand logo)
 │   └── company-logo.png           (Centsibl Traders logo - optional)
 │
 └── products/

@@ -5,6 +5,7 @@ import {
   Play, Pause, RotateCcw, ShoppingCart, Smartphone, Monitor, KeyRound,
   Check, FileText, Truck, ArrowRight, Boxes,
 } from 'lucide-react';
+import BRAND from '../lib/brand.config';
 
 const GOLD = '#D4AF37';
 
@@ -13,7 +14,7 @@ const CHAPTERS = [
     id: 'browse',
     seconds: 10,
     label: 'Browse',
-    title: 'Open Aaroviah and browse the trade catalogue',
+    title: `Open ${BRAND.nameTitle} and browse the trade catalogue`,
     body: 'Your field rep or your own phone — same wholesale catalogue, same live stock, carton pricing already applied to your account tier.',
     device: 'phone',
   },
@@ -38,7 +39,7 @@ const CHAPTERS = [
     seconds: 10,
     label: 'Secure token',
     title: 'A one-time handoff token travels with you',
-    body: 'Aaroviah mints a single-use token that expires in minutes. Your password never leaves the app.',
+    body: `${BRAND.nameTitle} mints a single-use token that expires in minutes. Your password never leaves the app.`,
     device: 'bridge',
   },
   {
@@ -89,7 +90,7 @@ function PhoneFrame({ children, label }) {
       <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(170deg,#161c26 0%,#0f1419 100%)', minHeight: 330 }}>
         <div className="px-3 py-2 flex items-center gap-2" style={{ background: 'rgba(212,175,55,0.1)' }}>
           <Smartphone size={12} style={{ color: GOLD }} />
-          <span className="text-[10px] font-bold tracking-widest" style={{ color: GOLD }}>AAROVIAH</span>
+          <span className="text-[10px] font-bold tracking-widest" style={{ color: GOLD }}>{BRAND.nameUpper}</span>
           <span className="ml-auto text-[9px]" style={{ color: 'rgba(232,230,227,0.45)' }}>{label}</span>
         </div>
         <div className="p-3 space-y-2">{children}</div>
@@ -203,7 +204,7 @@ function Stage({ index }) {
         </div>
         <div className="relative flex-1 max-w-[150px] h-px" style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.7), rgba(212,175,55,0.15))' }}>
           <span
-            className="absolute -top-3 left-0 px-2 py-0.5 rounded-full text-[9px] font-bold whitespace-nowrap aaroviah-token"
+            className="absolute -top-3 left-0 px-2 py-0.5 rounded-full text-[9px] font-bold whitespace-nowrap aarohmm-token"
             style={{ background: 'rgba(212,175,55,0.16)', color: GOLD, border: '1px solid rgba(212,175,55,0.45)' }}
           >
             <KeyRound size={9} className="inline mr-1" />
@@ -214,7 +215,7 @@ function Stage({ index }) {
           <Monitor size={30} style={{ color: GOLD }} />
         </div>
         <style jsx>{`
-          .aaroviah-token {
+          .aarohmm-token {
             animation: slide 2.6s ease-in-out infinite;
           }
           @keyframes slide {
@@ -237,7 +238,7 @@ function Stage({ index }) {
         <Row title="Kesar Chandan · 50g" sub="2 cartons · 24 pcs" right="₹1,584" />
         <Row title="Regal Rose · 200g" sub="1 carton · 16 pcs" right="₹2,144" />
         <div className="flex items-center gap-2 text-[10px] p-2 rounded-lg" style={{ background: 'rgba(212,175,55,0.1)', color: GOLD }}>
-          <ShoppingCart size={12} /> Cart carried over from Aaroviah — nothing re-entered
+          <ShoppingCart size={12} /> Cart carried over from the {BRAND.nameTitle} app — nothing re-entered
         </div>
       </DesktopFrame>
     );
@@ -297,15 +298,15 @@ export default function AarovihaWalkthrough() {
     <div
       className="rounded-3xl overflow-hidden"
       style={{ background: 'linear-gradient(160deg,#141a23 0%,#0d1116 100%)', border: '1px solid rgba(212,175,55,0.25)' }}
-      data-testid="aaroviah-walkthrough"
+      data-testid="aarohmm-walkthrough"
     >
       {/* Stage */}
       <div className="grid md:grid-cols-2 gap-8 p-6 sm:p-10 items-center">
-        <div key={ch.id} className="aaroviah-fade">
+        <div key={ch.id} className="aarohmm-fade">
           <Stage index={index} />
         </div>
 
-        <div className="aaroviah-fade" key={`copy-${ch.id}`}>
+        <div className="aarohmm-fade" key={`copy-${ch.id}`}>
           <div className="flex items-center gap-2 mb-4">
             <span className="text-[10px] font-bold tracking-[2px] px-2.5 py-1 rounded-full" style={{ background: 'rgba(212,175,55,0.12)', color: GOLD, border: '1px solid rgba(212,175,55,0.3)' }}>
               STEP {index + 1} / {CHAPTERS.length}
@@ -389,7 +390,7 @@ export default function AarovihaWalkthrough() {
       </div>
 
       <style jsx>{`
-        .aaroviah-fade {
+        .aarohmm-fade {
           animation: fadeUp 0.6s ease-out both;
         }
         @keyframes fadeUp {
