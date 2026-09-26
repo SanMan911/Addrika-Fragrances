@@ -193,3 +193,7 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **DONE**: Deleted stale `backend/tests/test_store_pickup_hybrid_verification.py` (iter108 action item) so CI stays green.
 - **Regression**: 23/23 iter108 security tests, GSTIN login, FSM external API all green (`/app/test_reports/iteration_109.json`).
 - **OPEN (user action)**: push to GitHub via "Save to Github", then redeploy on Render; `eas build` for the renamed Aarohmm app; WhatsApp/Instagram restock broadcast (needs paid API creds); Twilio Verify still DEV-mode.
+
+### Update 2026-06-27 (Iter110 — waitlist pseudo-onboard fix)
+- **DONE**: B2B waitlist signup (`POST /api/retailer-auth/waitlist`) now persists `email_notifications {admin, applicant, error}` + `email_notifications_at` on every waitlist document — a failed/misconfigured Resend can no longer silently masquerade as a sent admin notification. Admin waitlist list surfaces it automatically. Tests: `/app/test_reports/iteration_110.json` (9/9).
+- **OPEN (user action)**: push to GitHub + redeploy Render (fix only takes effect in production after redeploy); verify Render env has RESEND_API_KEY, ADMIN_EMAIL, SENDER_EMAIL. Still pending from before: EAS build, WhatsApp/Instagram restock broadcast, Twilio production keys.
