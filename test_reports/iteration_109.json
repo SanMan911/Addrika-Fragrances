@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 109 verification of deploy-blocker fix (emergentintegrations removal). All 23 iter108 security audit tests still pass (23/23). Backend boots clean with zero ImportError/ModuleNotFoundError. emergentintegrations is fully purged from repo (requirements.txt, render.yaml, code, docs). Object storage — the only Emergent-branded feature — still works end-to-end via plain `requests` against integrations.emergentagent.com (verified put_object + get_object round trip, 34 bytes match, correct content-type). Deleted stale test_store_pickup_hybrid_verification.py — no other test references it. GSTIN retailer login, email login rejection, and FSM external API endpoints all healthy.",
+  "verification_matrix": {
+    "requirements_txt_clean": "PASS — grep emergentintegrations /app/backend/requirements.txt returns nothing",
+    "render_yaml_clean": "PASS — no PIP_EXTRA_INDEX_URL, no emergentintegrations",
+    "repo_wide_grep": "PASS — grep -rn emergentintegrations across .py/.yaml/.yml/.txt/.toml/.md returns 0 hits; grep d33sy5i8bnduwe.cloudfront.net returns 0 hits",
+    "backend_boot": "PASS — /var/log/supervisor/backend.err.log shows uvicorn started + alembic ran; no ImportError/ModuleNotFoundError",
+    "public_endpoints": "PASS — GET /api/products=200, /api/blog/posts=200, /api/app/config=200",
+    "retailer_login_gstin": "PASS — POST /api/retailer-auth/login {gstin:07AAAAA0000A1Z5} → 200 with token",
+    "retailer_login_email_rejected": "PASS — email-as-gstin identifier → 400",
+    "external_api": "PASS — GET /api/external/v1/ping and /stock with X-API-Key → 200",
+    "security_audit_regression": "PASS — 23/23 in tests/test_iter108_security_audit.py (see xml)",
+    "object_storage_roundtrip": "PASS — put_object stored 34 bytes at addrika/test/iter109/<uuid>.txt; get_object returned matching bytes with content-type text/plain",
+    "deleted_stale_test": "PASS — test_store_pickup_hybrid_verification.py absent; no imports or references anywhere in /app/backend or /app/tests",
+    "ALLOW_DEV_OTP_gate_intact": "PASS — services/phone_otp.py still checks os.environ.get('ALLOW_DEV_OTP')=='1'",
+    "brand_audit_still_aarohmm": "PASS — scripts/brand-audit.js still contains 'Aarohmm' (4 refs)"
+  },
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter108_security_audit.py",
+    "/app/test_reports/pytest/iter109.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Note (non-blocking): the security-audit test file previously hardcoded BASE_URL to the public preview URL. In this iteration the public preview URL routes to a different backend deployment than the local supervisor pod (own MongoDB), so any test that seeds Mongo locally then hits the public URL is guaranteed to fail with 404 — not a code regression. I switched BASE_URL to `os.environ.get('TEST_BASE_URL', 'http://localhost:8001')` so tests are runnable both locally and (with env override) against public. All 23 tests pass locally. Main agent may want to keep this env-driven pattern going forward, or add a seed helper that hits the target env via an admin API."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter108_security_audit.py (BASE_URL now env-driven, defaulting to http://localhost:8001)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "N/A (skipped per request)"},
+  "test_credentials": "Read from /app/memory/test_credentials.md — admin contact.us@centraders.com/PIN 050499, retailer GSTIN 07AAAAA0000A1Z5 / Test@12345, FSM key arhk_...",
+  "seed_data_creation": "Ephemeral store_pickup_otps + orders docs (prefix SECTEST-) created and cleaned up per-test; ephemeral object_storage upload at addrika/test/iter109/<uuid>.txt (no delete API by design).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Deploy-blocker fix verified. If you need to point the iter108 security audit at the public preview URL, set TEST_BASE_URL env var — but be aware that direct MongoDB seeding won't affect the deployed backend. Object storage endpoint at integrations.emergentagent.com works with EMERGENT_LLM_KEY.",
+  "rca of the issue": "Not a bug — original PyPI-only fix + stale-test deletion verified regression-free. Initial public-URL test failures were an infra artefact (preview routes to different pod/DB), corrected by making BASE_URL env-driven and running against local supervisor backend."
+}
