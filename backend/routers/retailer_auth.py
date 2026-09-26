@@ -268,8 +268,9 @@ async def setup_password(data: SetupPasswordRequest):
 
 
 class RetailerLoginRequest(BaseModel):
-    email: Optional[str] = None  # Can be email or username
-    username: Optional[str] = None  # Alternative login method
+    gstin: Optional[str] = None  # Preferred field — the GSTIN is the username
+    email: Optional[str] = None  # Legacy field; treated as the GSTIN input
+    username: Optional[str] = None  # Legacy field; treated as the GSTIN input
     password: str
 
 
@@ -348,7 +349,11 @@ async def get_current_retailer(request: Request, retailer_session: Optional[str]
 
 @router.post("/login")
 async def retailer_login(login_data: RetailerLoginRequest, response: Response):
-    """Retailer login endpoint - supports email or username"""
+    """Retailer login — the GSTIN is the username for every B2B account.
+
+    Email is NOT a login identifier any more; it is kept for password
+    recovery and transactional mail only.
+    """
     # Kill-switch: block login when B2B portal is disabled
     if not await get_b2b_enabled(db):
         raise HTTPException(
@@ -356,24 +361,51 @@ async def retailer_login(login_data: RetailerLoginRequest, response: Response):
             detail="Retailer portal is currently unavailable. Please contact AAROHMM for access.",
         )
 
-    identifier = login_data.email or login_data.username
-    
-    if not identifier:
-        raise HTTPException(status_code=400, detail="Email or username is required")
-    
-    identifier = identifier.lower().strip()
-    
-    # Find retailer by email or username
+    from services.retailer_identity import (
+        LEGACY_LOGIN_USERNAMES,
+        clear_failed_logins,
+        is_locked_out,
+        is_valid_gstin,
+        normalize_gstin,
+        record_failed_login,
+    )
+
+    raw_identifier = (login_data.gstin or login_data.username or login_data.email or "").strip()
+
+    if not raw_identifier:
+        raise HTTPException(status_code=400, detail="Your GSTIN is required to sign in")
+
+    if "@" in raw_identifier:
+        raise HTTPException(
+            status_code=400,
+            detail="Retailer logins use your 15-character GSTIN, not your email address.",
+        )
+
+    gstin = normalize_gstin(raw_identifier)
+    is_legacy = gstin.lower() in LEGACY_LOGIN_USERNAMES
+
+    if not is_valid_gstin(gstin) and not is_legacy:
+        raise HTTPException(status_code=400, detail="Enter a valid 15-character GSTIN")
+
+    if await is_locked_out(db, gstin):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed attempts. Please try again in 15 minutes or reset your password.",
+        )
+
+    # Find retailer by GSTIN (or an allowlisted legacy username)
     retailer = await db.retailers.find_one({
         "$or": [
-            {"email": identifier},
-            {"username": identifier}
+            {"gst_number": gstin},
+            {"username": gstin},
+            {"username": gstin.lower()},
         ]
     })
-    
+
     if not retailer:
-        raise HTTPException(status_code=401, detail="Invalid email/username or password")
-    
+        await record_failed_login(db, gstin)
+        raise HTTPException(status_code=401, detail="Invalid GSTIN or password")
+
     # Check status — suspended returns a reason; deleted looks like not-found
     if retailer.get('status') == 'suspended':
         reason = retailer.get('suspended_reason') or 'Please contact admin.'
@@ -387,10 +419,13 @@ async def retailer_login(login_data: RetailerLoginRequest, response: Response):
     
     # Verify password
     if not verify_password(login_data.password, retailer.get('password_hash', '')):
-        raise HTTPException(status_code=401, detail="Invalid email/username or password")
-    
+        await record_failed_login(db, gstin)
+        raise HTTPException(status_code=401, detail="Invalid GSTIN or password")
+
+    await clear_failed_logins(db, gstin)
+
     # Create session
-    email = retailer.get('email', identifier)
+    email = retailer.get('email', '')
     session_token = await create_retailer_session(retailer['retailer_id'], email)
     
     # Set cookie
@@ -418,6 +453,8 @@ async def retailer_login(login_data: RetailerLoginRequest, response: Response):
             "name": retailer['name'],
             "business_name": retailer.get('business_name'),
             "email": retailer['email'],
+            "gst_number": retailer.get('gst_number'),
+            "username": retailer.get('username'),
             "status": retailer.get('status', 'under_processing'),
             "city": retailer.get('city'),
             "district": retailer.get('district'),
@@ -606,6 +643,13 @@ async def retailer_register(
         )
 
     # ---- Dedup ----
+    existing_gst = await db.retailers.find_one({"gst_number": gst})
+    if existing_gst and existing_gst.get("status") != "deleted":
+        raise HTTPException(
+            status_code=409,
+            detail="An account already exists for this GSTIN. Please log in with your GSTIN.",
+        )
+
     existing = await db.retailers.find_one({"email": email.lower()})
     if existing and existing.get("status") != "deleted":
         raise HTTPException(
@@ -667,6 +711,7 @@ async def retailer_register(
         "phone": phone.strip(),
         "country_code": cc,
         "gst_number": gst,
+        "username": gst,  # GSTIN is the login username for all B2B accounts
         "gst_verified": gst_verified,
         "gst_verification_error": gst_verification_error,
         "gst_certificate": {

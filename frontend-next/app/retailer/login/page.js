@@ -386,7 +386,11 @@ export default function RetailerLoginPage() {
     e.preventDefault();
     
     if (!identifier || !password) {
-      toast.error('Please enter email/username and password');
+      toast.error('Please enter your GSTIN and password');
+      return;
+    }
+    if (!GST_REGEX.test(identifier.toUpperCase())) {
+      toast.error('Enter your 15-character GSTIN (e.g. 27ABCDE1234F1Z5)');
       return;
     }
     setLoading(true);
@@ -426,7 +430,7 @@ export default function RetailerLoginPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-1">
-              Email or Username
+              GSTIN
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -434,12 +438,17 @@ export default function RetailerLoginPage() {
                 id="identifier"
                 type="text"
                 value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="email@example.com or username"
-                className="w-full pl-10 pr-4 py-3 bg-white text-[#2B3A4A] placeholder:text-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none"
+                onChange={(e) => setIdentifier(normalizeGstInput(e.target.value))}
+                placeholder="27ABCDE1234F1Z5"
+                maxLength={15}
+                autoCapitalize="characters"
+                className="w-full pl-10 pr-4 py-3 bg-white text-[#2B3A4A] placeholder:text-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none uppercase font-mono tracking-wider"
                 data-testid="retailer-identifier-input"
               />
             </div>
+            <p className="mt-1.5 text-xs text-gray-500" data-testid="retailer-identifier-hint">
+              Your 15-character GSTIN is your login ID. Email is used only for password recovery.
+            </p>
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
@@ -475,7 +484,14 @@ export default function RetailerLoginPage() {
           </button>
         </form>
         {/* Help Text */}
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-xs text-gray-500" data-testid="retailer-password-help">
+            Forgot your password? Write to{' '}
+            <a href="mailto:contact.us@centraders.com" className="font-medium text-[#2B3A4A] hover:underline">
+              contact.us@centraders.com
+            </a>{' '}
+            from your registered email and we&apos;ll send a reset link.
+          </p>
           <p className="text-sm text-gray-600">
             Don&apos;t have an account?{' '}
             <Link

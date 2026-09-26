@@ -13,7 +13,9 @@
 ## Test Retailer
 - **Email**: info@addrika.com
 - **Password**: 12345 (not currently in DB)
-- **B2B Test Retailer (auto-seeded when `SEED_TEST_B2B_RETAILER=1` is in backend/.env — VERIFIED WORKING iter86)**: test_b2b_retailer@example.com / Test@12345 (retailer_id=RTL_TEST_B2B, also accepts username=test_b2b_retailer)
+- **IMPORTANT (June 2026 — GSTIN IS THE RETAILER LOGIN ID)**: B2B retailer login now uses the **GSTIN only**. Email login is REJECTED with 400 "Retailer logins use your 15-character GSTIN, not your email address." Send `{"gstin": "<GSTIN>", "password": "..."}` to `POST /api/retailer-auth/login` (legacy `email`/`username` body fields are still accepted but their value must be a GSTIN).
+- **B2B Test Retailer (auto-seeded when `SEED_TEST_B2B_RETAILER=1` is in backend/.env — VERIFIED WORKING iter86)**: GSTIN **07AAAAA0000A1Z5** / Test@12345 (retailer_id=RTL_TEST_B2B, email test_b2b_retailer@example.com is recovery-only). Its legacy username `test_b2b_retailer` is explicitly ALLOWLISTED and still works.
+  - Login lockout: 10 failed attempts per GSTIN → 429 for 15 min (collection `retailer_login_attempts`; delete the row to clear).
   - POST /api/retailer-auth/login returns 200 with `token` in the JSON body.
   - IMPORTANT for tests: the `retailer_session` cookie is set with `secure=True`, so `requests.Session()` will NOT replay it over plain HTTP. Read `token` from the login JSON and send it manually: `headers={"Cookie": f"retailer_session={token}"}`. Bearer auth is NOT supported by /api/retailer-dashboard/* (cookie only).
 

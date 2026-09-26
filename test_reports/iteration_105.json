@@ -1,0 +1,27 @@
+{
+  "summary": "Iteration 105 end-to-end verification of the 4 requested features (low-stock nudge, notify-me expansion, restock-alert approval flow, onboarding walkthrough, newsletter). Backend: 24/24 pytest cases pass in /app/backend/tests/test_iter105_restock_alerts.py including full restock lifecycle (queue → approve → sent stamp + re-approve 400, queue → dismiss → 404 re-dismiss, no-duplicate on 2nd positive move, admin auth 401 gate, notify-me 200/400/404 expansion, newsletter subscribe + admin listing, D2C /api/products stock shape). Frontend: All 7 review points verified live. Post-test the modified stock (regal-rose, oriental-oudh) was restored to 0 and royal-kewda left at 7 as instructed. Live Resend delivered a real restock email during the approve test (send count >= 1, failed 0).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter105_restock_alerts.py",
+    "/app/test_reports/pytest/iter105.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "services/restock_alerts.record_restock_candidate correctly guards `before>0 or after<=0` — matches the requirement that only a true 0→positive transition creates a pending alert; second positive move re-uses the existing pending row (pending_recipients + stock_after updated) — verified live.",
+    "routers/admin/admin_restock_alerts.approve does 400 on already-sent alerts, dismiss does 404 on non-pending — clean idempotent semantics.",
+    "routers/notify_me.subscribe_notify now inspects b2b_products.stock_pieces sum for the accepted-when-OOS gate — correctly returns 400 'Product is already available' for bold-bakhoor (100 pcs) and 200 for kesar-chandan (0/0). Unknown product returns 404 (as spec).",
+    "FragranceGridServer.js low-stock threshold (12) + OOS pill work as spec; bilvapatra (comingSoon) never renders OOS. Confirm the Coming Soon check runs before the OOS check in the badge selection.",
+    "AarovihaWalkthrough player: timecode advances ~1s/tick, pause freezes, chapter chips jump correctly, restart resets to 0:00, /retailer/onboarding is public via app/retailer/layout.js isOnboardingPage bypass — all verified."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter105_restock_alerts.py"
+  ],
+  "success_rate": {"backend": "100% (24/24)", "frontend": "100% (all data-testids present, all 7 review flows pass)"},
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499 (OTP polled from admin_2fa_tokens). Test recipients used @centraders.com (Resend rejects example.com).",
+  "seed_data_creation": "None persisted. All test notify_me rows and subscribers rows deleted in class cleanup fixtures. B2B stock levels restored to pre-test values (regal-rose 0, oriental-oudh 0, royal-kewda 7/0 — left as instructed).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The Notify Me PDP UI on /products/<slug> is an INLINE form (not a modal) — clicking [data-testid=notify-me-btn] (button text 'Notify Me When Available') reveals an email input + a plain 'Notify' button; success renders '[data-testid=notify-me-success]' with text 'Subscribed!'. Admin OTP page uses a single input[type=text][maxLength=6] (not 6 boxes) — type OTP into inputs[0] with keyboard.type. Backend script `python -m pytest tests/test_iter105_restock_alerts.py -v` is fully self-contained (motor client lifecycle handled per-call inside asyncio.run to avoid Motor's loop-binding). Live Resend is active and sent a real 'Back in stock · Oriental Oudh' email to the seeded test address during approve.",
+  "rca_of_the_issue": "N/A — no bugs found."
+}

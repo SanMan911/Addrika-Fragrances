@@ -187,8 +187,15 @@ async def startup_db_client():
     except Exception as e:  # noqa: BLE001
         print(f"Test B2B retailer seed skipped: {e}")
 
-    # Auto-purge bills older than 15 months / 5 quarters
+    # GSTIN is the retailer login username — idempotent alignment on boot
     try:
+        from services.retailer_identity import ensure_gstin_usernames
+        res = await ensure_gstin_usernames(db)
+        print(f"GSTIN login alignment: {res}")
+    except Exception as e:  # noqa: BLE001
+        print(f"GSTIN login alignment skipped: {e}")
+
+    # Auto-purge bills older than 15 months / 5 quarters    try:
         from routers.b2b_bills_messages import purge_old_bills
         purged = await purge_old_bills(db)
         if purged:

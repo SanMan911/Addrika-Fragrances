@@ -304,6 +304,16 @@ export default function RetailerRegisterPage() {
                 ✓ Verified · {gstStatus.legal_name || 'Business details auto-filled below'}
               </p>
             )}
+            {GST_REGEX.test((form.gst_number || '').toUpperCase()) && (
+              <p
+                className="mt-2 text-xs font-medium text-[#2B3A4A] bg-[#D4AF37]/15 border border-[#D4AF37]/40 rounded-md px-2.5 py-1.5"
+                data-testid="register-gst-is-login-id"
+              >
+                This GSTIN is your login ID — you&apos;ll sign in with{' '}
+                <span className="font-mono tracking-wider">{(form.gst_number || '').toUpperCase()}</span>.
+                Your email is used only for password recovery and invoices.
+              </p>
+            )}
             {gstStatus.state === 'failed' && gstStatus.provider_down && (
               <p className="mt-1.5 text-xs text-amber-700" data-testid="register-gst-status">
                 ⚠ Verification temporarily unavailable — you can still submit; we&apos;ll re-verify shortly.

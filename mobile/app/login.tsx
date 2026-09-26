@@ -64,10 +64,12 @@ export default function LoginScreen() {
       let msg = raw;
       if (/403/.test(raw) && /portal is currently unavailable/i.test(raw)) {
         msg = 'The retailer portal is temporarily paused. Message admin on WhatsApp to reactivate.';
-      } else if (/401.*Retailer not found|401.*Invalid password|401.*Invalid email/i.test(raw)) {
-        msg = 'Wrong email/username or password. Tap "Message admin on WhatsApp" below to reset.';
-      } else if (/400.*required/i.test(raw)) {
-        msg = 'Please enter your email or username above.';
+      } else if (/401.*Retailer not found|401.*Invalid password|401.*Invalid GSTIN|401.*Invalid email/i.test(raw)) {
+        msg = 'Wrong GSTIN or password. Tap "Message admin on WhatsApp" below to reset.';
+      } else if (/400.*required|400.*valid 15-character GSTIN|400.*not your email/i.test(raw)) {
+        msg = 'Enter your 15-character GSTIN above (not your email).';
+      } else if (/429/.test(raw)) {
+        msg = 'Too many failed attempts. Try again in 15 minutes or reset your password.';
       }
       setError(msg);
     } finally {
@@ -113,7 +115,7 @@ export default function LoginScreen() {
   const openReset = () =>
     openWhatsAppTo(
       '918377020402',
-      `Hi, I'm a ${MOBILE_BRAND_NAME} retailer and need help resetting my B2B password. My registered email/username is: `,
+      `Hi, I'm a ${MOBILE_BRAND_NAME} retailer and need help resetting my B2B password. My GSTIN is: `,
     );
 
   const openRetailerSignup = () => router.push('/register');
@@ -156,20 +158,20 @@ export default function LoginScreen() {
 
           {mode === 'password' ? (
             <>
-              <Text style={styles.label}>Email or username</Text>
+              <Text style={styles.label}>GSTIN</Text>
               <TextInput
                 testID="login-identifier"
                 value={identifier}
-                onChangeText={setIdentifier}
-                autoCapitalize="none"
+                onChangeText={(t) => setIdentifier(t.toUpperCase())}
+                autoCapitalize="characters"
                 autoCorrect={false}
-                keyboardType="email-address"
+                maxLength={15}
                 style={styles.input}
-                placeholder="retailer@shop.com"
+                placeholder="27ABCDE1234F1Z5"
                 placeholderTextColor="#a89f8b"
               />
               <Text style={styles.hint} testID="login-identifier-hint">
-                The email you used to apply. New retailer? Tap Register below.
+                Your 15-character GSTIN is your login ID. New retailer? Tap Register below.
               </Text>
 
               <Text style={styles.label}>Password</Text>

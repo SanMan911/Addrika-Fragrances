@@ -124,15 +124,11 @@ export function RetailerAuthProvider({ children }) {
     })();
   }, [checkAuth]);
 
-  // Login — routes at /api/retailer-auth (not /api/retailer). Body shape
-  // matches RetailerLoginRequest: {email|username, password}. We accept a
-  // single `identifier` param at the UI layer and route it into the right
-  // field so retailers can sign in with either their email or username.
-  const login = async (identifier, password) => {
+  // Login — routes at /api/retailer-auth (not /api/retailer). The GSTIN is
+  // the username for every B2B account; email is recovery-only.
+  const login = async (gstin, password) => {
     try {
-      const body = { password };
-      if (identifier && identifier.includes('@')) body.email = identifier;
-      else body.username = identifier;
+      const body = { gstin: (gstin || '').trim().toUpperCase(), password };
 
       const res = await fetch(`${API_URL}/api/retailer-auth/login`, {
         method: 'POST',
