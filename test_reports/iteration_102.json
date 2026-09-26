@@ -1,0 +1,52 @@
+{
+  "summary": "Iteration 102 — full-site audit of the AAROHMM (formerly Addrika) rename, external FSM API, admin B2B orders, D2C+B2B ordering, and handoff rate limit. Backend: wrote /app/backend/tests/test_iter102_aarohmm_audit.py — 17/17 pytest cases pass (rename config, blog, retailer catalog=16 SKUs, B2B web order + stock reservation, external API ping/retailers/catalog/preview/order lifecycle/idempotency/fractional/OOS/razorpay-null, D2C 409 out_of_stock, handoff 5/min → 6th=429 with Retry-After, admin B2B orders list, mark-paid no-double-deduct verified via b2b_inventory_log). Frontend: rename VERIFIED — header logo src=/images/logos/aarohmm-logo-horizontal.png, hero img naturalWidth=1578, footer + all page titles show 'AAROHMM Premium Incense' (no duplication), no 'Addrika' text on any of /, /products, /wholesale, /blog, /faq, /about-us, /our-story, /find-retailers, /retailer/login, /retailer/register, /login, /register, /cart, /why-choose-aarohmm. Redirects OK: /why-choose-addrika→/why-choose-aarohmm, /collection→/products. Manifest short_name='AAROHMM'. All required data-testids present on wholesale page and floating CTA popover. Two real frontend issues found: (1) /products/kesar-chandan (0 stock D2C) STILL shows enabled size-50g/size-200g buttons and Add-to-Cart — no size-50g-oos or out-of-stock-msg is rendered, so the OOS UI contract is broken while backend correctly rejects with 409 out_of_stock. (2) The 9 product cards on /products are rendered as clickable divs (product-card-<slug>) with 0 real <a href=/products/...> anchors inside the fragrance-grid-section (aCount:0, linkClicks:16) — hurts SEO/accessibility and violates the spec 'product cards link to /products/<slug>'. Minor: mobile-nav-wholesale data-testid could not be located inside the mobile drawer at 390px (hamburger did not open in automation, so unable to confirm; desktop nav-wholesale is fine). Public-site link crawl: 0 broken images across all 14 audited pages; 0 duplicated page titles; console has non-blocking 401s from RSC prefetch of authenticated /_next/data paths (retailer-portal poll) — not blocking.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ProductActions (/products/kesar-chandan)", "issue": "D2C stock is 0 (backend /api/orders/create returns 409 out_of_stock) but the product page renders size-50g and size-200g buttons as enabled, add-to-cart-btn is present, and neither size-50g-oos nor out-of-stock-msg data-testid appears. The stock-aware UI branch is not firing — probably not reading /api/products/<slug>/stock (or equivalent) before render, or the field mapping (stock_pieces / stock_status) is mis-read. Notify-Me path unreachable.", "selector": "[data-testid='size-50g-oos'], [data-testid='out-of-stock-msg']", "priority": "HIGH"},
+      {"component": "Products listing (/products fragrance-grid-section)", "issue": "9 product cards render as product-card-<slug> divs but the grid contains ZERO <a href=/products/<slug>> anchors (aCount=0; only 16 button/role=link elements). Spec explicitly requires product cards to link to /products/<slug>. Impact: right-click 'Open in new tab', middle-click, screen-reader link nav, and search-engine crawlers cannot see these as product links.", "selector": "[data-testid='fragrance-grid-section'] a[href^='/products/']", "priority": "HIGH"},
+      {"component": "Header mobile nav (viewport 390px)", "issue": "data-testid='mobile-nav-wholesale' could not be located. Header exposes only nav-wholesale (desktop) testid at 390px; the hamburger button lacks a stable testid (no data-testid, no aria-label containing 'menu'), so automated tests can't reliably open the drawer to verify mobile-nav-wholesale.", "selector": "[data-testid='mobile-nav-wholesale']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Product Detail Page ↔ D2C stock", "issue": "PDP does not surface out-of-stock state client-side; user only learns during checkout via a 409. This will surprise users on kesar-chandan and any other 0-stock D2C SKU.", "affected_selectors": ["[data-testid='size-50g-oos']", "[data-testid='out-of-stock-msg']", "[data-testid='add-to-cart-btn']"]}
+    ],
+    "design_issues": [],
+    "missing_links_and_fallacies_audit": [
+      "/products fragrance-grid-section: product cards are not real <a> links to /products/<slug> (all 9 cards affected).",
+      "/products/kesar-chandan: no OOS visual state; Add-to-Cart button enabled even though backend blocks the order (out_of_stock 409).",
+      "Mobile header: hamburger button has no stable identifier and mobile-nav-wholesale is not visible without opening the drawer via non-testid selector.",
+      "Console: several 401s from RSC prefetch of protected retailer/admin data paths on public pages (non-blocking, but noisy — consider guarding the prefetch with auth state)."
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter102_aarohmm_audit.py",
+    "/app/test_reports/pytest/iter102.xml"
+  ],
+  "action_items": [
+    "Fix PDP OOS UI: on /products/[slug], when the size has stock_pieces==0, render <button data-testid=size-50g-oos disabled>Out of stock</button> and replace Add-to-Cart with Notify-Me plus a visible [data-testid=out-of-stock-msg]. Verify against kesar-chandan (all sizes 0 per D2C stock).",
+    "Convert product cards on /products (and any other listing) from div+onClick into <a href=/products/<slug>> wrappers (or Next <Link> that renders an anchor) so cards are real internal links.",
+    "Add data-testid='mobile-menu-toggle' (or aria-label='Open menu') to the mobile hamburger button and ensure the mobile drawer contains data-testid='mobile-nav-wholesale' linking to /wholesale.",
+    "(Nice-to-have) Guard authenticated RSC prefetches (retailer dashboard, admin) behind auth state to eliminate the 401 noise on public pages.",
+    "(Optional) In the D2C order out-of-stock 409 response, include the offending item ids so the PDP can also self-validate the cart contents client-side."
+  ],
+  "critical_code_review_comments": [
+    "b2b_order_engine cancel-after-paid: earlier state showed a paid order that was later admin-cancelled restored stock only sometimes. Please confirm intent: paid+cancelled SHOULD restock (net-zero for the paid deduction) — verify release_for_cancelled_order handles the 'paid then cancelled' branch idempotently (my mark-paid-then-cancel test left stock at 100 which is the correct net-zero, but earlier a paid B2B-…-E40B3B needed a DB-level restore).",
+    "external_api /catalog returns product identifier under the key 'id' while other endpoints use 'product_id' (which references the D2C parent). Consistency is important for integrators — either alias both, or clearly document that FSM should always key off 'id'.",
+    "PDP stock read path: appears to not fetch or mis-parse D2C stock (kesar-chandan renders as in-stock while /api/orders/create returns out_of_stock). Consider a shared stock hook so PDP + cart + checkout always agree.",
+    "Handoff rate-limit: correctly returns 429 with Retry-After, but the window boundary should be documented (60s?) — noted in Retry-After but consider an explicit response body with reset time.",
+    "External API cancel: cancel-after-paid returns 409 (correct), but admin PUT /orders/<id>/status can flip a paid order to cancelled — verify that the two code paths use the same guard so admin doesn't accidentally double-refund/double-restock."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter102_aarohmm_audit.py (new)"
+  ],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "~85% (rename + wholesale + redirects + link crawl all pass; PDP OOS UI and product-card <a> tags fail; mobile-nav-wholesale unverifiable)"},
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499 (OTP via db.admin_2fa_tokens); B2B retailer test_b2b_retailer@example.com / Test@12345 (POST /api/retailer-auth/login with body {email,password}); External API key arhk_C2yoApjyj2zmmGZ6bM2qC47bxiJ--9o7ElyaRtbmPqk (5 scopes).",
+  "seed_data_creation": "All test-created B2B orders (web + FSM + razorpay_link + mark-paid test) were cancelled at teardown. Manually restored bold-bakhoor-b2b stock to 100 in db.b2b_products after one paid+cancel cycle left it at 94 (see review comment). Final stock verified via external API = 100 pieces.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend suite: `cd /app/backend && python -m pytest tests/test_iter102_aarohmm_audit.py -v` — all 17 green when starting stock=100. If any test leaves an OPEN order, cancel via POST /api/external/v1/orders/<id>/cancel and check `db.b2b_products.updateOne({id:'bold-bakhoor-b2b'},{$set:{stock_pieces:100,stock_status:'in_stock'}})`. Cancel-after-paid appears to NOT restore stock via external cancel (returns 409), but admin PUT status=cancelled DID net-zero in my run. For the /products PDP OOS bug: repro is simply `curl /api/products/kesar-chandan` vs visual — the size-50g button stays enabled. For product-card anchor bug: `document.querySelectorAll('[data-testid=fragrance-grid-section] a').length === 0`.",
+  "rca of the issue": "1) PDP OOS UI: ProductActions.js appears to gate the OOS branch on a stock field that isn't populated (stock_pieces vs stock_status_display), or the D2C stock endpoint isn't being called at all — kesar-chandan renders full purchase UI while /api/orders/create rejects it with 409 out_of_stock. 2) Product-card anchors missing: /products page uses onClick handlers on div product-card-<slug> instead of Next <Link>/<a>, so cards are not crawlable/openable-in-new-tab and violate spec. 3) mobile-nav-wholesale unverifiable: hamburger button has no stable selector; needs data-testid='mobile-menu-toggle'."
+}
