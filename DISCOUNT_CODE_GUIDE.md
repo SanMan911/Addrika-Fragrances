@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://b2b-handoff.preview.emergentagent.com/api
+https://aaroviah-retail.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 
