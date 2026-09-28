@@ -69,6 +69,7 @@ export default function GrievanceScreen() {
   }
 
   async function submit() {
+    if (!ready || busy) return;
     if (!retailerId) {
       Alert.alert('Not ready', 'We could not confirm your account. Please try again.');
       return;

@@ -1,0 +1,79 @@
+{
+  "summary": "Iter112 — Aarohmm mobile app (Supabase-auth) adversarial testing. Wrote /app/backend/tests/test_iter112_mobile_app.py (32 tests, all PASS) covering pre-login GSTIN broker (masked-email leak check), auth guard, PostgREST RLS isolation (own retailer only, filter-by-other returns [], anon reads blocked), server-priced orders + client-tamper resistance + client_ref idempotency, KYC gate (403 with restore), grievance path-traversal reject, Supabase Storage RLS (own folder allowed / other folder denied), contact-admin persistence, sync idempotency, app_fy() SQL function boundary check (Feb→2025-26, Apr→2026-27), and web-portal + FSM regressions. Also re-ran test_iter108_security_audit + test_iter110_waitlist — 32 passed, 3 skipped, 0 failed. Frontend web-preview partial-verify: login screen renders, testids present, 'n/15 characters' counter works. TWO web-preview issues surfaced (below).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "app/login.tsx (web export)",
+        "issue": "login-send-code-btn is NOT actually disabled at 0 or 14 chars in the web export — Playwright is_disabled() returns False and clicking with an empty GSTIN triggers a network request that resolves to 'Not Found' rather than being blocked client-side. The source code has `disabled={!gstinReady || busy}` on the Pressable, but on React-Native-Web that prop is not forwarded to the underlying interactive element. Style/opacity may or may not reflect the state; the button is still tappable. The 'n/15 characters' counter itself works.",
+        "selector": "[data-testid=\"login-send-code-btn\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Web-preview end-to-end login / signed-in shell",
+        "issue": "The exported web build was built with `apiBaseUrl=https://aaroviah-retail.preview.emergentagent.com` (from /app/mobile/app.json), and the review note says that host is currently serving a platform interstitial and returns 404 for every /api path. Result: entering the QA GSTIN and tapping 'Email me a code' surfaces 'Not Found' inside the login card — the app cannot reach the backend at all. Consequence: the signed-in shell (Stock / Order Pad / Orders / More screens with data-testids `stock-screen`, `pad-screen`, `orders-screen`, `more-screen`, etc.) is UNVERIFIED via the web preview in this environment. Injecting a Supabase localStorage session was not attempted because subsequent API calls (`/api/app/v2/me`, order calc/place, etc.) would still fail against that URL. Backend endpoints themselves are fully verified via pytest against localhost:8001.",
+        "affected_selectors": [
+          "[data-testid=\"stock-screen\"]", "[data-testid=\"stock-search\"]", "[data-testid=\"stock-plus-bold-bakhoor-b2b\"]",
+          "[data-testid=\"pad-screen\"]", "[data-testid=\"pad-summary\"]", "[data-testid=\"pad-place-order-btn\"]",
+          "[data-testid=\"orders-screen\"]", "[data-testid=\"orders-fy-all\"]", "[data-testid=\"orders-fy-2026-27\"]",
+          "[data-testid=\"more-screen\"]"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "verifications": {
+    "no_raw_email_leak": "Neither /gstin-lookup nor /auth/request-code echoes qa.aarohmm-test@centraders.com — masked_email uses first-2 + stars only. Verified in test_request_code_masked_only.",
+    "unknown_gstin_response": "404 with generic 'No active Aarohmm retailer' — does not confirm whether GSTIN is registered.",
+    "auth_guard": "GET /api/app/v2/me → 401 (no header) / 401 (malformed bearer) / 200 with retailer_id RTL_APP_QA, gstin 29AAAAA0000A1Z5, kyc_complete true (valid Supabase access token from refresh_token flow).",
+    "rls_isolation": "PostgREST direct reads under QA token: app_retailers → exactly 1 row (RTL_APP_QA); app_orders → only own rows; filter ?retailer_id=eq.RTL_TEST_B2B → []; app_grievances → only own; app_products → shared catalogue accessible; anon reads → [] or 401.",
+    "server_priced_order": "Sent bogus price_per_box=1, grand_total=1, subtotal=1, total_amount=1 with 1 box of bold-bakhoor-b2b — server returned own computed grand_total (≈₹530+) matching /orders/calculate output; tamper fields ignored.",
+    "idempotency": "Reposting same client_ref returned the same order_id (verified).",
+    "fy_function": "app_fy('2026-02-15'::timestamptz)='2025-26'; app_fy('2026-04-15'::timestamptz)='2026-27'.",
+    "kyc_gate": "Flipped documents_complete=false → POST /orders → 403 'Your KYC is still pending' → restored to true (verified).",
+    "grievance_path_traversal": "image_paths=['RTL_TEST_B2B/evil.jpg'] → 400 'Invalid attachment path'.",
+    "storage_rls": "PUT to grievance-uploads/RTL_TEST_B2B/evil.jpg → denied; PUT to grievance-uploads/RTL_APP_QA/<uuid>.jpg → 200/201.",
+    "contact_admin": "POST /support/contact returns id + delivered flag; row written to retailer_messages with channel='mobile_app'.",
+    "sync": "POST /sync → {synced:true}; running twice OK (no duplicates/errors).",
+    "regressions": "GET /api/products, /api/blog/posts, /api/app/config → 200; POST /api/retailer-auth/login (07AAAAA0000A1Z5/Test@12345) → 200 with token; GET /api/external/v1/ping with FSM X-API-Key → 200.",
+    "existing_suites": "test_iter108_security_audit.py + test_iter110_waitlist_email_notifications.py → 32 passed, 3 skipped, 0 failed.",
+    "web_preview_login_screen": "http://localhost:3000/app-preview/index.html renders — Aarohmm brand visible, [data-testid=\"login-gstin-input\"] and [data-testid=\"login-send-code-btn\"] present, counter shows 'n/15 characters', no horizontal overflow, no 'navigate before mounting the Root Layout' console error, body innerText populated (no blank white screen)."
+  },
+  "pytest_results": {
+    "command": "pytest tests/test_iter112_mobile_app.py -v --junitxml=/app/test_reports/pytest/iter112_results.xml (BACKEND_URL=http://localhost:8001)",
+    "totals": "32 passed, 0 failed, 0 skipped, 39.30s",
+    "junit_xml": "/app/test_reports/pytest/iter112_results.xml",
+    "regression_suites": "test_iter108_security_audit.py + test_iter110_waitlist_email_notifications.py → 32 passed, 3 skipped, 0 failed"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter112_mobile_app.py",
+    "/app/test_reports/pytest/iter112_results.xml"
+  ],
+  "action_items": [
+    "Rebuild the web export (`npx expo export --platform web ...`) with `apiBaseUrl` pointing at a reachable backend (either http://localhost:8001 for local preview or the Render production URL). Currently /app/mobile/app.json sets it to https://aaroviah-retail.preview.emergentagent.com which returns 404 for every /api path in this environment, breaking the login flow inside the web preview and hiding the signed-in Stock/Pad/Orders/More screens from any automated UI verification. Remember to `sudo supervisorctl restart frontend` after copying the new export into /app/frontend-next/public/app-preview/.",
+    "Fix `login-send-code-btn` disabled state on the web build. Source has `disabled={!gstinReady || busy}` but the underlying Pressable on react-native-web still fires onPress at 0 and 14 chars. Either wrap in a real <button disabled> or short-circuit onPress with `if (!gstinReady) return;`. This is defence-in-depth against the accidental request that currently surfaces the raw 'Not Found' string in the login card.",
+    "After rebuilding with a reachable API URL, re-run signed-in UI verification (Stock tab stock pills + search + plus button → Order Pad badge → Pad summary + Place order → Orders FY filter chips → More profile card).",
+    "Custom SMTP for Supabase (noted in MOBILE_APP_NOTES.md open items) — still pending user action; not tested here."
+  ],
+  "critical_code_review_comments": [
+    "mobile_app_v2.py imports `requests as _requests` and pushes each call through `asyncio.to_thread` — fine for now but a native async HTTP client (httpx.AsyncClient) would remove the thread hop and share connection pool.",
+    "In verify_login_code, if the Supabase user exists but IS NOT an active retailer, `_retailer_by_gstin` runs BEFORE the Supabase verify call — a caller with a valid code but whose GSTIN was later deactivated would receive 404 on verify. Consider moving the active-retailer check after verify to keep the error taxonomy consistent with /me (which returns 403 in the same class of case).",
+    "app_login_codes ts is a raw epoch float; a TTL index on datetime + gstin would let the throttle self-clean and avoid unbounded growth.",
+    "login.tsx line 136: `disabled={!gstinReady || busy}` — on react-native-web Pressable this does NOT prevent onPress. Add an early return guard inside sendCode() to be safe (see action items).",
+    "70 pre-existing DeprecationWarnings (Pydantic V1 @validator, FastAPI @app.on_event) still emitted per test run — flagged again from iter111, no new ones introduced by mobile_app_v2.",
+    "app.json's `apiBaseUrl` currently hard-coded to the preview URL; consider driving from EXPO_PUBLIC_API_BASE_URL only, so a fresh export defaults correctly per environment."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter112_mobile_app.py",
+    "/app/memory/.qa_refresh_token (rotated per single-use policy)"
+  ],
+  "success_rate": {"backend": "100% (32/32 iter112 + 32/32 regression)", "frontend": "login screen verified; signed-in shell UNVERIFIED because web export points at an unreachable API host"},
+  "test_credentials": "QA mobile retailer session minted via refresh_token flow from /app/memory/.qa_refresh_token; regression uses GSTIN 07AAAAA0000A1Z5 / Test@12345.",
+  "seed_data_creation": "Created 1 TEST_iter112 grievance and 1 TEST_iter112 contact message under RTL_APP_QA (self-cleanup not necessary — retailer is is_test_account:true). One extra order for bold-bakhoor-b2b was placed by test_place_ignores_client_price_and_returns_order (idempotent — subsequent runs reuse the same client_ref only within a session).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend for the mobile app is production-quality — all 32 iter112 tests pass including price tamper, RLS isolation, storage RLS, path traversal, FY function, idempotency and KYC gate. Only remaining gap is that the WEB PREVIEW at localhost:3000/app-preview points at an unreachable emergent-preview host (baked into the exported bundle), so the signed-in Expo screens are UNVERIFIED. After main agent rebuilds the export with the correct apiBaseUrl and restarts frontend, re-run the signed-in shell UI verification. QA session bootstrap: `RT=$(cat /app/memory/.qa_refresh_token) && curl -s -X POST \"https://qzzwaqwgzvrdecheunpn.supabase.co/auth/v1/token?grant_type=refresh_token\" -H \"apikey: sb_publishable_dUgl8KWxj4dArmssOQZpFw_9vd2CtR4\" -H \"Content-Type: application/json\" -d \"{\\\"refresh_token\\\":\\\"$RT\\\"}\"` — remember to write the new refresh_token back (single-use).",
+  "rca_of_the_issue": "1) `Not Found` in login card = fetch to https://aaroviah-retail.preview.emergentagent.com/api/app/v2/auth/request-code → the emergent preview URL currently returns 404 for /api and the app surfaces the HTTPException detail verbatim. Root cause: app.json extras.apiBaseUrl baked into the exported web bundle at build time (not read at runtime). 2) Button-not-really-disabled = react-native-web Pressable `disabled` prop is style-only, does not block onPress; source code lacks an early return in the handler."
+}

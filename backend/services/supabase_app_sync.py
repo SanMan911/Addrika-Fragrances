@@ -98,23 +98,34 @@ async def sync_retailers(db, conn) -> int:
 
 
 async def sync_products(db, conn) -> int:
+    # The SKU is `id` (e.g. "bold-bakhoor-b2b"), NOT `product_id`. Each SIZE is
+    # its own document and several sizes share one `product_id`, so keying on
+    # product_id collapsed sizes together and let a 0-stock row overwrite the
+    # real stock of another size. `id` is also what the order engine accepts.
     rows = await db.b2b_products.find({}, {"_id": 0}).to_list(2000)
-    payload = [
-        (
-            p["product_id"],
-            p.get("name") or p["product_id"],
-            p.get("category"),
-            p.get("net_weight"),
-            int(p.get("pieces_per_carton") or 12),
-            p.get("mrp_per_unit"),
-            p.get("price_per_box"),
-            int(p.get("stock_pieces") or 0),
-            p.get("image"),
-            bool(p.get("is_active", True)),
+    payload = []
+    seen: set[str] = set()
+    for p in rows:
+        sku = p.get("id") or p.get("product_id")
+        if not sku or sku in seen:
+            continue
+        seen.add(sku)
+        name = p.get("name") or sku
+        size = p.get("net_weight")
+        payload.append(
+            (
+                sku,
+                f"{name} {size}".strip() if size else name,
+                p.get("category"),
+                size,
+                int(p.get("pieces_per_carton") or 12),
+                p.get("mrp_per_unit"),
+                p.get("price_per_box"),
+                int(p.get("stock_pieces") or 0),
+                p.get("image"),
+                bool(p.get("is_active", True)),
+            )
         )
-        for p in rows
-        if p.get("product_id")
-    ]
     await conn.executemany(
         """
         insert into public.app_products

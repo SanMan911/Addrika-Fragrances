@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { accessToken } from './token';
 
@@ -27,7 +28,20 @@ const API_BASE_URL = pickUrl(
   Constants.expoConfig?.extra?.apiBaseUrl as string | undefined,
 );
 
-if (!API_BASE_URL) {
+/**
+ * On web the app is served from the same origin as the Next.js site, which
+ * already proxies `/api/*` to the backend. We therefore ALWAYS use a relative
+ * base on web, ignoring `EXPO_PUBLIC_API_BASE_URL` — that variable points at
+ * the Render host for native builds, and honouring it on web sent the preview
+ * at a backend that 404s (and would break CORS besides).
+ *
+ * Native builds have no origin to inherit, so they keep the absolute URL.
+ */
+function resolveBase(): string {
+  return Platform.OS === 'web' ? '' : API_BASE_URL;
+}
+
+if (Platform.OS !== 'web' && !API_BASE_URL) {
   // eslint-disable-next-line no-console
   console.warn(
     '[api] Missing EXPO_PUBLIC_API_BASE_URL. Copy /app/mobile/.env.example → .env.'
@@ -40,7 +54,8 @@ export async function apiFetch<T = unknown>(
   path: string,
   opts: FetchOpts = {}
 ): Promise<T> {
-  if (!API_BASE_URL) {
+  const base = resolveBase();
+  if (Platform.OS !== 'web' && !base) {
     throw new Error(
       'App is not configured to reach the server yet. ' +
         'Please reinstall the latest build.'
@@ -53,7 +68,7 @@ export async function apiFetch<T = unknown>(
   if (!bearer && auth) {
     bearer = (await accessToken()) ?? undefined;
   }
-  const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
   let res: Response;
   try {
     res = await fetch(url, {
@@ -93,3 +108,9 @@ export async function apiFetch<T = unknown>(
 }
 
 export const API_URL = API_BASE_URL;
+
+/** Absolute-or-relative URL for opening a backend route in a browser/viewer. */
+export function apiUrl(path: string): string {
+  const base = resolveBase();
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}

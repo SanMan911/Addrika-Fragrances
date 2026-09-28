@@ -160,3 +160,63 @@ Project is already linked: `eas.projectId f152117c-57fb-4506-a44a-7c53d1043dd3`.
 - **`apiBaseUrl`** in `app.json` currently points at the Emergent preview URL so
   preview builds work today. Switch to the Render URL for production.
 - **service_role key** was never needed and is NOT stored anywhere.
+
+---
+
+## Bugs found & fixed during iter112 verification
+
+1. **Blank white screen** — the auth gate called `router.replace` before the
+   `Stack` navigator mounted. Fixed with a `useRootNavigationState().key` guard
+   in `app/_layout.tsx`.
+2. **Retailer email leak (design flaw, caught before shipping)** — an early
+   design had the app call a GSTIN→email endpoint. GSTINs are public, so that
+   would have leaked every retailer's contact address. The backend now brokers
+   the OTP and returns only a masked address.
+3. **`disabled` does nothing on react-native-web** — `Pressable`'s `disabled`
+   prop is style-only on web; onPress still fires. Every submit handler
+   (`login.onSendCode`/`onVerify`, `pad.onPlace`, `support.send`,
+   `grievance.submit`) now early-returns on its own guard.
+4. **WRONG PRODUCT KEY IN SYNC (the important one)** — `sync_products` keyed on
+   `b2b_products.product_id`, but that column is the *fragrance*, shared across
+   SIZES; the real SKU is **`id`** (e.g. `bold-bakhoor-b2b`), which is also what
+   the order engine accepts. Keying on `product_id` collapsed 16 SKUs into 9 and
+   let a 0-stock size overwrite a real one (`bold-bakhoor` 52 pcs → 0), so the
+   app showed everything as "Out of stock". **Always sync on `id`.**
+5. **Web preview called the Render backend** — `EXPO_PUBLIC_API_BASE_URL` in
+   `/app/mobile/.env` points at Render for native builds, and the web bundle was
+   honouring it. `lib/api.ts → resolveBase()` now returns `''` (relative) on web
+   **unconditionally**, so the web build always goes through the same-origin
+   Next.js `/api` proxy.
+
+## Preview URL (final, working)
+
+**`<host>/app-preview`** — no trailing slash, no `/index.html`.
+
+Two pieces of plumbing make that work, both requiring a **`yarn build`** of
+`frontend-next` (rewrites are compiled into the production build):
+- `next.config.js` rewrites `/app-preview` and `/app-preview/:path*` →
+  `/app-preview/index.html`. These are *afterFiles* rewrites, so real assets
+  under `/app-preview/_expo/**` still resolve from `/public` first.
+- `.env.local → NEXT_PUBLIC_BACKEND_URL=http://localhost:8001`. It previously
+  pointed at the external preview host, which made the `/api` proxy hairpin
+  through the ingress and return 404 for **every** API call — that broke the
+  web portal's own API calls too, not just the app.
+
+### Signing the web preview in without an inbox (for automated UI tests)
+supabase-js persists its session in `localStorage` under
+`sb-qzzwaqwgzvrdecheunpn-auth-token`. Mint a session from the cached refresh
+token, then inject it before reload:
+
+```python
+await page.evaluate("([k,v]) => window.localStorage.setItem(k,v)",
+                    ["sb-qzzwaqwgzvrdecheunpn-auth-token", payload])
+await page.reload()
+```
+where `payload` is the JSON `{access_token, refresh_token, expires_at,
+expires_in, token_type, user}`.
+
+## Verified working end-to-end (iter112)
+GSTIN login screen → session → Stock (16 SKUs, correct per-size stock, "Only 7
+pcs left" nudge, search) → add to Order Pad (halves, tab badge) → server-priced
+summary (₹1,010 + ₹50.5 GST = ₹1,060.5) → Place order → order-placed screen with
+order number → Orders tab with FY chips and RLS-scoped history → More/profile.

@@ -42,6 +42,19 @@ const nextConfig = {
         source: '/api/:path*',
         destination: `${backendUrl}/api/:path*`,
       },
+      // Aarohmm mobile-app web preview (Expo static export in /public/app-preview).
+      // These run AFTER the filesystem check, so real asset requests under
+      // /app-preview/_expo/** still resolve normally; only unmatched routes fall
+      // through to the SPA entry. Needed because Next 308-redirects the bare
+      // directory path, which would strip the base path the Expo router needs.
+      {
+        source: '/app-preview',
+        destination: '/app-preview/index.html',
+      },
+      {
+        source: '/app-preview/:path*',
+        destination: '/app-preview/index.html',
+      },
     ];
   },
 
