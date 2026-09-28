@@ -20,3 +20,22 @@
 - B2C code paths preserved but disabled (loginCustomer, /cart filters).
 - EAS profiles in eas.json: development (dev client APK), preview, production.
 - expo-web-browser pinned ~13.0.3 (SDK 51 compat — do NOT upgrade).
+
+---
+
+## STATUS AFTER ITER112–113 (mobile app v1 complete)
+
+The pivot is implemented and verified. The revert point above (`d7a4e0c`) is
+still the "before the mobile app" bookmark.
+
+Mobile architecture AFTER the pivot:
+- Auth: **Supabase Auth**, email OTP keyed on GSTIN, no passwords. Backend
+  brokers the OTP so retailer emails are never exposed (GSTINs are public).
+- Reads: **Supabase Postgres direct from the app under RLS** (`app_*` tables).
+- Writes (orders/pricing/stock/payment): **still FastAPI → MongoDB** by design.
+- Files: **Supabase Storage**, private bucket, per-retailer folder RLS.
+- Preview: Expo web export served at `<host>/app-preview`.
+
+Key docs: `/app/memory/MOBILE_APP_NOTES.md` (architecture, all 5 bugs fixed,
+gotchas, preview + EAS instructions) and the MOBILE section of
+`/app/memory/test_credentials.md`.
