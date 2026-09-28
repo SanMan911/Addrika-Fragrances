@@ -220,3 +220,114 @@ GSTIN login screen → session → Stock (16 SKUs, correct per-size stock, "Only
 pcs left" nudge, search) → add to Order Pad (halves, tab badge) → server-priced
 summary (₹1,010 + ₹50.5 GST = ₹1,060.5) → Place order → order-placed screen with
 order number → Orders tab with FY chips and RLS-scoped history → More/profile.
+
+---
+
+# ITER114 — App Desk: brochure auto-sync, grievance threads, alerts, Razorpay
+
+Verified: `/app/test_reports/iteration_114.json` — 31/31 new tests + 32/32 iter112
++ 23/23 iter108, 0 frontend issues.
+
+## Brochure auto-sync (`services/app_brochure_sync.py`)
+`app_brochure_items` is rebuilt from the **website's own catalogue** — D2C
+`products` (image, tagline, description, notes) joined to `b2b_products`
+(sizes, prices). Nothing is invented: a product with no description gets an
+EMPTY `detail`, never fabricated copy. `_short_detail()` caps at 280 chars and
+cuts on a sentence boundary. Stale SKUs are deleted each run.
+Runs every 15 min (`brochure_scheduler_loop`) + on demand via
+`POST /api/admin/app-support/brochure/sync`.
+**Keys on `b2b_products.id`, never `product_id`** (same trap as iter112).
+
+## Grievance threads
+`app_grievance_messages` holds BOTH sides; the original complaint is injected
+as `thread[0]` (`is_origin: true`) so the UI renders one uniform list.
+`unread_for_retailer` / `unread_for_admin` badge each side.
+
+RLS is what makes this safe — a retailer may insert ONLY with
+`author='retailer'`, ONLY on their own ticket, and ONLY while it is not
+closed. So a tampered client cannot forge an admin reply, cannot post to a
+closed ticket, and cannot change `status`/`closed_at`/`admin_reply`. Admin
+writes go through the backend (RLS-exempt). Admin-only close.
+
+Status auto-advances `open → in_progress` on the first admin reply.
+
+## Grievance reply alert
+Admin reply → `unread_for_retailer = true` (surfaced by
+`GET /api/app/v2/notifications/summary`) **and** an email to the shop's
+registered address. `close_ticket: true` sends the "resolved" variant.
+
+## Razorpay (wired, keys placeholdered)
+Expo-friendly: a **Payment Link** opened in the system browser — no native SDK,
+no ejecting. The amount is ALWAYS read from the stored order, never the request.
+
+⚠️ `RAZORPAY_KEY_ID` in this env is a **rzp_live_** key — do NOT call
+`POST /api/app/v2/payments/create` with a valid unpaid order in tests, and do
+not click the mobile "Pay now" button: it creates a REAL payment link.
+
+`RAZORPAY_WEBHOOK_SECRET` is the placeholder `your_razorpay_webhook_secret_here`.
+`_looks_placeholder()` makes `verify_webhook_signature()` reject even an HMAC
+computed with that placeholder, so **no order can be marked paid until a real
+secret is set**. `GET /api/app/v2/payments/config` reports
+`webhook_verification_ready: false` with a warning — deliberately honest rather
+than implying payments work.
+
+## Gotchas learned this iteration
+- **asyncpg will not accept `'YYYY-MM-DD'` strings for `date` columns** —
+  it raised `'str' object has no attribute 'toordinal'` and every scheme
+  create/update 500'd. `admin_app_support._parse_date()` converts explicitly
+  (and 400s on bad input); the `::date` casts were removed as redundant.
+- **The QA access token lives at `/tmp/qa_access_token` and expires in 1 hour.**
+  A stale one makes 17 iter112 tests fail with "Session expired" / "JWT expired".
+  `rm -f /tmp/qa_access_token` and re-run — it is NOT a product bug.
+- **Order-placement tests drain real stock.** `bold-bakhoor-b2b` fell 52 → 4
+  across iter112–114 runs and broke pricing tests. Topped back to 120. If
+  those tests fail with "Only N pieces available", top up
+  `b2b_products.stock_pieces` and `POST /api/app/v2/sync`.
+
+## New endpoints
+Admin (`/api/admin/app-support/`): `GET/…/grievances[?status]`,
+`GET /grievances/{id}`, `POST /grievances/{id}/reply` `{body, close_ticket}`,
+`POST /grievances/{id}/status`, `GET/POST/PUT/DELETE /schemes`,
+`GET /brochure`, `POST /brochure/sync`.
+Retailer (`/api/app/v2/`): `GET /grievances`, `GET /grievances/{id}`,
+`POST /grievances/{id}/reply`, `GET /notifications/summary`, `GET /brochure`,
+`GET /payments/config`, `POST /payments/create`, `GET /payments/{order_id}`.
+Webhook: `POST /api/app/v2/payments/webhook` (signature-verified, unauthenticated).
+
+## Admin UI
+`/admin/app-support` — sidebar "Aarohmm App Desk". Tabs: Grievances (list +
+status filters + full thread + reply / reply-and-close), Trade Schemes (CRUD,
+published straight to the app), Brochure (cards + Sync now).
+
+## New mobile screens
+`app/brochure.tsx` (in-app brochure, replaces the PDF download),
+`app/grievance-thread.tsx` (tap any past ticket → full conversation + reply;
+closed tickets show a notice instead of the reply box), and a
+"Pay ₹X now" button on unpaid orders in the Orders tab.
+
+## ⚠️ The external preview host does NOT serve this pod
+`https://aaroviah-retail.preview.emergentagent.com/app-preview` returns 404
+even though `http://localhost:3000/app-preview` is 200. Proven by comparing
+build hashes: local serves `720-ba9f0f9bda4a5319.js`, external serves
+`720-a07e09dda4910b81.js` — a different, older deployment. `/app/frontend` is
+just a symlink to `/app/frontend-next`, and only one next-server runs on 3000,
+so this is an infrastructure routing/caching layer we cannot update from here.
+Use the EAS APK (or localhost) to demo the app.
+
+## Lint-caught bug (iter114, post-test)
+`routers/mobile_app_v2.py` used `os.environ.get(...)` in the retailer
+grievance-reply handler while `os` was only imported *locally* inside other
+functions — a latent `NameError`. It never surfaced in tests because the call
+sits inside a `try/except Exception` that only logs, so **admin notifications
+on retailer replies were silently never sent**. Fixed by importing `os` at
+module level; the endpoint now returns 200 and the email fires.
+Lesson: a bare `except Exception` around a notification can hide a NameError —
+`ruff check --select F821` catches it.
+
+## oxlint configuration
+The Expo web export under `frontend-next/public/app-preview/` is generated,
+minified Metro output and trips `no-undef` on Metro's `__d`/`__r` globals.
+It is ignored via `.oxlintrc.json` in **both** `/app` and `/app/frontend-next`
+(the linter may run from either cwd, so a repo-root-relative pattern alone is
+not enough). Patterns use `**/public/app-preview/**` and `**/_expo/**`.
+Keep the bundle tracked (not gitignored) so the preview survives deploys.

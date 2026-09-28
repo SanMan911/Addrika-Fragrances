@@ -1,0 +1,80 @@
+{
+  "summary": "Iter114 comprehensive backend + frontend verification of the new Aarohmm App Desk features (brochure auto-sync, two-way grievance thread, adversarial grievance RLS, grievance reply alert, Razorpay guards, admin schemes CRUD + retailer visibility windows, admin/mobile UI). Wrote /app/backend/tests/test_iter114_app_desk.py — 31/31 pass. Verified admin UI at /admin/app-support (sidebar link, 3 tabs, 7 real grievance tickets, 16 brochure cards with real website images + fragrance notes + detail, thread view with reply-and-close). Verified mobile web preview: Product Brochure screen (16 cards, images, notes, detail — NO PDF/browser), Grievance history is tappable → thread screen renders full conversation with reply box, Orders tab shows Pay-now buttons on 9 unpaid orders (NOT clicked — live Razorpay key). One real bug found & fixed: POST /admin/app-support/schemes was returning 500 because asyncpg was receiving string values for date columns with `$N::date` cast — replaced with a `_parse_date` helper converting to datetime.date. Regression suites: test_iter108_security_audit.py = 23/23 pass. test_iter112_mobile_app.py = 29/32 pass (3 failures are pre-existing environmental drift documented in iter113: Supabase SMTP 429/502 and bold-bakhoor stock depleted to 4 pieces by prior UI test iterations — NOT product regressions). Web portal regression: /, /products, /blog, /retailer/login, /wholesale all 200; POST /api/retailer-auth/login (07AAAAA0000A1Z5/Test@12345) → 200.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/admin/app-support/schemes and PUT /api/admin/app-support/schemes/{id}", "issue": "FIXED IN THIS ITERATION — request body sent 'YYYY-MM-DD' strings for valid_from/valid_to but asyncpg encoded them against date columns and raised DataError ('str' object has no attribute 'toordinal'). Endpoint returned 500 on every create/update. Added `_parse_date()` helper that turns 'YYYY-MM-DD' → datetime.date, and removed the redundant `::date` casts. Verified: 5/5 Schemes tests now pass, including retailer PostgREST visibility of the active scheme and the expected invisibility of inactive/expired schemes."},
+      {"endpoint": "POST /api/app/v2/auth/request-code", "issue": "Pre-existing env limitation — Supabase built-in SMTP capped at ~2/hour returns 502 to the caller once rate-limited. iter112 test test_request_code_masked_only fails on that path today. Documented in MOBILE_APP_NOTES.md; use the cached refresh token for automated tests."},
+      {"endpoint": "POST /api/app/v2/orders (bold-bakhoor-b2b)", "issue": "Pre-existing stock drift — bold-bakhoor-b2b stock is now 4 pieces (was 52 originally; decremented by ~9 UI-driven order-placement runs across iter112→iter114). iter112 tests test_calculate_returns_breakdown and test_place_ignores_client_price_and_returns_order fail with 'Only 4 pieces available'. Not a product regression; iter113 already flagged this. Fix: top up b2b_products.stock for bold-bakhoor-b2b and re-run POST /api/app/v2/sync."}
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "verifications": {
+    "brochure_auto_sync": "POST /admin/app-support/brochure/sync → items=16, with_image=16, with_detail=16, all images http(s). Stale-row cleanup verified end-to-end: injected sku='junk-iter114' → sync → row removed (removed >= 1). Detail cap <= 280 chars; both bold-bakhoor-b2b and bold-bakhoor-200-b2b present as SEPARATE rows keyed on `id`, plus royal-kewda 50g/200g. GET /api/app/v2/brochure returns the same 16 rows to the retailer.",
+    "grievance_two_way_thread": "Full end-to-end verified. Fresh retailer-raised ticket → admin sees it in list with business_name/gstin/reply_count/image_count/unread_for_admin. Admin GET thread returns thread[0]=origin retailer msg (is_origin=true) then chronological messages. Admin reply flips status open → in_progress, retailer_notified=true, retailer sees notifications/summary unread_grievance_replies>=1. Retailer GET thread clears their unread. Retailer reply appends turn (thread grows to 3). Admin close_ticket=true → status=closed. Retailer reply to closed → 409. Admin re-open via /status works; bad status → 400.",
+    "grievance_security_adversarial": "Cross-retailer ticket read → 404 (existence not leaked as 403). Direct PostgREST insert of author='admin' with retailer Bearer → rejected (403). Direct PostgREST retailer insert on a CLOSED ticket → rejected. Anon-key-only SELECT on app_grievances → empty. All RLS policies enforced at DB layer.",
+    "grievance_reply_alert": "unread_for_retailer flips true on admin reply; /notifications/summary reflects unread_grievance_replies>=1; email is triggered (send_email invoked via services.email_service); retailer_notified boolean surfaced in API response; close_ticket=true path also invokes the RESOLVED variant.",
+    "razorpay_guards": "GET /payments/config → configured=true, mode='live', webhook_verification_ready=false, warnings contains placeholder message. POST /payments/create with non-existent order → 404. GET /payments/{order} for non-existent → 404. POST /payments/webhook w/o signature → 400. Wrong signature → 400. HMAC computed WITH the placeholder secret 'your_razorpay_webhook_secret_here' → STILL 400 (services/app_payments._looks_placeholder blocks it). No real Razorpay call was made. Amount is always read from stored order in create_payment_link (verified in source).",
+    "admin_schemes_crud": "Create → id returned; list shows it; retailer PostgREST read (is_active=true, valid_to in future) returns it under app_schemes RLS. Deactivate → PostgREST no longer returns. Expired scheme (valid_to=2020-12-31) → invisible in app. Delete → 200 and row gone. All created schemes cleaned up.",
+    "admin_ui": "Sidebar 'Aarohmm App Desk' present. /admin/app-support renders with app-support-page + tabs (grievances/schemes/brochure). Grievances: admin-grievances panel, 4 status filters, 7 grievance-item rows, ticket detail shows grievance-messages + grievance-reply-input + grievance-send-reply + grievance-reply-and-close. Schemes: admin-schemes panel with scheme-title/scheme-save. Brochure: brochure-sync-btn + 16 brochure-item-{sku} cards with real images, fragrance notes and detail (screenshot confirms visuals).",
+    "mobile_ui": "Web preview at /app-preview after Supabase session-inject: More screen renders correctly with SIGNED IN AS Aarohmm App QA Store · GSTIN 29AAAAA0000A1Z5. 'Product brochure' opens brochure-screen with 16 brochure-card-{sku} cards showing image, notes and detail (NOT a PDF). 'Raise a grievance' → grievance-screen with 7 tappable grievance-history-{id} rows → grievance-thread-screen renders origin complaint (thread-msg-{id}-origin), thread-reply-input and thread-send-reply present. Orders tab shows 9 order-pay-{order_number} 'Pay ₹X now' buttons on unpaid orders. NOT clicked (live Razorpay key).",
+    "regression_iter108": "23/23 pass in isolation.",
+    "regression_iter112": "29/32 pass. 3 failures are pre-existing env drift (Supabase SMTP rate-limit, bold-bakhoor stock depleted to 4 pcs). Not product regressions — see 'minor' issues.",
+    "web_portal_regression": "GET / /products /blog /retailer/login /wholesale → all 200. POST /api/retailer-auth/login (07AAAAA0000A1Z5/Test@12345) → 200 with token."
+  },
+
+  "pytest_results": {
+    "command": "cd /app/backend && pytest tests/test_iter114_app_desk.py -v",
+    "totals": "31 passed / 0 failed (after the schemes date-parsing fix). test_iter108 = 23/23 pass. test_iter112 = 29/32 pass (pre-existing env drift).",
+    "junit_xml": "/app/test_reports/pytest/iter114_results.xml"
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_iter114_app_desk.py",
+    "/app/test_reports/pytest/iter114_results.xml"
+  ],
+
+  "action_items": [
+    "(FIXED, but confirm intent) admin_app_support.py schemes endpoints now use `_parse_date()` and dropped the `::date` casts because asyncpg was rejecting string date parameters. Please review; the fix keeps the same wire contract ('YYYY-MM-DD') and enforces it explicitly (400 on bad format).",
+    "(NON-BLOCKING) bold-bakhoor-b2b stock is down to 4 pieces from cumulative iter112→iter114 UI order-placement. To keep iter112 pytest green, top up b2b_products stock for bold-bakhoor-b2b (e.g. 100 pieces) and POST /api/app/v2/sync.",
+    "(NON-BLOCKING, unchanged) Supabase custom SMTP still pending user action; auth/request-code test is flaky by design (2 emails/hour project-wide).",
+    "(HOUSEKEEPING) Consider a Supabase-side check constraint (or a nightly assertion) that app_brochure_items row count == count(distinct id in b2b_products) so a regression fails loudly."
+  ],
+
+  "critical_code_review_comments": [
+    "admin_app_support.py — before the fix, POST/PUT schemes was 500ing on every call. The `$N::date` server-side cast does NOT rescue asyncpg's client-side type inference; asyncpg encodes the parameter based on the declared column type (date) and rejects a str. The correct fix is to send a datetime.date. This exact pitfall may exist in any other endpoint that inserts date columns via asyncpg with string params — worth grepping for `::date` across /app/backend to be safe.",
+    "services/app_grievances.py notify_retailer_of_reply — returns False silently on email failure and the caller only surfaces `retailer_notified`. Consider distinguishing between 'no email address on file', 'send_email raised', and 'send_email returned False' so the admin UI can show a useful diagnostic instead of just a green tick.",
+    "services/app_payments.py — mode='live' with a placeholder webhook secret is a real footgun: any successful payment link CAN be created but the webhook will never verify, so the order stays unpaid forever. Consider hard-refusing create_payment_link() when webhook_verification_ready=False (or at least gate it behind an env flag) so we don't create live links we can't confirm.",
+    "routers/mobile_app_v2.py my_grievances — fetches ALL grievances via list_grievances() then filters by retailer_id in Python. Fine at current scale but scales O(N) with total tickets. Prefer a scoped SQL query. (Nice-to-have.)",
+    "services/app_brochure_sync.py — good defensive design (no fabrication when description missing). Consider adding a Supabase unique constraint on app_brochure_items.sku (already implicit via ON CONFLICT) and asserting the final row count matches len(payload) after the executemany, so silent partial inserts are caught."
+  ],
+
+  "updated_files": [
+    "/app/backend/routers/admin/admin_app_support.py (date-parsing fix for schemes create/update)",
+    "/app/backend/tests/test_iter114_app_desk.py (new)",
+    "/app/memory/.qa_refresh_token (rotated per single-use policy)"
+  ],
+
+  "success_rate": {
+    "backend": "iter114 suite: 100% (31/31). iter108: 100% (23/23). iter112: 90.6% (29/32) — 3 pre-existing env-drift failures.",
+    "frontend": "100% — admin UI (grievances/schemes/brochure) and mobile UI (brochure/grievance-thread/orders pay button) all verified."
+  },
+
+  "test_credentials": "Mobile QA session minted from /app/memory/.qa_refresh_token (rotated at start of iter114 and again during Playwright runs). Admin session minted via API for both pytest and Playwright.",
+
+  "seed_data_creation": "One transient grievance ticket created & torn down per module fixture in test_iter114_app_desk.py. All schemes created (2) are deleted at end of TestSchemes.test_delete_all_created. Stale brochure junk row 'junk-iter114' inserted and confirmed removed by the sync itself. No leftover test data in Supabase.",
+
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+
+  "context_for_next_testing_agent": "New backend regression suite lives at /app/backend/tests/test_iter114_app_desk.py — run alongside test_iter112_mobile_app.py and test_iter108_security_audit.py in SEPARATE pytest invocations (iter110's TestSpoofingRegressionInProcess still pollutes iter112 in a single process — flagged in iter113 and unchanged). Admin schemes date-parsing lives in a small `_parse_date` helper in admin_app_support.py — do NOT re-introduce `::date` casts with string args. Mobile signed-in shell recipe (localStorage session-inject at 'sb-qzzwaqwgzvrdecheunpn-auth-token') continues to work. Razorpay is LIVE — only test guard paths, never call POST /payments/create with a valid unpaid order and never click mobile 'Pay now'.",
+
+  "rca_of_the_issue": "Root cause of the schemes 500: asyncpg's binary protocol encodes bound parameters using the column's declared type (date), NOT the SQL cast (::date) in the query text. When admin_app_support.py bound `payload.valid_from` (a str 'YYYY-MM-DD') to a date column, asyncpg's date codec tried `.toordinal()` on a str and raised DataError. Server-side `::date` cast only helps if the parameter itself is transmitted as text of a text-compatible type, which asyncpg does not do for date columns. Reproduction: POST /api/admin/app-support/schemes with any valid_from/valid_to string → 500. Mitigation applied: introduced `_parse_date()` in admin_app_support.py that converts 'YYYY-MM-DD' to datetime.date (raising 400 on bad input) and removed the redundant `::date` casts. Verified: TestSchemes 5/5 pass, retailer PostgREST visibility of the created scheme confirmed, deactivate/expire correctly hide it. Suggested follow-up: scan for any other asyncpg queries binding string dates to date columns across /app/backend."
+}

@@ -5,10 +5,23 @@ replies here, and either side sees the whole conversation. Only an admin can
 close a ticket.
 """
 import logging
+from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Cookie, HTTPException, Request
 from pydantic import BaseModel, Field
+
+
+def _parse_date(v):
+    """asyncpg requires a real date object for date columns; accept 'YYYY-MM-DD' too."""
+    if v is None or v == "":
+        return None
+    if isinstance(v, date):
+        return v
+    try:
+        return datetime.strptime(str(v)[:10], "%Y-%m-%d").date()
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"Invalid date: {v!r} (want YYYY-MM-DD)")
 
 from dependencies import db, require_admin
 from services import app_grievances as grievances
@@ -193,7 +206,7 @@ async def create_scheme(
             insert into public.app_schemes
               (title, description, terms, min_cartons, discount_pct, banner_url,
                valid_from, valid_to, is_active)
-            values ($1,$2,$3,$4,$5,$6,$7::date,$8::date,$9)
+            values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
             returning id
             """,
             payload.title.strip(),
@@ -202,8 +215,8 @@ async def create_scheme(
             payload.min_cartons,
             payload.discount_pct,
             payload.banner_url,
-            payload.valid_from,
-            payload.valid_to,
+            _parse_date(payload.valid_from),
+            _parse_date(payload.valid_to),
             payload.is_active,
         )
         return {"id": str(row["id"])}
@@ -227,7 +240,7 @@ async def update_scheme(
             """
             update public.app_schemes set
               title=$2, description=$3, terms=$4, min_cartons=$5, discount_pct=$6,
-              banner_url=$7, valid_from=$8::date, valid_to=$9::date, is_active=$10,
+              banner_url=$7, valid_from=$8, valid_to=$9, is_active=$10,
               updated_at=now()
             where id=$1
             """,
@@ -238,8 +251,8 @@ async def update_scheme(
             payload.min_cartons,
             payload.discount_pct,
             payload.banner_url,
-            payload.valid_from,
-            payload.valid_to,
+            _parse_date(payload.valid_from),
+            _parse_date(payload.valid_to),
             payload.is_active,
         )
         if result.split()[-1] == "0":

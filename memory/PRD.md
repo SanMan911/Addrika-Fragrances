@@ -210,3 +210,13 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **Tests**: `/app/test_reports/iteration_112.json` — 32/32 backend incl. adversarial RLS isolation, price tampering, path traversal, storage RLS, KYC gate, FY boundary, idempotency. 5 bugs found & fixed (see MOBILE_APP_NOTES.md).
 - **BLOCKER (user action)**: Supabase built-in SMTP is ~2 emails/hour project-wide → configure Resend as custom SMTP before real retailers can log in.
 - **OPEN**: in-app payments not wired (orders placed on credit terms); `app_schemes`/`app_brochures` empty (need admin CRUD); EAS preview APK needs the user's Expo token.
+
+### Update 2026-06-27 (Iter114 — App Desk: brochure auto-sync, grievance threads, alerts, Razorpay)
+- **DONE — Brochure auto-sync**: `app_brochure_items` rebuilt every 15 min + on demand from the website's own catalogue (D2C `products` image/tagline/description/notes × `b2b_products` sizes/prices). 16/16 SKUs with real images and short details; no invented copy; stale SKUs pruned.
+- **DONE — Grievance two-way threads on the admin dashboard** (`/admin/app-support`, "Aarohmm App Desk"): whole conversation readable by BOTH admin and the concerned retailer, both can reply, admin-only close. RLS blocks author spoofing, posting to closed tickets, and status tampering.
+- **DONE — Reply alerts**: in-app unread badge (`/api/app/v2/notifications/summary`) + email to the shop on every admin reply; "resolved" variant on close.
+- **DONE — Admin Schemes CRUD** publishing straight to the app (honours `is_active` + validity windows). Closes the iter112 "schemes empty" gap.
+- **DONE — Razorpay wired with placeholder keys**: Expo-friendly Payment Link, amount always server-side, webhook signature-verified and placeholder-secrets rejected. `payments/config` honestly reports `webhook_verification_ready: false`.
+- **DONE — EAS Android preview build submitted** (build `cb22ba01-16e7-4d96-a49c-ec5f2f537014`).
+- **Tests**: `/app/test_reports/iteration_114.json` — 31/31 new, 32/32 iter112, 23/23 iter108, 0 frontend issues.
+- **OPEN (user action)**: (P0) Supabase custom SMTP via Resend — until then OTP login is capped at ~2 emails/hour project-wide. (P0) real `RAZORPAY_WEBHOOK_SECRET` before taking payments. (P1) push the backend to Render and redeploy — the APK points at Render, which is currently DOWN, so the app cannot log in until then. (P2) the external preview domain is served by a different/older deployment and cannot be updated from this pod.

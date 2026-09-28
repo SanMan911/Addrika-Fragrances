@@ -85,3 +85,36 @@ under RLS:
 - Keys with a non-empty `retailer_ids` are SCOPED to those retailers; empty means unrestricted. Rate limit 120 req/min per key.
 - Test retailer for FSM orders: retailer_id `RTL_TEST_B2B` (GSTIN 07AAAAA0000A1Z5).
 - Razorpay keys in this environment FAIL authentication → `payment_mode: razorpay_link` orders get `payment_link_url: null`; D2C checkout returns "Payment gateway error". Not a code bug — needs valid keys.
+
+---
+
+## ITER114 additions
+
+### Admin App Desk
+- UI: `/admin/app-support` (sidebar "Aarohmm App Desk"). Tabs: Grievances / Trade Schemes / Brochure.
+- API prefix `/api/admin/app-support/` — auth via `Cookie: session_token=<token>` from the admin OTP login above.
+
+### QA access token caching (IMPORTANT for tests)
+- `tests/test_iter114_app_desk.py` and `test_iter112_mobile_app.py` cache the
+  Supabase access token at **`/tmp/qa_access_token`** and it expires after **1 hour**.
+- A stale token makes ~17 iter112 tests fail with `"Session expired"` / `"JWT expired"`.
+  **This is NOT a product bug** — just run `rm -f /tmp/qa_access_token` and re-run;
+  the suite refreshes from `/app/memory/.qa_refresh_token` automatically.
+
+### Stock for order tests
+- Order-placement tests consume REAL stock. `bold-bakhoor-b2b` is topped to **120 pieces**.
+  If pricing/placement tests fail with "Only N pieces available", top up
+  `b2b_products.stock_pieces` for that SKU and `POST /api/app/v2/sync`.
+
+### ⚠️ Razorpay is LIVE in this environment
+- `RAZORPAY_KEY_ID` is an **rzp_live_** key. **NEVER** call
+  `POST /api/app/v2/payments/create` with a valid unpaid order and never click the
+  mobile "Pay now" button — it creates a REAL payment link. Test only the
+  404 / 409 / 400 guard paths.
+- `RAZORPAY_WEBHOOK_SECRET` is the placeholder `your_razorpay_webhook_secret_here`;
+  signature verification deliberately rejects it, so no order can be marked paid.
+
+### Expo / EAS
+- Token name `aarohmm`. Export as `EXPO_TOKEN` before any `eas-cli` command.
+- Account `sanman911`, project `addrika-mobile`, projectId `f152117c-57fb-4506-a44a-7c53d1043dd3`.
+- Android preview build: `cb22ba01-16e7-4d96-a49c-ec5f2f537014`.

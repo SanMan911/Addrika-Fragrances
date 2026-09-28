@@ -6,8 +6,8 @@
     "**/out/**",
     "**/dist/**",
     "**/build/**",
+    "public/app-preview/**",
     "**/public/app-preview/**",
-    "**/_expo/**",
-    "**/web-build/**"
+    "**/_expo/**"
   ]
 }
