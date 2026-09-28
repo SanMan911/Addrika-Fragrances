@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   ActivityIndicator,
@@ -31,6 +32,7 @@ const CATEGORIES = [
 ];
 
 export default function GrievanceScreen() {
+  const router = useRouter();
   const [retailerId, setRetailerId] = useState<string | null>(null);
   const [category, setCategory] = useState('damaged');
   const [subject, setSubject] = useState('');
@@ -282,9 +284,10 @@ export default function GrievanceScreen() {
               YOUR PAST TICKETS
             </Text>
             {history.map((g) => (
-              <View
+              <Pressable
                 key={g.id}
                 testID={`grievance-history-${g.id}`}
+                onPress={() => router.push({ pathname: '/grievance-thread', params: { id: g.id } })}
                 style={{
                   backgroundColor: colors.white,
                   borderRadius: radius.md,
@@ -334,7 +337,10 @@ export default function GrievanceScreen() {
                     </Text>
                   </View>
                 ) : null}
-              </View>
+                <Text style={{ ...type.small, color: colors.navy, fontWeight: '700', marginTop: space.sm }}>
+                  Open conversation →
+                </Text>
+              </Pressable>
             ))}
           </>
         ) : null}

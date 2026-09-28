@@ -71,6 +71,8 @@ export default function RootLayout() {
                   <Stack.Screen name="login" options={{ headerShown: false }} />
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="grievance" options={{ title: 'Raise a Grievance' }} />
+                  <Stack.Screen name="grievance-thread" options={{ title: 'Grievance' }} />
+                  <Stack.Screen name="brochure" options={{ title: 'Product Brochure' }} />
                   <Stack.Screen name="support" options={{ title: 'Contact Aarohmm' }} />
                   <Stack.Screen name="schemes" options={{ title: 'Trade Schemes' }} />
                   <Stack.Screen name="order-placed" options={{ headerShown: false }} />

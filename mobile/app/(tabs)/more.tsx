@@ -6,7 +6,6 @@ import { FontAwesome } from '@expo/vector-icons';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { fetchMyProfile, type RetailerProfile } from '../../lib/data';
 import { useAuth } from '../../lib/auth';
-import { apiUrl } from '../../lib/api';
 import { MOBILE_BRAND_NAME } from '../../lib/brand';
 import { colors, radius, shadow, space, type } from '../../lib/theme';
 
@@ -78,11 +77,7 @@ export default function MoreScreen() {
   const webUrl = (Constants.expoConfig?.extra?.webUrl as string) || 'https://www.centraders.com';
 
   async function openBrochure() {
-    try {
-      await WebBrowser.openBrowserAsync(apiUrl('/api/brochure/download'));
-    } catch {
-      Alert.alert('Could not open the brochure', 'Please try again in a moment.');
-    }
+    router.push('/brochure');
   }
 
   return (
@@ -132,7 +127,7 @@ export default function MoreScreen() {
         testID="more-brochure"
         icon="book"
         label="Product brochure"
-        hint="View and download the latest catalogue"
+        hint="Fragrance notes, details and trade prices"
         onPress={openBrochure}
       />
 
