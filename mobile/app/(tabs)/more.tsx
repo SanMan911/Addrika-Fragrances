@@ -6,7 +6,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { fetchMyProfile, type RetailerProfile } from '../../lib/data';
 import { useAuth } from '../../lib/auth';
-import { API_URL } from '../../lib/api';
+import { apiUrl } from '../../lib/api';
 import { MOBILE_BRAND_NAME } from '../../lib/brand';
 import { colors, radius, shadow, space, type } from '../../lib/theme';
 
@@ -79,7 +79,7 @@ export default function MoreScreen() {
 
   async function openBrochure() {
     try {
-      await WebBrowser.openBrowserAsync(`${API_URL}/api/brochure/download`);
+      await WebBrowser.openBrowserAsync(apiUrl('/api/brochure/download'));
     } catch {
       Alert.alert('Could not open the brochure', 'Please try again in a moment.');
     }

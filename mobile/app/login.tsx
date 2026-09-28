@@ -28,6 +28,9 @@ export default function Login() {
   const gstinReady = gstin.trim().length === 15;
 
   async function onSendCode() {
+    // react-native-web does not honour Pressable's `disabled` prop for
+    // onPress, so the handler must guard itself.
+    if (!gstinReady || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -43,6 +46,7 @@ export default function Login() {
   }
 
   async function onVerify() {
+    if (code.length !== 6 || busy) return;
     setBusy(true);
     setError(null);
     try {

@@ -201,3 +201,12 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 ### Update 2026-06-27 (Iter111 — watchfiles Render blocker)
 - **DONE**: `backend/requirements.txt` watchfiles 1.1.1 → **1.0.5** (stable, requires_python >=3.9, prebuilt cp311 wheel verified). Nothing imports watchfiles directly; uvicorn hot reload confirmed working. Full requirements scan found no other Py3.11 blockers. Tests: `/app/test_reports/iteration_111.json` (32 passed / 0 failed).
 - **OPEN (user action)**: push to GitHub + redeploy Render. If build still fails, verify the Render service honours render.yaml's pinned Python 3.11.6 (a manually-created service may ignore the blueprint). Still pending: EAS build, WhatsApp/Instagram broadcast, Twilio production keys, iter110 waitlist fix verification in production.
+
+### Update 2026-06-27 (Iter112 — MOBILE APP PIVOT: Supabase auth + read model)
+- **USER DIRECTIVE**: work stream is now the MOBILE APP until stated otherwise. Revert bookmark for the start of this branch: commit `d7a4e0c` (see `/app/memory/MOBILE_PIVOT_BOOKMARK.md`).
+- **Architecture decision** (agent's call, per user "you decide"): Supabase Auth (email OTP keyed on GSTIN, **no passwords**) + Supabase Postgres as the app's READ layer under RLS + Supabase Storage for grievance photos; **order placement & pricing stay on FastAPI/MongoDB** so tier pricing, carton math, stock reservation and payments remain server-authoritative. Export-friendly: nothing is Emergent-specific.
+- **DONE**: 7 RLS-guarded `app_*` tables + helpers (`app_current_retailer_id`, `app_fy`, `app_gstin_lookup`) + private storage bucket; Mongo→Supabase sync (`services/supabase_app_sync.py`, 10-min loop + on-order push); `/api/app/v2/*` router with JWKS-verified Supabase JWTs; full Expo app rebuilt (Stock / Order Pad / Orders with FY filter / More, plus grievance-with-photos, contact-admin, schemes, brochure).
+- **DONE**: temporary web preview of the app at `<host>/app-preview`.
+- **Tests**: `/app/test_reports/iteration_112.json` — 32/32 backend incl. adversarial RLS isolation, price tampering, path traversal, storage RLS, KYC gate, FY boundary, idempotency. 5 bugs found & fixed (see MOBILE_APP_NOTES.md).
+- **BLOCKER (user action)**: Supabase built-in SMTP is ~2 emails/hour project-wide → configure Resend as custom SMTP before real retailers can log in.
+- **OPEN**: in-app payments not wired (orders placed on credit terms); `app_schemes`/`app_brochures` empty (need admin CRUD); EAS preview APK needs the user's Expo token.

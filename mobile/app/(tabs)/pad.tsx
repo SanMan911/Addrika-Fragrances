@@ -113,6 +113,7 @@ export default function OrderPadScreen() {
   }, [lines, pincode, payload]);
 
   async function onPlace() {
+    if (placing || calcBusy || !calc) return;
     setPlacing(true);
     try {
       const res = await apiFetch<{ order_id: string; order_number?: string }>(

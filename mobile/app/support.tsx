@@ -22,6 +22,7 @@ export default function SupportScreen() {
   const ready = subject.trim().length >= 3 && message.trim().length >= 5;
 
   async function send() {
+    if (!ready || busy) return;
     setBusy(true);
     try {
       await apiFetch('/api/app/v2/support/contact', {
