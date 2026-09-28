@@ -57,6 +57,7 @@ from routers.docs import router as docs_router
 from routers.partner import router as partner_router
 from routers.impact import router as impact_router
 from routers.app_config import router as app_config_router
+from routers.mobile_app_v2 import router as mobile_app_v2_router
 from routers.retailer_milestones import router as retailer_milestones_router
 from routers.admin.admin_social import router as admin_social_router
 from routers.admin.admin_integrations import router as admin_integrations_router
@@ -133,6 +134,7 @@ app.include_router(fragrance_rewards_router, prefix="/api")
 
 # ---------- Mobile / SDK ----------
 app.include_router(app_config_router, prefix="/api")
+app.include_router(mobile_app_v2_router, prefix="/api")
 
 # ---------- Admin ----------
 app.include_router(admin_router, prefix="/api")
@@ -232,6 +234,12 @@ async def startup_db_client():
     # Start background scheduler for coin expiry and reminders
     asyncio.create_task(coin_expiry_scheduler_loop())
     print("Coin expiry scheduler started")
+
+    # Keep the Aarohmm mobile app's Supabase read model fresh (stock + retailers).
+    # Orders are pushed the moment they are placed; this covers admin-side edits.
+    from services.supabase_app_sync import app_read_model_scheduler_loop
+    asyncio.create_task(app_read_model_scheduler_loop(db))
+    print("Mobile app read-model sync started")
     
     # Populate products cache from MongoDB
     from routers.products import refresh_products_cache

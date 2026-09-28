@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { accessToken } from './token';
 
 /**
  * FastAPI backend client — WRITE side.
@@ -33,7 +34,7 @@ if (!API_BASE_URL) {
   );
 }
 
-type FetchOpts = RequestInit & { token?: string };
+type FetchOpts = RequestInit & { token?: string; auth?: boolean };
 
 export async function apiFetch<T = unknown>(
   path: string,
@@ -45,7 +46,13 @@ export async function apiFetch<T = unknown>(
         'Please reinstall the latest build.'
     );
   }
-  const { token, headers, ...rest } = opts;
+  const { token, auth, headers, ...rest } = opts;
+  // `auth: true` pulls the live Supabase access token so callers never
+  // have to thread it through by hand.
+  let bearer = token;
+  if (!bearer && auth) {
+    bearer = (await accessToken()) ?? undefined;
+  }
   const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
   let res: Response;
   try {
@@ -53,7 +60,8 @@ export async function apiFetch<T = unknown>(
       ...rest,
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'X-Client-Channel': 'mobile',
+        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
         ...(headers || {}),
       },
     });
@@ -65,7 +73,16 @@ export async function apiFetch<T = unknown>(
   }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`API ${res.status} ${path}: ${text || res.statusText}`);
+    // Surface the server's human-readable `detail` instead of raw JSON.
+    let detail = text;
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed?.detail === 'string') detail = parsed.detail;
+      else if (Array.isArray(parsed?.detail)) detail = parsed.detail[0]?.msg || text;
+    } catch {
+      /* not JSON — keep the raw text */
+    }
+    throw new Error(detail || `${res.status} ${res.statusText}`);
   }
   // Some endpoints return non-JSON (e.g. PDFs). Callers can use rawFetch for those.
   const contentType = res.headers.get('content-type') || '';

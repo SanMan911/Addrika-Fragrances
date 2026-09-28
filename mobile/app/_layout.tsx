@@ -1,138 +1,86 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useEffect, useRef } from 'react';
-import { AppState, View, ActivityIndicator, type AppStateStatus } from 'react-native';
-import { SessionContext, useSession, useSessionState } from '../lib/session';
-import { CartContext, useCartState } from '../lib/cart';
-import { checkForNewOrder } from '../lib/orderWatcher';
+import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthContext, useAuth, useAuthState } from '../lib/auth';
+import { PadContext, usePadState } from '../lib/pad';
+import { colors } from '../lib/theme';
 
 /**
- * Reads the ONE session from the provider — never creates its own.
- * (An earlier version called `useSessionState()` here, which spawned a
- * second state tree independent of the provider. The result: successful
- * logins persisted to SecureStore but the router never redirected
- * because the gate was watching a different `session` value. Reopening
- * the app made the gate's own load-persisted read the stored session
- * on boot and the redirect worked — hence the "correct credentials do
- * nothing until you force-close" symptom.)
+ * Redirects between the login screen and the app shell.
+ *
+ * Two things this has to get right:
+ *  1. It reads the ONE session from the provider — creating a second
+ *     `useAuthState()` here would spawn an independent state tree and the
+ *     gate would watch a session that never updates.
+ *  2. It waits for `useRootNavigationState().key` before navigating. Without
+ *     that guard the first render throws "Attempted to navigate before
+ *     mounting the Root Layout component" and the app renders blank.
  */
-function useAuthGate() {
-  const { session, loading } = useSession();
+function AuthGate() {
+  const { session, loading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const navState = useRootNavigationState();
 
   useEffect(() => {
+    if (!navState?.key) return; // navigator not mounted yet
     if (loading) return;
-    const inAuth = segments[0] === 'login' || segments[0] === 'register';
-    if (!session && !inAuth) {
-      router.replace('/login');
-    } else if (session && inAuth) {
-      router.replace('/');
-    }
-  }, [session, loading, segments, router]);
+    const inLogin = segments[0] === 'login';
+    if (!session && !inLogin) router.replace('/login');
+    else if (session && inLogin) router.replace('/');
+  }, [navState?.key, session, loading, segments, router]);
 
-  return { session, loading };
+  return null;
 }
 
 export default function RootLayout() {
-  const sessionState = useSessionState();
-  const cartState = useCartState();
-  const { loading } = sessionState;
+  const authState = useAuthState();
+  const padState = usePadState();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="light" />
-      <SessionContext.Provider value={sessionState}>
-        <CartContext.Provider value={cartState}>
-          {loading ? (
-            <View
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3a52' }}
-              testID="boot-splash"
-            >
-              <ActivityIndicator color="#d4af37" size="large" />
-            </View>
-          ) : (
-            <StackNav />
-          )}
-        </CartContext.Provider>
-      </SessionContext.Provider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.navy }}>
+        <StatusBar style="light" />
+        <AuthContext.Provider value={authState}>
+          <PadContext.Provider value={padState}>
+            {authState.loading ? (
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.navy,
+                }}
+                testID="boot-splash"
+              >
+                <ActivityIndicator color={colors.gold} size="large" />
+              </View>
+            ) : (
+              <>
+                <Stack
+                  screenOptions={{
+                    headerStyle: { backgroundColor: colors.navy },
+                    headerTintColor: colors.parchment,
+                    headerTitleStyle: { fontWeight: '700' },
+                    contentStyle: { backgroundColor: colors.parchment },
+                  }}
+                >
+                  <Stack.Screen name="login" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="grievance" options={{ title: 'Raise a Grievance' }} />
+                  <Stack.Screen name="support" options={{ title: 'Contact Aarohmm' }} />
+                  <Stack.Screen name="schemes" options={{ title: 'Trade Schemes' }} />
+                  <Stack.Screen name="order-placed" options={{ headerShown: false }} />
+                </Stack>
+                <AuthGate />
+              </>
+            )}
+          </PadContext.Provider>
+        </AuthContext.Provider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
-}
-
-function StackNav() {
-  useAuthGate();
-  useOrderPlacedWatcher();
-  return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: '#1e3a52' },
-        headerTintColor: '#d4af37',
-        headerTitleStyle: { fontWeight: '700' },
-        contentStyle: { backgroundColor: '#faf7f2' },
-      }}
-    >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="register" options={{ title: 'Retailer Registration' }} />
-      <Stack.Screen name="products" options={{ title: 'Catalogue' }} />
-      <Stack.Screen name="cart" options={{ title: 'Your Cart' }} />
-      <Stack.Screen
-        name="order-placed"
-        options={{ headerShown: false, gestureEnabled: false }}
-      />
-    </Stack>
-  );
-}
-
-/**
- * Foreground poll for a NEW B2B order. When the app returns to
- * `active` (after the retailer completes checkout on the web) we
- * ask the backend for the newest order and compare it against the
- * snapshot that `openWebCheckout` wrote right before we left.
- *
- * A "hit" pushes the celebration screen onto the stack with the
- * fresh order metadata as query params — no extra API call from
- * the screen itself.
- *
- * Guarded so we don't fire while sitting on `/login` (no session)
- * or already inside `/order-placed` (would double-navigate).
- */
-function useOrderPlacedWatcher() {
-  const { session } = useSession();
-  const router = useRouter();
-  const segments = useSegments();
-  const lastAppState = useRef<AppStateStatus>(AppState.currentState);
-
-  useEffect(() => {
-    if (!session || session.kind !== 'retailer') return;
-
-    const onChange = async (next: AppStateStatus) => {
-      const prev = lastAppState.current;
-      lastAppState.current = next;
-      // Only fire on background/inactive → active transitions.
-      if (next !== 'active' || (prev !== 'background' && prev !== 'inactive')) {
-        return;
-      }
-      // Don't stack a second celebration on top of the current one.
-      if (segments[0] === 'order-placed') return;
-
-      const fresh = await checkForNewOrder(session.token);
-      if (!fresh) return;
-
-      router.push({
-        pathname: '/order-placed',
-        params: {
-          order_number: fresh.order_number || fresh.order_id,
-          order_id: fresh.order_id,
-          grand_total: fresh.grand_total != null ? String(fresh.grand_total) : '',
-          items: fresh.items ? String(fresh.items.length) : '',
-        },
-      });
-    };
-
-    const sub = AppState.addEventListener('change', onChange);
-    return () => sub.remove();
-  }, [session, router, segments]);
 }
