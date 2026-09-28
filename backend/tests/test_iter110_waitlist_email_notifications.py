@@ -204,6 +204,16 @@ class TestHttpAgainstLiveBackend:
 # ============ IN-PROCESS ASGI + MONKEYPATCHED gst_verification =========
 # We use httpx.AsyncClient(ASGITransport) so we can monkeypatch
 # services.gst_verification.verify_gst_number inside THIS interpreter.
+#
+# ⚠️ RUN THIS MODULE IN ITS OWN PYTEST PROCESS.
+# These tests import the real `server.app` and monkeypatch module-level
+# attributes. When this module runs in the SAME process AFTER
+# test_iter112_mobile_app.py, 5 of these tests fail on polluted module state
+# (verified iter113: 55/55 pass in isolation, 59/64 when combined). Product
+# code is fine — this is a harness limitation. Use:
+#     pytest tests/test_iter110_waitlist_email_notifications.py
+#     pytest tests/test_iter112_mobile_app.py
+# as separate invocations rather than one combined run.
 
 @pytest.fixture(scope="module")
 def asgi_app():
