@@ -453,3 +453,184 @@ async def sync_my_data(authorization: Optional[str] = Header(None)):
     finally:
         await conn.close()
     return {"synced": True, "orders": orders}
+
+
+# --------------------------------------------------------------------------
+# Grievance threads — the shop's side of the conversation
+# --------------------------------------------------------------------------
+@router.get("/grievances")
+async def my_grievances(authorization: Optional[str] = Header(None)):
+    retailer = await _retailer(authorization)
+    from services import app_grievances as gsvc
+
+    tickets = await gsvc.list_grievances()
+    mine = [t for t in tickets if t["retailer_id"] == retailer["retailer_id"]]
+    return {
+        "tickets": mine,
+        "unread": sum(1 for t in mine if t.get("unread_for_retailer")),
+    }
+
+
+@router.get("/grievances/{grievance_id}")
+async def my_grievance_thread(
+    grievance_id: str, authorization: Optional[str] = Header(None)
+):
+    retailer = await _retailer(authorization)
+    from services import app_grievances as gsvc
+
+    ticket = await gsvc.get_thread(grievance_id, retailer_id=retailer["retailer_id"])
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Grievance not found")
+    await gsvc.mark_read(
+        grievance_id, side="retailer", retailer_id=retailer["retailer_id"]
+    )
+    return ticket
+
+
+class GrievanceReply(BaseModel):
+    body: str = Field(min_length=2, max_length=4000)
+
+
+@router.post("/grievances/{grievance_id}/reply")
+async def reply_to_my_grievance(
+    grievance_id: str,
+    payload: GrievanceReply,
+    authorization: Optional[str] = Header(None),
+):
+    retailer = await _retailer(authorization)
+    from services import app_grievances as gsvc
+
+    msg = await gsvc.add_message(
+        grievance_id,
+        author="retailer",
+        body=payload.body,
+        author_name=retailer.get("business_name"),
+        retailer_id=retailer["retailer_id"],
+    )
+    if msg is None:
+        raise HTTPException(status_code=404, detail="Grievance not found")
+    if msg.get("error") == "closed":
+        raise HTTPException(
+            status_code=409,
+            detail="This ticket has been closed. Please raise a new grievance.",
+        )
+
+    # Let the desk know a shop has come back to them.
+    try:
+        from services.email_service import send_email
+
+        await send_email(
+            to_email=os.environ.get("ADMIN_EMAIL", "contact.us@centraders.com"),
+            subject=f"[AAROHMM App] Retailer replied — {grievance_id[:8]}",
+            html_content=(
+                f"<p><strong>{retailer.get('business_name')}</strong> replied on a "
+                f"grievance:</p><p style='white-space:pre-wrap'>{payload.body.strip()}</p>"
+            ),
+        )
+    except Exception as e:
+        logger.warning(f"admin notify on retailer reply failed: {e}")
+
+    return {"id": str(msg["id"]), "created_at": str(msg["created_at"])}
+
+
+@router.get("/notifications/summary")
+async def notifications_summary(authorization: Optional[str] = Header(None)):
+    """Badge counts so the app can show what needs attention."""
+    retailer = await _retailer(authorization)
+    from services import app_grievances as gsvc
+
+    return {
+        "unread_grievance_replies": await gsvc.unread_count_for_retailer(
+            retailer["retailer_id"]
+        )
+    }
+
+
+# --------------------------------------------------------------------------
+# Brochure — auto-built from the website catalogue
+# --------------------------------------------------------------------------
+@router.get("/brochure")
+async def brochure(authorization: Optional[str] = Header(None)):
+    await _retailer(authorization)
+    conn = await app_sync._connect()
+    if conn is None:
+        raise HTTPException(status_code=503, detail="Supabase is not configured")
+    try:
+        rows = await conn.fetch(
+            "select sku, name, category, size_label, image_url, detail, notes, "
+            "mrp, b2b_price from public.app_brochure_items "
+            "where is_active order by sort_order, name"
+        )
+        return {"items": [dict(r) for r in rows]}
+    finally:
+        await conn.close()
+
+
+# --------------------------------------------------------------------------
+# Payments (Razorpay payment link — Expo friendly, no native SDK)
+# --------------------------------------------------------------------------
+@router.get("/payments/config")
+async def payments_config(authorization: Optional[str] = Header(None)):
+    await _retailer(authorization)
+    from services import app_payments as pay
+
+    return pay.config_status()
+
+
+class PayIntent(BaseModel):
+    order_id: str
+
+
+@router.post("/payments/create")
+async def create_payment(
+    payload: PayIntent, authorization: Optional[str] = Header(None)
+):
+    """Create a Razorpay payment link for one of MY unpaid orders."""
+    retailer = await _retailer(authorization)
+    from services import app_payments as pay
+
+    if not pay.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Online payment isn't switched on yet. Your order is confirmed on "
+                "credit terms — our team will share payment details."
+            ),
+        )
+
+    order = await db.b2b_orders.find_one(
+        {"order_id": payload.order_id, "retailer_id": retailer["retailer_id"]}
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.get("payment_status") == "paid":
+        raise HTTPException(status_code=409, detail="This order is already paid")
+
+    try:
+        # Amount is taken from the stored order, never from the request.
+        return await pay.create_payment_link(db, order, retailer)
+    except Exception as e:
+        logger.error(f"razorpay link creation failed for {payload.order_id}: {e}")
+        raise HTTPException(
+            status_code=502, detail="Could not start the payment. Please try again."
+        )
+
+
+@router.get("/payments/{order_id}")
+async def payment_status(order_id: str, authorization: Optional[str] = Header(None)):
+    retailer = await _retailer(authorization)
+    from services import app_payments as pay
+
+    order = await db.b2b_orders.find_one(
+        {"order_id": order_id, "retailer_id": retailer["retailer_id"]},
+        {"_id": 0, "payment_status": 1, "grand_total": 1, "payment_link_url": 1},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return {
+        "order_id": order_id,
+        "payment_status": order.get("payment_status"),
+        "amount": order.get("grand_total"),
+        "payment_url": order.get("payment_link_url"),
+        "payment": await pay.payment_for_order(order_id, retailer["retailer_id"]),
+    }

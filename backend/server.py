@@ -58,6 +58,8 @@ from routers.partner import router as partner_router
 from routers.impact import router as impact_router
 from routers.app_config import router as app_config_router
 from routers.mobile_app_v2 import router as mobile_app_v2_router
+from routers.app_payments_webhook import router as app_payments_webhook_router
+
 from routers.retailer_milestones import router as retailer_milestones_router
 from routers.admin.admin_social import router as admin_social_router
 from routers.admin.admin_integrations import router as admin_integrations_router
@@ -135,6 +137,7 @@ app.include_router(fragrance_rewards_router, prefix="/api")
 # ---------- Mobile / SDK ----------
 app.include_router(app_config_router, prefix="/api")
 app.include_router(mobile_app_v2_router, prefix="/api")
+app.include_router(app_payments_webhook_router, prefix="/api")
 
 # ---------- Admin ----------
 app.include_router(admin_router, prefix="/api")
@@ -240,6 +243,11 @@ async def startup_db_client():
     from services.supabase_app_sync import app_read_model_scheduler_loop
     asyncio.create_task(app_read_model_scheduler_loop(db))
     print("Mobile app read-model sync started")
+
+    # Keep the B2B brochure in step with the website product catalogue.
+    from services.app_brochure_sync import brochure_scheduler_loop
+    asyncio.create_task(brochure_scheduler_loop(db))
+    print("Brochure auto-sync started")
     
     # Populate products cache from MongoDB
     from routers.products import refresh_products_cache
