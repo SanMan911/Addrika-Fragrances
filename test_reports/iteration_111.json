@@ -1,0 +1,43 @@
+{
+  "summary": "Iter111 — dependency-only change (watchfiles 1.1.1 → 1.0.5). Verified pin, PyPI availability of cp311 manylinux wheel, requires_python >=3.9, hot reload still functions, all regression endpoints healthy, retailer login (via /api/retailer-auth/login with GSTIN) returns 200 with token, FSM /api/external/v1/ping returns 200, and iter108 + iter110 pytest suites pass (32 passed, 3 skipped, 0 failed).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verifications": {
+    "watchfiles_pin_in_requirements": "watchfiles==1.0.5 at line 147 of /app/backend/requirements.txt (confirmed via grep)",
+    "watchfiles_pypi_availability": "pip index shows 1.0.5 available; `pip download watchfiles==1.0.5 --python-version 311 --only-binary=:all: --platform manylinux2014_x86_64` succeeded → watchfiles-1.0.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (454 kB) prebuilt wheel present. importlib.metadata reports Requires-Python: >=3.9. Compatible with render.yaml pythonVersion 3.11.6.",
+    "no_direct_watchfiles_imports": "grep -rn 'import watchfiles' /app/backend/*.py returned 0 hits — only consumed by uvicorn --reload watcher.",
+    "hot_reload_functional": "Touched /app/backend/server.py (append+remove blank line) — /var/log/supervisor/backend.err.log shows 'WatchFiles detected changes in server.py. Reloading...' + 'Started reloader process ... using WatchFiles'. No ImportError/ModuleNotFoundError in log.",
+    "py311_full_scan": "All 150 pinned packages resolved and installed cleanly in the running /root/.venv (Python 3.11) — dry-run reports every requirement already satisfied. abi3/py3-none wheels for bcrypt/playwright confirmed 3.11-compatible. No other Py3.11 blockers.",
+    "regression_endpoints": {
+      "GET /api/products": 200,
+      "GET /api/blog/posts": 200,
+      "GET /api/app/config": 200,
+      "GET /api/external/v1/ping (X-API-Key)": 200,
+      "POST /api/retailer-auth/login (GSTIN 07AAAAA0000A1Z5)": "200 with token in JSON"
+    },
+    "note_on_login_path": "Retailer login is at /api/retailer-auth/login (not /api/auth/login — the latter returns 422/401). Body requires {gstin, password}. Per /app/memory/test_credentials.md."
+  },
+  "pytest_results": {
+    "command": "pytest tests/test_iter108_security_audit.py tests/test_iter110_waitlist_email_notifications.py -v (BASE_URL=http://localhost:8001)",
+    "totals": "32 passed, 3 skipped, 0 failed, 70 warnings, 23.97s",
+    "junit_xml": "/app/test_reports/pytest/iter111_results.xml",
+    "iter110_waitlist_email_notifications_persistence": "confirmed intact (all TestSpoofingRegressionInProcess + persistence tests pass)"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter108_security_audit.py",
+    "/app/backend/tests/test_iter110_waitlist_email_notifications.py",
+    "/app/test_reports/pytest/iter111_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Pydantic V1 @validator and FastAPI @app.on_event('startup'/'shutdown') are deprecated — 70 DeprecationWarnings emitted per test run. Non-blocking but should be migrated to @field_validator and lifespan handlers before Pydantic V3 / FastAPI removes them.",
+    "requirements.txt is fully pinned (150 lines) with zero direct import of watchfiles — swap was safe. Consider constraining watchfiles more loosely (>=1.0.5,<2) in future to avoid mirror-lag deploy failures."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "not tested (per request)"},
+  "test_credentials": "Retailer GSTIN 07AAAAA0000A1Z5 / Test@12345 via /api/retailer-auth/login; FSM X-API-Key from /app/memory/test_credentials.md — both working.",
+  "seed_data_creation": "None. SEED_TEST_B2B_RETAILER already seeded the retailer.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Dependency swap verified end-to-end. watchfiles==1.0.5 pinned, cp311 manylinux wheel present on PyPI, hot reload works, all regression suites green. Note for future testers: retailer login endpoint is /api/retailer-auth/login (not /api/auth/login) with body {gstin, password}."
+}

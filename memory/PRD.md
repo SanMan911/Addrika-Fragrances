@@ -197,3 +197,7 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 ### Update 2026-06-27 (Iter110 — waitlist pseudo-onboard fix)
 - **DONE**: B2B waitlist signup (`POST /api/retailer-auth/waitlist`) now persists `email_notifications {admin, applicant, error}` + `email_notifications_at` on every waitlist document — a failed/misconfigured Resend can no longer silently masquerade as a sent admin notification. Admin waitlist list surfaces it automatically. Tests: `/app/test_reports/iteration_110.json` (9/9).
 - **OPEN (user action)**: push to GitHub + redeploy Render (fix only takes effect in production after redeploy); verify Render env has RESEND_API_KEY, ADMIN_EMAIL, SENDER_EMAIL. Still pending from before: EAS build, WhatsApp/Instagram restock broadcast, Twilio production keys.
+
+### Update 2026-06-27 (Iter111 — watchfiles Render blocker)
+- **DONE**: `backend/requirements.txt` watchfiles 1.1.1 → **1.0.5** (stable, requires_python >=3.9, prebuilt cp311 wheel verified). Nothing imports watchfiles directly; uvicorn hot reload confirmed working. Full requirements scan found no other Py3.11 blockers. Tests: `/app/test_reports/iteration_111.json` (32 passed / 0 failed).
+- **OPEN (user action)**: push to GitHub + redeploy Render. If build still fails, verify the Render service honours render.yaml's pinned Python 3.11.6 (a manually-created service may ignore the blueprint). Still pending: EAS build, WhatsApp/Instagram broadcast, Twilio production keys, iter110 waitlist fix verification in production.
