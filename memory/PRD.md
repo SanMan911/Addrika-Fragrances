@@ -228,3 +228,10 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **Fixed**: order pad "Shipping" row read `shipping_charge`; the API returns `shipping_charges`.
 - **Mobile version bumped to 0.4.0 / versionCode 4** — a new EAS APK is NOT built yet (needs the user's `EXPO_TOKEN`).
 - **OPEN (user action)**: (P0) Supabase custom SMTP via Resend, (P0) real webhook secrets before taking money, (P1) `eas build` for 0.4.0, (P1) redeploy the backend to Render so the new guard + provider config reach installed APKs.
+
+### Update 2026-09-29 (Iter116 — APK 0.4.0 built + Supabase→Resend SMTP live)
+- **DONE — APK 0.4.0 (versionCode 4)**: EAS preview build `d740c501-a46d-4410-bfc0-4dfad5a51cd8`, download: https://expo.dev/artifacts/eas/cQAofwffpve-NFoT0r4mayOXdytwncLBuX69IVeNpgA.apk — includes the Razorpay/Pine Labs payment chooser (`pay` screen). Expo token `aarohmm` supplied by user.
+- **DONE — Supabase custom SMTP via Resend (LIVE)**: configured through the Management API with the user's scoped token — host smtp.resend.com:465, user `resend`, password = Resend key, sender `Aarohmm <noreply@centraders.com>`, `rate_limit_email_sent` raised 2 → 100/hr. Verified: `POST /api/app/v2/auth/request-code` for QA GSTIN now returns `sent:true` (was the ~2/hr SMTP 429). The ~2/hour login cap is GONE.
+- **DONE — token renewal reminder (user asked "remind me before 25 Sep 2027")**: platform cron `.emergent/crons.yml` → `at: 2027-09-24T09:00:00Z` → `POST /api/cron/supabase-token-reminder` (Bearer `WEBHOOK_CRON_SECRET` in backend/.env, constant-time compare, 401 on bad auth, acks immediately, emails ADMIN_EMAIL via Resend). Manually fired once as the end-to-end test.
+- **NOTE — token security**: the scoped token (`sbp_fc…`, permissions auth_config_read/write + projects_read on qzzwaqwgzvrdecheunpn) was supplied in chat and is NOT stored in the repo. Reminder email explains renewal steps.
+- **STILL OPEN**: redeploy backend to Render (payment guard + provider config), real RAZORPAY/PINELABS webhook secrets, reorder-in-one-tap (user: on hold).
