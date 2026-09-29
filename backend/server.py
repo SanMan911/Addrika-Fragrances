@@ -138,6 +138,8 @@ app.include_router(fragrance_rewards_router, prefix="/api")
 app.include_router(app_config_router, prefix="/api")
 app.include_router(mobile_app_v2_router, prefix="/api")
 app.include_router(app_payments_webhook_router, prefix="/api")
+from routers.cron_reminders import router as cron_reminders_router
+app.include_router(cron_reminders_router, prefix="/api")
 
 # ---------- Admin ----------
 app.include_router(admin_router, prefix="/api")
