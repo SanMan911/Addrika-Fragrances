@@ -60,7 +60,7 @@ async def phone_send_otp(data: SendOtpRequest):
     return {
         "sent": True,
         "dev_mode": result.get("dev_mode", False),
-        "dev_code": result.get("dev_code"),  # only present in DEV mode (no Twilio keys)
+        "dev_code": result.get("dev_code"),  # only present in DEV mode (no MSG91 key)
     }
 
 

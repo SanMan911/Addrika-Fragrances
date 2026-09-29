@@ -235,3 +235,9 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **DONE — token renewal reminder (user asked "remind me before 25 Sep 2027")**: platform cron `.emergent/crons.yml` → `at: 2027-09-24T09:00:00Z` → `POST /api/cron/supabase-token-reminder` (Bearer `WEBHOOK_CRON_SECRET` in backend/.env, constant-time compare, 401 on bad auth, acks immediately, emails ADMIN_EMAIL via Resend). Manually fired once as the end-to-end test.
 - **NOTE — token security**: the scoped token (`sbp_fc…`, permissions auth_config_read/write + projects_read on qzzwaqwgzvrdecheunpn) was supplied in chat and is NOT stored in the repo. Reminder email explains renewal steps.
 - **STILL OPEN**: redeploy backend to Render (payment guard + provider config), real RAZORPAY/PINELABS webhook secrets, reorder-in-one-tap (user: on hold).
+
+### Update 2026-09-29 (Iter117 — Replaced Twilio with MSG91 SMS OTP architecture)
+- **DONE — Architecture Pivot**: Replaced Twilio Verify with **MSG91 OTP API v5** in `services/phone_otp.py` (+ `MSG91_AUTH_KEY` in `backend/.env`). Removed Twilio dependencies and credentials.
+- **Contract preserved**: `send_otp(e164)`, `verify_otp(e164, code)`, `to_e164(cc, phone)`, and `is_phone_verified(e164)` preserved with full backwards compatibility for web retailer registration (`/api/retailer-auth/phone/*`) and mobile registration.
+- **Provider Status**: MSG91 Auth Key configured (`576489T9bOjdnJBm6abbb189P1`). Real delivery to Indian mobile handsets currently pending user's DLT template registration & mapping in MSG91 dashboard.
+- **DEV Fallback preserved**: When `ALLOW_DEV_OTP=1` (or if MSG91 is unconfigured), local 6-digit dev codes continue to work for non-blocking QA.
