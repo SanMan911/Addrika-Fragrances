@@ -10,8 +10,6 @@ the retailer's registered address.
 from __future__ import annotations
 
 import logging
-import os
-from datetime import datetime, timezone
 from typing import Optional
 
 from services.supabase_app_sync import _connect

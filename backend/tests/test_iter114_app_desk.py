@@ -50,11 +50,92 @@ def _require_db_url() -> str:
 
 
 def _admin_session() -> str:
-    return open("/tmp/admin_session").read().strip()
+    """Admin session token, minted on demand.
+
+    Previously this read a hand-made /tmp/admin_session file, which broke
+    collection entirely whenever /tmp was cleaned. Now it logs in properly
+    (PIN -> OTP read from Mongo) and caches in /app/memory so the suite is
+    self-sufficient.
+    """
+    cache = Path("/app/memory/.admin_token")
+    if cache.exists():
+        token = cache.read_text().strip()
+        if token:
+            probe = requests.get(
+                f"{BASE}/api/admin/app-support/grievances",
+                headers={"Cookie": f"session_token={token}"},
+                timeout=30,
+            )
+            if probe.status_code == 200:
+                return token
+
+    email = os.environ.get("ADMIN_EMAIL", "contact.us@centraders.com")
+    pin = os.environ.get("ADMIN_TEST_PIN", "050499")
+    init = requests.post(
+        f"{BASE}/api/admin/login/initiate",
+        json={"email": email, "pin": pin},
+        timeout=30,
+    )
+    assert init.status_code == 200, f"admin login/initiate failed: {init.text}"
+    token_id = init.json()["token_id"]
+
+    import asyncio
+
+    from motor.motor_asyncio import AsyncIOMotorClient
+
+    async def _otp() -> str:
+        client = AsyncIOMotorClient(os.environ["MONGO_URL"])
+        doc = await client[os.environ["DB_NAME"]].admin_2fa_tokens.find_one(
+            {"token_id": token_id}
+        )
+        return (doc or {}).get("otp", "")
+
+    otp = asyncio.new_event_loop().run_until_complete(_otp())
+    assert otp, "could not read admin OTP from Mongo"
+
+    verify = requests.post(
+        f"{BASE}/api/admin/login/verify-otp",
+        json={"token_id": token_id, "otp": otp},
+        timeout=30,
+    )
+    assert verify.status_code == 200, f"admin verify-otp failed: {verify.text}"
+    token = verify.json()["session_token"]
+    cache.write_text(token)
+    return token
 
 
 def _qa_access() -> str:
-    return open("/tmp/qa_access").read().strip()
+    """Supabase access token for the QA retailer, minted on demand.
+
+    Mirrors the iter112 helper: refresh tokens are single-use, so the rotated
+    one is written back to /app/memory/.qa_refresh_token. Previously this read
+    a hand-made /tmp/qa_access file, which broke collection when /tmp was
+    cleaned.
+    """
+    cache = Path("/tmp/qa_access_token")
+    if cache.exists():
+        token = cache.read_text().strip()
+        if token:
+            probe = requests.get(
+                f"{BASE}/api/app/v2/me",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=30,
+            )
+            if probe.status_code == 200:
+                return token
+
+    rt_path = Path("/app/memory/.qa_refresh_token")
+    resp = requests.post(
+        f"{os.environ['SUPABASE_URL']}/auth/v1/token?grant_type=refresh_token",
+        headers={"apikey": os.environ["SUPABASE_ANON_KEY"], "Content-Type": "application/json"},
+        json={"refresh_token": rt_path.read_text().strip()},
+        timeout=30,
+    )
+    assert resp.status_code == 200, f"could not refresh QA session: {resp.text}"
+    data = resp.json()
+    rt_path.write_text(data["refresh_token"])
+    cache.write_text(data["access_token"])
+    return data["access_token"]
 
 
 ADMIN_COOKIE = {"Cookie": f"session_token={_admin_session()}"}

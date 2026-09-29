@@ -6,10 +6,10 @@ close a ticket.
 """
 import logging
 from datetime import date, datetime
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Cookie, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 def _parse_date(v):
@@ -173,6 +173,30 @@ class SchemeIn(BaseModel):
     valid_from: Optional[str] = None
     valid_to: Optional[str] = None
     is_active: bool = True
+    # Auto-pricing rules. `min_boxes` is in BOXES — the unit the retailer
+    # types on the order pad — and is what the pricing engine actually uses.
+    min_boxes: Optional[float] = Field(default=None, ge=0)
+    min_order_value: Optional[float] = Field(default=None, ge=0)
+    max_discount_inr: Optional[float] = Field(default=None, ge=0)
+    applies_to: str = "all"
+    categories: List[str] = Field(default_factory=list)
+    skus: List[str] = Field(default_factory=list)
+    priority: int = 100
+
+    @field_validator("applies_to")
+    @classmethod
+    def _check_scope(cls, v: str) -> str:
+        if v not in ("all", "category", "sku"):
+            raise ValueError("applies_to must be 'all', 'category' or 'sku'")
+        return v
+
+    @model_validator(mode="after")
+    def _scope_needs_targets(self):
+        if self.applies_to == "category" and not self.categories:
+            raise ValueError("Pick at least one category for a category scheme")
+        if self.applies_to == "sku" and not self.skus:
+            raise ValueError("Pick at least one product for a product scheme")
+        return self
 
 
 @router.get("/schemes")
@@ -184,8 +208,10 @@ async def list_schemes(request: Request, session_token: Optional[str] = Cookie(N
     try:
         rows = await conn.fetch(
             "select id, title, description, terms, min_cartons, discount_pct, "
-            "banner_url, valid_from, valid_to, is_active, updated_at "
-            "from public.app_schemes order by updated_at desc"
+            "banner_url, valid_from, valid_to, is_active, updated_at, "
+            "min_boxes, min_order_value, max_discount_inr, applies_to, "
+            "categories, skus, priority "
+            "from public.app_schemes order by priority desc, updated_at desc"
         )
         return {"schemes": [dict(r) for r in rows]}
     finally:
@@ -205,8 +231,9 @@ async def create_scheme(
             """
             insert into public.app_schemes
               (title, description, terms, min_cartons, discount_pct, banner_url,
-               valid_from, valid_to, is_active)
-            values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+               valid_from, valid_to, is_active, min_boxes, min_order_value,
+               max_discount_inr, applies_to, categories, skus, priority)
+            values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
             returning id
             """,
             payload.title.strip(),
@@ -218,6 +245,13 @@ async def create_scheme(
             _parse_date(payload.valid_from),
             _parse_date(payload.valid_to),
             payload.is_active,
+            payload.min_boxes,
+            payload.min_order_value,
+            payload.max_discount_inr,
+            payload.applies_to,
+            payload.categories,
+            payload.skus,
+            payload.priority,
         )
         return {"id": str(row["id"])}
     finally:
@@ -241,6 +275,8 @@ async def update_scheme(
             update public.app_schemes set
               title=$2, description=$3, terms=$4, min_cartons=$5, discount_pct=$6,
               banner_url=$7, valid_from=$8, valid_to=$9, is_active=$10,
+              min_boxes=$11, min_order_value=$12, max_discount_inr=$13,
+              applies_to=$14, categories=$15, skus=$16, priority=$17,
               updated_at=now()
             where id=$1
             """,
@@ -254,6 +290,13 @@ async def update_scheme(
             _parse_date(payload.valid_from),
             _parse_date(payload.valid_to),
             payload.is_active,
+            payload.min_boxes,
+            payload.min_order_value,
+            payload.max_discount_inr,
+            payload.applies_to,
+            payload.categories,
+            payload.skus,
+            payload.priority,
         )
         if result.split()[-1] == "0":
             raise HTTPException(status_code=404, detail="Scheme not found")

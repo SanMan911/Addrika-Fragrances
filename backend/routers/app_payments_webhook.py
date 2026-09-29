@@ -52,3 +52,33 @@ async def razorpay_webhook(
 
     logger.info(f"razorpay webhook {event} ignored")
     return {"status": "ignored", "event": event}
+
+
+@router.post("/pinelabs/webhook")
+async def pinelabs_webhook(
+    request: Request,
+    x_pinelabs_signature: str = Header(None, alias="X-Pinelabs-Signature"),
+):
+    raw = await request.body()
+
+    from services import pinelabs_payments as pinelabs
+
+    if not pinelabs.verify_webhook_signature(raw, x_pinelabs_signature or ""):
+        logger.warning("pinelabs webhook rejected: bad or missing signature")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    payload = await request.json()
+    status = (payload.get("status") or payload.get("payment_status") or "").lower()
+    order_id = payload.get("merchant_order_reference") or payload.get("order_id") or ""
+    payment_id = payload.get("plural_payment_id") or payload.get("payment_id") or ""
+
+    if status in ("success", "captured", "paid", "processed"):
+        if not order_id:
+            logger.error("pinelabs webhook success had no order reference")
+            return {"status": "ignored", "reason": "no order reference"}
+        ok = await pinelabs.mark_paid(db, order_id, payment_id)
+        logger.info(f"pinelabs webhook for {order_id}: marked_paid={ok}")
+        return {"status": "processed", "order_id": order_id, "paid": ok}
+
+    logger.info(f"pinelabs webhook status '{status}' ignored")
+    return {"status": "ignored", "payment_status": status}

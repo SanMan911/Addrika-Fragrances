@@ -118,3 +118,13 @@ under RLS:
 - Token name `aarohmm`. Export as `EXPO_TOKEN` before any `eas-cli` command.
 - Account `sanman911`, project `addrika-mobile`, projectId `f152117c-57fb-4506-a44a-7c53d1043dd3`.
 - Android preview build: `cb22ba01-16e7-4d96-a49c-ec5f2f537014`.
+
+## ITER115 — driving the mobile web preview in Playwright (no OTP email needed)
+1. Mint a session: refresh with `/app/memory/.qa_refresh_token` (single-use — write the new one back).
+2. Write the session JSON as `{access_token, refresh_token, expires_in, expires_at, token_type:"bearer", user}`
+   into `localStorage` key **`sb-qzzwaqwgzvrdecheunpn-auth-token`** on `<host>/app-preview`, then reload.
+   (Trick used: drop the JSON at `frontend-next/public/qa_session.json`, restart frontend, `fetch` it in the
+   browser, set localStorage, then DELETE the file — never leave it served.)
+3. Deep links reset to `/` after a hard reload — navigate by tapping the bottom tabs instead.
+4. Payment screen: `pay-provider-razorpay` / `pay-provider-pinelabs` / `pay-now-btn`. Both providers are
+   deliberately "Setup pending" (placeholder webhook secrets) so no real payment link can be created.

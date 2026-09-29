@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import * as WebBrowser from 'expo-web-browser';
+import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
   Text,
   View,
 } from 'react-native';
-import { apiFetch } from '../../lib/api';
 import { fetchOrderYears, fetchOrders, type OrderRow } from '../../lib/data';
 import { colors, inr, radius, shadow, space, type } from '../../lib/theme';
 
@@ -37,8 +35,8 @@ function StatusChip({ status, payment }: { status: string | null; payment: strin
 
 export default function OrdersScreen() {
 
+  const router = useRouter();
   const [years, setYears] = useState<string[]>([]);
-  const [paying, setPaying] = useState<string | null>(null);
   const [fy, setFy] = useState<string | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,29 +69,16 @@ export default function OrdersScreen() {
 
   const total = orders.reduce((s, o) => s + Number(o.total_amount || 0), 0);
 
-  /**
-   * Pay an order through Razorpay. We ask the server for a payment link — the
-   * amount comes from the stored order, never from this screen — and open it
-   * in the system browser, so no native SDK is needed in the managed workflow.
-   */
-  async function payNow(order: OrderRow) {
-    if (paying) return;
-    setPaying(order.id);
-    try {
-      const res = await apiFetch<{ payment_url: string }>('/api/app/v2/payments/create', {
-        method: 'POST',
-        auth: true,
-        body: JSON.stringify({ order_id: order.id }),
-      });
-      if (!res.payment_url) throw new Error('No payment link was returned.');
-      await WebBrowser.openBrowserAsync(res.payment_url);
-      // Razorpay confirms via webhook; refresh so the status catches up.
-      await load(fy);
-    } catch (e: any) {
-      Alert.alert('Payment unavailable', e?.message || 'Please try again.');
-    } finally {
-      setPaying(null);
-    }
+  /** The retailer picks the payment provider on the /pay screen. */
+  function payNow(order: OrderRow) {
+    router.push({
+      pathname: '/pay',
+      params: {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        amount: String(order.total_amount ?? ''),
+      },
+    });
   }
 
   if (loading) {
@@ -209,7 +194,6 @@ export default function OrdersScreen() {
               <Pressable
                 testID={`order-pay-${item.order_number}`}
                 onPress={() => payNow(item)}
-                disabled={paying === item.id}
                 style={{
                   marginTop: space.md,
                   backgroundColor: colors.navy,
@@ -218,13 +202,9 @@ export default function OrdersScreen() {
                   alignItems: 'center',
                 }}
               >
-                {paying === item.id ? (
-                  <ActivityIndicator color={colors.gold} />
-                ) : (
-                  <Text style={{ ...type.label, color: colors.gold }}>
-                    Pay {inr(item.total_amount)} now
-                  </Text>
-                )}
+                <Text style={{ ...type.label, color: colors.gold }}>
+                  Pay {inr(item.total_amount)} now
+                </Text>
               </Pressable>
             ) : null}
           </View>
