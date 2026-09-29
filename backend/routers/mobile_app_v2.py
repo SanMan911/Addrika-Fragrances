@@ -137,7 +137,6 @@ def _supabase_cfg() -> tuple[str, str]:
 @router.post("/auth/request-code")
 async def request_login_code(payload: CodeRequestIn):
     """Mail a 6-digit Supabase one-time code to the GSTIN's registered inbox."""
-    import os
 
     import requests as _requests
 
@@ -574,28 +573,46 @@ async def brochure(authorization: Optional[str] = Header(None)):
 async def payments_config(authorization: Optional[str] = Header(None)):
     await _retailer(authorization)
     from services import app_payments as pay
+    from services import pinelabs_payments as pinelabs
 
-    return pay.config_status()
+    razorpay_cfg = pay.config_status()
+    pinelabs_cfg = pinelabs.config_status()
+    return {
+        **razorpay_cfg,
+        "providers": {"razorpay": razorpay_cfg, "pinelabs": pinelabs_cfg},
+        "available_providers": [
+            name
+            for name, cfg in (("razorpay", razorpay_cfg), ("pinelabs", pinelabs_cfg))
+            if cfg["ready_for_payments"]
+        ],
+    }
 
 
 class PayIntent(BaseModel):
     order_id: str
+    provider: str = "razorpay"
 
 
 @router.post("/payments/create")
 async def create_payment(
     payload: PayIntent, authorization: Optional[str] = Header(None)
 ):
-    """Create a Razorpay payment link for one of MY unpaid orders."""
+    """Create a hosted payment session for one of MY unpaid orders."""
     retailer = await _retailer(authorization)
     from services import app_payments as pay
+    from services import pinelabs_payments as pinelabs
 
-    if not pay.is_configured():
+    provider = (payload.provider or "razorpay").lower()
+    if provider not in ("razorpay", "pinelabs"):
+        raise HTTPException(status_code=400, detail="Unsupported payment provider")
+
+    handler = pinelabs if provider == "pinelabs" else pay
+    if not handler.can_collect():
         raise HTTPException(
             status_code=503,
             detail=(
-                "Online payment isn't switched on yet. Your order is confirmed on "
-                "credit terms — our team will share payment details."
+                f"Online payment via {provider.title()} isn't switched on yet. Your "
+                "order is confirmed on credit terms — our team will share payment details."
             ),
         )
 
@@ -609,9 +626,11 @@ async def create_payment(
 
     try:
         # Amount is taken from the stored order, never from the request.
+        if provider == "pinelabs":
+            return await pinelabs.create_checkout(db, order, retailer)
         return await pay.create_payment_link(db, order, retailer)
     except Exception as e:
-        logger.error(f"razorpay link creation failed for {payload.order_id}: {e}")
+        logger.error(f"{provider} session creation failed for {payload.order_id}: {e}")
         raise HTTPException(
             status_code=502, detail="Could not start the payment. Please try again."
         )

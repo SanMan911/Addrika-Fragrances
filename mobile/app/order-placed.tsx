@@ -4,7 +4,11 @@ import { FontAwesome } from '@expo/vector-icons';
 import { colors, radius, space, type } from '../lib/theme';
 
 export default function OrderPlaced() {
-  const { orderId } = useLocalSearchParams<{ orderId?: string }>();
+  const { orderId, payOrderId, amount } = useLocalSearchParams<{
+    orderId?: string;
+    payOrderId?: string;
+    amount?: string;
+  }>();
   const router = useRouter();
 
   return (
@@ -75,8 +79,13 @@ export default function OrderPlaced() {
       ) : null}
 
       <Pressable
-        testID="order-placed-orders-btn"
-        onPress={() => router.replace('/orders')}
+        testID="order-placed-pay-btn"
+        onPress={() =>
+          router.replace({
+            pathname: '/pay',
+            params: { orderId: payOrderId || orderId, orderNumber: orderId, amount },
+          })
+        }
         style={{
           marginTop: space.xl,
           backgroundColor: colors.gold,
@@ -85,7 +94,17 @@ export default function OrderPlaced() {
           paddingVertical: space.md,
         }}
       >
-        <Text style={{ ...type.label, fontSize: 15, color: colors.ink }}>View my orders</Text>
+        <Text style={{ ...type.label, fontSize: 15, color: colors.ink }}>Pay now</Text>
+      </Pressable>
+
+      <Pressable
+        testID="order-placed-orders-btn"
+        onPress={() => router.replace('/orders')}
+        style={{ marginTop: space.md, paddingVertical: space.sm }}
+      >
+        <Text style={{ ...type.small, color: colors.textOnDarkMuted, fontWeight: '600' }}>
+          View my orders
+        </Text>
       </Pressable>
 
       <Pressable

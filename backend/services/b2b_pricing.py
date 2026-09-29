@@ -244,6 +244,9 @@ async def calculate_b2b_order(
                 "gst_rate": gst_rate,
                 "gst_amount": line_gst,
                 "hsn_code": product.get("hsn_code"),
+                # Needed for scheme scoping / min-boxes thresholds.
+                "category": product.get("category"),
+                "pieces_per_carton": product.get("pieces_per_carton"),
             }
         )
 
@@ -289,9 +292,23 @@ async def calculate_b2b_order(
             subtotal_after_loyalty * cash_discount_percent_setting / 100, 2
         )
 
+    # Trade schemes published by admin apply automatically, on the qualifying
+    # lines only. Evaluated here (not on the client) so the order pad preview
+    # and the placed order can never disagree.
+    from services.app_schemes import apply_to_lines as apply_schemes
+
+    scheme_result = await apply_schemes(order_items)
+    applied_scheme = scheme_result.get("scheme")
+    scheme_discount = float(applied_scheme["discount_amount"]) if applied_scheme else 0.0
+    # Never let discounts exceed what's actually owed.
+    scheme_discount = round(
+        min(scheme_discount, max(0.0, subtotal_after_loyalty - voucher_discount - cash_discount)),
+        2,
+    )
+
     # GST calculated on taxable value (after all known-at-supply discounts)
     taxable_value = round(
-        max(0.0, subtotal_after_loyalty - voucher_discount - cash_discount), 2
+        max(0.0, subtotal_after_loyalty - voucher_discount - cash_discount - scheme_discount), 2
     )
 
     total_gst = 0.0
@@ -321,7 +338,9 @@ async def calculate_b2b_order(
             raise HTTPException(status_code=400, detail=error)
         cn_discount = min(cn_info["balance"], taxable_value + total_gst)
 
-    total_discount = loyalty_discount + voucher_discount + cash_discount + cn_discount
+    total_discount = (
+        loyalty_discount + voucher_discount + cash_discount + scheme_discount + cn_discount
+    )
     grand_total = round(taxable_value + total_gst - cn_discount, 2)
     grand_total = max(0, grand_total)
 
@@ -341,6 +360,9 @@ async def calculate_b2b_order(
         "voucher_code": voucher_code if voucher_info else None,
         "cash_discount": cash_discount,
         "cash_discount_percent": cash_discount_percent_setting if cash_discount > 0 else 0,
+        "scheme_discount": scheme_discount,
+        "applied_scheme": applied_scheme,
+        "next_scheme": scheme_result.get("next_scheme"),
         "credit_note_discount": cn_discount,
         "credit_note_code": credit_note_code if cn_info else None,
         "total_discount": total_discount,

@@ -40,6 +40,7 @@ export type Scheme = {
   description: string | null;
   terms: string | null;
   min_cartons: number | null;
+  min_boxes: number | null;
   discount_pct: number | null;
   banner_url: string | null;
   valid_from: string | null;
@@ -128,7 +129,7 @@ export async function fetchSchemes(): Promise<Scheme[]> {
   return unwrap<Scheme[]>(
     await supabase
       .from('app_schemes')
-      .select('id,title,description,terms,min_cartons,discount_pct,banner_url,valid_from,valid_to')
+      .select('id,title,description,terms,min_cartons,min_boxes,discount_pct,banner_url,valid_from,valid_to')
       .order('updated_at', { ascending: false })
   );
 }

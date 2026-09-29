@@ -76,6 +76,7 @@ export default function RootLayout() {
                   <Stack.Screen name="support" options={{ title: 'Contact Aarohmm' }} />
                   <Stack.Screen name="schemes" options={{ title: 'Trade Schemes' }} />
                   <Stack.Screen name="order-placed" options={{ headerShown: false }} />
+                  <Stack.Screen name="pay" options={{ title: 'Payment' }} />
                 </Stack>
                 <AuthGate />
               </>

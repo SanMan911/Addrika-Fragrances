@@ -53,21 +53,32 @@ def _looks_placeholder(value: str) -> bool:
     return not low or any(h in low for h in PLACEHOLDER_HINTS)
 
 
+def webhook_ready() -> bool:
+    return not _looks_placeholder(_webhook_secret())
+
+
+def can_collect() -> bool:
+    """Never take money we cannot confirm: a placeholder webhook secret means
+    no payment can ever be verified, so collection stays switched off."""
+    return is_configured() and webhook_ready()
+
+
 def config_status() -> dict:
-    webhook_ready = not _looks_placeholder(_webhook_secret())
+    webhook_ready_flag = webhook_ready()
     return {
         "configured": is_configured(),
+        "ready_for_payments": can_collect(),
         "key_id_present": bool(_key_id()),
         "key_secret_present": bool(_key_secret()),
         # Distinguish "a value exists" from "a real secret exists": while this
         # is a placeholder, every incoming webhook will fail signature checks
         # and orders will never be marked paid.
         "webhook_secret_present": bool(_webhook_secret()),
-        "webhook_verification_ready": webhook_ready,
+        "webhook_verification_ready": webhook_ready_flag,
         "mode": "live" if _key_id().startswith("rzp_live_") else "test",
         "warnings": (
             []
-            if webhook_ready
+            if webhook_ready_flag
             else [
                 "RAZORPAY_WEBHOOK_SECRET is still a placeholder — payment "
                 "confirmations cannot be verified until a real secret is set."

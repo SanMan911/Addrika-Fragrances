@@ -178,6 +178,8 @@ async def place_order(
         "quarter_label": calculation.get("quarter_label"),
         "cash_discount": calculation.get("cash_discount", 0),
         "cash_discount_percent": calculation.get("cash_discount_percent", 0),
+        "scheme_discount": calculation.get("scheme_discount", 0),
+        "applied_scheme": calculation.get("applied_scheme"),
         "credit_note_code": calculation.get("credit_note_code"),
         "credit_note_discount": calculation.get("credit_note_discount", 0),
         "total_discount": calculation.get("total_discount", 0),

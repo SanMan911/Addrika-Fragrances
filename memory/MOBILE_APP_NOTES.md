@@ -306,7 +306,7 @@ closed tickets show a notice instead of the reply box), and a
 "Pay ₹X now" button on unpaid orders in the Orders tab.
 
 ## ⚠️ The external preview host does NOT serve this pod
-`https://aaroviah-retail.preview.emergentagent.com/app-preview` returns 404
+`https://retailer-pad.preview.emergentagent.com/app-preview` returns 404
 even though `http://localhost:3000/app-preview` is 200. Proven by comparing
 build hashes: local serves `720-ba9f0f9bda4a5319.js`, external serves
 `720-a07e09dda4910b81.js` — a different, older deployment. `/app/frontend` is
@@ -331,3 +331,81 @@ It is ignored via `.oxlintrc.json` in **both** `/app` and `/app/frontend-next`
 (the linter may run from either cwd, so a repo-root-relative pattern alone is
 not enough). Patterns use `**/public/app-preview/**` and `**/_expo/**`.
 Keep the bundle tracked (not gitignored) so the preview survives deploys.
+
+---
+
+# ITER115 — Scheme auto-pricing + PineLabs
+
+## Scheme auto-pricing (`services/app_schemes.py`)
+Applied **inside `services/b2b_pricing.py`**, alongside voucher/cash discount —
+NOT bolted on afterwards. That placement matters: `taxable_value` → per-line
+GST → `grand_total` all recompute through the existing code path, so GST is
+charged on the discounted value (a known-at-supply discount, which is the
+correct GST treatment) and the order pad preview, the order confirmation and
+the stored order can never disagree.
+
+Rules (deliberately predictable for a trade desk):
+- Scope: `applies_to` = `all` | `category` | `sku` (+ `categories[]` / `skus[]`).
+- **`min_boxes` is the authoritative threshold and is measured in BOXES** — the
+  unit the retailer actually types on the pad. The legacy `min_cartons` column
+  is **display-only and NOT used for pricing**; mixing boxes and cartons would
+  silently mis-trigger schemes.
+- `min_order_value` and `max_discount_inr` (cap) also supported.
+- The discount applies to the **qualifying lines only**, not the whole cart.
+- **Schemes do NOT stack**: highest `priority` wins, ties broken by the larger
+  saving, so the retailer always gets the better of two equals.
+- Discount is clamped so it can never exceed what is owed.
+- If the scheme table is unreachable, `active_schemes()` returns `[]` — pricing
+  must never break because of a scheme lookup.
+
+`next_threshold()` powers the pad's "add N more boxes to unlock X% off" nudge,
+and only fires once the retailer has the right products in the cart.
+
+`order_items` in `b2b_pricing` now also carries `category` and
+`pieces_per_carton` (needed for scoping).
+
+Verified: 1 box → no discount + "1 more box" nudge; 2 boxes → 10% = ₹202 off,
+GST ₹90.9 (not ₹101), total ₹1,908.9; 4 boxes → ₹404 off; a SKU outside the
+scheme's scope → no discount.
+
+## Admin editing
+`/admin/app-support` → Trade Schemes now edits discount %, min boxes, min
+qualifying value, discount cap, priority, validity dates **and** the scope
+(all / categories / specific products, with pickers sourced from the brochure
+items). Invalid scopes (e.g. `applies_to: 'sku'` with an empty list) are
+rejected with 422 by a Pydantic `model_validator`.
+
+## PineLabs (`services/pinelabs_payments.py`)
+Wired beside Razorpay using PineLabs **Plural hosted checkout** — the app opens
+the returned URL in the system browser, so nothing native is needed.
+`POST /api/app/v2/payments/create` now takes `provider: 'razorpay' | 'pinelabs'`
+(400 on anything else), and `payments/config` reports BOTH providers plus
+`available_providers`.
+
+Placeholder env keys added to `backend/.env`: `PINELABS_MERCHANT_ID`,
+`PINELABS_ACCESS_CODE`, `PINELABS_SECRET`, `PINELABS_WEBHOOK_SECRET`,
+`PINELABS_BASE_URL` (UAT default). While they are placeholders,
+`create` returns **503** and the webhook rejects everything — the same
+fail-loudly stance as Razorpay. Webhook:
+`POST /api/app/v2/payments/pinelabs/webhook` (HMAC-SHA256, placeholder
+secrets never verify). Success reuses `app_payments.mark_paid`, so rewards,
+inventory and Zoho hooks stay identical across providers.
+
+## Gotchas
+- **Stale hot-reload gave a false failure.** `/auth/request-code` returned 502
+  over HTTP while returning the correct 429 in-process; the running uvicorn
+  worker had stale modules after many WatchFiles reloads. `supervisorctl
+  restart backend` fixed it. If an endpoint's behaviour contradicts the source,
+  restart before debugging the code.
+- `tests/test_iter114_app_desk.py` used to read hand-made `/tmp/admin_session`
+  and `/tmp/qa_access`, so **collection broke entirely whenever /tmp was
+  cleaned**. Both helpers now mint their own credentials (admin PIN→OTP via
+  Mongo; QA via the persistent `/app/memory/.qa_refresh_token`) and cache them.
+- `ruff check --select F401 --fix` is safe here, but re-run the suite after:
+  function-local imports used only inside lambdas are easy to lose.
+
+## EAS build
+Android preview APK **FINISHED** — v0.3.0 (versionCode 3):
+https://expo.dev/artifacts/eas/ruBWsB2l3fqKFDx1lzo6wYWHsMXirN8p5YUWgLH63XA.apk
+⚠️ It points at the Render backend (`addrika-fragrances-backend.onrender.com`),
+which was DOWN at build time — the app cannot sign in until Render is redeployed.

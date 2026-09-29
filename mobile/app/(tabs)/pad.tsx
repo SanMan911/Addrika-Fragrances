@@ -19,7 +19,18 @@ type Calc = {
   grand_total: number;
   tier_discount_total?: number;
   cash_discount?: number;
-  shipping_charge?: number;
+  shipping_charges?: number;
+  scheme_discount?: number;
+  applied_scheme?: {
+    title: string;
+    discount_percent: number;
+    discount_amount: number;
+  } | null;
+  next_scheme?: {
+    title: string;
+    discount_percent: number;
+    boxes_needed: number;
+  } | null;
   items: any[];
 };
 
@@ -130,7 +141,11 @@ export default function OrderPadScreen() {
       await clear();
       router.push({
         pathname: '/order-placed',
-        params: { orderId: res.order_number || res.order_id },
+        params: {
+          orderId: res.order_number || res.order_id,
+          payOrderId: res.order_id,
+          amount: String(calc.grand_total ?? ''),
+        },
       });
     } catch (e: any) {
       Alert.alert('Order not placed', e?.message || 'Please try again.');
@@ -356,15 +371,56 @@ export default function OrderPadScreen() {
             {calc.tier_discount_total ? (
               <Row label="Tier discount" value={`− ${inr(calc.tier_discount_total)}`} muted />
             ) : null}
+            {calc.applied_scheme ? (
+              <Row
+                label={`${calc.applied_scheme.title} (${calc.applied_scheme.discount_percent}%)`}
+                value={`− ${inr(calc.applied_scheme.discount_amount)}`}
+                muted
+              />
+            ) : null}
             {calc.cash_discount ? (
               <Row label="Cash discount" value={`− ${inr(calc.cash_discount)}`} muted />
             ) : null}
             <Row label="GST" value={inr(calc.gst_total)} muted />
-            {calc.shipping_charge ? (
-              <Row label="Shipping" value={inr(calc.shipping_charge)} muted />
+            {calc.shipping_charges ? (
+              <Row label="Shipping" value={inr(calc.shipping_charges)} muted />
             ) : null}
             <View style={{ height: 1, backgroundColor: colors.parchmentDim, marginVertical: space.sm }} />
             <Row label="Total payable" value={inr(calc.grand_total)} strong />
+            {calc.applied_scheme ? (
+              <View
+                testID="pad-scheme-applied"
+                style={{
+                  marginTop: space.sm,
+                  backgroundColor: colors.successBg,
+                  borderRadius: radius.sm,
+                  padding: space.sm + 2,
+                }}
+              >
+                <Text style={{ ...type.small, color: colors.success, fontWeight: '700' }}>
+                  Scheme applied · you saved {inr(calc.applied_scheme.discount_amount)}
+                </Text>
+              </View>
+            ) : calc.next_scheme ? (
+              <View
+                testID="pad-scheme-nudge"
+                style={{
+                  marginTop: space.sm,
+                  backgroundColor: colors.warnBg,
+                  borderRadius: radius.sm,
+                  padding: space.sm + 2,
+                }}
+              >
+                <Text style={{ ...type.small, color: colors.warn, fontWeight: '700' }}>
+                  Add {calc.next_scheme.boxes_needed} more box
+                  {calc.next_scheme.boxes_needed === 1 ? '' : 'es'} to unlock{' '}
+                  {calc.next_scheme.discount_percent}% off
+                </Text>
+                <Text style={{ ...type.small, color: colors.textMuted, marginTop: 2 }}>
+                  {calc.next_scheme.title}
+                </Text>
+              </View>
+            ) : null}
           </>
         ) : (
           <Row label="Indicative subtotal" value={inr(indicativeSubtotal)} muted />

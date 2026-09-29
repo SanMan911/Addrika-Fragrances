@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://aaroviah-retail.preview.emergentagent.com/api
+https://retailer-pad.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

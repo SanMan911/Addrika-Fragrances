@@ -286,17 +286,30 @@ const EMPTY_SCHEME = {
   valid_from: '',
   valid_to: '',
   is_active: true,
+  min_boxes: '',
+  min_order_value: '',
+  max_discount_inr: '',
+  applies_to: 'all',
+  categories: [],
+  skus: [],
+  priority: 100,
 };
 
 function Schemes() {
   const [schemes, setSchemes] = useState([]);
+  const [products, setProducts] = useState([]);
   const [form, setForm] = useState(EMPTY_SCHEME);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))];
+
   const load = useCallback(async () => {
     const res = await authFetch(`${API_URL}/api/admin/app-support/schemes`);
     if (res.ok) setSchemes((await res.json()).schemes || []);
+    // Brochure items double as the SKU/category picker source.
+    const pr = await authFetch(`${API_URL}/api/admin/app-support/brochure`);
+    if (pr.ok) setProducts((await pr.json()).items || []);
   }, []);
 
   useEffect(() => {
@@ -312,6 +325,13 @@ function Schemes() {
         discount_pct: form.discount_pct ? Number(form.discount_pct) : null,
         valid_from: form.valid_from || null,
         valid_to: form.valid_to || null,
+        min_boxes: form.min_boxes === '' ? null : Number(form.min_boxes),
+        min_order_value: form.min_order_value === '' ? null : Number(form.min_order_value),
+        max_discount_inr: form.max_discount_inr === '' ? null : Number(form.max_discount_inr),
+        applies_to: form.applies_to || 'all',
+        categories: form.applies_to === 'category' ? form.categories : [],
+        skus: form.applies_to === 'sku' ? form.skus : [],
+        priority: Number(form.priority) || 100,
       };
       const res = await authFetch(
         `${API_URL}/api/admin/app-support/schemes${editing ? `/${editing}` : ''}`,
@@ -354,8 +374,11 @@ function Schemes() {
             ['title', 'Title', 'text'],
             ['description', 'Description', 'textarea'],
             ['terms', 'Terms & conditions', 'textarea'],
-            ['min_cartons', 'Minimum cartons', 'number'],
             ['discount_pct', 'Discount %', 'number'],
+            ['min_boxes', 'Minimum boxes to unlock', 'number'],
+            ['min_order_value', 'Minimum qualifying value (₹)', 'number'],
+            ['max_discount_inr', 'Cap the discount at (₹)', 'number'],
+            ['priority', 'Priority (higher wins)', 'number'],
             ['valid_from', 'Valid from', 'date'],
             ['valid_to', 'Valid to', 'date'],
           ].map(([key, label, type]) => (
@@ -382,6 +405,88 @@ function Schemes() {
               )}
             </div>
           ))}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+              Applies to
+            </label>
+            <select
+              data-testid="scheme-applies-to"
+              value={form.applies_to}
+              onChange={(e) => setForm({ ...form, applies_to: e.target.value })}
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 px-3 py-2 text-sm dark:text-white"
+            >
+              <option value="all">Everything in the catalogue</option>
+              <option value="category">Specific categories</option>
+              <option value="sku">Specific products</option>
+            </select>
+          </div>
+
+          {form.applies_to === 'category' && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Categories
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((c) => {
+                  const on = form.categories.includes(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      data-testid={`scheme-cat-${c}`}
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          categories: on
+                            ? form.categories.filter((x) => x !== c)
+                            : [...form.categories, c],
+                        })
+                      }
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
+                        on
+                          ? 'bg-[#1e3a52] text-[#d4af37]'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {form.applies_to === 'sku' && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                Products ({form.skus.length} selected)
+              </label>
+              <div className="max-h-48 overflow-y-auto space-y-1 border border-slate-200 dark:border-slate-700 rounded-lg p-2">
+                {products.map((p) => (
+                  <label
+                    key={p.sku}
+                    className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200"
+                  >
+                    <input
+                      type="checkbox"
+                      data-testid={`scheme-sku-${p.sku}`}
+                      checked={form.skus.includes(p.sku)}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          skus: e.target.checked
+                            ? [...form.skus, p.sku]
+                            : form.skus.filter((x) => x !== p.sku),
+                        })
+                      }
+                    />
+                    {p.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
             <input
               data-testid="scheme-active"
@@ -432,7 +537,13 @@ function Schemes() {
                 <p className="font-semibold text-slate-800 dark:text-white">{s.title}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   {s.discount_pct ? `${s.discount_pct}% off · ` : ''}
-                  {s.min_cartons ? `min ${s.min_cartons} cartons · ` : ''}
+                  {s.min_boxes ? `min ${s.min_boxes} boxes · ` : ''}
+                  {s.applies_to === 'all'
+                    ? 'all products'
+                    : s.applies_to === 'category'
+                      ? `${(s.categories || []).length} categor${(s.categories || []).length === 1 ? 'y' : 'ies'}`
+                      : `${(s.skus || []).length} product${(s.skus || []).length === 1 ? '' : 's'}`}
+                  {' · '}
                   {s.is_active ? 'live' : 'hidden'}
                 </p>
               </div>
@@ -447,6 +558,13 @@ function Schemes() {
                       valid_to: s.valid_to ? String(s.valid_to).slice(0, 10) : '',
                       min_cartons: s.min_cartons ?? '',
                       discount_pct: s.discount_pct ?? '',
+                      min_boxes: s.min_boxes ?? '',
+                      min_order_value: s.min_order_value ?? '',
+                      max_discount_inr: s.max_discount_inr ?? '',
+                      applies_to: s.applies_to || 'all',
+                      categories: s.categories || [],
+                      skus: s.skus || [],
+                      priority: s.priority ?? 100,
                     });
                   }}
                   className="text-xs font-semibold text-[#1e3a52] dark:text-[#d4af37]"

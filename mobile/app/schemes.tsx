@@ -91,11 +91,19 @@ export default function SchemesScreen() {
               {s.description}
             </Text>
           ) : null}
-          {s.min_cartons ? (
+          {s.min_boxes ? (
+            <Text style={{ ...type.small, color: colors.navy, marginTop: space.sm, fontWeight: '700' }}>
+              Applies automatically on {s.min_boxes} boxes or more
+            </Text>
+          ) : s.min_cartons ? (
             <Text style={{ ...type.small, color: colors.navy, marginTop: space.sm, fontWeight: '700' }}>
               Minimum {s.min_cartons} cartons
             </Text>
-          ) : null}
+          ) : (
+            <Text style={{ ...type.small, color: colors.navy, marginTop: space.sm, fontWeight: '700' }}>
+              Applied automatically at checkout
+            </Text>
+          )}
           {s.valid_to ? (
             <Text style={{ ...type.small, color: colors.textMuted, marginTop: space.xs }}>
               Valid till {new Date(s.valid_to).toLocaleDateString('en-IN')}
