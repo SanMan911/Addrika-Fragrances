@@ -42,6 +42,152 @@ def _read_keys() -> tuple[str, str]:
     )
 
 
+# ---------------------------------------------------------------------------
+# Deepvue (pay-per-use wallet) — primary GST provider
+# ---------------------------------------------------------------------------
+DEEPVUE_BASE = "https://production.deepvue.tech"
+_deepvue_token: dict = {"value": None, "expires": 0.0}
+
+
+def _deepvue_keys() -> tuple[str, str]:
+    return (
+        os.environ.get("DEEPVUE_CLIENT_ID", "").strip(),
+        os.environ.get("DEEPVUE_CLIENT_SECRET", "").strip(),
+    )
+
+
+async def _deepvue_access_token(client_id: str, client_secret: str) -> str:
+    """Fetch + cache the 24h bearer token (renew ~1h early)."""
+    import time as _t
+    now = _t.time()
+    if _deepvue_token["value"] and now < _deepvue_token["expires"]:
+        return _deepvue_token["value"]
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        r = await client.post(
+            f"{DEEPVUE_BASE}/v1/authorize",
+            files={
+                "client_id": (None, client_id),
+                "client_secret": (None, client_secret),
+            },
+        )
+    r.raise_for_status()
+    token = (r.json() or {}).get("access_token")
+    if not token:
+        raise RuntimeError("Deepvue returned no access token")
+    _deepvue_token.update(value=token, expires=now + 23 * 3600)
+    return token
+
+
+def _shape_deepvue(payload: dict, gst_number: str) -> dict:
+    """Convert Deepvue gstinlite payload into our internal shape."""
+    data = payload.get("data") or {}
+    err = data.get("error_code")
+    if err:
+        return {"verified": False, "error": _friendly_upstream_error(data.get("message") or str(err))}
+    status = (data.get("sts") or "").strip()
+    if not status and not data.get("lgnm"):
+        return {"verified": False, "error": "GSTIN not found in the GSTN database. Please check the number and try again."}
+    addr = (data.get("pradr") or {}).get("addr") or {}
+    addr_parts = [
+        addr.get("bno", ""), addr.get("flno", ""), addr.get("bnm", ""),
+        addr.get("st", ""), addr.get("loc", ""), addr.get("city", ""),
+        addr.get("dst", ""), addr.get("stcd", ""), addr.get("pncd", ""),
+    ]
+    return {
+        "verified": True,
+        "provider": "deepvue",
+        "gst_number": gst_number,
+        "taxpayer_name": data.get("lgnm", ""),
+        "trade_name": data.get("tradeNam", ""),
+        "status": status,
+        "is_active": status.lower() == "active",
+        "registration_date": data.get("rgdt", ""),
+        "state": addr.get("stcd") or data.get("stj", ""),
+        "state_code": gst_number[:2],
+        "taxpayer_type": data.get("dty", ""),
+        "constitution": data.get("ctb", ""),
+        "last_updated": data.get("lstupdt", ""),
+        "address": ", ".join(p for p in addr_parts if p),
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+async def _verify_deepvue(gst_number: str, client_id: str, client_secret: str):
+    """Return shaped dict on a definitive answer, or None to fall through to
+    the next provider on a transient/outage failure."""
+    from services.provider_health import log_call as _log_provider
+    import asyncio as _aio, time as _t
+    _t0 = _t.time()
+
+    async def _call(token: str):
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "x-api-key": client_secret,
+            "Accept": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            return await client.get(
+                f"{DEEPVUE_BASE}/v1/verification/gstinlite",
+                params={"gstin_number": gst_number},
+                headers=headers,
+            )
+
+    try:
+        token = await _deepvue_access_token(client_id, client_secret)
+        r = await _call(token)
+        if r.status_code in (401, 403):
+            # token likely expired — refresh once and retry
+            _deepvue_token["expires"] = 0.0
+            token = await _deepvue_access_token(client_id, client_secret)
+            r = await _call(token)
+        _lat = int((_t.time() - _t0) * 1000)
+
+        if r.status_code == 200:
+            shaped = _shape_deepvue(r.json(), gst_number)
+            _aio.create_task(_log_provider(
+                "deepvue", endpoint="gstinlite",
+                outcome="success" if shaped.get("verified") else "unknown",
+                note=None if shaped.get("verified") else shaped.get("error"),
+                latency_ms=_lat,
+            ))
+            return shaped
+        if r.status_code == 422:
+            _aio.create_task(_log_provider(
+                "deepvue", endpoint="gstinlite", outcome="unknown",
+                note="HTTP 422", latency_ms=_lat,
+            ))
+            return {"verified": False, "error": "GSTIN not found in the GSTN database. Please check the number and try again."}
+        if r.status_code == 400:
+            # Definitive user error (bad/invalid GSTIN) — don't burn a fallback call
+            try:
+                msg = (r.json() or {}).get("message", "")
+            except Exception:
+                msg = ""
+            if "gstin" in msg.lower() or "pattern" in msg.lower():
+                _aio.create_task(_log_provider(
+                    "deepvue", endpoint="gstinlite", outcome="unknown",
+                    note=f"HTTP 400 · {msg[:60]}", latency_ms=_lat,
+                ))
+                return {"verified": False, "error": "GSTIN not found in the GSTN database. Please check the number and try again."}
+
+        # 429 / 5xx / auth — treat as transient outage so we fall through
+        _aio.create_task(_log_provider(
+            "deepvue", endpoint="gstinlite",
+            outcome="auth_error" if r.status_code in (401, 403) else "unknown",
+            note=f"HTTP {r.status_code}", latency_ms=_lat,
+        ))
+        logger.error(f"Deepvue HTTP {r.status_code} · {r.text[:200]}")
+        return None
+    except httpx.TimeoutException:
+        _aio.create_task(_log_provider("deepvue", endpoint="gstinlite", outcome="network_error", note="timeout"))
+        logger.error("Deepvue timeout — falling back if possible")
+        return None
+    except Exception as e:
+        _aio.create_task(_log_provider("deepvue", endpoint="gstinlite", outcome="network_error", note=str(e)[:200]))
+        logger.error(f"Deepvue error: {e}")
+        return None
+
+
 def _shape_appyflow(payload: dict, gst_number: str) -> dict:
     """Convert Appyflow's `taxpayerInfo` payload into our internal shape."""
     # Appyflow returns HTTP 200 for upstream errors, with `error:true` + message.
@@ -156,15 +302,26 @@ async def verify_gst_number(gst_number: str) -> dict:
     gst_number = gst_number.upper().strip()
 
     appyflow_key, legacy_key = await _read_keys_async()
-    if not appyflow_key and not legacy_key:
-        logger.warning("Neither APPYFLOW_API_KEY nor GST_VERIFICATION_API_KEY set")
+    deepvue_id, deepvue_secret = _deepvue_keys()
+    if not deepvue_id and not appyflow_key and not legacy_key:
+        logger.warning("No GST provider configured (Deepvue / Appyflow / gstincheck)")
         return {
             "verified": False,
             "error": "GST verification API not configured",
             "manual_verification_required": True,
         }
 
-    # ---- Try Appyflow first ----
+    # ---- Try Deepvue first (pay-per-use wallet) ----
+    if deepvue_id and deepvue_secret:
+        shaped = await _verify_deepvue(gst_number, deepvue_id, deepvue_secret)
+        if shaped is not None:
+            # Definitive answer (verified, or a real user-facing reason like
+            # "not found") — return it. Transient failures return None above
+            # and fall through to Appyflow/legacy.
+            if shaped.get("verified") or shaped.get("error"):
+                return shaped
+
+    # ---- Try Appyflow next ----
     if appyflow_key:
         from services.provider_health import log_call as _log_provider
         import asyncio as _aio, time as _t
