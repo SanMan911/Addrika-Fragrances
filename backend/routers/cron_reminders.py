@@ -67,3 +67,53 @@ async def supabase_token_reminder(
         raise HTTPException(status_code=400, detail="Invalid cron envelope")
     asyncio.create_task(_send_supabase_token_reminder())
     return {"ok": True, "run_id": (body or {}).get("run_id")}
+
+
+async def _kyc_autosuspend() -> None:
+    """Suspend retailers who haven't uploaded GST cert + SPOC Aadhaar within 30 days."""
+    from datetime import datetime, timezone, timedelta
+    from dependencies import db
+    from routers.retailer_auth import _kyc_has_gst, _kyc_has_spoc
+
+    now = datetime.now(timezone.utc)
+    suspended = 0
+    cursor = db.retailers.find({"status": {"$in": ["active", "under_processing"]}})
+    async for r in cursor:
+        ca = r.get("created_at")
+        try:
+            created = datetime.fromisoformat(ca) if ca else None
+        except Exception:
+            created = None
+        if not created or (now - created) < timedelta(days=30):
+            continue
+        if _kyc_has_gst(r) and _kyc_has_spoc(r):
+            continue
+        await db.retailers.update_one(
+            {"retailer_id": r["retailer_id"]},
+            {"$set": {
+                "status": "suspended",
+                "kyc_suspended": True,
+                "suspended_reason": "KYC documents (GST certificate + SPOC Aadhaar) were not uploaded within 30 days. Upload them from your dashboard to restore access.",
+                "suspended_at": now.isoformat(),
+            }},
+        )
+        await db.retailer_sessions.delete_many({"retailer_id": r["retailer_id"]})
+        suspended += 1
+    logger.info(f"kyc autosuspend run complete: suspended={suspended}")
+
+
+@router.post("/kyc-autosuspend")
+async def kyc_autosuspend(
+    request: Request,
+    authorization: str | None = Header(None),
+):
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    _check_auth(authorization)
+    try:
+        body = await request.json()
+    except Exception:
+        body = None
+    if body is not None and not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="Invalid cron envelope")
+    asyncio.create_task(_kyc_autosuspend())
+    return {"ok": True, "run_id": (body or {}).get("run_id")}

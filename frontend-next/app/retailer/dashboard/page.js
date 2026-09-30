@@ -4,11 +4,88 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Store, Package, TrendingUp, DollarSign, Clock, ShoppingBag,
-  ChevronRight, RefreshCw, AlertTriangle, CheckCircle
+  ChevronRight, RefreshCw, AlertTriangle, CheckCircle, Upload, FileText
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useRetailerAuth } from '../../../context/RetailerAuthContext';
 import WalkthroughModal from '../../../components/WalkthroughModal';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+function KycNudge({ fetchWithAuth }) {
+  const [kyc, setKyc] = useState(null);
+  const [busy, setBusy] = useState('');
+  const load = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth(`${API_URL}/api/retailer-auth/kyc/status`);
+      if (res.ok) setKyc(await res.json());
+    } catch { /* ignore */ }
+  }, [fetchWithAuth]);
+  useEffect(() => { load(); }, [load]);
+  const upload = async (docType, file) => {
+    if (!file) return;
+    setBusy(docType);
+    try {
+      const fd = new FormData();
+      fd.append('doc_type', docType);
+      fd.append('file', file);
+      const res = await fetchWithAuth(`${API_URL}/api/retailer-auth/kyc/upload`, { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      toast.success(`${docType === 'gst_certificate' ? 'GST certificate' : 'SPOC Aadhaar'} uploaded ✓`);
+      setKyc(data.kyc);
+      if (data.kyc?.reactivated) toast.success('Account reactivated — thanks for completing your KYC!');
+    } catch (e) {
+      toast.error(e.message || 'Upload failed');
+    } finally {
+      setBusy('');
+    }
+  };
+  if (!kyc || kyc.complete) return null;
+  const dl = kyc.days_left;
+  const overdue = dl !== null && dl < 0;
+  const UploadTile = ({ docType, label, done }) => (
+    <label
+      className={`flex-1 min-w-[200px] cursor-pointer flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition ${done ? 'bg-emerald-50 text-emerald-700 border-emerald-300 cursor-default' : 'bg-white text-[#2B3A4A] border-[#2B3A4A]/30 hover:border-[#D4AF37]'}`}
+      data-testid={`kyc-upload-${docType}`}
+    >
+      {done ? <CheckCircle className="w-4 h-4" /> : (busy === docType ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />)}
+      {done ? `${label} uploaded` : busy === docType ? 'Uploading…' : `Upload ${label}`}
+      {!done && (
+        <input
+          type="file"
+          accept="application/pdf,image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => upload(docType, e.target.files?.[0])}
+        />
+      )}
+    </label>
+  );
+  return (
+    <div
+      className={`rounded-xl p-4 border ${overdue ? 'bg-red-50 border-red-300' : 'bg-amber-50 border-amber-300'}`}
+      data-testid="kyc-nudge"
+    >
+      <div className="flex items-center gap-2 mb-1">
+        {overdue ? <AlertTriangle className="text-red-600" size={20} /> : <FileText className="text-amber-600" size={20} />}
+        <h2 className={`font-semibold ${overdue ? 'text-red-800' : 'text-amber-800'}`}>
+          Complete your KYC documents
+        </h2>
+      </div>
+      <p className={`text-sm mb-3 ${overdue ? 'text-red-700' : 'text-amber-700'}`} data-testid="kyc-days-left">
+        Please upload your <b>GST Certificate</b> and your <b>SPOC (Single Point of Contact) Aadhaar</b>.
+        {overdue
+          ? ' Your 30-day window has passed — upload now to lift the suspension and restore full access.'
+          : dl !== null
+            ? ` You have ${dl} day${dl === 1 ? '' : 's'} left — accounts without both documents are automatically suspended after 30 days.`
+            : ' Accounts without both documents are automatically suspended after 30 days.'}
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <UploadTile docType="gst_certificate" label="GST Certificate" done={kyc.gst_certificate} />
+        <UploadTile docType="spoc_aadhaar" label="SPOC Aadhaar" done={kyc.spoc_aadhaar} />
+      </div>
+    </div>
+  );
+}
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -87,6 +164,26 @@ export default function RetailerDashboardPage() {
               <span className="text-gray-400"> · sign in with your GSTIN</span>
             </p>
           )}
+          {retailer?.status === 'active' && (retailer?.legal_name || retailer?.trade_name || retailer?.business_name) && (
+            <div className="flex flex-wrap gap-2 mt-3" data-testid="dashboard-gst-chips">
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300"
+                data-testid="dashboard-legal-name-chip"
+              >
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="uppercase tracking-wide text-[10px] text-emerald-600">Legal Name</span>
+                {retailer.legal_name || retailer.trade_name || retailer.business_name}
+              </span>
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#D4AF37]/10 text-[#2B3A4A] border border-[#D4AF37]/40"
+                data-testid="dashboard-trade-name-chip"
+              >
+                <CheckCircle className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span className="uppercase tracking-wide text-[10px] text-[#b8912e]">Trade Name</span>
+                {retailer.trade_name || retailer.business_name}
+              </span>
+            </div>
+          )}
         </div>
         <button
           onClick={fetchData}
@@ -97,6 +194,8 @@ export default function RetailerDashboardPage() {
           Refresh
         </button>
       </div>
+      {/* KYC document nudge (GST cert + SPOC Aadhaar, 30-day window) */}
+      <KycNudge fetchWithAuth={fetchWithAuth} />
       {/* Alerts */}
       {profileSummary?.alerts?.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
