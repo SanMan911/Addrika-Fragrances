@@ -609,6 +609,7 @@ async def admin_list_retailers(
     
     # Add compliance summary + Fragrance Rewards balance snapshot to each retailer
     from services.fragrance_rewards import get_balance as _fr_balance
+    from routers.retailer_auth import kyc_status_for as _kyc_status_for
     for r in retailers:
         legal_docs = r.get('legal_documents', {})
         spoc = r.get('spoc', {})
@@ -619,6 +620,7 @@ async def admin_list_retailers(
             "gst_verified": r.get('gst_verified', False),
             "documents_complete": r.get('documents_complete', False)
         }
+        r['kyc'] = _kyc_status_for(r)
         try:
             bal = await _fr_balance(db, r.get('retailer_id'))
             r['rewards'] = {
