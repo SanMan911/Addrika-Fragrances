@@ -76,6 +76,120 @@ async def phone_verify_otp(data: VerifyOtpRequest):
 
 
 # ---------------------------------------------------------------------------
+# Post-login KYC (Iteration 120) — retailer must have a GST certificate AND a
+# SPOC Aadhaar on file within 30 days of registration, else the account is
+# auto-suspended by a daily cron. Retailers self-upload here.
+# ---------------------------------------------------------------------------
+
+KYC_UPLOAD_DEADLINE_DAYS = 30
+KYC_DOC_TYPES = {"gst_certificate", "spoc_aadhaar"}
+
+
+def _kyc_has_gst(r: dict) -> bool:
+    if (r.get("kyc") or {}).get("gst_certificate"):
+        return True
+    gc = r.get("gst_certificate")
+    if isinstance(gc, dict) and gc.get("storage_path") and not gc.get("is_deleted"):
+        return True
+    return bool((r.get("legal_documents") or {}).get("gst_certificate"))
+
+
+def _kyc_has_spoc(r: dict) -> bool:
+    if (r.get("kyc") or {}).get("spoc_aadhaar"):
+        return True
+    return bool((r.get("spoc") or {}).get("id_proof_document"))
+
+
+def _kyc_deadline(r: dict) -> Optional[datetime]:
+    ca = r.get("created_at")
+    if not ca:
+        return None
+    try:
+        return datetime.fromisoformat(ca) + timedelta(days=KYC_UPLOAD_DEADLINE_DAYS)
+    except Exception:
+        return None
+
+
+def kyc_status_for(r: dict) -> dict:
+    has_gst = _kyc_has_gst(r)
+    has_spoc = _kyc_has_spoc(r)
+    complete = has_gst and has_spoc
+    deadline = _kyc_deadline(r)
+    days_left = (deadline - datetime.now(timezone.utc)).days if deadline else None
+    return {
+        "gst_certificate": has_gst,
+        "spoc_aadhaar": has_spoc,
+        "complete": complete,
+        "deadline": deadline.isoformat() if deadline else None,
+        "days_left": days_left,
+        "at_risk": (not complete) and (days_left is not None and days_left <= KYC_UPLOAD_DEADLINE_DAYS),
+    }
+
+
+@router.get("/kyc/status")
+async def kyc_status(request: Request, retailer_session: Optional[str] = Cookie(None)):
+    """Retailer self-service — current KYC document state + 30-day deadline."""
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return kyc_status_for(retailer)
+
+
+@router.post("/kyc/upload")
+async def kyc_upload(
+    request: Request,
+    doc_type: str = Form(...),
+    file: UploadFile = File(...),
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Retailer self-uploads a KYC document (gst_certificate | spoc_aadhaar)."""
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    dt = (doc_type or "").strip()
+    if dt not in KYC_DOC_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid document type")
+    ctype = (file.content_type or "").lower()
+    if ctype not in ALLOWED_CERT_MIME:
+        raise HTTPException(status_code=400, detail="File must be PDF, JPG, PNG or WebP")
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="File is empty")
+    if len(data) > MAX_CERT_BYTES:
+        raise HTTPException(status_code=400, detail=f"File must be under {MAX_CERT_BYTES // (1024 * 1024)} MB")
+
+    ext = ALLOWED_CERT_MIME[ctype]
+    rid = retailer["retailer_id"]
+    path = make_path(f"kyc/{dt}", rid, ext)
+    up = await put_object(path, data, ctype)
+    if not up:
+        raise HTTPException(status_code=503, detail="Could not upload right now. Please try again.")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.retailers.update_one(
+        {"retailer_id": rid},
+        {"$set": {f"kyc.{dt}": {
+            "storage_path": up.get("path", path),
+            "original_filename": file.filename or f"{dt}.{ext}",
+            "content_type": ctype,
+            "size": len(data),
+            "uploaded_at": now,
+        }}},
+    )
+    fresh = await db.retailers.find_one({"retailer_id": rid})
+    st = kyc_status_for(fresh)
+    # Self-heal: if this completes KYC and the account was suspended *for* KYC, restore it.
+    if st["complete"] and fresh.get("status") == "suspended" and fresh.get("kyc_suspended"):
+        await db.retailers.update_one(
+            {"retailer_id": rid},
+            {"$set": {"status": "active"}, "$unset": {"kyc_suspended": "", "suspended_reason": "", "suspended_at": ""}},
+        )
+        st = kyc_status_for(await db.retailers.find_one({"retailer_id": rid}))
+        st["reactivated"] = True
+    logger.info(f"Retailer {rid} uploaded KYC {dt}; complete={st['complete']}")
+    return {"ok": True, "doc_type": dt, "kyc": st}
+
+
+# ---------------------------------------------------------------------------
 # Passwordless login via SMS OTP (registered numbers only)
 # ---------------------------------------------------------------------------
 
@@ -811,12 +925,14 @@ async def retailer_register(
         cc = f"+{cc}"
     now = datetime.now(timezone.utc).isoformat()
     legal_name = gst_record.get("taxpayer_name") or gst_record.get("trade_name")
+    trade_name = gst_record.get("trade_name") or legal_name
     retailer_state = _titlecase((state or "").strip()) or INDIAN_STATE_CODES_REG.get(gst[:2])
 
     retailer = {
         "retailer_id": retailer_id,
         "business_name": _titlecase(business_name) or "—",
-        "trade_name": legal_name,
+        "trade_name": trade_name,
+        "legal_name": legal_name,
         "name": _titlecase(contact_name) or _titlecase(business_name) or "—",
         "contact_name": _titlecase(contact_name),
         "email": email.lower(),

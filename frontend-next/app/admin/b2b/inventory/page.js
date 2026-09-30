@@ -280,6 +280,28 @@ export default function AdminB2BInventoryPage() {
                   <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-300">{it.stock_cartons}</td>
                   <td className="px-4 py-3 text-right">
                     <button
+                      onClick={async () => {
+                        try {
+                          const res = await authFetch(`${API_URL}/api/admin/b2b/inventory/${it.id}/adjust`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ delta_pieces: it.pieces_per_carton, reason: 'restock' }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.detail || 'Failed');
+                          toast.success(`Restocked ${it.name}: ${data.before} → ${data.after} pcs (+1 carton)`);
+                          fetchInventory();
+                        } catch (e) {
+                          toast.error(e.message || 'Restock failed');
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-medium mr-2"
+                      title={`Add one fresh production batch (${it.pieces_per_carton} pcs)`}
+                      data-testid={`restock-batch-btn-${it.id}`}
+                    >
+                      <Plus size={12} /> +1 Batch
+                    </button>
+                    <button
                       onClick={() => setActiveStatus(it)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-100 text-xs font-medium mr-2"
                       data-testid={`status-btn-${it.id}`}
