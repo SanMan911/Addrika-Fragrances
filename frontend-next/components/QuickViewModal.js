@@ -45,7 +45,8 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
 
   const isComingSoon = product.comingSoon === true;
   const selectedStock = typeof selectedSize?.stock === 'number' ? selectedSize.stock : null;
-  const isOutOfStock = selectedStock !== null && selectedStock <= 0;
+  // D2C storefront: always orderable (produced on demand) — OOS gating disabled.
+  const isOutOfStock = false;
 
   // Get all images
   const allImages = [];
@@ -70,10 +71,6 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
     }
     if (isOutOfStock) {
       toast.error(`${product.name} (${selectedSize.size}) is out of stock right now`);
-      return;
-    }
-    if (selectedStock !== null && quantity > selectedStock) {
-      toast.error(`Only ${selectedStock} left in stock`);
       return;
     }
     

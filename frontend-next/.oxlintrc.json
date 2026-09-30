@@ -1,5 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "globals": {
+    "__d": "readonly",
+    "__r": "readonly",
+    "__c": "readonly",
+    "__DEV__": "readonly",
+    "globalThis": "readonly"
+  },
   "ignorePatterns": [
     "**/node_modules/**",
     "**/.next/**",

@@ -705,6 +705,8 @@ async def retailer_register(
     state: Optional[str] = Form(None),
     address: Optional[str] = Form(None),
     pincode: Optional[str] = Form(None, min_length=6, max_length=6),
+    alternate_phone: Optional[str] = Form(None, max_length=20),
+    alternate_email: Optional[str] = Form(None, max_length=200),
     gst_certificate: UploadFile = File(...),
 ):
     """Self-serve retailer registration.
@@ -836,6 +838,8 @@ async def retailer_register(
         "state": retailer_state,
         "address": (address or "").strip() or None,
         "pincode": (pincode or "").strip() or None,
+        "alternate_phone": (alternate_phone or "").strip() or None,
+        "alternate_email": (alternate_email or "").strip().lower() or None,
         "status": "under_processing",
         "is_verified": False,
         "legal_documents": {

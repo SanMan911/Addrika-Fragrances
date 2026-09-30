@@ -115,8 +115,8 @@ const faqs = [
         a: "Yes, we ship to all PIN codes across India. Orders above Rs. 499 qualify for free shipping. Standard delivery takes 3-7 business days depending on your location."
       },
       {
-        q: `What is ${BRAND.name}'s return policy?`,
-        a: "Due to the nature of our products (incense sticks, dhoop, bakhoor), we cannot accept returns or exchanges for hygiene and olfactory reasons. Please review your order carefully before confirming."
+        q: `What is ${BRAND.name}'s refund & exchange policy?`,
+        a: "As these are olfactory products — enjoyed differently by each person, much like taste — and for hygiene reasons, we are currently unable to offer refunds or exchanges. If a product doesn't meet your expectations, please reach us using the contact details printed on every pack and we'll do our best to help."
       },
       {
         q: `What's the difference between ${BRAND.name} and traditional agarbatti?`,

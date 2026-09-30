@@ -132,12 +132,24 @@ async def public_gst_lookup(gst_number: str):
     """Return verified business name + address fields for a GSTIN.
 
     Returns 200 with `verified=False` (instead of an error) when the GSTIN
-    is well-formed but Appyflow can't find/verify it — so the form can show
-    a soft warning without aborting.
+    is well-formed but the provider can't find/verify it — so the form can
+    show a soft warning without aborting. Verified results are cached per
+    GSTIN for 30 days so we don't re-bill the pay-per-use GST provider on
+    every keystroke.
     """
     gst = (gst_number or "").upper().strip()
     if not GST_PATTERN.match(gst):
         raise HTTPException(status_code=400, detail="Invalid GST number format")
+
+    # ---- Cache hit (verified only) ----
+    cached = await db.gst_lookup_cache.find_one({"gstin": gst})
+    if cached and cached.get("payload", {}).get("verified"):
+        try:
+            ts = datetime.fromisoformat(cached["cached_at"])
+            if (datetime.now(timezone.utc) - ts) <= timedelta(days=30):
+                return cached["payload"]
+        except Exception:
+            pass
 
     from services.gst_verification import verify_gst_number, _is_provider_outage
 
@@ -152,12 +164,15 @@ async def public_gst_lookup(gst_number: str):
             "error": err,
         }
 
-    # Build a clean payload for the form
+    # Prefer the provider's structured fields; fall back to parsing the
+    # concatenated address only when a field is missing.
     addr_str = result.get("address", "") or ""
     addr_parts = [p.strip() for p in addr_str.split(",") if p.strip()]
-    # PIN is any 6-digit token in the address; pick the last one to be safe
     pincode_match = re.findall(r"\b\d{6}\b", addr_str)
-    return {
+    city = result.get("city") or (_titlecase(addr_parts[-4]) if len(addr_parts) >= 4 else None)
+    pincode = result.get("pincode") or (pincode_match[-1] if pincode_match else None)
+
+    payload = {
         "verified": True,
         "gst_number": gst,
         "business_name": _titlecase(
@@ -168,11 +183,18 @@ async def public_gst_lookup(gst_number: str):
         "is_active": result.get("is_active", False),
         "status": result.get("status"),
         "state": INDIAN_STATE_CODES.get(gst[:2]) or result.get("state"),
-        "city": _titlecase(addr_parts[-4]) if len(addr_parts) >= 4 else None,
-        "pincode": pincode_match[-1] if pincode_match else None,
+        "city": _titlecase(city) if city else None,
+        "district": _titlecase(result.get("district")) if result.get("district") else None,
+        "pincode": pincode,
         "address": result.get("address"),
         "registration_date": result.get("registration_date"),
     }
+    await db.gst_lookup_cache.update_one(
+        {"gstin": gst},
+        {"$set": {"gstin": gst, "payload": payload, "cached_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return payload
 
 
 @router.post("")
