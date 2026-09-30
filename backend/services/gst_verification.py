@@ -108,6 +108,9 @@ def _shape_deepvue(payload: dict, gst_number: str) -> dict:
         "constitution": data.get("ctb", ""),
         "last_updated": data.get("lstupdt", ""),
         "address": ", ".join(p for p in addr_parts if p),
+        "pincode": addr.get("pncd", ""),
+        "city": addr.get("loc") or addr.get("city", ""),
+        "district": addr.get("dst", ""),
         "verified_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -227,6 +230,9 @@ def _shape_appyflow(payload: dict, gst_number: str) -> dict:
         "constitution": info.get("ctb", ""),
         "last_updated": info.get("lstupdt", ""),
         "address": ", ".join(p for p in addr_parts if p),
+        "pincode": addr.get("pncd", ""),
+        "city": addr.get("loc") or addr.get("city", ""),
+        "district": addr.get("dst", ""),
         "verified_at": datetime.now(timezone.utc).isoformat(),
     }
 

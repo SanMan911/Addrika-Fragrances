@@ -411,8 +411,8 @@ export default async function ProductPage({ params }) {
                   <p className="text-xs text-gray-500">Premium Ingredients</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold text-sm text-white">Easy Returns</p>
-                  <p className="text-xs text-gray-500">7-day policy</p>
+                  <p className="font-semibold text-sm text-white">Freshly Made</p>
+                  <p className="text-xs text-gray-500">Produced on demand</p>
                 </div>
               </div>
             </div>

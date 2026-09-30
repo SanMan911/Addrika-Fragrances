@@ -199,7 +199,7 @@ export default function WhyChooseAarohmmPage() {
     {
       platform: "Amazon India",
       url: "https://www.amazon.in/s?k=aarohmm+incense",
-      description: "Fast delivery, easy returns, customer reviews",
+      description: "Fast delivery, secure checkout, customer reviews",
       highlight: "Available"
     }
   ];

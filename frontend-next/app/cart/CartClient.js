@@ -340,7 +340,7 @@ export default function CartClient() {
                   
                   {/* Trust Badges */}
                   <div className="mt-4 text-center text-xs text-gray-500">
-                    <p>Secure Payment | 7 Day Returns | Free Shipping on Rs. 499+</p>
+                    <p>Secure Payment | Free Shipping on Rs. 499+</p>
                   </div>
                 </div>
               </div>

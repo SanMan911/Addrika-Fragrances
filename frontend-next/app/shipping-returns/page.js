@@ -91,8 +91,8 @@ export default function ShippingReturnsPage() {
               >
                 <RefreshCcw className="w-7 h-7 text-[#D4AF37]" />
               </div>
-              <h3 className="font-semibold text-white mb-2">No Returns</h3>
-              <p className="text-gray-400 text-sm">Due to hygiene reasons</p>
+              <h3 className="font-semibold text-white mb-2">No Refunds / Exchanges</h3>
+              <p className="text-gray-400 text-sm">Currently, for hygiene reasons</p>
             </div>
           </div>
         </section>
@@ -168,9 +168,9 @@ export default function ShippingReturnsPage() {
                 >
                   <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-semibold text-red-400">No Returns or Exchanges</h4>
+                    <h4 className="font-semibold text-red-400">Refunds &amp; Exchanges</h4>
                     <p className="text-sm text-red-300/80">
-                      Due to the nature of our products (incense sticks, dhoop, bakhoor), we cannot accept returns or exchanges for hygiene and olfactory reasons. These aromatic items are designed to be burned and cannot be resold once dispatched.
+                      As these are olfactory products &mdash; enjoyed differently by each person, much like taste &mdash; and for hygiene reasons, we are currently unable to offer refunds or exchanges. These aromatic items are made to be burned and cannot be resold once dispatched. If a product doesn&apos;t meet your expectations, please reach us using the contact details printed on every pack.
                     </p>
                   </div>
                 </div>

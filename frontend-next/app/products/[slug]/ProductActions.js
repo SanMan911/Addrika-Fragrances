@@ -16,8 +16,10 @@ export default function ProductActions({ product }) {
   // Undefined stock = not tracked (orderable); a number = live availability.
   const sizeStock = (size) => (typeof size?.stock === 'number' ? size.stock : null);
   const selectedStock = sizeStock(selectedSize);
-  const isOutOfStock = selectedStock !== null && selectedStock <= 0;
-  const maxQty = selectedStock !== null && selectedStock > 0 ? selectedStock : Infinity;
+  // D2C storefront: items are always orderable (produced on demand), so we
+  // never block on zero B2B stock. Positive stock still powers "Only X left".
+  const isOutOfStock = false;
+  const maxQty = Infinity;
   
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -115,9 +117,6 @@ export default function ProductActions({ product }) {
               <span className="text-lg font-bold text-[#D4AF37]">₹{size.price}</span>
               {size.mrp > size.price && (
                 <span className="text-xs text-gray-500 line-through ml-1">₹{size.mrp}</span>
-              )}
-              {sizeStock(size) !== null && sizeStock(size) <= 0 && !isComingSoon && (
-                <span className="block text-[10px] uppercase tracking-wide text-rose-400 mt-1" data-testid={`size-${size.size}-oos`}>Out of stock</span>
               )}
               {sizeStock(size) !== null && sizeStock(size) > 0 && sizeStock(size) <= 12 && (
                 <span className="block text-[10px] uppercase tracking-wide text-amber-400 mt-1" data-testid={`size-${size.size}-low`}>Only {sizeStock(size)} left</span>

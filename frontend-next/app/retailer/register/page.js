@@ -42,6 +42,8 @@ export default function RetailerRegisterPage() {
     state: '',
     address: '',
     pincode: '',
+    alternate_phone: '',
+    alternate_email: '',
     password: '',
     confirm_password: '',
   });
@@ -86,6 +88,8 @@ export default function RetailerRegisterPage() {
           business_name: f.business_name || data.business_name || '',
           city: f.city || data.city || '',
           state: f.state || data.state || '',
+          pincode: f.pincode || data.pincode || '',
+          address: f.address || data.address || '',
         }));
       } catch {
         if (!cancelled) setGstStatus({ state: 'failed', error: 'Lookup unavailable', provider_down: true });
@@ -224,6 +228,8 @@ export default function RetailerRegisterPage() {
       if (form.state) fd.append('state', form.state);
       if (form.address) fd.append('address', form.address);
       if (form.pincode) fd.append('pincode', form.pincode);
+      if (form.alternate_phone) fd.append('alternate_phone', form.alternate_phone);
+      if (form.alternate_email) fd.append('alternate_email', lowerEmail(form.alternate_email));
       fd.append('gst_certificate', certFile);
 
       const res = await fetch(`${API_URL}/api/retailer-auth/register`, {
@@ -343,7 +349,9 @@ export default function RetailerRegisterPage() {
                 placeholder="Business Name*"
                 value={form.business_name}
                 onChange={(e) => setForm({ ...form, business_name: titleCase(e.target.value) })}
-                className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none"
+                readOnly={gstStatus.state === 'verified'}
+                title={gstStatus.state === 'verified' ? 'Auto-filled from your GSTIN — locked' : undefined}
+                className={`px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none ${gstStatus.state === 'verified' ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : ''}`}
                 data-testid="register-business-name"
               />
               <input
@@ -470,6 +478,25 @@ export default function RetailerRegisterPage() {
                 className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none sm:col-span-1"
                 data-testid="register-address"
               />
+              <input
+                type="tel"
+                placeholder="Alternate Mobile (optional)"
+                value={form.alternate_phone}
+                onChange={(e) => setForm({ ...form, alternate_phone: e.target.value.replace(/\D/g, '').slice(0, 15) })}
+                className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none"
+                data-testid="register-alternate-phone"
+              />
+              <input
+                type="email"
+                placeholder="Alternate Email (optional)"
+                value={form.alternate_email}
+                onChange={(e) => setForm({ ...form, alternate_email: lowerEmail(e.target.value) })}
+                className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none lowercase"
+                data-testid="register-alternate-email"
+              />
+              <p className="sm:col-span-2 text-[11px] text-gray-500 -mt-1" data-testid="register-alternate-note">
+                Add an alternate mobile & email if the owner and the day-to-day manager are different people.
+              </p>
             </div>
 
             {/* Step 3 — Password */}
@@ -553,7 +580,7 @@ export default function RetailerRegisterPage() {
             </p>
             <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5 text-[#D4AF37]" />
-              Your GSTIN is auto-verified against GSTN records via Appyflow.
+              Your GSTIN is auto-verified against GSTN records.
             </p>
             <Link href="/" className="inline-block text-xs text-[#2B3A4A] underline hover:text-[#D4AF37] mt-1">
               Back to {BRAND.name}

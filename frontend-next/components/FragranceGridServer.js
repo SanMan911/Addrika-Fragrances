@@ -14,11 +14,10 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
   const isComingSoon = product.comingSoon === true;
   // Shared inventory: `stock` per size. Number = tracked; undefined = not tracked.
   const trackedSizes = (product.sizes || []).filter(s => typeof s.stock === 'number');
-  const isOutOfStock =
-    !isComingSoon &&
-    trackedSizes.length > 0 &&
-    trackedSizes.length === (product.sizes || []).length &&
-    trackedSizes.every(s => s.stock <= 0);
+  // D2C storefront: items are always shown as available (produced on demand),
+  // so the "Out of Stock" ribbon is disabled. Positive stock still powers the
+  // "Only X left" urgency nudge below.
+  const isOutOfStock = false;
   // Urgency nudge: lowest positive stock across sizes, shown at 12 or fewer.
   const positiveStocks = trackedSizes.map(s => s.stock).filter(n => n > 0);
   const lowStockLeft =

@@ -78,10 +78,13 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-white mb-4">5. Returns and Refunds</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">5. Refunds and Exchanges</h2>
               <p className="text-gray-300 leading-relaxed">
-                We accept returns of unused, unopened products within 7 days of delivery. 
-                Please refer to our Shipping & Returns policy for complete details.
+                As these are olfactory products &mdash; enjoyed differently by each person,
+                much like taste &mdash; and for hygiene reasons, we are currently unable to
+                offer refunds or exchanges. If a product doesn&apos;t meet your expectations,
+                please reach us using the contact details printed on every pack and we&apos;ll
+                do our best to help.
               </p>
             </section>
 

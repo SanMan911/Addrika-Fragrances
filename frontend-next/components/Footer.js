@@ -87,7 +87,7 @@ export default function Footer() {
             <ul className="space-y-2">
               {[
                 { label: 'Track Order', href: 'https://www.centraders.com/track-order', external: true },
-                { label: 'Shipping & Returns', href: '/shipping-returns' },
+                { label: 'Shipping Policy', href: '/shipping-returns' },
                 { label: 'Find Retailers', href: '/find-retailers' },
                 { label: 'Privacy Policy', href: '/privacy-policy' },
                 { label: 'Terms of Service', href: '/terms-of-service' }
