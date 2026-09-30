@@ -271,3 +271,13 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 ### Update 2026-06 (Iter119b — GST identity trust chips on register form)
 - **DONE**: `/retailer/register` now renders read-only **Legal Name** (green) + **Trade Name** (gold) chips under the "✓ Verified" line once the GSTIN is verified via Deepvue (`register-gst-chips`, `register-legal-name-chip`, `register-trade-name-chip`). Builds instant trust in the auto-verified identity. Verified by screenshot (mobile).
 - IDSPay onboarding overhaul remains **P0 — OPEN & WAITING** on the user's IDSPay sandbox key (see prior entry).
+
+### Update 2026-06 (Iter120 — Dashboard trust chips, one-tap restock, KYC nudge + 30-day auto-suspension)
+- **DONE — Dashboard GST trust chips**: `/retailer/dashboard` header shows read-only Legal Name (green) + Trade Name (gold) chips once status=active (`dashboard-gst-chips`). Register now stores distinct `legal_name` + `trade_name` on the retailer doc.
+- **DONE — Fresh-Stock one-tap restock**: `/admin/b2b/inventory` each SKU row has a "+1 Batch" button (`restock-batch-btn-<id>`) → POST `/api/admin/b2b/inventory/{id}/adjust` {delta_pieces: pieces_per_carton, reason:'restock'}. Adds exactly one production carton so live counts stay accurate.
+- **DONE — KYC nudge + 30-day auto-suspension**:
+  - Backend (`retailer_auth.py`): `GET /api/retailer-auth/kyc/status`, `POST /api/retailer-auth/kyc/upload` (doc_type gst_certificate|spoc_aadhaar, PDF/JPG/PNG/WebP ≤8MB → Emergent object storage under kyc/<type>). KYC complete = GST cert + SPOC Aadhaar present. Uploading to completion self-heals a KYC suspension (kyc_suspended flag).
+  - Cron (`cron_reminders.py` `_kyc_autosuspend` + `POST /api/cron/kyc-autosuspend`, bearer WEBHOOK_CRON_SECRET) — daily `0 4 * * *` in `.emergent/crons.yml` — suspends retailers created >30 days ago without both docs (revokes their sessions, sets suspended_reason). Verified: suspended the aged test retailer then restored fixture.
+  - Frontend: `KycNudge` banner on the dashboard (`kyc-nudge`, `kyc-days-left`, `kyc-upload-gst_certificate`, `kyc-upload-spoc_aadhaar`) with days-left warning + upload tiles.
+- **Verified by testing_agent (iteration_116.json): 100% backend + 100% frontend, no issues.** Admin manual suspend/revoke (`PUT /api/retailers/admin/{id}`) already existed.
+- IDSPay onboarding overhaul remains **P0 — OPEN & ACTIVE** (awaiting IDSPay sandbox key).
