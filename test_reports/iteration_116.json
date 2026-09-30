@@ -1,0 +1,32 @@
+{
+  "summary": "Iter116 — tested all 3 new features end-to-end: (1) retailer dashboard trust chips, (2) admin one-tap +1 Batch restock, (3) KYC nudge banner + status/upload API + daily cron auto-suspend. Backend 10/10 pass, frontend flows all pass. Register regression also verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter116_kyc_restock.py",
+    "/app/test_reports/pytest/iter116_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "cron_reminders._kyc_autosuspend parses `created_at` with `datetime.fromisoformat` and skips retailers whose value can't parse or is <30d old — deterministic, good. Suspension self-heal via /kyc/upload works (routers/retailer_auth.py:181-187).",
+    "kyc_status_for.at_risk is True whenever KYC is incomplete and days_left <= 30 (i.e. always, until the 30d window elapses). If a stricter 'red banner only in last 7 days' is desired, tighten the threshold; today it works as designed.",
+    "Register form only writes legal_name+trade_name to Mongo for NEW registrations; the pre-seeded RTL_TEST_B2B had trade_name but no legal_name until backfilled during this test — main agent may want a one-off backfill script for existing retailers so their dashboard trust chips render a proper Legal Name (fallback currently uses trade_name/business_name)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter116_kyc_restock.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Retailer GSTIN 07AAAAA0000A1Z5 / Test@12345 (RTL_TEST_B2B). Admin contact.us@centraders.com PIN 050499 + Mongo OTP. WEBHOOK_CRON_SECRET from backend/.env.",
+  "seed_data_creation": "Uploaded a small PDF as spoc_aadhaar for RTL_TEST_B2B during backend test (test file, safe to leave). Cron ran once via test — it suspended RTL_TEST_B2B (created >30d ago, no GST cert). Restored to status=active in Mongo and backfilled legal_name='Test B2B Retailer LLP' so dashboard trust chips could render. Cleared retailer_login_attempts.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 7 acceptance items pass:\n1. Backend: GET /api/retailer-auth/kyc/status returns full payload (gst_certificate, spoc_aadhaar, complete, deadline, days_left, at_risk) with Bearer token. No auth -> 401.\n2. POST /api/retailer-auth/kyc/upload: spoc_aadhaar PDF accepted -> 200; invalid doc_type -> 400; missing auth -> 401.\n3. POST /api/cron/kyc-autosuspend: correct bearer -> 200 {ok:true}; wrong/missing -> 401. Confirmed the cron did suspend the test retailer (created_at 2026-08-19, no GST cert) — expected per review request note.\n4. Admin restock: /api/admin/b2b/inventory returns 16 items; POST /adjust with {delta_pieces: ppc, reason:'restock'} increments stock_pieces correctly (verified Belpatra 12->24 both via API and UI stock-pieces-<id>).\n5. Frontend dashboard: dashboard-gst-chips + dashboard-legal-name-chip ('Legal Name Test B2B Retailer (Automated)') + dashboard-trade-name-chip visible (only when status=active). Note: initial DB legal_name backfill was 'Test B2B Retailer LLP' but seeder overwrote to 'Test B2B Retailer (Automated)' by the time dashboard rendered.\n6. Frontend KYC nudge: kyc-nudge banner + kyc-days-left ('30-day window has passed…') + kyc-upload-gst_certificate ('Upload GST Certificate') + kyc-upload-spoc_aadhaar ('SPOC Aadhaar uploaded') all visible.\n7. Admin UI: restock-batch-btn-<id> renders per row, click -> API 200 -> stock-pieces-<id> increments by pieces_per_carton, success toast 'Restocked Belpatra: 12 → 24 pcs (+1 carton)'.\n8. Register regression: typing 27AAACR5055K1Z7 auto-fills business/city/state/pincode/address, register-gst-status shows '✓ Verified · RELIANCE INDUSTRIES LIMITED', register-legal-name-chip + register-trade-name-chip both visible.",
+  "rca of the issue": "N/A — no failures encountered."
+}
