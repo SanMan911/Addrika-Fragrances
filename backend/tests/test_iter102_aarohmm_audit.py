@@ -6,7 +6,7 @@ import pytest
 import requests
 from pymongo import MongoClient
 
-BASE = "https://retailer-pad.preview.emergentagent.com"
+BASE = "https://aarohmm-expo.preview.emergentagent.com"
 API = f"{BASE}/api"
 EXT = f"{API}/external/v1"
 API_KEY = "arhk_C2yoApjyj2zmmGZ6bM2qC47bxiJ--9o7ElyaRtbmPqk"
