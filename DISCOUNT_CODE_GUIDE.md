@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://retailer-pad.preview.emergentagent.com/api
+https://aarohmm-expo.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

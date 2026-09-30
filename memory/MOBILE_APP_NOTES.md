@@ -306,7 +306,7 @@ closed tickets show a notice instead of the reply box), and a
 "Pay ₹X now" button on unpaid orders in the Orders tab.
 
 ## ⚠️ The external preview host does NOT serve this pod
-`https://retailer-pad.preview.emergentagent.com/app-preview` returns 404
+`https://aarohmm-expo.preview.emergentagent.com/app-preview` returns 404
 even though `http://localhost:3000/app-preview` is 200. Proven by comparing
 build hashes: local serves `720-ba9f0f9bda4a5319.js`, external serves
 `720-a07e09dda4910b81.js` — a different, older deployment. `/app/frontend` is
