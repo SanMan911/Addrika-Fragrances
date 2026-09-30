@@ -82,7 +82,7 @@ export default function RetailerRegisterPage() {
           }
           return;
         }
-        setGstStatus({ state: 'verified', legal_name: data.legal_name });
+        setGstStatus({ state: 'verified', legal_name: data.legal_name, trade_name: data.trade_name });
         setForm((f) => ({
           ...f,
           business_name: f.business_name || data.business_name || '',
@@ -309,6 +309,30 @@ export default function RetailerRegisterPage() {
               <p className="mt-1.5 text-xs text-emerald-700 font-medium" data-testid="register-gst-status">
                 ✓ Verified · {gstStatus.legal_name || 'Business details auto-filled below'}
               </p>
+            )}
+            {gstStatus.state === 'verified' && (gstStatus.legal_name || gstStatus.trade_name) && (
+              <div className="mt-3 flex flex-wrap gap-2" data-testid="register-gst-chips">
+                {gstStatus.legal_name && (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300"
+                    data-testid="register-legal-name-chip"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="uppercase tracking-wide text-[10px] text-emerald-600">Legal Name</span>
+                    {gstStatus.legal_name}
+                  </span>
+                )}
+                {gstStatus.trade_name && (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#D4AF37]/10 text-[#2B3A4A] border border-[#D4AF37]/40"
+                    data-testid="register-trade-name-chip"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    <span className="uppercase tracking-wide text-[10px] text-[#b8912e]">Trade Name</span>
+                    {gstStatus.trade_name}
+                  </span>
+                )}
+              </div>
             )}
             {GST_REGEX.test((form.gst_number || '').toUpperCase()) && (
               <p
