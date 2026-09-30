@@ -269,6 +269,45 @@ export default function AdminRetailersPage() {
                 <MapPin size={14} />
                 <span>{retailer.city}, {retailer.state} - {retailer.pincode}</span>
               </p>
+              {retailer.kyc && (
+                <div
+                  className={`flex flex-wrap items-center gap-2 text-xs px-3 py-2 rounded-lg border ${
+                    retailer.kyc.complete
+                      ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/40'
+                      : retailer.kyc.days_left !== null && retailer.kyc.days_left <= 7
+                        ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/40'
+                        : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/40'
+                  }`}
+                  data-testid={`retailer-kyc-status-${retailer.retailer_id || retailer.id}`}
+                >
+                  <span className="flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300">
+                    <ShieldCheck size={13} />
+                    KYC Docs
+                  </span>
+                  <span
+                    data-testid={`retailer-kyc-gst-${retailer.retailer_id || retailer.id}`}
+                    className={`px-1.5 py-0.5 rounded ${retailer.kyc.gst_certificate ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}
+                    title={retailer.kyc.gst_certificate ? 'GST Certificate uploaded' : 'GST Certificate missing'}
+                  >
+                    GST Cert {retailer.kyc.gst_certificate ? '✓' : '✗'}
+                  </span>
+                  <span
+                    data-testid={`retailer-kyc-spoc-${retailer.retailer_id || retailer.id}`}
+                    className={`px-1.5 py-0.5 rounded ${retailer.kyc.spoc_aadhaar ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}
+                    title={retailer.kyc.spoc_aadhaar ? 'SPOC Aadhaar uploaded' : 'SPOC Aadhaar missing'}
+                  >
+                    SPOC Aadhaar {retailer.kyc.spoc_aadhaar ? '✓' : '✗'}
+                  </span>
+                  {!retailer.kyc.complete && retailer.kyc.days_left !== null && (
+                    <span
+                      data-testid={`retailer-kyc-days-left-${retailer.retailer_id || retailer.id}`}
+                      className={`ml-auto font-semibold ${retailer.kyc.days_left <= 0 ? 'text-red-600 dark:text-red-400' : retailer.kyc.days_left <= 7 ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}
+                    >
+                      {retailer.kyc.days_left > 0 ? `${retailer.kyc.days_left}d left` : 'Window passed'}
+                    </span>
+                  )}
+                </div>
+              )}
               {retailer.rewards && (
                 <div
                   className="flex items-center justify-between gap-2 text-sm px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40"
@@ -290,7 +329,7 @@ export default function AdminRetailersPage() {
               )}
             </div>
             
-            <div className="flex items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
               {retailer.status !== 'active' && (
                 <button
                   onClick={() => handleStatusChange(retailer.retailer_id || retailer.id, 'active')}
