@@ -7,6 +7,7 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field, EmailStr
 import logging
+import os
 import re
 import secrets
 import uuid
@@ -27,6 +28,15 @@ ALLOWED_CERT_MIME = {
     "image/webp": "webp",
 }
 MAX_CERT_BYTES = 8 * 1024 * 1024  # 8 MB
+
+
+def _gst_email_otp_required() -> bool:
+    """Enforce the IDSPay GST-email OTP at registration.
+
+    Defaults to OFF so onboarding keeps working until real IDSPay keys land;
+    flip IDSPAY_REQUIRE_GST_EMAIL_OTP=1 once the sandbox flow is confirmed.
+    """
+    return (os.environ.get("IDSPAY_REQUIRE_GST_EMAIL_OTP") or "").strip() == "1"
 
 
 class SendOtpRequest(BaseModel):
@@ -73,6 +83,141 @@ async def phone_verify_otp(data: VerifyOtpRequest):
     if not result.get("verified"):
         raise HTTPException(status_code=400, detail=result.get("error") or "Verification failed.")
     return {"verified": True}
+
+
+# ---------------------------------------------------------------------------
+# IDSPay GST-to-Contact + email-OTP ownership proof (Iteration 121)
+# IDSPay returns the GST-registered mobile/email; it has no OTP endpoint, so we
+# email our own OTP to the fetched address. Until IDSPay keys are supplied the
+# endpoints report `not_configured` honestly and never fake a verification.
+# ---------------------------------------------------------------------------
+
+class GstContactFetchRequest(BaseModel):
+    gstin: str = Field(min_length=15, max_length=15)
+
+
+class GstContactVerifyRequest(BaseModel):
+    challenge_id: str = Field(min_length=10, max_length=200)
+    code: str = Field(min_length=4, max_length=8)
+
+
+def _client_ip(request: Request) -> str:
+    fwd = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    return fwd or (request.client.host if request.client else "")
+
+
+@router.get("/gst-contact/config")
+async def gst_contact_config():
+    """Honest readiness report so the UI can show 'setup pending' instead of guessing."""
+    from services import idspay_gst_contacts as idspay
+    configured = idspay.is_configured()
+    return {
+        "provider": "idspay",
+        "configured": configured,
+        "environment": (os.environ.get("IDSPAY_ENV") or "").strip().lower() or None,
+        "required": _gst_email_otp_required(),
+        "ready": configured and bool((os.environ.get("OTP_PEPPER") or "").strip()),
+    }
+
+
+@router.post("/gst-contact/fetch")
+async def gst_contact_fetch(data: GstContactFetchRequest, request: Request):
+    """GSTIN -> IDSPay registered contact, then email an OTP to that address.
+
+    Never returns the full email: only a server-masked hint.
+    """
+    from services import idspay_gst_contacts as idspay
+    from services import gst_email_otp as otp
+
+    gst = (data.gstin or "").upper().strip()
+    if not GST_PATTERN.match(gst):
+        raise HTTPException(status_code=400, detail="Invalid GST number format")
+
+    result = await idspay.fetch_contacts(gst)
+    status = result.get("status")
+
+    if status == "not_configured":
+        raise HTTPException(
+            status_code=503,
+            detail="GST contact verification is not configured yet. Please continue with the standard form.",
+        )
+    if status == "invalid_gstin":
+        raise HTTPException(status_code=400, detail="Invalid GST number format")
+    if status == "failed":
+        raise HTTPException(
+            status_code=502 if result.get("provider_down") else 400,
+            detail=result.get("error") or "Could not fetch the contact details registered against this GSTIN.",
+        )
+
+    email = result.get("email")
+    mobile = result.get("mobile")
+    if not email:
+        # Masked/absent email => an OTP cannot be delivered. Do NOT fall back to
+        # a user-typed address; that would defeat the ownership proof.
+        return {
+            "status": "email_unavailable",
+            "email_masked": bool(result.get("email_masked")),
+            "mobile_hint": idspay.mask_mobile_hint(mobile) if mobile else None,
+            "action": "manual_business_verification",
+            "message": "The email registered against this GSTIN could not be read. Our team will verify your business manually.",
+        }
+
+    existing = await db.retailers.find_one({"gst_number": gst})
+    if existing and existing.get("status") != "deleted":
+        raise HTTPException(
+            status_code=409,
+            detail="An account already exists for this GSTIN. Please log in with your GSTIN.",
+        )
+
+    issued = await otp.issue_otp(gst, email, ip=_client_ip(request))
+    if not issued.get("ok"):
+        reason = issued.get("reason")
+        if reason == "cooldown":
+            raise HTTPException(
+                status_code=429,
+                detail=f"Please wait {issued.get('retry_after')}s before requesting another code.",
+            )
+        if reason == "rate_limited":
+            raise HTTPException(
+                status_code=429,
+                detail="Too many verification attempts for this GSTIN. Please try again later.",
+            )
+        raise HTTPException(
+            status_code=503,
+            detail="Could not email the verification code right now. Please try again.",
+        )
+
+    return {
+        "status": "otp_required",
+        "challenge_id": issued["challenge_id"],
+        "expires_in": issued["expires_in"],
+        "email_hint": idspay.mask_email_hint(email),
+        "mobile_hint": idspay.mask_mobile_hint(mobile) if mobile else None,
+        "mobile_masked": bool(result.get("mobile_masked")),
+    }
+
+
+@router.post("/gst-contact/verify-otp")
+async def gst_contact_verify_otp(data: GstContactVerifyRequest, request: Request):
+    """Consume the emailed code and hand back an opaque onboarding session."""
+    from services import gst_email_otp as otp
+    from services import idspay_gst_contacts as idspay
+
+    res = await otp.verify_otp(data.challenge_id, data.code, ip=_client_ip(request))
+    if not res.get("ok"):
+        if res.get("reason") == "too_many_attempts":
+            raise HTTPException(status_code=429, detail="Too many incorrect attempts. Please request a new code.")
+        raise HTTPException(status_code=400, detail="Invalid or expired code.")
+
+    contact = await idspay.fetch_contacts(res["gstin"])
+    return {
+        "verified": True,
+        "onboarding_session": res["onboarding_session"],
+        "expires_in": res["expires_in"],
+        "gstin": res["gstin"],
+        "email_hint": idspay.mask_email_hint(res["email"]),
+        "mobile": contact.get("mobile") if contact.get("status") == "ok" else None,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -821,6 +966,7 @@ async def retailer_register(
     pincode: Optional[str] = Form(None, min_length=6, max_length=6),
     alternate_phone: Optional[str] = Form(None, max_length=20),
     alternate_email: Optional[str] = Form(None, max_length=200),
+    onboarding_session: Optional[str] = Form(None, max_length=200),
     gst_certificate: UploadFile = File(...),
 ):
     """Self-serve retailer registration.
@@ -838,11 +984,44 @@ async def retailer_register(
     if not GST_PATTERN.match(gst):
         raise HTTPException(status_code=400, detail="Invalid GST number format")
 
+    # ---- GST-registered email ownership (IDSPay contact + our email OTP) ----
+    # The session is authoritative: identity comes from the server-side record,
+    # never from the submitted email/GSTIN fields.
+    from services import gst_email_otp as _gst_otp
+    gst_email_verified = False
+    verified_gst_email: Optional[str] = None
+    if onboarding_session:
+        sess = await _gst_otp.peek_session(onboarding_session)
+        if not sess:
+            raise HTTPException(
+                status_code=400,
+                detail="Your email verification has expired. Please verify your GST-registered email again.",
+            )
+        if (sess.get("gstin") or "").upper() != gst:
+            raise HTTPException(
+                status_code=400,
+                detail="The verified email belongs to a different GSTIN. Please restart verification.",
+            )
+        gst_email_verified = True
+        verified_gst_email = (sess.get("verified_email") or "").lower()
+    elif _gst_email_otp_required():
+        raise HTTPException(
+            status_code=400,
+            detail="Please verify the email registered against your GSTIN before registering.",
+        )
+
+    # Identity is the verified address; anything typed becomes an alternate.
+    if verified_gst_email:
+        typed = (str(email) or "").lower()
+        if typed and typed != verified_gst_email and not alternate_email:
+            alternate_email = typed
+        email = verified_gst_email  # type: ignore[assignment]
+
     # ---- Phone ownership (OTP) required for Indian (+91) numbers ----
     cc_check = (country_code or "+91").strip()
     if not cc_check.startswith("+"):
         cc_check = f"+{cc_check}"
-    if cc_check == "+91":
+    if cc_check == "+91" and not gst_email_verified:
         from services.phone_otp import to_e164, is_phone_verified
         if not await is_phone_verified(to_e164(cc_check, phone)):
             raise HTTPException(
@@ -967,8 +1146,15 @@ async def retailer_register(
         "password_set_at": now,
         "created_at": now,
         "self_registered": True,
+        "gst_email_verified": gst_email_verified,
+        "gst_email_verified_at": now if gst_email_verified else None,
+        "gst_email_verification_provider": "idspay" if gst_email_verified else None,
     }
     await db.retailers.insert_one(retailer)
+
+    # Burn the onboarding session so one verification cannot register twice.
+    if onboarding_session:
+        await _gst_otp.claim_session(onboarding_session)
 
     # ---- Best-effort Supabase mirror (never blocks, strips password) ----
     try:

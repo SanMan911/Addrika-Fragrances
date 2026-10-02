@@ -128,3 +128,51 @@ under RLS:
 3. Deep links reset to `/` after a hard reload — navigate by tapping the bottom tabs instead.
 4. Payment screen: `pay-provider-razorpay` / `pay-provider-pinelabs` / `pay-now-btn`. Both providers are
    deliberately "Setup pending" (placeholder webhook secrets) so no real payment link can be created.
+
+---
+
+## ITER121 — IDSPay GST-to-Contact + GST-email OTP (keys NOT yet supplied)
+
+IDSPay is **wired but not configured** — `backend/.env` holds `REPLACE_WITH_*` placeholders, which the code
+treats exactly like "unset". `GET /api/retailer-auth/gst-contact/config` therefore returns
+`{"configured": false, "required": false, "ready": false}` and `/gst-contact/fetch` returns **503**. This is
+the intended state, not a bug. Nothing fabricates a verified result.
+
+### Env keys involved
+- `IDSPAY_ENV` = `uat` | `prod`
+- `IDSPAY_API_ID`, `IDSPAY_API_KEY`, `IDSPAY_TOKEN_ID` — placeholders today
+- `IDSPAY_REQUIRE_GST_EMAIL_OTP` = `0` (enforcement switch; flip to `1` only once a real UAT probe shows
+  IDSPay returns UNMASKED emails)
+- `OTP_PEPPER` — HMAC pepper for OTP digests. **Required**; the OTP service fails closed without it.
+
+### Testing the CONFIGURED path without real keys
+IDSPay has no sandbox we can reach, so simulate it:
+- **Backend**: `python /app/backend/tests/test_iter121_idspay_gst_otp.py` — sets fake creds, monkeypatches
+  `httpx.AsyncClient.post`, captures the OTP by patching `services.email_service.send_email`, and asserts
+  32 behaviours (mask detection, nested-status handling, cache, OTP lifecycle, session single-use). All pass.
+- **Frontend**: mock the 3 endpoints with Playwright `page.route`:
+  `**/api/retailer-auth/gst-contact/config` → `{"configured":true,"required":true,"ready":true}`,
+  `.../fetch` → `{"status":"otp_required","challenge_id":"...","email_hint":"ow*****@realbiz.com"}`,
+  `.../verify-otp` → `{"verified":true,"onboarding_session":"...","mobile":"919876543210"}`.
+
+### Register page testids (new)
+`register-gst-contact-block`, `register-gst-contact-pending` (shown while keys absent),
+`register-gst-contact-send`, `register-gst-otp-row`, `register-gst-otp-code`, `register-gst-otp-verify`,
+`register-gst-email-verified`, `register-gst-email-unavailable`.
+
+### Important behaviours to preserve when testing registration
+- `POST /api/retailer-auth/register` accepts an optional `onboarding_session`. When present the server
+  **overrides** the submitted email with the verified one and **skips** the SMS phone OTP.
+- A session for a different GSTIN → 400. A bogus/expired session → 400. A session can be consumed **once**.
+- With no session and IDSPay off, the pre-existing phone-OTP requirement still applies (400 without it) —
+  `ALLOW_DEV_OTP=1` in this env, so `/phone/send-otp` returns the dev code in the response.
+
+### Admin KYC column (also iter121)
+`/admin/retailers` testids: `retailer-kyc-status-<id>`, `retailer-kyc-gst-<id>`, `retailer-kyc-spoc-<id>`,
+`retailer-kyc-days-left-<id>`. Backed by the `kyc` block now embedded in `GET /api/retailers/admin/list`.
+
+### KYC reminder cron (also iter121)
+`POST /api/cron/kyc-reminders` with `Authorization: Bearer $WEBHOOK_CRON_SECRET` (401 without). Emails
+retailers at day 7/15/29 of the 30-day window. Milestones persist in `retailers.kyc_reminders_sent`, so
+reruns are idempotent — **delete that field to re-test a milestone**. Test accounts
+(`is_test_account: true`) are skipped by design.
