@@ -1,0 +1,35 @@
+{
+  "summary": "Iter121c — live IDSPay PRODUCTION keys wired (APID3760), entered-vs-GST-record matching with BOTH-mismatch deny rule, mismatch audit trail to admin dashboard + alert email. Self-tested: 45/45 backend checks, Playwright verified deny/partial-match/verified UI states and the admin mismatch panel. LIVE PROBE: IDSPay returns 422 'Insufficient balance in api user wallet' — keys authenticate, wallet is empty.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_iter121_idspay_gst_otp.py"],
+  "action_items": [
+    "USER (BLOCKER): top up the IDSPay wallet at apiuser.idspay.in. A real lookup returns 422 'Insufficient balance in api user wallet.' Keys are valid — this is the only thing stopping a live GSTIN lookup.",
+    "USER: token_id / IP whitelisting — this pod's egress IP is 34.170.12.145 but it is EPHEMERAL (changes on pod restart) and Render production has a different, also-dynamic egress IP. Ask IDSPay for an IP-independent token or provision a fixed-IP egress proxy before relying on whitelisting.",
+    "USER DECISION after a funded lookup: if IDSPay returns UNMASKED emails, set IDSPAY_REQUIRE_GST_EMAIL_OTP=1 to make GST-email OTP mandatory at registration."
+  ],
+  "critical_code_review_comments": [
+    "LIVE FINDING: IDSPay returns `error` as a STRING for account-level failures (422 wallet) but as an OBJECT for per-request validation errors (per the PDF). The parser handles both — do not 'simplify' it.",
+    "Account-level errors (wallet/key/whitelist/token/subscription/expired) are classified account_issue=True and surfaced as 503 with a neutral message, so OUR billing problem can never deny a genuine retailer nor masquerade as 'invalid GSTIN'.",
+    "Deny rule is intentionally asymmetric: only UNMASKED values yield match/mismatch. A masked or absent GST value is 'indeterminate' and can NEVER contribute to a denial. This matters because the IDSPay doc's own sample response is masked.",
+    "token_id is OPTIONAL in _credentials() — the live probe proved api_id+api_key authenticate alone (blank token_id still reached the wallet check, not an auth error). It is still forwarded when set.",
+    "Mismatch metadata is carried challenge -> session -> retailer doc; the register endpoint derives email identity from the server-side session, so a client cannot fake a 'matched' verdict.",
+    "The register GST-contact block had to MOVE from Step 1 to Step 2 because matching requires the typed email/mobile. The CTA is disabled until both fields are filled."
+  ],
+  "updated_files": [
+    "/app/backend/services/idspay_gst_contacts.py (token_id optional, account_issue classification, string/object error handling, compare_contacts)",
+    "/app/backend/services/gst_email_otp.py (meta carried through challenge -> session)",
+    "/app/backend/routers/retailer_auth.py (matching + deny in /gst-contact/fetch, mismatch persisted on register, admin alert email)",
+    "/app/frontend-next/app/retailer/register/page.js (block moved to Step 2, sends email+phone, deny + mismatch states)",
+    "/app/frontend-next/app/admin/retailers/page.js (GST contact mismatch panel)",
+    "/app/backend/.env (live IDSPAY_* keys, IDSPAY_TOKEN_ID blank)",
+    "/app/backend/tests/test_iter121_idspay_gst_otp.py (45 checks)"
+  ],
+  "success_rate": {"backend": "100% (45/45 self-tested)", "frontend": "100% (self-tested)"},
+  "test_credentials": "See /app/memory/test_credentials.md. Admin contact.us@centraders.com / PIN 050499 + OTP from Mongo admin_2fa_tokens. Retailer GSTIN 07AAAAA0000A1Z5 / Test@12345.",
+  "seed_data_creation": "RTL_MISMATCH_DEMO was seeded to verify the admin mismatch panel and has been DELETED. gst_otp_challenges, gst_onboarding_sessions, idspay_contact_cache and gst_contact_denials all emptied.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "IDSPay is configured with LIVE PRODUCTION keys but the wallet is EMPTY, so every real lookup returns 422 and /gst-contact/fetch answers 503 by design. Do NOT treat that 503 as a bug, and do NOT hammer the live endpoint — it is pay-per-use once funded. Test the configured path by monkeypatching httpx (see tests/test_iter121_idspay_gst_otp.py) or Playwright page.route. Full endpoint/testid inventory and the matching rule are documented in /app/memory/test_credentials.md under 'ITER121'.",
+  "rca of the issue": "N/A — no product failures. One environmental finding: the IDSPay wallet has zero balance, which is a user account action, not a code defect."
+}

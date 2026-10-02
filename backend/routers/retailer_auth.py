@@ -94,6 +94,9 @@ async def phone_verify_otp(data: VerifyOtpRequest):
 
 class GstContactFetchRequest(BaseModel):
     gstin: str = Field(min_length=15, max_length=15)
+    email: Optional[str] = Field(default=None, max_length=200)
+    phone: Optional[str] = Field(default=None, max_length=20)
+    country_code: str = Field(default="+91")
 
 
 class GstContactVerifyRequest(BaseModel):
@@ -122,9 +125,14 @@ async def gst_contact_config():
 
 @router.post("/gst-contact/fetch")
 async def gst_contact_fetch(data: GstContactFetchRequest, request: Request):
-    """GSTIN -> IDSPay registered contact, then email an OTP to that address.
+    """Match the applicant's typed mobile/email against the GST record, then OTP.
 
-    Never returns the full email: only a server-masked hint.
+    Product rule: if BOTH the typed mobile AND the typed email contradict the
+    GST record, registration is denied. If at least one matches (or cannot be
+    compared), we email an OTP to the GST-registered address. Any mismatch is
+    recorded for admin review.
+
+    Never returns the full GST email/mobile — only server-masked hints.
     """
     from services import idspay_gst_contacts as idspay
     from services import gst_email_otp as otp
@@ -144,9 +152,43 @@ async def gst_contact_fetch(data: GstContactFetchRequest, request: Request):
     if status == "invalid_gstin":
         raise HTTPException(status_code=400, detail="Invalid GST number format")
     if status == "failed":
+        if result.get("account_issue"):
+            # Our IDSPay account problem (wallet/key/IP) — never blame the retailer.
+            logger.error(f"idspay account issue during onboarding: {result.get('error')}")
+            raise HTTPException(
+                status_code=503,
+                detail="GST contact verification is temporarily unavailable. Please continue — our team will verify your business.",
+            )
         raise HTTPException(
             status_code=502 if result.get("provider_down") else 400,
             detail=result.get("error") or "Could not fetch the contact details registered against this GSTIN.",
+        )
+
+    existing = await db.retailers.find_one({"gst_number": gst})
+    if existing and existing.get("status") != "deleted":
+        raise HTTPException(
+            status_code=409,
+            detail="An account already exists for this GSTIN. Please log in with your GSTIN.",
+        )
+
+    # ---- Compare what they typed against the GST record ----
+    verdict = idspay.compare_contacts(data.email, data.phone, result)
+    if verdict["deny"]:
+        logger.warning(f"idspay: registration DENIED for {gst} — both mobile and email contradict the GST record")
+        await db.gst_contact_denials.insert_one({
+            "gstin": gst,
+            "entered_email": verdict["entered_email"],
+            "entered_mobile": verdict["entered_mobile"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "ip": _client_ip(request),
+        })
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Neither the mobile number nor the email you entered matches the contact details "
+                "registered against this GSTIN. Please use your GST-registered details, or contact "
+                "AAROHMM if your GST records are out of date."
+            ),
         )
 
     email = result.get("email")
@@ -162,14 +204,7 @@ async def gst_contact_fetch(data: GstContactFetchRequest, request: Request):
             "message": "The email registered against this GSTIN could not be read. Our team will verify your business manually.",
         }
 
-    existing = await db.retailers.find_one({"gst_number": gst})
-    if existing and existing.get("status") != "deleted":
-        raise HTTPException(
-            status_code=409,
-            detail="An account already exists for this GSTIN. Please log in with your GSTIN.",
-        )
-
-    issued = await otp.issue_otp(gst, email, ip=_client_ip(request))
+    issued = await otp.issue_otp(gst, email, ip=_client_ip(request), meta=verdict)
     if not issued.get("ok"):
         reason = issued.get("reason")
         if reason == "cooldown":
@@ -194,6 +229,16 @@ async def gst_contact_fetch(data: GstContactFetchRequest, request: Request):
         "email_hint": idspay.mask_email_hint(email),
         "mobile_hint": idspay.mask_mobile_hint(mobile) if mobile else None,
         "mobile_masked": bool(result.get("mobile_masked")),
+        # Tell the applicant which of their entries differs, without leaking the record.
+        "email_matches": verdict["email"] == idspay.MATCH,
+        "mobile_matches": verdict["mobile"] == idspay.MATCH,
+        "mismatch": verdict["any_mismatch"],
+        "message": (
+            "A code has been sent to the email registered against your GSTIN."
+            if not verdict["any_mismatch"] else
+            "Some details you entered differ from your GST records. A code has been sent to the "
+            "email registered against your GSTIN — our team will review the difference."
+        ),
     }
 
 
@@ -210,6 +255,7 @@ async def gst_contact_verify_otp(data: GstContactVerifyRequest, request: Request
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
 
     contact = await idspay.fetch_contacts(res["gstin"])
+    meta = res.get("meta") or {}
     return {
         "verified": True,
         "onboarding_session": res["onboarding_session"],
@@ -217,6 +263,9 @@ async def gst_contact_verify_otp(data: GstContactVerifyRequest, request: Request
         "gstin": res["gstin"],
         "email_hint": idspay.mask_email_hint(res["email"]),
         "mobile": contact.get("mobile") if contact.get("status") == "ok" else None,
+        "mismatch": bool(meta.get("any_mismatch")),
+        "email_matches": meta.get("email") == idspay.MATCH,
+        "mobile_matches": meta.get("mobile") == idspay.MATCH,
     }
 
 
@@ -990,6 +1039,7 @@ async def retailer_register(
     from services import gst_email_otp as _gst_otp
     gst_email_verified = False
     verified_gst_email: Optional[str] = None
+    gst_contact_meta: dict = {}
     if onboarding_session:
         sess = await _gst_otp.peek_session(onboarding_session)
         if not sess:
@@ -1004,6 +1054,7 @@ async def retailer_register(
             )
         gst_email_verified = True
         verified_gst_email = (sess.get("verified_email") or "").lower()
+        gst_contact_meta = sess.get("meta") or {}
     elif _gst_email_otp_required():
         raise HTTPException(
             status_code=400,
@@ -1149,12 +1200,67 @@ async def retailer_register(
         "gst_email_verified": gst_email_verified,
         "gst_email_verified_at": now if gst_email_verified else None,
         "gst_email_verification_provider": "idspay" if gst_email_verified else None,
+        # Admin review trail: what the applicant typed vs the GST record.
+        "gst_contact_mismatch": bool(gst_contact_meta.get("any_mismatch")),
+        "gst_contact_check": {
+            "email_verdict": gst_contact_meta.get("email"),
+            "mobile_verdict": gst_contact_meta.get("mobile"),
+            "entered_email": gst_contact_meta.get("entered_email"),
+            "entered_mobile": gst_contact_meta.get("entered_mobile"),
+            "gst_email": gst_contact_meta.get("gst_email"),
+            "gst_mobile": gst_contact_meta.get("gst_mobile"),
+            "checked_at": now,
+            "provider": "idspay",
+        } if gst_contact_meta else None,
+        "gst_contact_mismatch_reviewed": False if gst_contact_meta.get("any_mismatch") else None,
     }
     await db.retailers.insert_one(retailer)
 
     # Burn the onboarding session so one verification cannot register twice.
     if onboarding_session:
         await _gst_otp.claim_session(onboarding_session)
+
+    # ---- Best-effort alert: typed contact differs from the GST record ----
+    if gst_contact_meta.get("any_mismatch"):
+        try:
+            import os as _os2
+            from services.email_service import send_email as _send
+
+            chk = retailer["gst_contact_check"] or {}
+            admin_to = _os2.environ.get("ADMIN_EMAIL", "contact.us@centraders.com")
+
+            def _row(label, entered, record, verdict):
+                colour = "#c0392b" if verdict == "mismatch" else "#16a34a" if verdict == "match" else "#b8860b"
+                tag = {"mismatch": "DIFFERENT", "match": "matches", "indeterminate": "could not compare"}.get(verdict, verdict)
+                return (
+                    f"<tr><td style='padding:6px 10px;border:1px solid #e5e0d8'><b>{label}</b></td>"
+                    f"<td style='padding:6px 10px;border:1px solid #e5e0d8'>{entered or '—'}</td>"
+                    f"<td style='padding:6px 10px;border:1px solid #e5e0d8'>{record or '—'}</td>"
+                    f"<td style='padding:6px 10px;border:1px solid #e5e0d8;color:{colour};font-weight:700'>{tag}</td></tr>"
+                )
+
+            html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:640px">
+              <h2 style="color:#b8860b">⚠ GST contact mismatch on a new registration</h2>
+              <p><b>{retailer['business_name']}</b> ({gst}) completed email-OTP verification, but some
+              details they entered differ from the contact on record against their GSTIN.</p>
+              <table style="border-collapse:collapse;font-size:13px">
+                <tr style="background:#f5f0e8">
+                  <th style="padding:6px 10px;border:1px solid #e5e0d8;text-align:left">Field</th>
+                  <th style="padding:6px 10px;border:1px solid #e5e0d8;text-align:left">They entered</th>
+                  <th style="padding:6px 10px;border:1px solid #e5e0d8;text-align:left">GST record (IDSPay)</th>
+                  <th style="padding:6px 10px;border:1px solid #e5e0d8;text-align:left">Result</th>
+                </tr>
+                {_row('Mobile', chk.get('entered_mobile'), chk.get('gst_mobile'), chk.get('mobile_verdict'))}
+                {_row('Email', chk.get('entered_email'), chk.get('gst_email'), chk.get('email_verdict'))}
+              </table>
+              <p style="color:#6b6357;font-size:12px">They proved ownership of the GST-registered email via OTP,
+              so registration was allowed. Review it under Retailers in the admin panel.</p>
+            </div>
+            """
+            await _send(admin_to, f"⚠ GST contact mismatch — {retailer['business_name']} ({gst})", html)
+        except Exception as _e:
+            logger.warning(f"mismatch alert email failed: {_e}")
 
     # ---- Best-effort Supabase mirror (never blocks, strips password) ----
     try:
