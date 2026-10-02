@@ -1,0 +1,39 @@
+{
+  "summary": "Iter121 — (A) KYC email reminders at day 7/15/29 + admin KYC status column; (B) IDSPay GST-to-Contact wiring with placeholder keys + self-hosted email-OTP ownership chain. Self-tested by main agent: 32/32 IDSPay+OTP unit/integration checks, cron auth + send-chain simulation, register session-binding tamper tests, Playwright desktop+mobile UI verification. No testing_agent run this iteration.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter121_idspay_gst_otp.py"
+  ],
+  "action_items": [
+    "USER: supply real IDSPay api_id / api_key / token_id (UAT first) -> replace REPLACE_WITH_* in backend/.env, restart backend, confirm GET /api/retailer-auth/gst-contact/config returns configured:true, then probe one real GSTIN on UAT.",
+    "USER DECISION after the UAT probe: if IDSPay returns UNMASKED emails, set IDSPAY_REQUIRE_GST_EMAIL_OTP=1 to make GST-email OTP mandatory at registration. If it returns MASKED values, the flow correctly degrades to manual verification and must stay optional."
+  ],
+  "critical_code_review_comments": [
+    "idspay_gst_contacts._credentials() treats unreplaced REPLACE_WITH_* / your_ / xxx placeholders as UNSET, so a half-configured env can never produce a fake 'verified' state.",
+    "Success requires BOTH http is_success AND nested status.code==200 AND status.type=='success' — the doc's error sample proves HTTP and nested codes can disagree.",
+    "Mask detection requires a run of 2+ redaction chars or an explicit placeholder word, so legitimate addresses containing a single 'x' (max@example.com, xavier@foo.com) are not rejected. Verified by unit test.",
+    "OTP codes are never stored: only HMAC-SHA256(OTP_PEPPER, challenge_id:code). Verified the raw code does not appear anywhere in the challenge document.",
+    "Registration derives email identity from the server-side onboarding session, not the submitted field; GSTIN mismatch and bogus sessions are rejected (400). Session is claimed atomically so one verification cannot register twice.",
+    "Mongo returns NAIVE datetimes — _aware() coercion was required in gst_email_otp. This bug was caught during testing and fixed; watch for it in any new datetime comparison read back from Mongo.",
+    "IDSPay failures are cached only 120s (never 30 days) so a transient outage cannot poison the per-GSTIN cache; successes cache 30 days to protect the pay-per-use wallet."
+  ],
+  "updated_files": [
+    "/app/backend/services/idspay_gst_contacts.py (new)",
+    "/app/backend/services/gst_email_otp.py (new)",
+    "/app/backend/routers/retailer_auth.py (gst-contact endpoints + register session binding)",
+    "/app/backend/routers/cron_reminders.py (_kyc_reminders + /cron/kyc-reminders)",
+    "/app/backend/routers/retailers.py (admin/list now embeds kyc)",
+    "/app/frontend-next/app/admin/retailers/page.js (KYC column + flex-wrap fix)",
+    "/app/frontend-next/app/retailer/register/page.js (GST email OTP block, field locking, min-w-0 fix)",
+    "/app/.emergent/crons.yml (kyc-reminders daily 03:30 UTC)",
+    "/app/backend/.env (IDSPAY_* placeholders, OTP_PEPPER)"
+  ],
+  "success_rate": {"backend": "100% (self-tested)", "frontend": "100% (self-tested)"},
+  "test_credentials": "See /app/memory/test_credentials.md. Admin contact.us@centraders.com PIN 050499 + OTP from Mongo admin_2fa_tokens. Retailer GSTIN 07AAAAA0000A1Z5 / Test@12345. WEBHOOK_CRON_SECRET from backend/.env.",
+  "seed_data_creation": "All test artifacts cleaned up: gst_otp_challenges, gst_onboarding_sessions and idspay_contact_cache emptied; KYC-reminder fixture retailer RTL_KYC_REMINDER_TEST deleted; no tamper-test retailers were created (all were rejected by design).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "IDSPay is wired but NOT configured (placeholder keys), which is the intended state. Endpoints:\n- GET /api/retailer-auth/gst-contact/config -> {provider, configured:false, environment:'uat', required:false, ready:false}\n- POST /api/retailer-auth/gst-contact/fetch {gstin} -> 503 while unconfigured; 400 on bad GSTIN; when configured: 200 {status:'otp_required', challenge_id, email_hint, mobile_hint} or 200 {status:'email_unavailable'} when IDSPay returns a masked email; 409 if a retailer already exists for that GSTIN; 429 on cooldown/rate limit.\n- POST /api/retailer-auth/gst-contact/verify-otp {challenge_id, code} -> 200 {onboarding_session, email_hint, mobile} or 400 invalid / 429 after 5 wrong attempts.\n- POST /api/retailer-auth/register now accepts optional onboarding_session; when present it OVERRIDES the submitted email and skips the SMS phone OTP.\nTo test the configured path WITHOUT real keys, monkeypatch httpx.AsyncClient.post as done in tests/test_iter121_idspay_gst_otp.py, or mock the 3 endpoints with Playwright page.route (frontend testids: register-gst-contact-block, register-gst-contact-pending, register-gst-contact-send, register-gst-otp-row, register-gst-otp-code, register-gst-otp-verify, register-gst-email-verified, register-gst-email-unavailable).\nAdmin KYC column testids on /admin/retailers: retailer-kyc-status-<id>, retailer-kyc-gst-<id>, retailer-kyc-spoc-<id>, retailer-kyc-days-left-<id>.\nKYC reminder cron: POST /api/cron/kyc-reminders with Bearer WEBHOOK_CRON_SECRET (401 without). Milestones persist in retailers.kyc_reminders_sent so reruns are idempotent.",
+  "rca of the issue": "One real bug found and fixed during testing: gst_email_otp compared a timezone-aware now() against the naive datetime Mongo returns for expires_at/created_at, raising TypeError on every verify. Fixed with an _aware() coercion helper on all values read back from Mongo."
+}

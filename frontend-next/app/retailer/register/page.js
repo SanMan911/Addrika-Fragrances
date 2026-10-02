@@ -31,6 +31,13 @@ export default function RetailerRegisterPage() {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [otpDevHint, setOtpDevHint] = useState('');
+  // IDSPay GST-registered email ownership proof
+  const [idspay, setIdspay] = useState({ configured: false, required: false, ready: false });
+  const [gstContact, setGstContact] = useState({ state: 'idle' });
+  const [gstOtpCode, setGstOtpCode] = useState('');
+  const [gstEmailVerified, setGstEmailVerified] = useState(false);
+  const [onboardingSession, setOnboardingSession] = useState('');
+  const [gstContactBusy, setGstContactBusy] = useState(false);
   const [form, setForm] = useState({
     business_name: '',
     contact_name: '',
@@ -104,11 +111,99 @@ export default function RetailerRegisterPage() {
   // Reset phone verification whenever the number or country code changes
   const requiresOtp = form.country_code === '+91';
   useEffect(() => {
+    if (gstEmailVerified) return; // GST-registered contact is authoritative
     setPhoneVerified(false);
     setOtpSent(false);
     setOtpCode('');
     setOtpDevHint('');
-  }, [form.phone, form.country_code]);
+  }, [form.phone, form.country_code, gstEmailVerified]);
+
+  // Is the IDSPay GST-contact provider wired on this backend?
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/retailer-auth/gst-contact/config`);
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok) {
+          setIdspay({
+            configured: Boolean(data.configured),
+            required: Boolean(data.required),
+            ready: Boolean(data.ready),
+          });
+        }
+      } catch { /* leave as not configured */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Any GSTIN change invalidates a previously verified GST email
+  useEffect(() => {
+    setGstContact({ state: 'idle' });
+    setGstOtpCode('');
+    setGstEmailVerified(false);
+    setOnboardingSession('');
+  }, [form.gst_number]);
+
+  const fetchGstContact = async () => {
+    setGstContactBusy(true);
+    try {
+      const res = await fetch(`${API_URL}/api/retailer-auth/gst-contact/fetch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gstin: (form.gst_number || '').toUpperCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not fetch GST contact details');
+      if (data.status === 'email_unavailable') {
+        setGstContact({ state: 'email_unavailable', message: data.message, mobile_hint: data.mobile_hint });
+        toast.info('No readable email on this GSTIN — our team will verify manually.');
+        return;
+      }
+      setGstContact({
+        state: 'otp_sent',
+        challenge_id: data.challenge_id,
+        email_hint: data.email_hint,
+        mobile_hint: data.mobile_hint,
+      });
+      toast.success(`Code sent to your GST-registered email ${data.email_hint}`);
+    } catch (err) {
+      toast.error(err.message || 'Could not fetch GST contact details');
+    } finally {
+      setGstContactBusy(false);
+    }
+  };
+
+  const verifyGstEmailOtp = async () => {
+    if ((gstOtpCode || '').length < 4) {
+      toast.error('Enter the code emailed to your GST-registered address');
+      return;
+    }
+    setGstContactBusy(true);
+    try {
+      const res = await fetch(`${API_URL}/api/retailer-auth/gst-contact/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challenge_id: gstContact.challenge_id, code: gstOtpCode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Verification failed');
+      setGstEmailVerified(true);
+      setOnboardingSession(data.onboarding_session);
+      setGstContact((s) => ({ ...s, state: 'verified', email_hint: data.email_hint }));
+      // The GST-registered mobile, when IDSPay returns it unmasked, is authoritative.
+      if (data.mobile) {
+        const digits = String(data.mobile).replace(/\D/g, '').slice(-10);
+        setForm((f) => ({ ...f, phone: digits }));
+        setPhoneVerified(true);
+      }
+      toast.success('GST-registered email verified ✓');
+    } catch (err) {
+      toast.error(err.message || 'Verification failed');
+    } finally {
+      setGstContactBusy(false);
+    }
+  };
 
   const sendOtp = async () => {
     const digits = (form.phone || '').replace(/\D/g, '');
@@ -197,8 +292,12 @@ export default function RetailerRegisterPage() {
       toast.error('Please fill business, contact, email and phone');
       return;
     }
-    if (requiresOtp && !phoneVerified) {
+    if (requiresOtp && !phoneVerified && !gstEmailVerified) {
       toast.error('Please verify your phone number via the SMS OTP first');
+      return;
+    }
+    if (idspay.required && !gstEmailVerified) {
+      toast.error('Please verify the email registered against your GSTIN first');
       return;
     }
     if (form.password.length < 8) {
@@ -230,6 +329,7 @@ export default function RetailerRegisterPage() {
       if (form.pincode) fd.append('pincode', form.pincode);
       if (form.alternate_phone) fd.append('alternate_phone', form.alternate_phone);
       if (form.alternate_email) fd.append('alternate_email', lowerEmail(form.alternate_email));
+      if (onboardingSession) fd.append('onboarding_session', onboardingSession);
       fd.append('gst_certificate', certFile);
 
       const res = await fetch(`${API_URL}/api/retailer-auth/register`, {
@@ -354,6 +454,88 @@ export default function RetailerRegisterPage() {
                 ✗ Could not verify this GSTIN with GSTN records. Please double-check the number.
               </p>
             )}
+
+            {/* GST-registered email ownership proof (IDSPay contact + emailed OTP) */}
+            {GST_REGEX.test((form.gst_number || '').toUpperCase()) && (
+              <div
+                className="mt-3 rounded-lg border border-[#2B3A4A]/20 bg-white/70 p-3"
+                data-testid="register-gst-contact-block"
+              >
+                {!idspay.configured ? (
+                  <p className="text-xs text-gray-500" data-testid="register-gst-contact-pending">
+                    GST-registered email verification · <span className="font-semibold text-amber-700">Setup pending</span> —
+                    continue with the form below; we verify your business manually for now.
+                  </p>
+                ) : gstEmailVerified ? (
+                  <p
+                    className="flex items-center gap-2 text-sm font-medium text-emerald-700"
+                    data-testid="register-gst-email-verified"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    GST-registered email verified · <span className="font-mono">{gstContact.email_hint}</span>
+                  </p>
+                ) : gstContact.state === 'email_unavailable' ? (
+                  <p className="text-xs text-amber-700" data-testid="register-gst-email-unavailable">
+                    ⚠ {gstContact.message || 'The email registered against this GSTIN could not be read.'}
+                    {' '}You can still submit — our team will verify your business manually.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-[#2B3A4A] uppercase tracking-wider">
+                        Verify GST email {idspay.required && <span className="text-red-600">*</span>}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={fetchGstContact}
+                        disabled={gstContactBusy}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#2B3A4A] text-white hover:bg-[#1a252f] disabled:opacity-50 transition"
+                        data-testid="register-gst-contact-send"
+                      >
+                        {gstContactBusy
+                          ? 'Working…'
+                          : gstContact.state === 'otp_sent'
+                            ? 'Resend code'
+                            : 'Fetch & email code'}
+                      </button>
+                    </div>
+                    {gstContact.state === 'otp_sent' ? (
+                      <>
+                        <div className="flex gap-2" data-testid="register-gst-otp-row">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="Enter 6-digit code"
+                            value={gstOtpCode}
+                            onChange={(e) => setGstOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] tracking-widest font-mono focus:border-[#D4AF37] outline-none"
+                            data-testid="register-gst-otp-code"
+                          />
+                          <button
+                            type="button"
+                            onClick={verifyGstEmailOtp}
+                            disabled={gstContactBusy || gstOtpCode.length < 4}
+                            className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#D4AF37] text-white hover:opacity-90 disabled:opacity-50 transition"
+                            data-testid="register-gst-otp-verify"
+                          >
+                            {gstContactBusy ? 'Verifying…' : 'Verify'}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Code emailed to <span className="font-mono">{gstContact.email_hint}</span> — the address on
+                          record against your GSTIN. It expires in 10 minutes.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-500">
+                        We fetch the email registered against your GSTIN and send a code to it — proof you own the
+                        business. No typing needed.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Step 2 — Details */}
@@ -389,9 +571,11 @@ export default function RetailerRegisterPage() {
               <input
                 type="email"
                 placeholder="Email*"
-                value={form.email}
+                value={gstEmailVerified ? (gstContact.email_hint || form.email) : form.email}
                 onChange={(e) => setForm({ ...form, email: lowerEmail(e.target.value) })}
-                className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none lowercase"
+                readOnly={gstEmailVerified}
+                title={gstEmailVerified ? 'Verified from your GSTIN records — locked' : undefined}
+                className={`px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none lowercase ${gstEmailVerified ? 'bg-gray-100 text-gray-600 cursor-not-allowed font-mono' : ''}`}
                 data-testid="register-email"
               />
               <div className="flex">
@@ -410,14 +594,20 @@ export default function RetailerRegisterPage() {
                   placeholder="Phone*"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 15) })}
-                  className="flex-1 px-3 py-2 rounded-r-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none"
+                  readOnly={gstEmailVerified && phoneVerified}
+                  title={gstEmailVerified && phoneVerified ? 'From your GSTIN records — locked' : undefined}
+                  className={`flex-1 min-w-0 px-3 py-2 rounded-r-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none ${gstEmailVerified && phoneVerified ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : ''}`}
                   data-testid="register-phone"
                 />
               </div>
 
               {/* Inline phone OTP verification (mandatory for +91) */}
               <div className="sm:col-span-2 rounded-lg p-3 border border-[#D4AF37]/40 bg-white/60" data-testid="register-otp-block">
-                {phoneVerified ? (
+                {gstEmailVerified ? (
+                  <p className="flex items-center gap-2 text-sm font-medium text-emerald-700" data-testid="register-phone-verified">
+                    <CheckCircle2 className="w-4 h-4" /> Verified via your GST-registered contact — no SMS needed
+                  </p>
+                ) : phoneVerified ? (
                   <p className="flex items-center gap-2 text-sm font-medium text-emerald-700" data-testid="register-phone-verified">
                     <CheckCircle2 className="w-4 h-4" /> Phone number verified
                   </p>

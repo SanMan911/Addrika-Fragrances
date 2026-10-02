@@ -288,3 +288,42 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **FIXED — mobile overflow on /admin/retailers**: action-button row now wraps (`flex-wrap`).
 - **Verified (self-test)**: cron auth 401/401/200; full send-chain simulation with aged fixture retailer (day-8 → milestone 7 fired + real email delivered, same-day rerun idempotent, day-16 → 15 fired, KYC-complete at day-29 → no more); admin list returns `kyc` for all 15 retailers; Playwright desktop+mobile screenshots show all 15 KYC rows, zero horizontal overflow.
 - IDSPay onboarding overhaul remains **P0 — OPEN & ACTIVE** (awaiting IDSPay sandbox key from user).
+
+### Update 2026-10-02 (Iter121b — IDSPay GST-to-Contact WIRED (placeholder keys) + email-OTP ownership proof)
+- **Source of truth**: the user supplied IDSPay's official `ServiceDocumentation.pdf` v1.0. It documents **exactly one** endpoint —
+  `POST /srv2/validation/kyb/gst-to-contacts` (UAT `https://javabackend.idspay.in/api/v1/uat`, PROD `.../prod`), credentials in the
+  **JSON body** (`api_id`, `api_key`, `token_id`, `gstin`), returning `data.mobile` + `data.email`.
+  **IDSPay has NO OTP endpoint** and the doc's sample response shows **masked** values (`911XXXXXXXX9`, `AjayXXXX09XX@gmail.com`).
+- **Architecture consequence**: IDSPay fetches the GST-registered contact; **we** send the OTP ourselves by email via the already-live
+  Resend integration. That delivers the user's original "GST Email → Email OTP" chain without inventing IDSPay endpoints.
+- **NEW `services/idspay_gst_contacts.py`**: async httpx client (per-phase timeouts, 3 retries on transport errors only — never on a
+  documented application error, to protect the pay-per-use wallet). Success requires HTTP 2xx **AND** nested `status.code==200` **AND**
+  `status.type=='success'` (the doc proves these can disagree). Mask detection needs 2+ redaction chars or a placeholder word, so
+  `max@example.com` / `xavier@foo.com` survive. 30-day per-GSTIN cache in `idspay_contact_cache`; **failures cached only 120s**.
+  Unreplaced `REPLACE_WITH_*` placeholders are treated as UNSET → `not_configured`, never a fake "verified".
+- **NEW `services/gst_email_otp.py`**: 6-digit `secrets` code, **never stored** — only `HMAC-SHA256(OTP_PEPPER, challenge_id:code)`.
+  10-min TTL, 5 attempts, 60s resend cooldown, 5/hr per GSTIN + 20/hr per IP (counted in Mongo so limits hold across instances),
+  single-use via atomic conditional update, and a 30-min `gst_onboarding_sessions` record holding the verified `(gstin, email)` pair.
+  Undelivered codes invalidate their challenge.
+- **NEW endpoints** (`retailer_auth.py`): `GET /api/retailer-auth/gst-contact/config` (honest readiness),
+  `POST /gst-contact/fetch` (→ `otp_required` with a **server-masked** `email_hint`, or `email_unavailable` → manual verification;
+  never returns the full GST email), `POST /gst-contact/verify-otp` (→ opaque `onboarding_session`).
+- **Registration hardened**: `/register` takes an optional `onboarding_session`; identity is derived from the **server-side** record, so a
+  client cannot skip the OTP or register a different email. GSTIN mismatch and bogus/expired sessions are rejected (400); the session is
+  claimed atomically so one verification cannot register twice; a typed email is demoted to `alternate_email`. A verified GST contact also
+  satisfies the phone step (no SMS/DLT needed) and auto-fills + locks the phone when IDSPay returns it unmasked.
+- **Register UI**: new `register-gst-contact-block` — "Fetch & email code" → OTP row (masked hint) → green verified banner; email locked to
+  the verified address, phone locked, SMS block replaced by "Verified via your GST-registered contact". Shows **"Setup pending"** while keys
+  are absent so onboarding keeps working. Fixed a 390px overflow on the phone input (`min-w-0`).
+- **Env placeholders** in `backend/.env`: `IDSPAY_ENV=uat`, `IDSPAY_API_ID/API_KEY/TOKEN_ID=REPLACE_WITH_*`, `OTP_PEPPER` (generated),
+  and **`IDSPAY_REQUIRE_GST_EMAIL_OTP=0`** — the enforcement switch, default OFF so current onboarding is unaffected.
+- **Tested (self, 32/32 + live HTTP + Playwright)**: placeholder→not_configured; UAT URL + exact body fields; 30-day cache suppresses a
+  second billable call; masked email/mobile rejected; HTTP200+nested500 and HTTP500+nested200 both treated as failure; OTP issue/verify,
+  raw code absent from DB, wrong-code attempt counting, replay rejection, cooldown, 5-attempt lockout, expiry, hourly cap, single-use
+  session, send-failure invalidation; register tamper tests (GSTIN mismatch 400, bogus session 400, existing phone-OTP path intact);
+  full register UI chain driven with mocked IDSPay → email+phone locked, zero overflow at 390px.
+- **BUG FOUND & FIXED during testing**: Mongo returns **naive** datetimes, so the aware-vs-naive comparison in `verify_otp` raised
+  TypeError on every verification. Fixed via an `_aware()` coercion helper. Watch for this in any new Mongo datetime comparison.
+- **OPEN (user action)**: paste real IDSPay keys (UAT first) → restart backend → `config` should report `configured:true` → probe one real
+  GSTIN. **If IDSPay returns unmasked emails, set `IDSPAY_REQUIRE_GST_EMAIL_OTP=1`** to make the GST-email OTP mandatory. If it returns
+  masked values, the flow correctly degrades to manual verification and must stay optional.
