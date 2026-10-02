@@ -269,6 +269,41 @@ export default function AdminRetailersPage() {
                 <MapPin size={14} />
                 <span>{retailer.city}, {retailer.state} - {retailer.pincode}</span>
               </p>
+              {retailer.gst_contact_mismatch && retailer.gst_contact_check && (
+                <div
+                  className="rounded-lg border border-red-300 dark:border-red-800/50 bg-red-50 dark:bg-red-950/30 p-3 text-xs"
+                  data-testid={`retailer-gst-mismatch-${retailer.retailer_id || retailer.id}`}
+                >
+                  <p className="flex items-center gap-1.5 font-semibold text-red-700 dark:text-red-400 mb-2">
+                    <ShieldCheck size={13} />
+                    GST contact mismatch — verified by email OTP
+                  </p>
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr className="text-slate-500 dark:text-slate-400 text-left">
+                        <th className="font-medium pb-1">Field</th>
+                        <th className="font-medium pb-1">Entered</th>
+                        <th className="font-medium pb-1">GST record</th>
+                      </tr>
+                    </thead>
+                    <tbody className="font-mono">
+                      {[
+                        ['Mobile', retailer.gst_contact_check.entered_mobile, retailer.gst_contact_check.gst_mobile, retailer.gst_contact_check.mobile_verdict],
+                        ['Email', retailer.gst_contact_check.entered_email, retailer.gst_contact_check.gst_email, retailer.gst_contact_check.email_verdict],
+                      ].map(([label, entered, record, verdict]) => (
+                        <tr key={label} className={verdict === 'mismatch' ? 'text-red-700 dark:text-red-400' : 'text-slate-600 dark:text-slate-300'}>
+                          <td className="pr-2 font-sans">{label}</td>
+                          <td className="pr-2 break-all">{entered || '—'}</td>
+                          <td className="break-all">
+                            {record || '—'}
+                            {verdict === 'mismatch' && <span className="ml-1 font-sans font-bold">≠</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               {retailer.kyc && (
                 <div
                   className={`flex flex-wrap items-center gap-2 text-xs px-3 py-2 rounded-lg border ${

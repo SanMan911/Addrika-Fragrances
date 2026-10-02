@@ -101,8 +101,13 @@ async def _hourly_count(field: str, value: str) -> int:
     })
 
 
-async def issue_otp(gstin: str, email: str, *, ip: str = "", business_name: Optional[str] = None) -> dict:
-    """Create a challenge and email the code. Returns {ok, challenge_id, expires_in} or {ok:False, ...}."""
+async def issue_otp(gstin: str, email: str, *, ip: str = "", business_name: Optional[str] = None,
+                    meta: Optional[dict] = None) -> dict:
+    """Create a challenge and email the code. Returns {ok, challenge_id, expires_in} or {ok:False, ...}.
+
+    `meta` (e.g. the entered-vs-GST-record comparison) is carried through to the
+    onboarding session so registration can persist it for admin review.
+    """
     from services.email_service import send_email
 
     t = _now()
@@ -141,6 +146,7 @@ async def issue_otp(gstin: str, email: str, *, ip: str = "", business_name: Opti
         "consumed_at": None,
         "invalidated_at": None,
         "request_ip": ip or None,
+        "meta": meta or {},
     })
 
     sent = await send_email(email, "Your Aarohmm business verification code", _otp_email_html(code, business_name))
@@ -183,6 +189,7 @@ async def verify_otp(challenge_id: str, code: str, *, ip: str = "") -> dict:
         "challenge_id": challenge_id,
         "gstin": c["gstin"],
         "verified_email": c["email"],
+        "meta": c.get("meta") or {},
         "created_at": t,
         "expires_at": t + SESSION_TTL,
         "consumed_at": None,
@@ -193,6 +200,7 @@ async def verify_otp(challenge_id: str, code: str, *, ip: str = "") -> dict:
         "onboarding_session": session_id,
         "gstin": c["gstin"],
         "email": c["email"],
+        "meta": c.get("meta") or {},
         "expires_in": int(SESSION_TTL.total_seconds()),
     }
 

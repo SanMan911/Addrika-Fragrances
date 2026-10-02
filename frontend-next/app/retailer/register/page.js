@@ -151,9 +151,19 @@ export default function RetailerRegisterPage() {
       const res = await fetch(`${API_URL}/api/retailer-auth/gst-contact/fetch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gstin: (form.gst_number || '').toUpperCase() }),
+        body: JSON.stringify({
+          gstin: (form.gst_number || '').toUpperCase(),
+          email: lowerEmail(form.email),
+          phone: form.phone,
+          country_code: form.country_code,
+        }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 403) {
+        setGstContact({ state: 'denied', message: data.detail });
+        toast.error('Your mobile and email do not match this GSTIN');
+        return;
+      }
       if (!res.ok) throw new Error(data.detail || 'Could not fetch GST contact details');
       if (data.status === 'email_unavailable') {
         setGstContact({ state: 'email_unavailable', message: data.message, mobile_hint: data.mobile_hint });
@@ -165,6 +175,9 @@ export default function RetailerRegisterPage() {
         challenge_id: data.challenge_id,
         email_hint: data.email_hint,
         mobile_hint: data.mobile_hint,
+        mismatch: Boolean(data.mismatch),
+        email_matches: data.email_matches,
+        mobile_matches: data.mobile_matches,
       });
       toast.success(`Code sent to your GST-registered email ${data.email_hint}`);
     } catch (err) {
@@ -454,88 +467,6 @@ export default function RetailerRegisterPage() {
                 ✗ Could not verify this GSTIN with GSTN records. Please double-check the number.
               </p>
             )}
-
-            {/* GST-registered email ownership proof (IDSPay contact + emailed OTP) */}
-            {GST_REGEX.test((form.gst_number || '').toUpperCase()) && (
-              <div
-                className="mt-3 rounded-lg border border-[#2B3A4A]/20 bg-white/70 p-3"
-                data-testid="register-gst-contact-block"
-              >
-                {!idspay.configured ? (
-                  <p className="text-xs text-gray-500" data-testid="register-gst-contact-pending">
-                    GST-registered email verification · <span className="font-semibold text-amber-700">Setup pending</span> —
-                    continue with the form below; we verify your business manually for now.
-                  </p>
-                ) : gstEmailVerified ? (
-                  <p
-                    className="flex items-center gap-2 text-sm font-medium text-emerald-700"
-                    data-testid="register-gst-email-verified"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    GST-registered email verified · <span className="font-mono">{gstContact.email_hint}</span>
-                  </p>
-                ) : gstContact.state === 'email_unavailable' ? (
-                  <p className="text-xs text-amber-700" data-testid="register-gst-email-unavailable">
-                    ⚠ {gstContact.message || 'The email registered against this GSTIN could not be read.'}
-                    {' '}You can still submit — our team will verify your business manually.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-[#2B3A4A] uppercase tracking-wider">
-                        Verify GST email {idspay.required && <span className="text-red-600">*</span>}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={fetchGstContact}
-                        disabled={gstContactBusy}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#2B3A4A] text-white hover:bg-[#1a252f] disabled:opacity-50 transition"
-                        data-testid="register-gst-contact-send"
-                      >
-                        {gstContactBusy
-                          ? 'Working…'
-                          : gstContact.state === 'otp_sent'
-                            ? 'Resend code'
-                            : 'Fetch & email code'}
-                      </button>
-                    </div>
-                    {gstContact.state === 'otp_sent' ? (
-                      <>
-                        <div className="flex gap-2" data-testid="register-gst-otp-row">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            placeholder="Enter 6-digit code"
-                            value={gstOtpCode}
-                            onChange={(e) => setGstOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] tracking-widest font-mono focus:border-[#D4AF37] outline-none"
-                            data-testid="register-gst-otp-code"
-                          />
-                          <button
-                            type="button"
-                            onClick={verifyGstEmailOtp}
-                            disabled={gstContactBusy || gstOtpCode.length < 4}
-                            className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#D4AF37] text-white hover:opacity-90 disabled:opacity-50 transition"
-                            data-testid="register-gst-otp-verify"
-                          >
-                            {gstContactBusy ? 'Verifying…' : 'Verify'}
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          Code emailed to <span className="font-mono">{gstContact.email_hint}</span> — the address on
-                          record against your GSTIN. It expires in 10 minutes.
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-xs text-gray-500">
-                        We fetch the email registered against your GSTIN and send a code to it — proof you own the
-                        business. No typing needed.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Step 2 — Details */}
@@ -600,6 +531,99 @@ export default function RetailerRegisterPage() {
                   data-testid="register-phone"
                 />
               </div>
+
+              {/* GST contact match + email-OTP ownership proof (IDSPay) */}
+              {idspay.configured && (
+                <div
+                  className="sm:col-span-2 rounded-lg border border-[#2B3A4A]/25 bg-white/70 p-3"
+                  data-testid="register-gst-contact-block"
+                >
+                  {gstEmailVerified ? (
+                    <div data-testid="register-gst-email-verified">
+                      <p className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+                        <CheckCircle2 className="w-4 h-4" />
+                        GST-registered email verified · <span className="font-mono">{gstContact.email_hint}</span>
+                      </p>
+                      {gstContact.mismatch && (
+                        <p className="mt-1.5 text-xs text-amber-700" data-testid="register-gst-mismatch-notice">
+                          Note: {gstContact.mobile_matches === false ? 'the mobile number' : 'a detail'} you entered
+                          differs from your GST records. We&apos;ve accepted it since you verified the registered
+                          email — our team will review the difference.
+                        </p>
+                      )}
+                    </div>
+                  ) : gstContact.state === 'denied' ? (
+                    <p className="text-xs text-red-700 font-medium" data-testid="register-gst-contact-denied">
+                      ✗ {gstContact.message}
+                    </p>
+                  ) : gstContact.state === 'email_unavailable' ? (
+                    <p className="text-xs text-amber-700" data-testid="register-gst-email-unavailable">
+                      ⚠ {gstContact.message || 'The email registered against this GSTIN could not be read.'}
+                      {' '}You can still submit — our team will verify your business manually.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-[#2B3A4A] uppercase tracking-wider">
+                          Verify GST contact {idspay.required && <span className="text-red-600">*</span>}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={fetchGstContact}
+                          disabled={gstContactBusy || !form.email || !form.phone}
+                          title={!form.email || !form.phone ? 'Enter your email and phone first' : undefined}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#2B3A4A] text-white hover:bg-[#1a252f] disabled:opacity-50 transition"
+                          data-testid="register-gst-contact-send"
+                        >
+                          {gstContactBusy
+                            ? 'Working…'
+                            : gstContact.state === 'otp_sent'
+                              ? 'Resend code'
+                              : 'Match & send code'}
+                        </button>
+                      </div>
+                      {gstContact.state === 'otp_sent' ? (
+                        <>
+                          <div className="flex gap-2" data-testid="register-gst-otp-row">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="Enter 6-digit code"
+                              value={gstOtpCode}
+                              onChange={(e) => setGstOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] tracking-widest font-mono focus:border-[#D4AF37] outline-none"
+                              data-testid="register-gst-otp-code"
+                            />
+                            <button
+                              type="button"
+                              onClick={verifyGstEmailOtp}
+                              disabled={gstContactBusy || gstOtpCode.length < 4}
+                              className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#D4AF37] text-white hover:opacity-90 disabled:opacity-50 transition"
+                              data-testid="register-gst-otp-verify"
+                            >
+                              {gstContactBusy ? 'Verifying…' : 'Verify'}
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Code emailed to <span className="font-mono">{gstContact.email_hint}</span> — the address on
+                            record against your GSTIN. It expires in 10 minutes.
+                          </p>
+                          {gstContact.mismatch && (
+                            <p className="text-xs text-amber-700" data-testid="register-gst-mismatch-notice">
+                              Heads up: some details you entered differ from your GST records.
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-xs text-gray-500">
+                          We check your email and mobile against the contact registered on your GSTIN, then send a
+                          code to that registered email to confirm you own the business.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Inline phone OTP verification (mandatory for +91) */}
               <div className="sm:col-span-2 rounded-lg p-3 border border-[#D4AF37]/40 bg-white/60" data-testid="register-otp-block">

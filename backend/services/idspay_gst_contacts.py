@@ -66,18 +66,25 @@ def _is_placeholder(v: str) -> bool:
 
 
 def _credentials() -> Optional[dict]:
-    """Return credentials, or None when IDSPay isn't really configured."""
+    """Return credentials, or None when IDSPay isn't really configured.
+
+    `token_id` is OPTIONAL: it is IP-bound and IDSPay authenticates on
+    api_id + api_key alone (confirmed live — a blank token_id still reached the
+    wallet check rather than an auth error). It is forwarded when present.
+    """
     env = (os.environ.get("IDSPAY_ENV") or "").strip().lower()
     api_id = (os.environ.get("IDSPAY_API_ID") or "").strip()
     api_key = (os.environ.get("IDSPAY_API_KEY") or "").strip()
     token_id = (os.environ.get("IDSPAY_TOKEN_ID") or "").strip()
     if env not in BASES:
         return None
-    if not (api_id and api_key and token_id):
+    if not (api_id and api_key):
         return None
     # Unreplaced placeholders must behave exactly like "unset".
-    if any(_is_placeholder(v) for v in (api_id, api_key, token_id)):
+    if any(_is_placeholder(v) for v in (api_id, api_key)):
         return None
+    if token_id and _is_placeholder(token_id):
+        token_id = ""
     return {"env": env, "api_id": api_id, "api_key": api_key, "token_id": token_id}
 
 
@@ -116,6 +123,54 @@ def mask_mobile_hint(mobile: str) -> str:
     return f"{'*' * max(0, len(mobile) - 4)}{mobile[-4:]}" if len(mobile) >= 4 else "****"
 
 
+# --- Entered-vs-GST-record comparison -------------------------------------
+# Only UNMASKED values take part in a match/mismatch verdict. A masked or
+# absent value is `indeterminate` and can never be used to deny a retailer.
+
+MATCH = "match"
+MISMATCH = "mismatch"
+INDETERMINATE = "indeterminate"
+
+
+def _last10(v: Optional[str]) -> Optional[str]:
+    digits = re.sub(r"\D", "", v or "")
+    return digits[-10:] if len(digits) >= 10 else (digits or None)
+
+
+def compare_mobile(entered: Optional[str], fetched: Optional[str]) -> str:
+    f = usable_mobile(fetched)
+    e = _last10(entered)
+    if not f or not e:
+        return INDETERMINATE
+    return MATCH if _last10(f) == e else MISMATCH
+
+
+def compare_email(entered: Optional[str], fetched: Optional[str]) -> str:
+    f = usable_email(fetched)
+    e = _clean(entered)
+    if not f or not e:
+        return INDETERMINATE
+    return MATCH if e.strip().lower() == f else MISMATCH
+
+
+def compare_contacts(entered_email: Optional[str], entered_mobile: Optional[str], fetched: dict) -> dict:
+    """Verdict for what the applicant typed vs what the GST record says."""
+    email_verdict = compare_email(entered_email, fetched.get("email"))
+    mobile_verdict = compare_mobile(entered_mobile, fetched.get("mobile"))
+    # Deny only when BOTH are definitively wrong (per product rule).
+    deny = email_verdict == MISMATCH and mobile_verdict == MISMATCH
+    return {
+        "email": email_verdict,
+        "mobile": mobile_verdict,
+        "deny": deny,
+        "any_mismatch": MISMATCH in (email_verdict, mobile_verdict),
+        "entered_email": (_clean(entered_email) or "").lower() or None,
+        "entered_mobile": _last10(entered_mobile),
+        "gst_email": fetched.get("email"),
+        "gst_mobile": fetched.get("mobile"),
+    }
+
+
 async def _call_idspay(gstin: str, creds: dict) -> dict:
     """POST to IDSPay. Returns a normalized result dict; never raises upward."""
     payload = {
@@ -149,14 +204,34 @@ async def _call_idspay(gstin: str, creds: dict) -> dict:
             ok = r.is_success and nested_code == 200 and nested_type == "success"
             if not ok:
                 err_obj = body.get("error") or {}
-                detail = err_obj.get("error") or status.get("message") or body.get("message") or "Details fetching failed"
-                req_id = err_obj.get("request_id")
-                logger.warning(f"idspay: lookup failed http={r.status_code} code={nested_code} req={req_id} detail={detail}")
-                # Documented failures are definitive — do not burn another call.
+                # Live IDSPay returns `error` as a STRING for account-level
+                # problems (e.g. 422 insufficient balance) and as an OBJECT for
+                # per-request validation errors. Handle both.
+                if isinstance(err_obj, dict):
+                    detail = err_obj.get("error") or status.get("message") or body.get("message") or "Details fetching failed"
+                    req_id = err_obj.get("request_id")
+                else:
+                    detail = str(err_obj) or status.get("message") or body.get("message") or "Details fetching failed"
+                    req_id = None
+                detail = str(detail)
+                # An account-side problem (empty wallet, expired/invalid key, IP
+                # not whitelisted) is NOT the applicant's fault — surface it as a
+                # provider outage so onboarding degrades gracefully instead of
+                # wrongly denying a genuine retailer.
+                low = detail.lower()
+                account_issue = any(k in low for k in (
+                    "insufficient balance", "wallet", "whitelist", "unauthorized",
+                    "invalid api", "api user", "token", "subscription", "expired", "inactive",
+                ))
+                logger.warning(
+                    f"idspay: lookup failed http={r.status_code} code={nested_code} req={req_id} "
+                    f"account_issue={account_issue} detail={detail}"
+                )
                 return {
                     "ok": False,
-                    "error": str(detail),
-                    "provider_down": False,
+                    "error": detail,
+                    "provider_down": account_issue,
+                    "account_issue": account_issue,
                     "request_id": req_id,
                 }
 
@@ -218,6 +293,7 @@ async def fetch_contacts(gstin: str, *, use_cache: bool = True) -> dict:
                 "status": "failed",
                 "error": hit.get("error") or "Details fetching failed",
                 "provider_down": bool(hit.get("provider_down")),
+                "account_issue": bool(hit.get("account_issue")),
                 "cached": True,
             }
 
@@ -256,6 +332,7 @@ async def fetch_contacts(gstin: str, *, use_cache: bool = True) -> dict:
             "ok": False,
             "error": result.get("error"),
             "provider_down": result.get("provider_down", False),
+            "account_issue": result.get("account_issue", False),
             "env": creds["env"],
             "fetched_at": now,
             "expires_at": now + timedelta(seconds=FAILURE_CACHE_SECONDS),
@@ -266,5 +343,6 @@ async def fetch_contacts(gstin: str, *, use_cache: bool = True) -> dict:
         "status": "failed",
         "error": result.get("error") or "Details fetching failed",
         "provider_down": result.get("provider_down", False),
+        "account_issue": result.get("account_issue", False),
         "cached": False,
     }

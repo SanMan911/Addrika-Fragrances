@@ -327,3 +327,37 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 - **OPEN (user action)**: paste real IDSPay keys (UAT first) → restart backend → `config` should report `configured:true` → probe one real
   GSTIN. **If IDSPay returns unmasked emails, set `IDSPAY_REQUIRE_GST_EMAIL_OTP=1`** to make the GST-email OTP mandatory. If it returns
   masked values, the flow correctly degrades to manual verification and must stay optional.
+
+### Update 2026-10-02 (Iter121c — LIVE IDSPay keys + entered-vs-GST-record matching + admin mismatch trail)
+- **Keys wired (PRODUCTION)**: `IDSPAY_ENV=prod`, `IDSPAY_API_ID=APID3760`, `IDSPAY_API_KEY=f04ab9c6-…`. `token_id` left **blank**
+  (`IDSPAY_TOKEN_ID=`) because it is IP-bound. `_credentials()` now requires only **api_id + api_key**; `token_id` is forwarded when present.
+  `GET /gst-contact/config` → `{"configured": true, "environment": "prod", "ready": true}`.
+- **LIVE PROBE RESULT (important)**: a real call returned
+  `422 {"status":{"code":422,"type":"error","message":"Insufficient balance in api user wallet."}}`.
+  ⇒ the api_id/api_key **authenticate correctly** and a blank `token_id` did **not** cause an auth error — it reached the wallet check.
+  **The current blocker is an empty IDSPay wallet, not IP whitelisting.** Note the live `error` field is a **STRING** here (the PDF shows an
+  object) — the parser handles both.
+- **Account-issue classification**: wallet/key/whitelist/token/subscription errors set `account_issue=True` → the endpoint returns **503 with
+  a neutral message** and onboarding continues. Our billing problem must never deny a genuine retailer or look like "invalid GSTIN".
+- **NEW product rule — entered-vs-GST-record matching** (`idspay.compare_contacts`): the applicant now types email + mobile, which are
+  compared with the GST record. Verdicts are `match` / `mismatch` / `indeterminate`.
+  **Only UNMASKED values can produce a verdict** — a masked/absent value is `indeterminate` and can NEVER deny anyone.
+  * **BOTH mismatch → registration DENIED (403)** and logged to `gst_contact_denials`.
+  * **At least one matches (or is indeterminate) → OTP to the GST-registered email**, shown masked to the applicant.
+  * Mobile compare normalizes to the last 10 digits (tolerates `+91`/spaces); email compare is case/whitespace-insensitive.
+- **Mismatch audit trail**: the verdict rides the OTP challenge → onboarding session → retailer document as
+  `gst_contact_mismatch` + `gst_contact_check {email_verdict, mobile_verdict, entered_email, entered_mobile, gst_email, gst_mobile}`
+  (+ `gst_contact_mismatch_reviewed:false`). On completion an **admin alert email** is sent with an entered-vs-record table, and
+  `/admin/retailers` renders a red **"GST contact mismatch — verified by email OTP"** panel showing exactly which field differed
+  (`retailer-gst-mismatch-<id>`). Verified by screenshot: differing mobile highlighted with `≠`.
+- **Register UI restructured**: the GST-contact block **moved from Step 1 into Step 2**, after the email/phone inputs (matching needs the
+  typed values). CTA "Match & send code" stays disabled until both are filled. New states: `register-gst-contact-denied`,
+  `register-gst-mismatch-notice`. A verified GST contact still bypasses the SMS OTP and locks the email/phone.
+- **Tested (self, 45/45 + Playwright)**: both-match allowed; email-only and mobile-only mismatch allowed **and flagged**; BOTH mismatch
+  **denied**; `+91`/case tolerance; masked record never denies; live 422 string-error parsed and flagged `account_issue`; mismatch metadata
+  persisted through session→retailer. UI: CTA disabled until email+phone, deny banner, OTP + mismatch warning, verified banner with mismatch
+  note, email locked; admin mismatch panel desktop + 390px with no overflow.
+- **OPEN (user action)**: (1) **top up the IDSPay wallet** — this is the only thing blocking a real lookup. (2) `token_id` + IP whitelisting:
+  the preview pod's egress IP is **34.170.12.145**, but it is **ephemeral** (changes on pod restart) and production on Render has a
+  *different, also-dynamic* egress IP — so IP whitelisting is fragile for this architecture; ask IDSPay for a static/IP-independent token or
+  use a fixed-IP egress proxy. (3) after a successful real lookup, decide `IDSPAY_REQUIRE_GST_EMAIL_OTP=1`.

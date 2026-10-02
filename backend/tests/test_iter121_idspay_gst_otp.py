@@ -85,15 +85,20 @@ async def main():
         await db.gst_onboarding_sessions.delete_many({})
         sent_codes.clear()
 
-    # ---------- 1. not configured (real placeholder keys) ----------
+    # ---------- 1. not configured (simulate placeholder keys) ----------
     await clean()
+    _saved = {k: os.environ.get(k) for k in ("IDSPAY_API_ID", "IDSPAY_API_KEY", "IDSPAY_TOKEN_ID")}
+    for k in _saved:
+        os.environ[k] = f"REPLACE_WITH_{k}"
     res = await idspay.fetch_contacts(GST)
     check("placeholder keys => not_configured", res["status"] == "not_configured", res)
     check("is_configured() False with placeholders", idspay.is_configured() is False)
 
-    # From here on, pretend real creds are present
+    # token_id is optional (IP-bound); api_id + api_key alone must configure
     os.environ["IDSPAY_API_ID"] = "test_api_id"
     os.environ["IDSPAY_API_KEY"] = "test_api_key"
+    os.environ["IDSPAY_TOKEN_ID"] = ""
+    check("configured without token_id (it is optional/IP-bound)", idspay.is_configured() is True)
     os.environ["IDSPAY_TOKEN_ID"] = "test_token_id"
     check("is_configured() True with real-looking creds", idspay.is_configured() is True)
 
@@ -104,8 +109,8 @@ async def main():
     res = await idspay.fetch_contacts(GST)
     check("unmasked lookup ok", res["status"] == "ok" and res["email"] == "owner@realbiz.com", res)
     check("mobile normalized", res["mobile"] == "919876543210", res)
-    check("UAT url + body fields correct",
-          calls and calls[0]["url"].endswith("/api/v1/uat/srv2/validation/kyb/gst-to-contacts")
+    check("base url + body fields correct for IDSPAY_ENV",
+          calls and calls[0]["url"] == f"{idspay.BASES[os.environ['IDSPAY_ENV'].lower()]}/srv2/validation/kyb/gst-to-contacts"
           and set(calls[0]["json"]) == {"api_id", "api_key", "token_id", "gstin"}, calls)
 
     # ---------- 3. 30-day cache prevents re-billing ----------
@@ -226,10 +231,66 @@ async def main():
     check("undelivered challenge invalidated", ch and ch.get("invalidated_at") is not None)
     email_service.send_email = fake_send_email
 
+    # ---------- 14. entered-vs-GST-record comparison + deny rule ----------
+    fetched = {"email": "owner@realbiz.com", "mobile": "919876543210"}
+    v = idspay.compare_contacts("owner@realbiz.com", "9876543210", fetched)
+    check("both match => allowed", v["email"] == "match" and v["mobile"] == "match" and v["deny"] is False, v)
+
+    v = idspay.compare_contacts("owner@realbiz.com", "9000000000", fetched)
+    check("email matches, mobile differs => allowed + flagged",
+          v["deny"] is False and v["mobile"] == "mismatch" and v["any_mismatch"] is True, v)
+
+    v = idspay.compare_contacts("someoneelse@evil.com", "9876543210", fetched)
+    check("mobile matches, email differs => allowed + flagged",
+          v["deny"] is False and v["email"] == "mismatch" and v["any_mismatch"] is True, v)
+
+    v = idspay.compare_contacts("someoneelse@evil.com", "9000000000", fetched)
+    check("BOTH differ => DENY", v["deny"] is True, v)
+
+    v = idspay.compare_contacts("owner@realbiz.com", "+91 98765 43210", fetched)
+    check("mobile match tolerates +91/spaces", v["mobile"] == "match", v)
+    v = idspay.compare_contacts("OWNER@RealBiz.com ", "9876543210", fetched)
+    check("email match is case/whitespace insensitive", v["email"] == "match", v)
+
+    masked = {"email": None, "mobile": None}
+    v = idspay.compare_contacts("anything@x.com", "9000000000", masked)
+    check("masked record => indeterminate, never denies",
+          v["deny"] is False and v["email"] == "indeterminate" and v["mobile"] == "indeterminate", v)
+
+    v = idspay.compare_contacts("owner@realbiz.com", "9000000000", {"email": "owner@realbiz.com", "mobile": None})
+    check("masked mobile alone cannot deny", v["deny"] is False and v["mobile"] == "indeterminate", v)
+
+    # ---------- 15. account-level errors must not blame the applicant ----------
+    await clean()
+    install_fake_http({
+        "status": {"code": 422, "type": "error", "message": "Insufficient balance in api user wallet."},
+        "message": "Insufficient balance in api user wallet.",
+        "error": "Insufficient balance in api user wallet.",
+    }, status_code=422)
+    res = await idspay.fetch_contacts(GST)
+    check("wallet-empty 422 parsed (string error field)", res["status"] == "failed", res)
+    check("wallet-empty flagged account_issue (not applicant's fault)",
+          res.get("account_issue") is True and res.get("provider_down") is True, res)
+
+    # ---------- 16. mismatch metadata rides the session to registration ----------
+    await clean()
+    install_fake_http(ok_payload("919876543210", "owner@realbiz.com"))
+    verdict = idspay.compare_contacts("typed@different.com", "9876543210", {"email": "owner@realbiz.com", "mobile": "919876543210"})
+    iss = await otp.issue_otp(GST, "owner@realbiz.com", ip="3.3.3.3", meta=verdict)
+    v2 = await otp.verify_otp(iss["challenge_id"], sent_codes[-1]["code"])
+    check("verify returns mismatch meta", v2["ok"] and v2["meta"].get("any_mismatch") is True, v2.get("meta"))
+    sess = await otp.peek_session(v2["onboarding_session"])
+    check("session persists entered-vs-record detail",
+          sess["meta"].get("entered_email") == "typed@different.com"
+          and sess["meta"].get("gst_email") == "owner@realbiz.com", sess.get("meta"))
+
     await clean()
     httpx.AsyncClient.post = _ORIGINAL_POST
-    for k in ("IDSPAY_API_ID", "IDSPAY_API_KEY", "IDSPAY_TOKEN_ID"):
-        os.environ[k] = f"REPLACE_WITH_{k}"
+    for k, v in _saved.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
 
     print(f"\n{'=' * 60}\nPASSED: {len(PASS)}   FAILED: {len(FAIL)}")
     if FAIL:

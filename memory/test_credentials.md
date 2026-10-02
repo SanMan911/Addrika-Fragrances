@@ -131,41 +131,60 @@ under RLS:
 
 ---
 
-## ITER121 — IDSPay GST-to-Contact + GST-email OTP (keys NOT yet supplied)
+## ITER121 — IDSPay GST-to-Contact + GST-email OTP (LIVE PROD keys, wallet empty)
 
-IDSPay is **wired but not configured** — `backend/.env` holds `REPLACE_WITH_*` placeholders, which the code
-treats exactly like "unset". `GET /api/retailer-auth/gst-contact/config` therefore returns
-`{"configured": false, "required": false, "ready": false}` and `/gst-contact/fetch` returns **503**. This is
-the intended state, not a bug. Nothing fabricates a verified result.
+IDSPay is **configured with the user's live PRODUCTION keys** (`IDSPAY_ENV=prod`, `IDSPAY_API_ID=APID3760`,
+`IDSPAY_API_KEY=f04ab9c6-56ea-429a-b679-32aa0da55f94`). `IDSPAY_TOKEN_ID` is intentionally **blank** — it is
+IP-bound, and a live probe proved the API authenticates on api_id + api_key alone.
 
-### Env keys involved
-- `IDSPAY_ENV` = `uat` | `prod`
-- `IDSPAY_API_ID`, `IDSPAY_API_KEY`, `IDSPAY_TOKEN_ID` — placeholders today
-- `IDSPAY_REQUIRE_GST_EMAIL_OTP` = `0` (enforcement switch; flip to `1` only once a real UAT probe shows
-  IDSPay returns UNMASKED emails)
+**⚠ A REAL LOOKUP CURRENTLY FAILS** with
+`422 {"status":{"code":422,"type":"error","message":"Insufficient balance in api user wallet."}}`.
+The **IDSPay wallet is empty** — this is NOT a code bug. The code classifies it as an `account_issue`, so
+`POST /gst-contact/fetch` returns **503 with a neutral message** and onboarding continues instead of
+wrongly denying the retailer. `GET /gst-contact/config` still reports `configured: true`.
+
+Egress IP of this preview pod (what IDSPay sees): **34.170.12.145** — ephemeral, changes on pod restart.
+
+### Matching rule (tested)
+Applicant types email + mobile → compared against the GST record:
+- **BOTH mismatch → 403 DENY** (also logged to `gst_contact_denials`)
+- **≥1 matches, or value is masked/absent (`indeterminate`) → OTP to the GST-registered email**
+- Masked/absent GST values can **never** deny anyone.
+- Mobile compares on the last 10 digits (`+91`/spaces tolerated); email is case/whitespace-insensitive.
+
+### Mismatch audit trail
+Verdict flows OTP challenge → onboarding session → retailer doc as `gst_contact_mismatch` +
+`gst_contact_check {email_verdict, mobile_verdict, entered_email, entered_mobile, gst_email, gst_mobile}`.
+Admin gets an alert email, and `/admin/retailers` shows panel `retailer-gst-mismatch-<id>`.
+
+### Testing the CONFIGURED path without spending wallet balance
+- **Backend**: `python /app/backend/tests/test_iter121_idspay_gst_otp.py` → **45/45**. Monkeypatches
+  `httpx.AsyncClient.post`, captures the OTP by patching `services.email_service.send_email`. Covers mask
+  detection, nested-status handling, the 422 wallet string-error, cache, OTP lifecycle, the deny rule and
+  mismatch propagation. **Does not call IDSPay for real.**
+- **Frontend**: mock the 3 endpoints with Playwright `page.route` — `/config` →
+  `{"configured":true,"required":false,"ready":true}`; `/fetch` → 403 to test deny, or
+  `{"status":"otp_required","challenge_id":"...","email_hint":"ow*****@realbiz.com","mismatch":true,"mobile_matches":true,"email_matches":false}`;
+  `/verify-otp` → `{"verified":true,"onboarding_session":"...","mobile":"919876543210","mismatch":true}`.
+- **DO NOT** call the live endpoint in a loop — it is pay-per-use once funded.
+
+### Register page testids
+`register-gst-contact-block` (now in **Step 2**, after email/phone), `register-gst-contact-send`
+("Match & send code" — disabled until email AND phone are filled), `register-gst-otp-row`,
+`register-gst-otp-code`, `register-gst-otp-verify`, `register-gst-email-verified`,
+`register-gst-contact-denied`, `register-gst-email-unavailable`, `register-gst-mismatch-notice`.
+When IDSPay is unconfigured the whole block is hidden and the SMS phone-OTP path applies as before.
+
+### Env keys
+- `IDSPAY_ENV` = `uat` | `prod` · `IDSPAY_API_ID`, `IDSPAY_API_KEY` (required) · `IDSPAY_TOKEN_ID` (optional)
+- `IDSPAY_REQUIRE_GST_EMAIL_OTP` = `0` — enforcement switch; flip to `1` only after a funded real lookup
 - `OTP_PEPPER` — HMAC pepper for OTP digests. **Required**; the OTP service fails closed without it.
 
-### Testing the CONFIGURED path without real keys
-IDSPay has no sandbox we can reach, so simulate it:
-- **Backend**: `python /app/backend/tests/test_iter121_idspay_gst_otp.py` — sets fake creds, monkeypatches
-  `httpx.AsyncClient.post`, captures the OTP by patching `services.email_service.send_email`, and asserts
-  32 behaviours (mask detection, nested-status handling, cache, OTP lifecycle, session single-use). All pass.
-- **Frontend**: mock the 3 endpoints with Playwright `page.route`:
-  `**/api/retailer-auth/gst-contact/config` → `{"configured":true,"required":true,"ready":true}`,
-  `.../fetch` → `{"status":"otp_required","challenge_id":"...","email_hint":"ow*****@realbiz.com"}`,
-  `.../verify-otp` → `{"verified":true,"onboarding_session":"...","mobile":"919876543210"}`.
-
-### Register page testids (new)
-`register-gst-contact-block`, `register-gst-contact-pending` (shown while keys absent),
-`register-gst-contact-send`, `register-gst-otp-row`, `register-gst-otp-code`, `register-gst-otp-verify`,
-`register-gst-email-verified`, `register-gst-email-unavailable`.
-
-### Important behaviours to preserve when testing registration
-- `POST /api/retailer-auth/register` accepts an optional `onboarding_session`. When present the server
+### Registration behaviours to preserve
+- `POST /api/retailer-auth/register` accepts optional `onboarding_session`; when present the server
   **overrides** the submitted email with the verified one and **skips** the SMS phone OTP.
-- A session for a different GSTIN → 400. A bogus/expired session → 400. A session can be consumed **once**.
-- With no session and IDSPay off, the pre-existing phone-OTP requirement still applies (400 without it) —
-  `ALLOW_DEV_OTP=1` in this env, so `/phone/send-otp` returns the dev code in the response.
+- Session for a different GSTIN → 400. Bogus/expired session → 400. Consumable **once**.
+- With no session and IDSPay unavailable, the pre-existing phone-OTP requirement still applies.
 
 ### Admin KYC column (also iter121)
 `/admin/retailers` testids: `retailer-kyc-status-<id>`, `retailer-kyc-gst-<id>`, `retailer-kyc-spoc-<id>`,
