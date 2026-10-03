@@ -12,7 +12,7 @@
   ],
   "action_items": [],
   "critical_code_review_comments": [
-    "portal_url() and retailer_register default fallback still hardcode 'https://aarohmm-expo.preview.emergentagent.com'. That URL is the infra hostname the user said to ignore, but it would be cleaner to read from FRONTEND_PUBLIC_URL only (fail-fast without a default) so a future domain move can't accidentally send emails with the old host.",
+    "portal_url() and retailer_register default fallback still hardcode 'https://gst-onboard-hub.preview.emergentagent.com'. That URL is the infra hostname the user said to ignore, but it would be cleaner to read from FRONTEND_PUBLIC_URL only (fail-fast without a default) so a future domain move can't accidentally send emails with the old host.",
     "test_notify_me_accepts_oos_regression was updated to accept 422 because the endpoint's Pydantic schema rejected the {product_slug,email} shape used in earlier iterations. If notify-me was refactored recently, add a small integration test that documents the current required fields."
   ],
   "updated_files": [
