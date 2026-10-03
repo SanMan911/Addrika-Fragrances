@@ -2,7 +2,7 @@
   "expo": {
     "name": "Aarohmm",
     "slug": "addrika-mobile",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "orientation": "portrait",
     "scheme": "aaroviah",
     "userInterfaceStyle": "light",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.centraders.aaroviah",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1e3a52"
@@ -50,7 +50,7 @@
       "apiBaseUrl": "https://addrika-fragrances-backend.onrender.com",
       "webUrl": "https://www.centraders.com",
       "mobileBrandName": "Aarohmm",
-      "mobileBrandTagline": "Sacred Luxury in Every Scent",
+      "mobileBrandTagline": "Where Fragrance Becomes Atmosphere…",
       "eas": {
         "projectId": "f152117c-57fb-4506-a44a-7c53d1043dd3"
       }

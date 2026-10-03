@@ -66,8 +66,8 @@ async function getRetailers() {
   }
 
   try {
-    const res = await fetch(`${backendUrl}/api/retailers`, {
-      cache: 'no-store' // Always fetch fresh so admin-added retailers appear immediately
+    const res = await fetch(`${backendUrl}/api/retailers/brand-partners`, {
+      cache: 'no-store' // Always fetch fresh so newly verified partners appear immediately
     });
     if (res.ok) {
       const data = await res.json();

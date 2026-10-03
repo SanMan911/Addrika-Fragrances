@@ -235,6 +235,130 @@ async def verify_login_code(payload: CodeVerifyIn):
 
 
 # --------------------------------------------------------------------------
+# GSTIN + password sign-in (mirrors the web portal)
+#
+# The app asks for the GSTIN first. `/auth/gstin-check` says whether that
+# GSTIN is already a stockist — if not, the app sends the retailer to the web
+# registration form instead of pretending a password exists. Passwords live
+# only in MongoDB; on success we mint a Supabase session behind the scenes so
+# the app's RLS-guarded reads keep working.
+# --------------------------------------------------------------------------
+class GstinCheckIn(BaseModel):
+    gstin: str
+
+
+class PasswordLoginIn(BaseModel):
+    gstin: str
+    password: str = Field(min_length=1, max_length=128)
+
+
+@router.post("/auth/gstin-check")
+async def gstin_check(payload: GstinCheckIn):
+    """Is this GSTIN a registered stockist? Never leaks the retailer's email."""
+    from services.supabase_session import is_configured as _pw_login_ready
+
+    gstin = (payload.gstin or "").strip().upper()
+    if not GSTIN_RE.match(gstin):
+        raise HTTPException(status_code=400, detail="Please enter a valid 15-character GSTIN")
+
+    retailer = await db.retailers.find_one(
+        {"$or": [{"gst_number": gstin}, {"username": gstin}]},
+        {"_id": 0, "business_name": 1, "trade_name": 1, "status": 1, "password_hash": 1},
+    )
+    # `password_login_ready` is honest about this server: without the Supabase
+    # service key we cannot mint a session from a password, so the app routes
+    # to the emailed one-time code instead of showing a field that can't work.
+    ready = _pw_login_ready()
+    if not retailer or retailer.get("status") == "deleted":
+        return {
+            "registered": False,
+            "status": None,
+            "has_password": False,
+            "password_login_ready": ready,
+        }
+
+    return {
+        "registered": True,
+        "status": retailer.get("status"),
+        "has_password": bool(retailer.get("password_hash")) and ready,
+        "password_login_ready": ready,
+        "business_name": retailer.get("business_name") or retailer.get("trade_name"),
+    }
+
+
+@router.post("/auth/password-login")
+async def password_login(payload: PasswordLoginIn):
+    """GSTIN + the retailer's web password -> a real Supabase session."""
+    from services.retailer_identity import (
+        clear_failed_logins,
+        is_locked_out,
+        record_failed_login,
+    )
+    from services.auth_service import verify_password
+    from services.supabase_session import mint_session
+
+    gstin = (payload.gstin or "").strip().upper()
+    if not GSTIN_RE.match(gstin):
+        raise HTTPException(status_code=400, detail="Please enter a valid 15-character GSTIN")
+
+    if await is_locked_out(db, gstin):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed attempts. Please try again in 15 minutes or reset your password.",
+        )
+
+    retailer = await db.retailers.find_one(
+        {"$or": [{"gst_number": gstin}, {"username": gstin}]}
+    )
+    if not retailer or retailer.get("status") == "deleted":
+        await record_failed_login(db, gstin)
+        raise HTTPException(status_code=401, detail="Invalid GSTIN or password")
+
+    if not verify_password(payload.password, retailer.get("password_hash") or ""):
+        await record_failed_login(db, gstin)
+        raise HTTPException(status_code=401, detail="Invalid GSTIN or password")
+
+    await clear_failed_logins(db, gstin)
+
+    if retailer.get("status") == "suspended":
+        reason = retailer.get("suspended_reason") or "Please contact AAROHMM."
+        raise HTTPException(status_code=403, detail=f"Your account is suspended. Reason: {reason}")
+    if retailer.get("status") != "active":
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Your account is still being reviewed by our team. "
+                "You'll be able to sign in to the app as soon as it is approved."
+            ),
+        )
+
+    email = (retailer.get("email") or "").lower()
+    if not email:
+        raise HTTPException(status_code=409, detail="No email on file for this account. Please contact AAROHMM.")
+
+    session = await mint_session(email)
+    if not session:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Password sign-in is not available on this server yet. "
+                "Please use \"Email me a one-time code\" instead."
+            ),
+        )
+
+    await db.retailers.update_one(
+        {"retailer_id": retailer["retailer_id"]},
+        {"$set": {"last_login": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {
+        "access_token": session["access_token"],
+        "refresh_token": session["refresh_token"],
+        "expires_in": session.get("expires_in"),
+        "business_name": retailer.get("business_name") or retailer.get("trade_name"),
+    }
+
+
+# --------------------------------------------------------------------------
 # Profile
 # --------------------------------------------------------------------------
 @router.get("/me")

@@ -14,4 +14,8 @@ export const MOBILE_BRAND_NAME: string =
 
 export const MOBILE_BRAND_TAGLINE: string =
   (Constants.expoConfig?.extra?.mobileBrandTagline as string) ||
-  'Sacred Luxury in Every Scent';
+  'Where Fragrance Becomes Atmosphere…';
+
+/** Public website — used for registration and password recovery hand-offs. */
+export const WEB_URL: string =
+  (Constants.expoConfig?.extra?.webUrl as string) || 'https://www.centraders.com';

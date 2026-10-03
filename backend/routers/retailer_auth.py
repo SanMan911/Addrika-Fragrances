@@ -242,6 +242,211 @@ async def gst_contact_fetch(data: GstContactFetchRequest, request: Request):
     }
 
 
+class GstContactPreviewRequest(BaseModel):
+    gstin: str = Field(min_length=15, max_length=15)
+
+
+class GstContactSendOtpRequest(BaseModel):
+    gstin: str = Field(min_length=15, max_length=15)
+    # "confirm"       → the masked GST contact shown is correct
+    # "update_mobile" → their mobile has changed; OTP still goes to the GST email
+    # "fallback"      → the GST record could not be read; verify the typed email
+    mode: str = Field(pattern="^(confirm|update_mobile|fallback)$")
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    country_code: Optional[str] = "+91"
+
+
+async def _reject_if_registered(gst: str) -> None:
+    existing = await db.retailers.find_one({"gst_number": gst})
+    if existing and existing.get("status") != "deleted":
+        raise HTTPException(
+            status_code=409,
+            detail="An account already exists for this GSTIN. Please log in with your GSTIN.",
+        )
+
+
+@router.post("/gst-contact/preview")
+async def gst_contact_preview(data: GstContactPreviewRequest):
+    """Show the applicant the MASKED contact registered on their GSTIN.
+
+    Nothing is sent and nothing is charged twice (IDSPay results are cached) —
+    this only lets the retailer confirm "yes, that's me" before an OTP goes out.
+    A provider/wallet/configuration problem of OURS returns `unavailable`
+    (HTTP 200) so onboarding degrades to the typed-email fallback instead of
+    looking like the retailer did something wrong.
+    """
+    from services import idspay_gst_contacts as idspay
+
+    gst = (data.gstin or "").upper().strip()
+    if not GST_PATTERN.match(gst):
+        raise HTTPException(status_code=400, detail="Invalid GST number format")
+    await _reject_if_registered(gst)
+
+    result = await idspay.fetch_contacts(gst)
+    if result.get("status") != "ok":
+        reason = {
+            "not_configured": "not_configured",
+            "invalid_gstin": "invalid_gstin",
+        }.get(result.get("status"), "provider_unavailable")
+        if result.get("account_issue"):
+            logger.error(f"idspay account issue during onboarding preview: {result.get('error')}")
+        return {"status": "unavailable", "reason": reason, "mobile_usable": False}
+
+    email = result.get("email")
+    mobile = result.get("mobile")
+    if not email:
+        return {
+            "status": "email_unavailable",
+            "mobile_hint": idspay.mask_mobile_hint(mobile) if mobile else None,
+            "mobile_usable": bool(mobile),
+        }
+
+    return {
+        "status": "available",
+        "email_hint": idspay.mask_email_hint(email),
+        "mobile_hint": idspay.mask_mobile_hint(mobile) if mobile else None,
+        "mobile_usable": bool(mobile),
+    }
+
+
+@router.post("/gst-contact/send-otp")
+async def gst_contact_send_otp(data: GstContactSendOtpRequest, request: Request):
+    """Email the ownership-proof code, after the applicant confirmed the contact.
+
+    Where the code goes:
+      * `confirm` / `update_mobile` → the email registered against the GSTIN
+      * `fallback`                  → the email the applicant typed, used ONLY
+                                      when the GST record can't be read; that
+                                      registration always goes to manual review
+    """
+    from services import idspay_gst_contacts as idspay
+    from services import gst_email_otp as otp
+
+    gst = (data.gstin or "").upper().strip()
+    if not GST_PATTERN.match(gst):
+        raise HTTPException(status_code=400, detail="Invalid GST number format")
+    await _reject_if_registered(gst)
+
+    typed_phone = re.sub(r"\D", "", data.phone or "")
+    typed_email = (data.email or "").strip().lower()
+
+    result = await idspay.fetch_contacts(gst)
+    ok = result.get("status") == "ok"
+    gst_email = result.get("email") if ok else None
+    gst_mobile = result.get("mobile") if ok else None
+
+    if data.mode == "fallback" and gst_email:
+        # The record IS readable, so hold the applicant to it: both typed
+        # values contradicting the record still denies registration.
+        verdict = idspay.compare_contacts(typed_email, typed_phone, result)
+        if verdict["deny"]:
+            await db.gst_contact_denials.insert_one({
+                "gstin": gst,
+                "entered_email": verdict["entered_email"],
+                "entered_mobile": verdict["entered_mobile"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "ip": _client_ip(request),
+            })
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "Neither the mobile number nor the email you entered matches the contact "
+                    "details registered against this GSTIN. Please use your GST-registered "
+                    "details, or contact AAROHMM if your GST records are out of date."
+                ),
+            )
+        target_email, target = gst_email, "gst_email"
+        meta = verdict
+    elif data.mode == "fallback":
+        if not typed_email or len(typed_phone) < 10:
+            raise HTTPException(
+                status_code=400,
+                detail="Please enter your email address and a 10-digit mobile number.",
+            )
+        target_email, target = typed_email, "entered_email"
+        meta = {
+            "email": idspay.INDETERMINATE,
+            "mobile": idspay.INDETERMINATE,
+            "deny": False,
+            "any_mismatch": False,
+            "entered_email": typed_email,
+            "entered_mobile": typed_phone[-10:],
+            "gst_email": None,
+            "gst_mobile": gst_mobile,
+            "gst_record_readable": False,
+        }
+    else:
+        if not gst_email:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "We could not read the email registered against this GSTIN. "
+                    "Please enter your own email and mobile so we can verify you by email."
+                ),
+            )
+        target_email, target = gst_email, "gst_email"
+        if data.mode == "update_mobile":
+            if len(typed_phone) < 10:
+                raise HTTPException(status_code=400, detail="Enter your new 10-digit mobile number.")
+            entered_mobile = typed_phone[-10:]
+            mobile_verdict = (
+                idspay.MISMATCH if idspay.usable_mobile(gst_mobile) else idspay.INDETERMINATE
+            )
+        elif idspay.usable_mobile(gst_mobile):
+            entered_mobile = re.sub(r"\D", "", gst_mobile)[-10:]
+            mobile_verdict = idspay.MATCH
+        else:
+            if len(typed_phone) < 10:
+                raise HTTPException(
+                    status_code=400,
+                    detail="The mobile on your GST record could not be read — please enter your mobile number.",
+                )
+            entered_mobile = typed_phone[-10:]
+            mobile_verdict = idspay.INDETERMINATE
+        meta = {
+            # They are proving control of the GST-registered inbox itself.
+            "email": idspay.MATCH,
+            "mobile": mobile_verdict,
+            "deny": False,
+            "any_mismatch": mobile_verdict == idspay.MISMATCH,
+            "entered_email": gst_email,
+            "entered_mobile": entered_mobile,
+            "gst_email": gst_email,
+            "gst_mobile": gst_mobile,
+            "gst_record_readable": True,
+            "mobile_change_declared": data.mode == "update_mobile",
+        }
+
+    issued = await otp.issue_otp(gst, target_email, ip=_client_ip(request), meta=meta)
+    if not issued.get("ok"):
+        reason = issued.get("reason")
+        if reason == "cooldown":
+            raise HTTPException(
+                status_code=429,
+                detail=f"Please wait {issued.get('retry_after')}s before requesting another code.",
+            )
+        if reason == "rate_limited":
+            raise HTTPException(
+                status_code=429,
+                detail="Too many verification attempts for this GSTIN. Please try again later.",
+            )
+        raise HTTPException(
+            status_code=503,
+            detail="Could not email the verification code right now. Please try again.",
+        )
+
+    return {
+        "status": "otp_sent",
+        "challenge_id": issued["challenge_id"],
+        "expires_in": issued["expires_in"],
+        "target": target,
+        "target_hint": idspay.mask_email_hint(target_email),
+        "mismatch": bool(meta.get("any_mismatch")),
+        "mobile_change_declared": bool(meta.get("mobile_change_declared")),
+    }
+
+
 @router.post("/gst-contact/verify-otp")
 async def gst_contact_verify_otp(data: GstContactVerifyRequest, request: Request):
     """Consume the emailed code and hand back an opaque onboarding session."""
@@ -1016,7 +1221,8 @@ async def retailer_register(
     alternate_phone: Optional[str] = Form(None, max_length=20),
     alternate_email: Optional[str] = Form(None, max_length=200),
     onboarding_session: Optional[str] = Form(None, max_length=200),
-    gst_certificate: UploadFile = File(...),
+    defer_gst_certificate: Optional[str] = Form(None),
+    gst_certificate: Optional[UploadFile] = File(None),
 ):
     """Self-serve retailer registration.
     Behaviour matches waitlist for GST auto-verify (hard-block unless
@@ -1055,10 +1261,10 @@ async def retailer_register(
         gst_email_verified = True
         verified_gst_email = (sess.get("verified_email") or "").lower()
         gst_contact_meta = sess.get("meta") or {}
-    elif _gst_email_otp_required():
+    else:
         raise HTTPException(
             status_code=400,
-            detail="Please verify the email registered against your GSTIN before registering.",
+            detail="Please verify your email with the code we sent before registering.",
         )
 
     # Identity is the verified address; anything typed becomes an alternate.
@@ -1068,35 +1274,33 @@ async def retailer_register(
             alternate_email = typed
         email = verified_gst_email  # type: ignore[assignment]
 
-    # ---- Phone ownership (OTP) required for Indian (+91) numbers ----
-    cc_check = (country_code or "+91").strip()
-    if not cc_check.startswith("+"):
-        cc_check = f"+{cc_check}"
-    if cc_check == "+91" and not gst_email_verified:
-        from services.phone_otp import to_e164, is_phone_verified
-        if not await is_phone_verified(to_e164(cc_check, phone)):
+    # ---- GST certificate: upload now, or defer and wait for approval ----
+    defer_cert = str(defer_gst_certificate or "").strip().lower() in ("1", "true", "yes", "on")
+    cert_bytes = b""
+    ctype = ""
+    if defer_cert:
+        gst_certificate = None
+    elif not gst_certificate:
+        raise HTTPException(
+            status_code=400,
+            detail="Please upload your GST certificate, or choose to submit it later.",
+        )
+
+    if gst_certificate:
+        ctype = (gst_certificate.content_type or "").lower()
+        if ctype not in ALLOWED_CERT_MIME:
             raise HTTPException(
                 status_code=400,
-                detail="Please verify your phone number via the SMS OTP before registering.",
+                detail="GST certificate must be PDF, JPG, PNG or WebP",
             )
-
-    # ---- Validate certificate BEFORE any DB writes ----
-    if not gst_certificate:
-        raise HTTPException(status_code=400, detail="GST certificate file is required")
-    ctype = (gst_certificate.content_type or "").lower()
-    if ctype not in ALLOWED_CERT_MIME:
-        raise HTTPException(
-            status_code=400,
-            detail="GST certificate must be PDF, JPG, PNG or WebP",
-        )
-    cert_bytes = await gst_certificate.read()
-    if len(cert_bytes) == 0:
-        raise HTTPException(status_code=400, detail="GST certificate is empty")
-    if len(cert_bytes) > MAX_CERT_BYTES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"GST certificate must be under {MAX_CERT_BYTES // (1024 * 1024)} MB",
-        )
+        cert_bytes = await gst_certificate.read()
+        if len(cert_bytes) == 0:
+            raise HTTPException(status_code=400, detail="GST certificate is empty")
+        if len(cert_bytes) > MAX_CERT_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"GST certificate must be under {MAX_CERT_BYTES // (1024 * 1024)} MB",
+            )
 
     # ---- Dedup ----
     existing_gst = await db.retailers.find_one({"gst_number": gst})
@@ -1137,17 +1341,20 @@ async def retailer_register(
             detail=gst_verification_error or "GSTIN could not be verified.",
         )
 
-    # ---- Upload the certificate ----
-    ext = ALLOWED_CERT_MIME[ctype]
+    # ---- Upload the certificate (skipped when the retailer deferred it) ----
     retailer_id = f"RTL_{uuid.uuid4().hex[:10].upper()}"
-    storage_path = make_path("kyc/gst-cert", retailer_id, ext)
-    upload_result = await put_object(storage_path, cert_bytes, ctype)
-    if not upload_result:
-        raise HTTPException(
-            status_code=503,
-            detail="Could not upload GST certificate right now. Please try again.",
-        )
-    stored_path = upload_result.get("path", storage_path)
+    stored_path = None
+    ext = ""
+    if gst_certificate:
+        ext = ALLOWED_CERT_MIME[ctype]
+        storage_path = make_path("kyc/gst-cert", retailer_id, ext)
+        upload_result = await put_object(storage_path, cert_bytes, ctype)
+        if not upload_result:
+            raise HTTPException(
+                status_code=503,
+                detail="Could not upload GST certificate right now. Please try again.",
+            )
+        stored_path = upload_result.get("path", storage_path)
 
     # ---- Create retailer ----
     cc = country_code.strip() if country_code else "+91"
@@ -1160,17 +1367,20 @@ async def retailer_register(
 
     # ---- Auto-onboarding gate ----
     # A retailer is onboarded AUTOMATICALLY only when BOTH the mobile AND the
-    # email they entered match the GST record AND the email OTP was verified.
-    # Anything else (IDSPay unavailable / wallet empty / IP not whitelisted, a
-    # partial match, or a masked GST record) falls back to MANUAL admin review,
-    # so onboarding keeps working while the IDSPay account is being sorted out.
+    # email they entered match the GST record, the email OTP was verified, AND
+    # the GST certificate is actually on file. Anything else (IDSPay
+    # unavailable / wallet empty, a declared mobile change, a masked GST
+    # record, or a deferred certificate) falls back to MANUAL admin review.
     auto_approved = (
         gst_email_verified
         and gst_contact_meta.get("email") == "match"
         and gst_contact_meta.get("mobile") == "match"
+        and bool(stored_path)
     )
     if auto_approved:
         manual_review_reason = None
+    elif defer_cert:
+        manual_review_reason = "GST certificate not submitted yet — retailer chose to upload it later"
     elif not gst_email_verified:
         manual_review_reason = "GST-registered email OTP not completed (IDSPay verification unavailable or skipped)"
     else:
@@ -1201,7 +1411,8 @@ async def retailer_register(
             "size": len(cert_bytes),
             "uploaded_at": now,
             "is_deleted": False,
-        },
+        } if stored_path else None,
+        "gst_cert_deferred": defer_cert,
         "city": _titlecase((city or "").strip()) or None,
         "state": retailer_state,
         "address": (address or "").strip() or None,
@@ -1216,7 +1427,7 @@ async def retailer_register(
         "legal_documents": {
             "gst_certificate": stored_path,
             "gst_certificate_filename": gst_certificate.filename or f"gst-cert.{ext}",
-        },
+        } if stored_path else {},
         "admin_notes": [],
         "password_hash": hash_password(password),
         "password_set_at": now,
@@ -1333,7 +1544,7 @@ async def retailer_register(
                 <tr><td style='background:#f5f0e8;font-weight:600;'>Legal Name (GSTN)</td><td style='background:#faf7f2;'>{legal_name or '—'}</td></tr>
                 <tr><td style='background:#f5f0e8;font-weight:600;'>City / State</td><td style='background:#faf7f2;'>{retailer.get('city') or '—'}, {retailer.get('state') or '—'}</td></tr>
                 <tr><td style='background:#f5f0e8;font-weight:600;'>Pincode</td><td style='background:#faf7f2;'>{retailer.get('pincode') or '—'}</td></tr>
-                <tr><td style='background:#f5f0e8;font-weight:600;'>GST Certificate</td><td style='background:#faf7f2;'>Attached · {retailer['gst_certificate']['original_filename']} · {round(len(cert_bytes) / 1024, 1)} KB</td></tr>
+                <tr><td style='background:#f5f0e8;font-weight:600;'>GST Certificate</td><td style='background:#faf7f2;'>{('Attached · ' + retailer['gst_certificate']['original_filename'] + ' · ' + str(round(len(cert_bytes) / 1024, 1)) + ' KB') if stored_path else "<b style='color:#c0392b'>NOT SUBMITTED — retailer chose to upload later. Send them a reminder from the admin panel.</b>"}</td></tr>
               </table>
               <p style='margin:22px 0 8px;text-align:center;'>
                 <a href='{panel_link}' style='background:#d4af37;color:#1e3a52;padding:12px 26px;border-radius:6px;text-decoration:none;font-weight:700;'>
@@ -1347,12 +1558,15 @@ async def retailer_register(
         """
         await send_email(
             to_email=admin_email,
-            subject=f"[AAROHMM B2B] New retailer registration — {retailer['business_name']}",
+            subject=(
+                f"[AAROHMM B2B] New retailer registration — {retailer['business_name']}"
+                + (" · GST CERTIFICATE PENDING" if defer_cert else "")
+            ),
             html_content=admin_html,
             attachments=[{
                 "filename": retailer['gst_certificate']['original_filename'],
                 "content": _b64.b64encode(cert_bytes).decode("ascii"),
-            }],
+            }] if stored_path else None,
         )
 
         applicant_html = f"""
@@ -1416,4 +1630,5 @@ async def retailer_register(
         "gst_verified": gst_verified,
         "auto_onboarded": auto_approved,
         "manual_review_reason": manual_review_reason,
+        "gst_certificate_pending": defer_cert,
     }

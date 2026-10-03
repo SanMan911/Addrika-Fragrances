@@ -7,6 +7,7 @@ from typing import Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field, EmailStr, field_validator
 import logging
+import re
 import uuid
 import base64
 
@@ -621,6 +622,9 @@ async def admin_list_retailers(
             "documents_complete": r.get('documents_complete', False)
         }
         r['kyc'] = _kyc_status_for(r)
+        r['brand_partner_verified'] = bool(r.get('brand_partner_verified'))
+        r['listed_on_locator'] = bool(r.get('listed_on_locator'))
+        r['gst_cert_deferred'] = bool(r.get('gst_cert_deferred'))
         try:
             bal = await _fr_balance(db, r.get('retailer_id'))
             r['rewards'] = {
@@ -651,6 +655,270 @@ async def admin_list_retailers(
             "total_pages": (total + limit - 1) // limit
         }
     }
+
+
+# ===================== Admin: sign-up reminders & Verified Brand Partner =====================
+# NOTE: These routes MUST come BEFORE /admin/{retailer_id} to avoid path conflicts
+
+def _kyc_docs_present(r: dict) -> tuple[bool, bool]:
+    """(gst_certificate_on_file, spoc_aadhaar_on_file) — mirrors kyc_status_for."""
+    from routers.retailer_auth import kyc_status_for as _kyc
+    k = _kyc(r)
+    return bool(k.get("gst_certificate")), bool(k.get("spoc_aadhaar"))
+
+
+@router.post("/admin/{retailer_id}/signup-reminder")
+async def admin_send_signup_reminder(
+    retailer_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Email the retailer to come back and finish their sign-up formalities."""
+    await require_admin(request, session_token)
+
+    retailer = await db.retailers.find_one({"retailer_id": retailer_id}, {"_id": 0})
+    if not retailer:
+        raise HTTPException(status_code=404, detail="Retailer not found")
+    to_email = (retailer.get("email") or "").strip().lower()
+    if not to_email:
+        raise HTTPException(status_code=400, detail="This retailer has no email address on file")
+
+    has_gst, has_spoc = _kyc_docs_present(retailer)
+    missing = []
+    if not has_gst:
+        missing.append("GST certificate")
+    if not has_spoc:
+        missing.append("Aadhaar of your SPOC")
+    if not missing:
+        raise HTTPException(
+            status_code=400,
+            detail="Nothing outstanding — this retailer has already submitted every document.",
+        )
+
+    import os as _os
+    from services.email_service import send_email
+
+    dash = _os.environ.get("FRONTEND_PUBLIC_URL", "https://www.centraders.com").rstrip("/")
+    items = "".join(f"<li style='margin-bottom:6px'>{m}</li>" for m in missing)
+    html = f"""
+    <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
+      <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;'>
+        <tr><td style='background:#1e3a52;padding:24px;text-align:center;'>
+          <h1 style='color:#d4af37;margin:0;'>AAROHMM</h1>
+          <p style='color:#fff;margin:6px 0 0;'>Finish your sign-up</p>
+        </td></tr>
+        <tr><td style='padding:24px;color:#1e3a52;'>
+          <p>Hi {retailer.get('contact_name') or retailer.get('name') or 'there'},</p>
+          <p>Your AAROHMM retailer account for <b>{retailer.get('business_name') or '—'}</b> is almost ready.
+          We still need the following before we can verify you as an AAROHMM Brand Partner:</p>
+          <ul style='font-size:14px;'>{items}</ul>
+          <p style='margin:22px 0 8px;text-align:center;'>
+            <a href='{dash}/retailer/dashboard' style='background:#d4af37;color:#1e3a52;padding:12px 26px;border-radius:6px;text-decoration:none;font-weight:700;'>
+              Upload my documents →
+            </a>
+          </p>
+          <p style='color:#6b6357;font-size:13px;margin-top:20px;'>Sign in with your GSTIN
+          (<span style='font-family:monospace'>{retailer.get('gst_number') or '—'}</span>) and upload them from your dashboard.</p>
+        </td></tr>
+      </table>
+    </body></html>
+    """
+    sent = await send_email(
+        to_email=to_email,
+        subject="AAROHMM — please complete your retailer sign-up",
+        html_content=html,
+    )
+    if not sent:
+        raise HTTPException(status_code=503, detail="Could not send the reminder email. Please try again.")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.retailers.update_one(
+        {"retailer_id": retailer_id},
+        {
+            "$set": {"signup_reminder_last_sent_at": now},
+            "$inc": {"signup_reminder_count": 1},
+            "$push": {"signup_reminders": {"sent_at": now, "missing": missing}},
+        },
+    )
+    return {"success": True, "sent_to": to_email, "missing": missing}
+
+
+class BrandPartnerUpdate(BaseModel):
+    verified: bool
+    listed: Optional[bool] = None
+    note: Optional[str] = None
+
+
+@router.put("/admin/{retailer_id}/brand-partner")
+async def admin_set_brand_partner(
+    retailer_id: str,
+    payload: BrandPartnerUpdate,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Grant / revoke 'Verified Brand Partner'.
+
+    Granting requires every formality to be complete — active account AND both
+    KYC documents on file — so the public store locator can only ever list
+    retailers whose paperwork an admin has actually seen.
+    """
+    await require_admin(request, session_token)
+
+    retailer = await db.retailers.find_one({"retailer_id": retailer_id}, {"_id": 0})
+    if not retailer:
+        raise HTTPException(status_code=404, detail="Retailer not found")
+
+    now = datetime.now(timezone.utc).isoformat()
+    if payload.verified:
+        if retailer.get("status") != "active":
+            raise HTTPException(
+                status_code=400,
+                detail="Approve the account first — only active retailers can be verified brand partners.",
+            )
+        has_gst, has_spoc = _kyc_docs_present(retailer)
+        if not (has_gst and has_spoc):
+            missing = [m for m, ok in (("GST certificate", has_gst), ("SPOC Aadhaar", has_spoc)) if not ok]
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot verify yet — still missing: " + ", ".join(missing),
+            )
+        listed = True if payload.listed is None else bool(payload.listed)
+        update = {
+            "brand_partner_verified": True,
+            "brand_partner_verified_at": now,
+            "brand_partner_verified_by": "admin",
+            "brand_partner_note": (payload.note or "").strip() or None,
+            "listed_on_locator": listed,
+            "is_verified": True,
+        }
+    else:
+        update = {
+            "brand_partner_verified": False,
+            "brand_partner_revoked_at": now,
+            "listed_on_locator": False,
+            "is_verified": False,
+        }
+
+    await db.retailers.update_one({"retailer_id": retailer_id}, {"$set": update})
+
+    # Tell the retailer the good news — being on the locator drives walk-ins.
+    if payload.verified and (retailer.get("email") or ""):
+        try:
+            import os as _os
+            from services.email_service import send_email
+            site = _os.environ.get("FRONTEND_PUBLIC_URL", "https://www.centraders.com").rstrip("/")
+            await send_email(
+                to_email=retailer["email"],
+                subject="You're now a Verified AAROHMM Brand Partner",
+                html_content=f"""
+                <html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'>
+                  <table cellpadding='0' cellspacing='0' style='max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;'>
+                    <tr><td style='background:#1e3a52;padding:24px;text-align:center;'>
+                      <h1 style='color:#d4af37;margin:0;'>AAROHMM</h1>
+                      <p style='color:#fff;margin:6px 0 0;'>Verified Brand Partner</p>
+                    </td></tr>
+                    <tr><td style='padding:24px;color:#1e3a52;'>
+                      <p>Congratulations {retailer.get('contact_name') or 'there'},</p>
+                      <p><b>{retailer.get('business_name') or 'Your store'}</b> is now a
+                      <b>Verified AAROHMM Brand Partner</b>. Your store now appears on our public
+                      store locator so customers nearby can find you.</p>
+                      <p style='margin:22px 0 8px;text-align:center;'>
+                        <a href='{site}/find-retailers' style='background:#d4af37;color:#1e3a52;padding:12px 26px;border-radius:6px;text-decoration:none;font-weight:700;'>
+                          See your store listing →
+                        </a>
+                      </p>
+                    </td></tr>
+                  </table>
+                </body></html>
+                """,
+            )
+        except Exception as e:
+            logger.warning(f"brand partner email failed for {retailer_id}: {e}")
+
+    return {"success": True, **update}
+
+
+@router.get("/brand-partners")
+async def public_brand_partners():
+    """PUBLIC — Verified Brand Partners for the 'Where to buy' store locator.
+
+    Only admin-verified, admin-listed, active retailers appear. The projection
+    is a strict whitelist: store name, address and a contact phone number.
+    GSTIN, email, KYC state and legal documents are never exposed.
+    """
+    from services.shipping_config import get_coordinates_for_pincode
+    from services.mappls_geocode import (
+        forward_geocode as mappls_forward_geocode,
+        is_mappls_enabled,
+    )
+
+    PUBLIC_FIELDS = {
+        "_id": 0,
+        "retailer_id": 1,
+        "business_name": 1,
+        "trade_name": 1,
+        "name": 1,
+        "address": 1,
+        "registered_address": 1,
+        "city": 1,
+        "district": 1,
+        "state": 1,
+        "pincode": 1,
+        "phone": 1,
+        "country_code": 1,
+        "coordinates": 1,
+        "brand_partner_verified_at": 1,
+    }
+
+    rows = await db.retailers.find(
+        {
+            "status": "active",
+            "brand_partner_verified": True,
+            "listed_on_locator": True,
+        },
+        PUBLIC_FIELDS,
+    ).sort("brand_partner_verified_at", 1).to_list(200)
+
+    mappls_on = is_mappls_enabled()
+    out = []
+    for idx, r in enumerate(rows):
+        coords = r.get("coordinates")
+        valid = (
+            isinstance(coords, dict)
+            and coords.get("lat") is not None
+            and coords.get("lng") is not None
+        )
+        if not valid:
+            coords = None
+            if mappls_on:
+                addr = ", ".join(filter(None, [
+                    r.get("registered_address") or r.get("address"),
+                    r.get("city") or r.get("district"),
+                    r.get("state"),
+                ]))
+                coords = await mappls_forward_geocode(addr, pincode=r.get("pincode"))
+            if not coords:
+                coords = get_coordinates_for_pincode(r.get("pincode") or "")
+
+        digits = re.sub(r"\D", "", r.get("phone") or "")
+        cc = (r.get("country_code") or "+91").strip()
+        out.append({
+            "id": idx + 1,
+            "retailer_id": r.get("retailer_id"),
+            "business_name": r.get("business_name") or r.get("trade_name") or r.get("name"),
+            "name": r.get("business_name") or r.get("trade_name") or r.get("name"),
+            "address": r.get("registered_address") or r.get("address") or "",
+            "city": r.get("city") or r.get("district"),
+            "district": r.get("district") or r.get("city"),
+            "state": r.get("state"),
+            "pincode": r.get("pincode"),
+            "phone": f"{cc} {digits}" if digits else None,
+            "phone_raw": digits or None,
+            "whatsapp": (cc.lstrip("+") + digits) if digits else None,
+            "verified_brand_partner": True,
+            "coordinates": coords,
+        })
+    return {"retailers": out, "count": len(out)}
 
 
 # ===================== Admin: GST Contact Mismatch Review Queue =====================

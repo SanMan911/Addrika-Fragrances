@@ -227,3 +227,81 @@ Note `db.retailers` has a **unique index on `email`** — give each fixture a di
 `/admin/retailers` chip `kyc-at-risk-filter` (+ `kyc-at-risk-hint`). Matches the cron's scope exactly:
 status `active`/`under_processing` **AND** KYC incomplete **AND** `days_left <= 7`. Deleted/suspended rows are
 intentionally excluded — if you see DELETED accounts in this list, that is a regression.
+
+---
+
+## ITER122 — new onboarding chain + mobile GSTIN/password login
+
+### Register flow (`/retailer/register`) — the SMS OTP is GONE
+Order: GSTIN -> Deepvue autofill -> **masked GST contact confirmation** -> **email OTP** -> business
+details -> password -> GST certificate (uploadable OR deferrable).
+`POST /api/retailer-auth/register` now **requires** `onboarding_session` (400 otherwise) and
+accepts `defer_gst_certificate=true` with **no file**.
+
+New endpoints:
+- `POST /api/retailer-auth/gst-contact/preview` `{gstin}` ->
+  `{status: available|email_unavailable|unavailable, email_hint, mobile_hint, mobile_usable}`.
+  A wallet/key/provider problem of OURS returns **200 `unavailable`**, never an error.
+- `POST /api/retailer-auth/gst-contact/send-otp` `{gstin, mode, email?, phone?}` where mode is
+  `confirm` | `update_mobile` | `fallback` -> `{challenge_id, target_hint, target, mismatch}`.
+  * `confirm` / `update_mobile` need a readable GST email (else **409**)
+  * `fallback` needs typed email + 10-digit mobile (else **400**); if the GST record IS readable the
+    old deny rule still applies (both typed values contradicting -> **403**)
+- `POST /api/retailer-auth/gst-contact/verify-otp` (unchanged) -> `onboarding_session`
+- The legacy `POST /gst-contact/fetch` is kept for the older tests.
+
+Auto-onboard now ALSO requires the certificate on file:
+`email==match AND mobile==match AND otp verified AND certificate uploaded` -> `status=active`.
+`update_mobile` -> mobile verdict `mismatch` -> manual review + the mismatch queue.
+`fallback` -> both verdicts `indeterminate` -> manual review, no false mismatch flag.
+
+Register testids: `register-gst-masked-details`, `register-gst-masked-email`,
+`register-gst-masked-mobile`, `register-gst-confirm-correct`, `register-gst-mobile-changed`,
+`register-gst-new-mobile`, `register-gst-update-mobile-send`, `register-gst-cancel-update`,
+`register-gst-contact-fallback`, `register-gst-fallback-send`, `register-gst-otp-row`,
+`register-gst-otp-code`, `register-gst-otp-verify`, `register-gst-otp-resend`,
+`register-gst-email-verified`, `register-gst-mobile-unreadable`, `register-cert-skip`,
+`register-cert-skip-row`. **`register-otp-block` (the SMS block) no longer exists.**
+
+### Testing the OTP without an inbox
+`backend/tests/test_iter122_onboarding.py` (21/21) rewrites `gst_otp_challenges.code_digest` via
+`services.gst_email_otp._digest(challenge_id, code)` then verifies with that code. Use the real
+GSTIN `27AAACR5055K1Z7`. Clean up `db.retailers` by `gst_number` AND by `email` (unique index).
+
+### Admin: sign-up reminder + Verified Brand Partner (`/admin/retailers`)
+- `POST /api/retailers/admin/{retailer_id}/signup-reminder` -> emails the retailer the list of
+  missing docs. **400 if nothing is outstanding.**
+- `PUT /api/retailers/admin/{retailer_id}/brand-partner` `{verified, listed?, note?}` ->
+  **400 unless the account is `active` AND both KYC docs are on file.** Sets
+  `brand_partner_verified`, `listed_on_locator`, `is_verified`.
+- Testids: `retailer-brand-partner-<id>`, `brand-partner-verify-<id>`, `brand-partner-revoke-<id>`,
+  `signup-reminder-<id>`, `retailer-cert-deferred-<id>`.
+
+### Public store locator
+`GET /api/retailers/brand-partners` (PUBLIC, no auth) — only `status=active` +
+`brand_partner_verified` + `listed_on_locator`. Whitelisted projection: store name, address,
+city/state/pincode, **phone** + whatsapp, coordinates. No GSTIN, no email, no KYC.
+`/find-retailers` now reads THIS endpoint (it used to read `/api/retailers`).
+
+### Mobile app (Aarohmm) — GSTIN then password
+- `POST /api/app/v2/auth/gstin-check` `{gstin}` ->
+  `{registered, status, has_password, password_login_ready, business_name}`
+- `POST /api/app/v2/auth/password-login` `{gstin, password}` -> Supabase `{access_token, refresh_token}`
+  (verifies the bcrypt hash in MongoDB, then mints the session via
+  `services/supabase_session.py`: admin/users -> admin/generate_link -> /verify).
+  Reuses the web 10-fail/15-min lockout. Non-active accounts get **403**.
+- **BLOCKER: `SUPABASE_SERVICE_KEY` is NOT in `backend/.env`**, so `password_login_ready` is
+  `false` and `password-login` returns **503**. The app therefore shows the emailed one-time code
+  instead. Add the Supabase service/secret key to `backend/.env` and password login activates with
+  no code change.
+- Unregistered GSTIN -> `login-not-registered` panel -> `login-register-btn` opens
+  `WEB_URL/retailer/register` in an in-app browser.
+- Login testids: `login-card`, `login-gstin-input`, `login-continue-btn`, `login-password-input`,
+  `login-password-submit`, `login-email-code-btn`, `login-forgot-password-btn`,
+  `login-not-registered`, `login-register-btn`, `login-code-input`, `login-verify-btn`,
+  `login-change-gstin-btn`, `login-error`. (`login-send-code-btn` was renamed to
+  `login-continue-btn`.)
+- Mobile tagline is now **"Where Fragrance Becomes Atmosphere…"**; version 0.5.0 / versionCode 5.
+- The web preview at `/app-preview` is the Expo static export. After changing mobile code:
+  `cd /app/mobile && npx expo export --platform web --output-dir dist-new --clear` then replace
+  `/app/frontend-next/public/app-preview` with it and restart the frontend.

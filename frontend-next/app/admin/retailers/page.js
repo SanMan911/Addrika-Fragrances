@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Store, Search, RefreshCw, MapPin, Phone, Mail, CheckCircle, XCircle, Edit2, Trash2, Plus, X, ShieldCheck } from 'lucide-react';
+import { Store, Search, RefreshCw, MapPin, Phone, Mail, CheckCircle, XCircle, Edit2, Trash2, Plus, X, ShieldCheck, BadgeCheck, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 import RetailerEditModal from '../../../components/RetailerEditModal';
@@ -103,6 +103,43 @@ export default function AdminRetailersPage() {
     
     return filtered;
   }, [retailers, statusFilter, searchQuery, kycAtRiskOnly]);
+
+  const handleBrandPartner = async (retailerId, verified) => {
+    try {
+      const res = await authFetch(`${API_URL}/api/retailers/admin/${retailerId}/brand-partner`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verified }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not update brand partner status');
+      toast.success(
+        verified
+          ? 'Verified Brand Partner — now live on the store locator'
+          : 'Brand partner status revoked'
+      );
+      setRetailers((prev) => prev.map((r) =>
+        (r.retailer_id === retailerId || r.id === retailerId)
+          ? { ...r, brand_partner_verified: verified, listed_on_locator: verified, is_verified: verified }
+          : r
+      ));
+    } catch (e) {
+      toast.error(e.message || 'Could not update brand partner status');
+    }
+  };
+
+  const handleSignupReminder = async (retailerId) => {
+    try {
+      const res = await authFetch(`${API_URL}/api/retailers/admin/${retailerId}/signup-reminder`, {
+        method: 'POST',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not send the reminder');
+      toast.success(`Reminder emailed to ${data.sent_to}`);
+    } catch (e) {
+      toast.error(e.message || 'Could not send the reminder');
+    }
+  };
 
   const handleStatusChange = async (retailerId, newStatus) => {
     try {
@@ -374,6 +411,36 @@ export default function AdminRetailersPage() {
                   )}
                 </div>
               )}
+              <div
+                className={`flex flex-wrap items-center gap-2 text-xs px-3 py-2 rounded-lg border ${
+                  retailer.brand_partner_verified
+                    ? 'bg-[#D4AF37]/15 border-[#D4AF37]/50'
+                    : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700'
+                }`}
+                data-testid={`retailer-brand-partner-${retailer.retailer_id || retailer.id}`}
+              >
+                <span className="flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300">
+                  <BadgeCheck size={13} />
+                  Brand Partner
+                </span>
+                {retailer.brand_partner_verified ? (
+                  <span className="px-1.5 py-0.5 rounded bg-[#D4AF37] text-[#1a252f] font-semibold">
+                    Verified · on store locator
+                  </span>
+                ) : (
+                  <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                    Not verified
+                  </span>
+                )}
+                {retailer.gst_cert_deferred && !retailer.kyc?.gst_certificate && (
+                  <span
+                    className="ml-auto px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-semibold"
+                    data-testid={`retailer-cert-deferred-${retailer.retailer_id || retailer.id}`}
+                  >
+                    GST cert pending
+                  </span>
+                )}
+              </div>
               {retailer.rewards && (
                 <div
                   className="flex items-center justify-between gap-2 text-sm px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40"
@@ -422,6 +489,36 @@ export default function AdminRetailersPage() {
                 <Edit2 size={14} />
                 Edit
               </button>
+              {retailer.brand_partner_verified ? (
+                <button
+                  onClick={() => handleBrandPartner(retailer.retailer_id || retailer.id, false)}
+                  data-testid={`brand-partner-revoke-${retailer.retailer_id || retailer.id}`}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 rounded-lg text-sm hover:bg-slate-200"
+                >
+                  <XCircle size={14} />
+                  Revoke Partner
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleBrandPartner(retailer.retailer_id || retailer.id, true)}
+                  data-testid={`brand-partner-verify-${retailer.retailer_id || retailer.id}`}
+                  title="Requires an active account with both KYC documents on file"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-[#D4AF37] text-[#1a252f] rounded-lg text-sm font-semibold hover:opacity-90"
+                >
+                  <BadgeCheck size={14} />
+                  Verify Brand Partner
+                </button>
+              )}
+              {retailer.kyc && !retailer.kyc.complete && (
+                <button
+                  onClick={() => handleSignupReminder(retailer.retailer_id || retailer.id)}
+                  data-testid={`signup-reminder-${retailer.retailer_id || retailer.id}`}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg text-sm hover:bg-blue-200"
+                >
+                  <Send size={14} />
+                  Remind to finish sign-up
+                </button>
+              )}
               <button
                 onClick={() => setSelectedRetailer(retailer)}
                 className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 rounded-lg text-sm hover:bg-slate-200"
