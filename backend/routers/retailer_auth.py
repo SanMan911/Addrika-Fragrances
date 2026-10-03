@@ -1158,6 +1158,28 @@ async def retailer_register(
     trade_name = gst_record.get("trade_name") or legal_name
     retailer_state = _titlecase((state or "").strip()) or INDIAN_STATE_CODES_REG.get(gst[:2])
 
+    # ---- Auto-onboarding gate ----
+    # A retailer is onboarded AUTOMATICALLY only when BOTH the mobile AND the
+    # email they entered match the GST record AND the email OTP was verified.
+    # Anything else (IDSPay unavailable / wallet empty / IP not whitelisted, a
+    # partial match, or a masked GST record) falls back to MANUAL admin review,
+    # so onboarding keeps working while the IDSPay account is being sorted out.
+    auto_approved = (
+        gst_email_verified
+        and gst_contact_meta.get("email") == "match"
+        and gst_contact_meta.get("mobile") == "match"
+    )
+    if auto_approved:
+        manual_review_reason = None
+    elif not gst_email_verified:
+        manual_review_reason = "GST-registered email OTP not completed (IDSPay verification unavailable or skipped)"
+    else:
+        diffs = [f for f in ("email", "mobile") if gst_contact_meta.get(f) != "match"]
+        manual_review_reason = (
+            "Entered " + " and ".join(diffs) + " did not match the GST record"
+            if diffs else "GST contact could not be matched"
+        )
+
     retailer = {
         "retailer_id": retailer_id,
         "business_name": _titlecase(business_name) or "—",
@@ -1186,7 +1208,10 @@ async def retailer_register(
         "pincode": (pincode or "").strip() or None,
         "alternate_phone": (alternate_phone or "").strip() or None,
         "alternate_email": (alternate_email or "").strip().lower() or None,
-        "status": "under_processing",
+        "status": "active" if auto_approved else "under_processing",
+        "auto_onboarded": auto_approved,
+        "onboarding_mode": "auto_idspay" if auto_approved else "manual_review",
+        "manual_review_reason": manual_review_reason,
         "is_verified": False,
         "legal_documents": {
             "gst_certificate": stored_path,
@@ -1370,16 +1395,25 @@ async def retailer_register(
         max_age=RETAILER_SESSION_EXPIRY_DAYS * 24 * 60 * 60,
     )
 
-    logger.info(f"New retailer registered: {retailer_id} status=under_processing gst_verified={gst_verified}")
+    logger.info(
+        f"New retailer registered: {retailer_id} status={retailer['status']} "
+        f"auto_onboarded={auto_approved} gst_verified={gst_verified}"
+    )
 
     return {
-        "message": "Registration submitted — your account is under review.",
+        "message": (
+            "Registration complete — your account is active."
+            if auto_approved else
+            "Registration submitted — your account is under review."
+        ),
         "retailer": {
             "retailer_id": retailer_id,
             "name": retailer["name"],
             "email": retailer["email"],
-            "status": "under_processing",
+            "status": retailer["status"],
         },
         "token": session_token,
         "gst_verified": gst_verified,
+        "auto_onboarded": auto_approved,
+        "manual_review_reason": manual_review_reason,
     }

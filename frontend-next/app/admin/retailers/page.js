@@ -50,6 +50,13 @@ export default function AdminRetailersPage() {
   const [formData, setFormData] = useState(initialRetailerForm);
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState(null);  // holds the retailer currently being edited
+  const [kycAtRiskOnly, setKycAtRiskOnly] = useState(false);
+
+  // "About to be suspended": matches the kyc-autosuspend cron's scope exactly —
+  // only active/under_processing accounts with KYC incomplete and <=7 days left.
+  const isKycAtRisk = (r) =>
+    ['active', 'under_processing'].includes(r.status) &&
+    r.kyc && !r.kyc.complete && r.kyc.days_left !== null && r.kyc.days_left !== undefined && r.kyc.days_left <= 7;
 
   const fetchRetailers = useCallback(async () => {
     setLoading(true);
@@ -77,6 +84,10 @@ export default function AdminRetailersPage() {
     if (statusFilter) {
       filtered = filtered.filter(r => r.status === statusFilter);
     }
+
+    if (kycAtRiskOnly) {
+      filtered = filtered.filter(isKycAtRisk);
+    }
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -91,7 +102,7 @@ export default function AdminRetailersPage() {
     }
     
     return filtered;
-  }, [retailers, statusFilter, searchQuery]);
+  }, [retailers, statusFilter, searchQuery, kycAtRiskOnly]);
 
   const handleStatusChange = async (retailerId, newStatus) => {
     try {
@@ -212,6 +223,26 @@ export default function AdminRetailersPage() {
             <option value="inactive">Inactive</option>
             <option value="suspended">Suspended</option>
           </select>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setKycAtRiskOnly((v) => !v)}
+            data-testid="kyc-at-risk-filter"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              kycAtRiskOnly
+                ? 'bg-red-600 text-white'
+                : 'border border-red-300 dark:border-red-800/50 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30'
+            }`}
+          >
+            <ShieldCheck size={15} />
+            At-risk KYC ({retailers.filter(isKycAtRisk).length})
+          </button>
+          {kycAtRiskOnly && (
+            <span className="text-xs text-slate-500 dark:text-slate-400" data-testid="kyc-at-risk-hint">
+              Showing only retailers with missing KYC documents and 7 days or less before auto-suspension
+            </span>
+          )}
         </div>
       </div>
 

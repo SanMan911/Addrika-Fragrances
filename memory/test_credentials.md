@@ -195,3 +195,35 @@ When IDSPay is unconfigured the whole block is hidden and the SMS phone-OTP path
 retailers at day 7/15/29 of the 30-day window. Milestones persist in `retailers.kyc_reminders_sent`, so
 reruns are idempotent — **delete that field to re-test a milestone**. Test accounts
 (`is_test_account: true`) are skipped by design.
+
+---
+
+## ITER121d — Auto-onboard gate + mismatch queue + at-risk filter
+
+### Auto-onboard gate (IMPORTANT when testing registration)
+`POST /api/retailer-auth/register` no longer always returns `under_processing`:
+- **`status=active`, `auto_onboarded=true`, `onboarding_mode=auto_idspay`** ONLY when the onboarding session's
+  meta has `email=="match"` **AND** `mobile=="match"` (i.e. both contacts matched IDSPay) **AND** the email
+  OTP was verified. Frontend then routes to `/retailer/dashboard`.
+- **Everything else → `status=under_processing`, `auto_onboarded=false`, `onboarding_mode=manual_review`**
+  with a human-readable `manual_review_reason`. Frontend routes to `/retailer/pending`.
+- With IDSPay unavailable (today: empty wallet) no session can exist, so **any** email/mobile is accepted and
+  the retailer waits for manual admin approval. This is intended, not a bug.
+
+To mint a session with a chosen verdict in tests, see `tests/test_iter121_auto_onboard_gate.py::make_session`
+(it issues a real challenge, overwrites `code_digest` with a known code, then verifies).
+Registration calls Deepvue for GST verification, so use a **real** GSTIN such as `27AAACR5055K1Z7`.
+Note `db.retailers` has a **unique index on `email`** — give each fixture a distinct address.
+
+### Mismatch review queue
+- `GET /api/retailers/admin/gst-contact-mismatches?reviewed=false|true` → `{retailers, counts:{pending,reviewed,total}}`
+- `PUT /api/retailers/admin/{retailer_id}/gst-contact-review` `{reviewed: bool, note?: str}` → 400 if that
+  retailer has no mismatch, 404 if unknown.
+- UI `/admin/gst-mismatches`. Testids: `admin-gst-mismatches-page`, `mismatch-tab-pending` /
+  `mismatch-tab-reviewed` / `mismatch-tab-all`, `mismatch-card-<id>`, `mismatch-table-<id>`,
+  `mismatch-review-toggle-<id>`, `mismatch-open-<id>`, `mismatch-empty`, `mismatch-refresh`.
+
+### At-risk KYC filter
+`/admin/retailers` chip `kyc-at-risk-filter` (+ `kyc-at-risk-hint`). Matches the cron's scope exactly:
+status `active`/`under_processing` **AND** KYC incomplete **AND** `days_left <= 7`. Deleted/suspended rows are
+intentionally excluded — if you see DELETED accounts in this list, that is a regression.

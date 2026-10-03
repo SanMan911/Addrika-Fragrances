@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Package, TrendingUp, Users, Tag, MessageSquare,
   Boxes, FileText, Settings, ChevronLeft, ChevronRight, LogOut,
-  ShieldCheck, Menu, X, Moon, Sun, Store, Briefcase, FileEdit, Activity, TreePine, Bell, Sparkles, KeyRound, Webhook, MailCheck, LifeBuoy
+  ShieldCheck, Menu, X, Moon, Sun, Store, Briefcase, FileEdit, Activity, TreePine, Bell, Sparkles, KeyRound, Webhook, MailCheck, LifeBuoy, ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
@@ -36,6 +36,7 @@ const navItems = [
   { path: '/admin/app-support', label: 'Aarohmm App Desk', icon: LifeBuoy },
   { path: '/admin/users', label: 'Users', icon: Users },
   { path: '/admin/retailers', label: 'Retailers', icon: Store },
+  { path: '/admin/gst-mismatches', label: 'GST Mismatches', icon: ShieldAlert },
   { path: '/admin/retailer-activity', label: 'Retailer Activity', icon: Activity },
   { path: '/admin/profile-tickets', label: 'Profile Tickets', icon: FileEdit },
   { path: '/admin/b2b', label: 'B2B Wholesale', icon: Briefcase },

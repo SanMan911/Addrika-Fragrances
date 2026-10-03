@@ -361,9 +361,13 @@ export default function RetailerRegisterPage() {
       if (data.token && typeof window !== 'undefined') {
         try { localStorage.setItem('retailer_token', data.token); } catch { /* ignore */ }
       }
-      toast.success('Registration submitted — your account is under review');
+      toast.success(
+        data.auto_onboarded
+          ? 'Verified against your GST records — your account is active!'
+          : 'Registration submitted — your account is under review'
+      );
       await checkAuth();
-      router.replace('/retailer/pending');
+      router.replace(data.auto_onboarded ? '/retailer/dashboard' : '/retailer/pending');
     } catch (err) {
       const msg = typeof err.message === 'string' ? err.message : 'Registration failed';
       toast.error(msg);
