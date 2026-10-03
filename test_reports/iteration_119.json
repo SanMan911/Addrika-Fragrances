@@ -1,0 +1,37 @@
+{
+  "summary": "Iter121d — (1) auto-onboard gate: retailer goes ACTIVE automatically only when BOTH entered contacts match the IDSPay GST record AND the email OTP is verified, otherwise manual review; (2) GST mismatch review queue at /admin/gst-mismatches with a reviewed tick; (3) one-click at-risk KYC filter on /admin/retailers. Self-tested: 20/20 gate checks + 45/45 IDSPay/OTP checks + Playwright on both admin UIs. No testing_agent run.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter121_auto_onboard_gate.py",
+    "/app/backend/tests/test_iter121_idspay_gst_otp.py"
+  ],
+  "action_items": [
+    "USER (BLOCKER, unchanged): top up the IDSPay wallet. Until then no onboarding can auto-approve, because no GST match can be performed — every retailer correctly lands in manual review.",
+    "USER: decide the token_id / IP whitelisting approach. Preview egress IP is 34.170.12.145 but it is ephemeral and Render's is different and also dynamic. Ask IDSPay for an IP-independent token or multi-IP/CIDR whitelisting, or front the calls with a fixed-IP egress proxy.",
+    "NO CODE CHANGE will be needed to switch on automation: the gate is driven purely by the match+OTP conditions, so funding the wallet activates auto-onboarding by itself."
+  ],
+  "critical_code_review_comments": [
+    "Auto-approval requires gst_email_verified AND email=='match' AND mobile=='match'. Because the verdict comes from the server-side onboarding session (not request fields), a client cannot forge a 'match' to self-approve.",
+    "'indeterminate' (masked/absent GST value) deliberately does NOT satisfy auto-approval — it routes to manual review. Only a positive match auto-onboards.",
+    "The at-risk KYC filter mirrors the kyc-autosuspend cron query (status active/under_processing + incomplete + days_left<=7). The first implementation listed DELETED retailers; fixed during testing. Keep these two definitions in sync if either changes.",
+    "/admin/gst-contact-mismatches and /admin/{retailer_id}/gst-contact-review are registered BEFORE /admin/{retailer_id} — moving them later would shadow them with the retailer-id route.",
+    "db.retailers has a unique index on `email`; any seed/fixture must use distinct addresses or insert_one raises DuplicateKeyError."
+  ],
+  "updated_files": [
+    "/app/backend/routers/retailer_auth.py (auto-onboard gate, status/auto_onboarded/onboarding_mode/manual_review_reason, response fields)",
+    "/app/backend/routers/retailers.py (mismatch queue list + review toggle endpoints)",
+    "/app/frontend-next/app/admin/gst-mismatches/page.js (new review queue page)",
+    "/app/frontend-next/app/admin/layout.js (GST Mismatches sidebar entry)",
+    "/app/frontend-next/app/admin/retailers/page.js (at-risk KYC filter chip)",
+    "/app/frontend-next/app/retailer/register/page.js (routes to dashboard on auto-approval)",
+    "/app/backend/tests/test_iter121_auto_onboard_gate.py (new, 20 checks)"
+  ],
+  "success_rate": {"backend": "100% (20/20 gate, 45/45 idspay)", "frontend": "100% (self-tested)"},
+  "test_credentials": "Admin contact.us@centraders.com / PIN 050499 + OTP from Mongo admin_2fa_tokens. Retailer GSTIN 07AAAAA0000A1Z5 / Test@12345. Full notes in /app/memory/test_credentials.md (see ITER121 and ITER121d sections).",
+  "seed_data_creation": "All fixtures removed: RTL_MMQ_1, RTL_MMQ_2, RTL_ATRISK_1 deleted; gate-test retailers (Gate Test Store / Manual Fallback Store) deleted; gst_otp_challenges, gst_onboarding_sessions, idspay_contact_cache, gst_contact_denials emptied.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Registration status is now CONDITIONAL — do not assume under_processing. Active+auto_onboarded only when both contacts matched IDSPay and the email OTP passed; everything else is manual review. IDSPay's wallet is empty so the live /gst-contact/fetch returns 503 by design and no registration can currently auto-approve. Mint sessions with chosen verdicts via tests/test_iter121_auto_onboard_gate.py::make_session. Registration validates the GSTIN through Deepvue, so use a real one (27AAACR5055K1Z7). db.retailers has a unique email index. Admin queue + at-risk filter testids are listed in /app/memory/test_credentials.md under ITER121d.",
+  "rca of the issue": "N/A — no product failures. One regression caught and fixed in-flight: the at-risk KYC filter initially included status=deleted retailers, which the suspension cron would never touch; the predicate now mirrors the cron's scope."
+}

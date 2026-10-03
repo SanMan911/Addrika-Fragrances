@@ -653,6 +653,90 @@ async def admin_list_retailers(
     }
 
 
+# ===================== Admin: GST Contact Mismatch Review Queue =====================
+# NOTE: These routes MUST come BEFORE /admin/{retailer_id} to avoid path conflicts
+
+@router.get("/admin/gst-contact-mismatches")
+async def admin_list_gst_contact_mismatches(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    reviewed: Optional[bool] = None,
+    page: int = 1,
+    limit: int = 50,
+):
+    """Retailers whose entered mobile/email differed from their GST record."""
+    await require_admin(request, session_token)
+
+    query: dict = {"gst_contact_mismatch": True}
+    if reviewed is True:
+        query["gst_contact_mismatch_reviewed"] = True
+    elif reviewed is False:
+        query["gst_contact_mismatch_reviewed"] = {"$ne": True}
+
+    skip = (page - 1) * limit
+    items = await db.retailers.find(
+        query, {"_id": 0, "password_hash": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+
+    total = await db.retailers.count_documents(query)
+    return {
+        "retailers": items,
+        "counts": {
+            "pending": await db.retailers.count_documents(
+                {"gst_contact_mismatch": True, "gst_contact_mismatch_reviewed": {"$ne": True}}
+            ),
+            "reviewed": await db.retailers.count_documents(
+                {"gst_contact_mismatch": True, "gst_contact_mismatch_reviewed": True}
+            ),
+            "total": await db.retailers.count_documents({"gst_contact_mismatch": True}),
+        },
+        "pagination": {
+            "page": page, "limit": limit, "total": total,
+            "total_pages": (total + limit - 1) // limit if total > 0 else 0,
+        },
+    }
+
+
+class GstMismatchReviewRequest(BaseModel):
+    reviewed: bool = True
+    note: Optional[str] = Field(default=None, max_length=1000)
+
+
+@router.put("/admin/{retailer_id}/gst-contact-review")
+async def admin_review_gst_contact_mismatch(
+    retailer_id: str,
+    data: GstMismatchReviewRequest,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Tick / untick a GST contact mismatch as reviewed."""
+    admin = await require_admin(request, session_token)
+
+    retailer = await db.retailers.find_one({"retailer_id": retailer_id})
+    if not retailer:
+        raise HTTPException(status_code=404, detail="Retailer not found")
+    if not retailer.get("gst_contact_mismatch"):
+        raise HTTPException(status_code=400, detail="This retailer has no GST contact mismatch to review")
+
+    now = datetime.now(timezone.utc).isoformat()
+    if data.reviewed:
+        update = {"$set": {
+            "gst_contact_mismatch_reviewed": True,
+            "gst_contact_mismatch_reviewed_at": now,
+            "gst_contact_mismatch_reviewed_by": (admin or {}).get("email") if isinstance(admin, dict) else None,
+        }}
+        if data.note:
+            update["$set"]["gst_contact_mismatch_note"] = data.note.strip()
+    else:
+        update = {
+            "$set": {"gst_contact_mismatch_reviewed": False},
+            "$unset": {"gst_contact_mismatch_reviewed_at": "", "gst_contact_mismatch_reviewed_by": ""},
+        }
+
+    await db.retailers.update_one({"retailer_id": retailer_id}, update)
+    return {"ok": True, "retailer_id": retailer_id, "reviewed": data.reviewed}
+
+
 # ===================== Admin: Profile Change Tickets =====================
 # NOTE: These routes MUST come BEFORE /admin/{retailer_id} to avoid path conflicts
 

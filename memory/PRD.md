@@ -361,3 +361,32 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
   the preview pod's egress IP is **34.170.12.145**, but it is **ephemeral** (changes on pod restart) and production on Render has a
   *different, also-dynamic* egress IP — so IP whitelisting is fragile for this architecture; ask IDSPay for a static/IP-independent token or
   use a fixed-IP egress proxy. (3) after a successful real lookup, decide `IDSPAY_REQUIRE_GST_EMAIL_OTP=1`.
+
+### Update 2026-10-03 (Iter121d — auto-onboard gate, mismatch review queue, at-risk KYC filter)
+- **Auto-onboard gate (replaces the blanket `under_processing`)**: a self-registered retailer is now set **`status=active`
+  automatically ONLY when BOTH conditions hold** — (a) entered mobile **and** email both `match` the IDSPay GST record, **and**
+  (b) the GST-email OTP was verified. Anything else → **`under_processing` (manual admin approval)**. New retailer fields:
+  `auto_onboarded` (bool), `onboarding_mode` (`auto_idspay` | `manual_review`), `manual_review_reason` (human-readable).
+  The register response returns `auto_onboarded` + `manual_review_reason`, and the UI routes to `/retailer/dashboard` on
+  auto-approval instead of `/retailer/pending`.
+- **Interim behaviour while the IDSPay wallet/IP is unresolved (explicitly requested)**: because no session can be minted when
+  IDSPay is unavailable, retailers may enter **any** mobile/email and land in manual review — onboarding is never blocked by our
+  account problem. Once the wallet is funded (and whitelisting sorted), the same code path auto-onboards clean matches with **no
+  further changes** — it is driven purely by whether the match+OTP conditions are met.
+- **Deny rule unchanged**: when IDSPay data IS available and BOTH entered values contradict the record → 403 at
+  `/gst-contact/fetch` (logged to `gst_contact_denials`). Masked/absent record values stay `indeterminate` and never deny.
+- **NEW — Mismatch Review Queue**: `GET /api/retailers/admin/gst-contact-mismatches?reviewed=true|false` (+ `counts`) and
+  `PUT /api/retailers/admin/{retailer_id}/gst-contact-review {reviewed, note?}`. Both placed **before** `/admin/{retailer_id}` to
+  avoid path shadowing. New admin page **`/admin/gst-mismatches`** ("GST Mismatches" in the sidebar, `ShieldAlert`) with
+  Needs-review / Reviewed / All tabs, an entered-vs-GST-record table per retailer, and a **Mark reviewed** tick that stamps
+  `gst_contact_mismatch_reviewed_at` / `_by`. Testids: `admin-gst-mismatches-page`, `mismatch-tab-{pending|reviewed|all}`,
+  `mismatch-card-<id>`, `mismatch-table-<id>`, `mismatch-review-toggle-<id>`, `mismatch-empty`, `mismatch-refresh`.
+- **NEW — At-risk KYC filter** on `/admin/retailers`: one-click chip `kyc-at-risk-filter` with a live count, showing only accounts
+  the suspension cron will actually hit — **status active/under_processing AND KYC incomplete AND days_left ≤ 7** (window-passed
+  included). Deliberately scoped to the cron's own query, so `deleted`/`suspended` accounts are excluded (caught during testing:
+  the first version listed DELETED test rows).
+- **Tested (self, 20/20 gate + Playwright)**: both-match+OTP → `active`/`auto_idspay`/no mismatch flag; mobile-differs →
+  `under_processing`/`manual_review`/queued unreviewed with the entered-vs-record detail kept; no-IDSPay path → registers with an
+  arbitrary email, `under_processing`, no false mismatch flag. UI: queue default tab shows only unreviewed, tick moves it to
+  Reviewed and decrements the count, untick restores; at-risk chip filters 14 → 2 with zero deleted rows. Desktop + 390px, no overflow.
+- Tests: `/app/backend/tests/test_iter121_auto_onboard_gate.py` (20/20), `/app/backend/tests/test_iter121_idspay_gst_otp.py` (45/45).
