@@ -134,7 +134,7 @@ under RLS:
 ## ITER121 — IDSPay GST-to-Contact + GST-email OTP (LIVE PROD keys, wallet empty)
 
 IDSPay is **configured with the user's live PRODUCTION keys** (`IDSPAY_ENV=prod`, `IDSPAY_API_ID=APID3760`,
-`IDSPAY_API_KEY=f04ab9c6-56ea-429a-b679-32aa0da55f94`). `IDSPAY_TOKEN_ID` is intentionally **blank** — it is
+`IDSPAY_API_KEY=gst-onboard-hub`). `IDSPAY_TOKEN_ID` is intentionally **blank** — it is
 IP-bound, and a live probe proved the API authenticates on api_id + api_key alone.
 
 **⚠ A REAL LOOKUP CURRENTLY FAILS** with

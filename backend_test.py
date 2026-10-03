@@ -11,7 +11,7 @@ from datetime import datetime
 import sys
 
 # Backend URL from frontend .env
-BACKEND_URL = "https://aarohmm-expo.preview.emergentagent.com/api"
+BACKEND_URL = "https://gst-onboard-hub.preview.emergentagent.com/api"
 
 class Colors:
     GREEN = '\033[92m'

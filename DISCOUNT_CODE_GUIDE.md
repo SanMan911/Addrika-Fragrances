@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://aarohmm-expo.preview.emergentagent.com/api
+https://gst-onboard-hub.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 

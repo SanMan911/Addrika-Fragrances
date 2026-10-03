@@ -14,7 +14,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 sys.path.insert(0, "/app/backend")
 
-BASE_URL = "https://aarohmm-expo.preview.emergentagent.com"
+BASE_URL = "https://gst-onboard-hub.preview.emergentagent.com"
 API = f"{BASE_URL}/api"
 MONGO_URL = os.environ["MONGO_URL"]
 DB_NAME = os.environ["DB_NAME"]
