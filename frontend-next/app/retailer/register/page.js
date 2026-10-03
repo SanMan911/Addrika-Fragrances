@@ -802,18 +802,19 @@ export default function RetailerRegisterPage() {
                     data-testid="register-cert-input"
                   />
                 </label>
-                <label
-                  className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-[#2B3A4A]/20 bg-white/70 cursor-pointer"
+                <div
+                  className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-[#2B3A4A]/20 bg-white/70"
                   data-testid="register-cert-skip-row"
                 >
                   <input
+                    id="register-cert-skip"
                     type="checkbox"
                     checked={deferCert}
                     onChange={(e) => setDeferCert(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-[#D4AF37]"
+                    className="mt-0.5 w-4 h-4 accent-[#D4AF37] cursor-pointer"
                     data-testid="register-cert-skip"
                   />
-                  <span className="text-xs text-[#2B3A4A]">
+                  <label htmlFor="register-cert-skip" className="text-xs text-[#2B3A4A] cursor-pointer">
                     <span className="font-semibold flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5" />
                       Skip for now — I&apos;ll submit it later and wait for approval
@@ -822,8 +823,8 @@ export default function RetailerRegisterPage() {
                       Our team is notified straight away and will email you a reminder. Your account
                       stays under review until the certificate is in.
                     </span>
-                  </span>
-                </label>
+                  </label>
+                </div>
               </>
             )}
           </div>

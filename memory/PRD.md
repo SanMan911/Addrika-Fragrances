@@ -390,3 +390,68 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
   arbitrary email, `under_processing`, no false mismatch flag. UI: queue default tab shows only unreviewed, tick moves it to
   Reviewed and decrements the count, untick restores; at-risk chip filters 14 → 2 with zero deleted rows. Desktop + 390px, no overflow.
 - Tests: `/app/backend/tests/test_iter121_auto_onboard_gate.py` (20/20), `/app/backend/tests/test_iter121_idspay_gst_otp.py` (45/45).
+
+### Update 2026-06-03 (Iter122 — onboarding rebuilt: masked GST confirm → email OTP; mobile GSTIN+password; Verified Brand Partner)
+**User-reported bugs, all fixed and verified (testing_agent `/app/test_reports/iteration_120.json`, backend 25/25, frontend 100%).**
+
+- **FIXED — mobile app still said "Addrika" / "Sacred Luxury in Every Scent"**: `mobile/lib/brand.ts`
+  + `app.json → extra.mobileBrandTagline` now carry **"Where Fragrance Becomes Atmosphere…"**. The
+  Expo web export served at `/app-preview` was a **stale 0.1.0 build** — that was the real source of
+  the visible "Addrika" strings; it has been regenerated. Zero occurrences of either string remain.
+  Mobile bumped to **0.5.0 / versionCode 5** (new EAS APK NOT built yet).
+- **FIXED — the app only allowed login**: `mobile/app/login.tsx` is now 4 steps —
+  `gstin → password | register | code`. `POST /api/app/v2/auth/gstin-check` decides: a registered
+  GSTIN asks for the password, an unregistered one shows `login-not-registered` →
+  `login-register-btn` opens `WEB_URL/retailer/register` in an in-app browser.
+  `POST /api/app/v2/auth/password-login` verifies the **same bcrypt password as the web** (MongoDB
+  stays the only password authority), reuses the 10-fail/15-min lockout, and mints a real Supabase
+  session via `services/supabase_session.py` (admin/users → admin/generate_link → /verify, keyed on
+  the retailer's REAL email because `app_current_retailer_id()` resolves RLS from the JWT email).
+- **FIXED — registration force-sent an SMS OTP**: the SMS block is **gone** (`register-otp-block`
+  no longer exists) and `POST /api/retailer-auth/register` now **requires `onboarding_session`**
+  (400 otherwise). New chain: GSTIN → Deepvue autofill → **masked GST contact shown** → one of
+  *"Yes, my details are correct — send the OTP to my email"* / *"No, my mobile number has changed"*
+  (reveals a **+91** select + blank 10-digit input + *"Update my mobile number & send the code to my
+  registered email"*) → email OTP → details → password → certificate.
+  New endpoints: `POST /gst-contact/preview` (masked only; our wallet/provider failure returns
+  **200 `unavailable`**, never blames the retailer) and `POST /gst-contact/send-otp`
+  (`confirm` | `update_mobile` | `fallback`). The legacy `/gst-contact/fetch` is kept for old tests.
+  **Graceful fallback** (live behaviour today, empty IDSPay wallet): `register-gst-contact-fallback`
+  asks for a typed email + mobile and verifies **that** email → always manual review.
+  Verdicts: confirm → `email=match, mobile=match` → auto-onboard; `update_mobile` →
+  `mobile=mismatch` → manual review + mismatch queue; fallback → both `indeterminate` → manual
+  review with no false mismatch flag.
+- **FIXED — no way to skip the GST certificate**: `register-cert-skip` ("Skip for now — I'll submit
+  it later and wait for approval"). `defer_gst_certificate=true` registers with **no file**, forces
+  `status=under_processing` + `gst_cert_deferred=true`, blocks auto-onboarding, and emails the admin
+  with a "GST CERTIFICATE PENDING" subject. Admins can chase it:
+  `POST /api/retailers/admin/{id}/signup-reminder` emails the retailer the exact list of missing
+  docs (400 when nothing is outstanding) — button `signup-reminder-<id>` on `/admin/retailers`.
+- **NEW — Verified Brand Partner gate**: `PUT /api/retailers/admin/{id}/brand-partner`
+  `{verified, listed?, note?}` is **refused (400) unless the account is `active` AND both KYC
+  documents are on file**, so the public locator can only ever list paperwork an admin has seen.
+  Granting sets `brand_partner_verified` / `listed_on_locator` / `is_verified` and emails the
+  retailer. Admin UI row `retailer-brand-partner-<id>` + `brand-partner-verify-<id>` /
+  `brand-partner-revoke-<id>` / `retailer-cert-deferred-<id>`.
+- **NEW — Where-to-buy is now dynamic**: public `GET /api/retailers/brand-partners` (no auth) lists
+  only `active + brand_partner_verified + listed_on_locator`, with a **whitelisted** projection —
+  store name, address, city/state/pincode, **phone** + WhatsApp, coordinates (Mappls → pincode
+  fallback). GSTIN, email and KYC/legal fields are never exposed. `/find-retailers` reads this
+  endpoint instead of `/api/retailers` (which stays the privacy-safe store-pickup picker).
+- Tests: `/app/backend/tests/test_iter122_onboarding.py` (21/21), `test_iter123_retest.py` (4/4).
+- **Known regression to the old suite**: `test_iter121_idspay_gst_otp.py`'s "register works with the
+  SMS phone-OTP path and no session" case is intentionally obsolete — a session is now mandatory.
+
+#### OPEN — needs the USER (both are environment, not code)
+1. **(P1) Top up the IDSPay wallet.** The live lookup still returns
+   `422 Insufficient balance in api user wallet`, so `/gst-contact/preview` answers
+   `unavailable` and every registration takes the typed-email fallback into manual review. The
+   moment the wallet is funded the masked-confirm + auto-onboard path activates with **no code
+   change**. Egress IP (ephemeral): `34.170.12.145`.
+2. **(P1) Add `SUPABASE_SERVICE_KEY` to `backend/.env`.** It is absent, so
+   `password_login_ready` is `false`, `password-login` returns 503 and the app routes to the
+   emailed one-time code. Supabase Dashboard → Project Settings → API → service_role / secret key.
+   Password login then activates with no code change.
+3. **(P1) `eas build`** for mobile 0.5.0 so installed APKs get the new branding + login.
+4. **(P2)** Reorder-in-one-tap (user: on hold), WhatsApp/Instagram restock broadcast, Vercel/Render
+   redeploy, real Razorpay/PineLabs webhook secrets.
