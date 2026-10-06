@@ -1,0 +1,28 @@
+{
+  "summary": "Diagnosis verification task (backend-only). All 4 evidence points confirmed end-to-end: live Render backend is missing IDSPay env vars (config.configured=false, preview returns not_configured), preview backend (localhost:8001) with env vars works correctly (config.configured=true, environment=prod, ready=true), QA GSTIN 29AAAAA0000A1Z5 correctly returns 409 'already registered' (no paid IDSPay call triggered), and Next.js register page renders the amber fallback box exactly when preview.state === 'unavailable' || 'email_unavailable' (needsTypedContact at line 61, JSX gated at line 616). Root cause confirmed: the amber fallback is correct graceful degradation; fix is adding IDSPAY_* env vars on Render.",
+  "evidence": {
+    "live_config": "GET https://www.centraders.com/api/retailer-auth/gst-contact/config => {\"provider\":\"idspay\",\"configured\":false,\"environment\":null,\"required\":false,\"ready\":false}",
+    "live_preview": "POST https://www.centraders.com/api/retailer-auth/gst-contact/preview {gstin:29AAAAA0000A1Z5} => {\"status\":\"unavailable\",\"reason\":\"not_configured\",\"mobile_usable\":false}",
+    "preview_config": "GET http://localhost:8001/api/retailer-auth/gst-contact/config => {\"provider\":\"idspay\",\"configured\":true,\"environment\":\"prod\",\"required\":false,\"ready\":true}",
+    "preview_preview_qa_gstin": "POST http://localhost:8001/api/retailer-auth/gst-contact/preview {gstin:29AAAAA0000A1Z5} => HTTP 409 {\"detail\":\"An account already exists for this GSTIN. Please log in with your GSTIN.\"} (correct short-circuit, no IDSPay wallet spend)",
+    "frontend_fallback_logic": "/app/frontend-next/app/retailer/register/page.js line 61: const needsTypedContact = preview.state === 'unavailable' || preview.state === 'email_unavailable'; line 616-617: renders <div data-testid='register-gst-contact-fallback'> only when needsTypedContact is true. Confirmed intentional graceful-degradation, not an error state."
+  },
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [],
+  "action_items": [
+    "USER ACTION (only user can do this): On Render dashboard, add missing backend env vars to the live backend service: IDSPAY_ENV=prod, IDSPAY_API_ID, IDSPAY_API_KEY, IDSPAY_TOKEN_ID, OTP_PEPPER, RESEND_API_KEY and any other keys in local backend/.env. Then redeploy. Re-verify by hitting GET https://www.centraders.com/api/retailer-auth/gst-contact/config — it must return configured:true, environment:'prod', ready:true. After that, the amber fallback on /retailer/register step 2 will stop appearing for normal GSTINs and the registered-contact flow (masked mobile/email + OTP) will render instead.",
+    "No code changes needed. Backend code and frontend fallback logic are both correct."
+  ],
+  "critical_code_review_comments": [
+    "Graceful degradation chain is well-designed: services/idspay_gst_contacts.py returns status 'not_configured' when _credentials() is None -> routers/retailer_auth.py preview endpoint maps that to {status:'unavailable', reason:'not_configured'} -> frontend sets preview.state='unavailable' -> renders amber fallback with data-testid='register-gst-contact-fallback'. Chain works exactly as intended on live.",
+    "Consider adding a tiny banner in the admin dashboard that pings /gst-contact/config and warns admins when configured:false on prod — would prevent silent misconfigurations like the current one from going unnoticed."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "N/A (backend-only task)"},
+  "seed_data_creation": "None. Only 1 preview call made to localhost (against pre-existing QA GSTIN that short-circuits to 409 before IDSPay). Zero IDSPay wallet charges.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Diagnosis fully verified. Nothing to retest until user updates Render env vars. After user updates env, re-run: curl https://www.centraders.com/api/retailer-auth/gst-contact/config and expect configured:true, environment:'prod', ready:true.",
+  "rca of the issue": "ROOT CAUSE: Render deployment for centraders.com backend is missing IDSPAY_ENV, IDSPAY_API_ID, IDSPAY_API_KEY, IDSPAY_TOKEN_ID env vars (backend/.env is gitignored so Render never received them). REPRO: GET https://www.centraders.com/api/retailer-auth/gst-contact/config returns configured:false. CHAIN: services/idspay_gst_contacts.py::_credentials() returns None -> fetch_contacts returns {status:'not_configured'} -> /api/retailer-auth/gst-contact/preview returns {status:'unavailable', reason:'not_configured'} -> frontend-next page.js loadPreview sets preview.state='unavailable' -> needsTypedContact=true -> amber fallback box (data-testid='register-gst-contact-fallback') renders. MITIGATION: Add the missing IDSPAY_* env vars on Render dashboard and redeploy. Same deployed code already works correctly on preview backend (localhost:8001) which has the env vars."
+}

@@ -561,3 +561,27 @@ with `extra.webUrl` and the new publishable key already in place.
 #### USER ACTION for the push
 Use **Save to Github → Force Push**. The remote still holds the old secret-bearing commits, so a
 normal push is rejected as a non-fast-forward.
+
+
+### Update 2026-09 (Iter126 — live register "couldn't read GST contact" fallback: RCA, no code bug)
+- **User report**: `https://www.centraders.com/retailer/register` Step 2 shows the amber
+  "We couldn't read the contact registered against this GSTIN right now" fallback box
+  (`register-gst-contact-fallback`).
+- **ROOT CAUSE (verified, testing_agent `/app/test_reports/iteration_121.json`)**: the live
+  Render backend has **no IDSPay env vars**. `GET /api/retailer-auth/gst-contact/config` on
+  centraders.com returns `{"configured": false, "environment": null, "ready": false}` and
+  `/gst-contact/preview` returns `{"status":"unavailable","reason":"not_configured"}`.
+  `backend/.env` is gitignored, so Render never received `IDSPAY_ENV/IDSPAY_API_ID/
+  IDSPAY_API_KEY/IDSPAY_TOKEN_ID` (nor `OTP_PEPPER`/`RESEND_API_KEY`). The same code on the
+  preview backend (vars present) returns `configured:true, environment:prod, ready:true`.
+  The amber box is the **intended graceful degradation**, not a code bug — no code changed.
+- **FIX = USER ACTION on Render dashboard** (backend service → Environment): add every key
+  from local `backend/.env`, at minimum `IDSPAY_ENV=prod`, `IDSPAY_API_ID`, `IDSPAY_API_KEY`,
+  `IDSPAY_TOKEN_ID`, `OTP_PEPPER`, `RESEND_API_KEY` (+ Deepvue/Appyflow GST keys,
+  `SUPABASE_SERVICE_KEY` for mobile login). Redeploy, then re-check the config endpoint —
+  it must read `configured:true, ready:true`.
+- **Heads-up**: `IDSPAY_TOKEN_ID` is IP-bound. If config goes `configured:true` but lookups
+  still fail with 401/403 on Render, the Render egress IP needs whitelisting with IDSPay
+  (or ask IDSPay for an IP-independent token) — Render free tier has no static outbound IP.
+- **Suggestion logged (not built)**: admin-dashboard banner that pings `/gst-contact/config`
+  and warns when `configured:false` in prod, so silent misconfigurations surface immediately.
