@@ -11,7 +11,7 @@ import pytest
 
 BASE_URL = os.environ.get(
     "BACKEND_URL",
-    "https://gst-onboard-hub.preview.emergentagent.com",
+    "https://wholesale-aarohmm.preview.emergentagent.com",
 ).rstrip("/")
 
 

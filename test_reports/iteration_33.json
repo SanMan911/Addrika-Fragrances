@@ -89,15 +89,15 @@
   "context_for_next_testing_agent": "Admin panel refactored to modular structure. Test session created: ***REMOVED***. To test admin UI, set this token in localStorage (addrika_session_token) and cookies (session_token). All 9 admin pages under /admin route: Overview, Orders, Analytics, Users, Marketing, Content, Inventory, Inquiries, Settings.",
 
   "tested_urls": [
-    "https://gst-onboard-hub.preview.emergentagent.com/admin",
-    "https://gst-onboard-hub.preview.emergentagent.com/admin/login",
-    "https://gst-onboard-hub.preview.emergentagent.com/admin/orders",
-    "https://gst-onboard-hub.preview.emergentagent.com/admin/analytics",
-    "https://gst-onboard-hub.preview.emergentagent.com/admin/users",
-    "https://gst-onboard-hub.preview.emergentagent.com/admin/marketing",
-    "https://gst-onboard-hub.preview.emergentagent.com/admin/content",
-    "https://gst-onboard-hub.preview.emergentagent.com/admin/inventory",
-    "https://gst-onboard-hub.preview.emergentagent.com/admin/inquiries",
-    "https://gst-onboard-hub.preview.emergentagent.com/admin/settings"
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin",
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin/login",
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin/orders",
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin/analytics",
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin/users",
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin/marketing",
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin/content",
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin/inventory",
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin/inquiries",
+    "https://wholesale-aarohmm.preview.emergentagent.com/admin/settings"
   ]
 }

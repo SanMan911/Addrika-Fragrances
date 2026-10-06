@@ -8,7 +8,7 @@ import requests
 import os
 import secrets
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://gst-onboard-hub.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://wholesale-aarohmm.preview.emergentagent.com').rstrip('/')
 
 
 class TestProductsAPI:

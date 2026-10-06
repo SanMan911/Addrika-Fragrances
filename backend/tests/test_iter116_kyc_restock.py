@@ -6,7 +6,7 @@ import subprocess
 import pytest
 import requests
 
-BASE_URL = "https://gst-onboard-hub.preview.emergentagent.com"
+BASE_URL = "https://wholesale-aarohmm.preview.emergentagent.com"
 RETAILER_GSTIN = "07AAAAA0000A1Z5"
 RETAILER_PASSWORD = "Test@12345"
 ADMIN_EMAIL = "contact.us@centraders.com"

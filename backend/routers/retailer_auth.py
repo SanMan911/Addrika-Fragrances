@@ -1527,7 +1527,7 @@ async def retailer_register(
         panel_link = (
             _os.environ.get(
                 "FRONTEND_PUBLIC_URL",
-                "https://gst-onboard-hub.preview.emergentagent.com",
+                "https://wholesale-aarohmm.preview.emergentagent.com",
             ).rstrip("/")
             + "/admin/retailer-requests"
         )
