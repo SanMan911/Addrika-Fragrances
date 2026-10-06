@@ -534,3 +534,30 @@ with `extra.webUrl` and the new publishable key already in place.
    live for real users.
 3. **(P2)** Storefront photos for verified partners (user said NOT NOW), reorder-in-one-tap
    (on hold), WhatsApp/Instagram restock broadcast, real Razorpay/PineLabs webhook secrets.
+
+### Update 2026-06-06 (Iter125 — git history purged, GitHub push unblocked)
+- **DONE — every secret removed from all 385 commits.** Emergent's pre-push scanner inspects the
+  **full commit history**, not just the working tree, which is why deleting files had not helped.
+  Ran `git filter-repo --replace-text` over 10 literal secrets plus `--invert-paths` on
+  `memory/.admin_token` and `memory/.qa_refresh_token`. Re-scanned all **3,309 blobs** across all
+  refs afterwards: **zero** secret-pattern matches and zero literal matches. All 385 commits,
+  messages and ordering preserved.
+- **Audit headline: the application source code never leaked anything.** No hardcoded credential
+  in any `.py`/`.js`/`.ts`/`.json`/`.yml`; everything already read from `os.environ` /
+  `process.env`, and the `.env` files were always gitignored. Every single leak came from the
+  agent's own `memory/*.md` notes and `test_reports/*.json` files — which feel like scratch space
+  but are committed. What leaked: the Supabase secret key, the IDSPay API key, two admin session
+  tokens, a Supabase refresh token, and two `AIza` Google client keys surviving only in old
+  versions of `RetailerMap.js` / `firebase-messaging-sw.js`.
+- **Safety net**: a complete pre-rewrite bundle of every ref is kept at
+  `/root/git-backup/aarohmm-history-<timestamp>.bundle` (49 MB) with the literal list beside it.
+- **Caveat recorded**: rewriting history changes every commit SHA, so Emergent rollback points
+  older than the rewrite may no longer resolve. Done at the user's explicit repeated request;
+  Emergent support confirmed there is no documented guidance either way.
+- **Post-rewrite regression check**: `backend/.env` untouched, all services running, IDSPay still
+  returning live masked contacts, suites 22/22 + 25/25 green.
+- Full write-up and the standing prevention rules live in `memory/GITHUB_PUSH_NOTES.md`.
+
+#### USER ACTION for the push
+Use **Save to Github → Force Push**. The remote still holds the old secret-bearing commits, so a
+normal push is rejected as a non-fast-forward.
