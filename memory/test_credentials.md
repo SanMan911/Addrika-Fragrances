@@ -305,3 +305,28 @@ city/state/pincode, **phone** + whatsapp, coordinates. No GSTIN, no email, no KY
 - The web preview at `/app-preview` is the Expo static export. After changing mobile code:
   `cd /app/mobile && npx expo export --platform web --output-dir dist-new --clear` then replace
   `/app/frontend-next/public/app-preview` with it and restart the frontend.
+
+### ITER122b — Supabase secret key wired; mobile password login is LIVE
+`SUPABASE_SERVICE_KEY=***REMOVED***` is now in `backend/.env`
+(Supabase's new secret-key format works on the `/auth/v1/admin/*` endpoints exactly like the
+legacy service_role key). Verified end-to-end:
+- `POST /api/app/v2/auth/gstin-check` {gstin: 07AAAAA0000A1Z5} -> `password_login_ready: true`, `has_password: true`
+- `POST /api/app/v2/auth/password-login` {07AAAAA0000A1Z5, Test@12345} -> real Supabase access_token
+- that token authorises `GET /api/app/v2/me` -> RTL_TEST_B2B (so RLS-by-JWT-email works)
+- wrong password -> 401; non-active account -> 403
+Publishable/anon key (unchanged, safe for the app): `sb_publishable_dUgl8KWxj4dArmssOQZpFw_9vd2CtR4`
+
+### ITER122b — Verified Brand Partner gold badge
+Shown in THREE places on `/find-retailers`:
+- map legend chip `map-verified-legend`
+- inside each Leaflet pin popup (plain HTML string in `components/RetailerMap.js`, gated on
+  `verified_brand_partner || is_addrika_verified_partner`; look for the text `VERIFIED BRAND PARTNER`)
+- on each store card `verified-partner-badge-<id>`, plus the phone row `retailer-phone-<id>`
+Cards/popups now use `whatsapp` / `phone_raw` from `/api/retailers/brand-partners` for the wa.me link.
+NOTE: Leaflet tile divs always report horizontal overflow at 390px — that is inherent to the tile
+grid and is NOT a layout regression.
+
+**DATA MIGRATION APPLIED**: `RTL_DELHI001` (M.G. Shoppie) and `RTL_BHAG001` (Mela Stores) were set
+`brand_partner_verified: true` + `listed_on_locator: true` + `is_verified: true` because they were
+already publicly listed before the locator became brand-partner gated. Without this the live
+/find-retailers page would have gone empty.

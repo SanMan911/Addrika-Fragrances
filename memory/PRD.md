@@ -455,3 +455,38 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
 3. **(P1) `eas build`** for mobile 0.5.0 so installed APKs get the new branding + login.
 4. **(P2)** Reorder-in-one-tap (user: on hold), WhatsApp/Instagram restock broadcast, Vercel/Render
    redeploy, real Razorpay/PineLabs webhook secrets.
+
+### Update 2026-06-06 (Iter122b — Supabase secret key wired, gold Verified Brand Partner badge)
+- **DONE — mobile password login is LIVE.** User supplied the Supabase **secret key**
+  (`sb_secret_…`, the new-format replacement for `service_role`); added as
+  `SUPABASE_SERVICE_KEY` in `backend/.env`. Verified end-to-end: `gstin-check` now reports
+  `password_login_ready: true`, `password-login` returns a genuine Supabase access token, and that
+  token authorises `GET /api/app/v2/me` (so the JWT-email → RLS resolution works). Wrong password
+  → 401, non-active account → 403. One password now serves web + app; MongoDB stays the only
+  password store.
+- **DONE — gold "Verified Brand Partner" badge on the Where-to-Buy map**, in three places:
+  a legend chip above the map (`map-verified-legend`), inside every Leaflet pin popup, and on each
+  store card (`verified-partner-badge-<id>`). Gold gradient + dark tick, matching the brand. Cards
+  and popups now also render the **phone number** (`retailer-phone-<id>`) and build the WhatsApp
+  link from `whatsapp` / `phone_raw`.
+- **DATA MIGRATION**: `RTL_DELHI001` (M.G. Shoppie) and `RTL_BHAG001` (Mela Stores) were flagged
+  `brand_partner_verified` + `listed_on_locator` — they were already public before the locator
+  became brand-partner gated, so this keeps the live page unchanged. Every *new* retailer still
+  has to be verified by an admin.
+- **OPEN — EAS Android build for 0.5.0 blocked**: this forked pod has no `EXPO_TOKEN` (the previous
+  session's token lived in that pod's env only). Need the Expo access token again to run
+  `eas build -p android --profile preview`. Account `sanman911`, project `addrika-mobile`,
+  projectId `f152117c-57fb-4506-a44a-7c53d1043dd3`.
+
+#### Iter122b — why the 0.5.0 APK was NOT built (two hard blockers, both need the user)
+1. **No `EXPO_TOKEN` in this pod.** It was never persisted to a file in any session — only a
+   placeholder note in `MOBILE_APP_NOTES.md`. Needed for `eas build -p android --profile preview`.
+2. **The Render backend is running OLD code**, so even a successful build would ship a broken app.
+   Verified 2026-06-06: `GET https://addrika-fragrances-backend.onrender.com/api/health` → 200
+   `{"status":"healthy","version":"2.0.0"}`, the OLD `POST /api/app/v2/auth/request-code` → a
+   *business* 404 (route exists), but the NEW `POST /api/app/v2/auth/gstin-check` → `{"detail":
+   "Not Found"}` (route missing). The app's `extra.apiBaseUrl` points at Render, so the new
+   GSTIN→password login would 404 on every device.
+   **Order of operations: redeploy the backend to Render FIRST, then run the EAS build.**
+Mobile code itself is build-ready: `npx tsc --noEmit` is clean, `app.json` is 0.5.0 / versionCode 5
+with `extra.webUrl` and the new publishable key already in place.

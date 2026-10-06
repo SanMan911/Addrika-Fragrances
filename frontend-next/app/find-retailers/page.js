@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Store, MapPin, Mail, Navigation, Building2, Download } from 'lucide-react';
+import { Store, MapPin, Mail, Phone, Navigation, Building2, Download } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import PartnershipCTAButton from '../../components/PartnershipCTAButton';
@@ -211,14 +211,32 @@ export default async function FindRetailersPage() {
         {/* Map Section */}
         <section className="py-8">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
               <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                 <Navigation size={20} className="text-[#D4AF37]" />
                 Store Locations
               </h2>
-              <p className="text-sm text-gray-400">
-                Click markers for directions
-              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span
+                  data-testid="map-verified-legend"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-[0.8px]"
+                  style={{
+                    background: 'linear-gradient(135deg, #f0c849 0%, #d4af37 50%, #a8842b 100%)',
+                    color: '#1a1410',
+                    boxShadow: '0 2px 12px rgba(212,175,55,0.45), inset 0 1px 0 rgba(255,255,255,0.35)',
+                  }}
+                  title={`Every pin is a Verified ${BRAND.name} Brand Partner — GST and KYC documents checked by our team`}
+                >
+                  <span
+                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px]"
+                    style={{ background: '#1a1410', color: '#D4AF37' }}
+                  >
+                    ✓
+                  </span>
+                  Verified Brand Partner
+                </span>
+                <p className="text-sm text-gray-400">Click a pin for directions</p>
+              </div>
             </div>
             <RetailerMap retailers={retailers} />
           </div>
@@ -306,25 +324,25 @@ export default async function FindRetailersPage() {
                             >
                               {retailer.state}
                             </span>
-                            {retailer.is_addrika_verified_partner && (
+                            {(retailer.verified_brand_partner || retailer.is_addrika_verified_partner) && (
                               <span
                                 data-testid={`verified-partner-badge-${retailer.id || index}`}
-                                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-[0.8px]"
                                 style={{
                                   background:
-                                    'linear-gradient(135deg, #D4AF37 0%, #c9a432 100%)',
-                                  color: '#1a1a2e',
-                                  boxShadow: '0 2px 10px rgba(212,175,55,0.3)',
+                                    'linear-gradient(135deg, #f0c849 0%, #d4af37 50%, #a8842b 100%)',
+                                  color: '#1a1410',
+                                  boxShadow: '0 2px 12px rgba(212,175,55,0.45), inset 0 1px 0 rgba(255,255,255,0.35)',
                                 }}
-                                title={`Verified ${BRAND.name} partner — certified & audited`}
+                                title={`Verified ${BRAND.name} Brand Partner — GST and KYC documents checked by our team`}
                               >
                                 <span
-                                  className="inline-block w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                                  style={{ background: '#1a1a2e', color: '#D4AF37' }}
+                                  className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px]"
+                                  style={{ background: '#1a1410', color: '#D4AF37' }}
                                 >
                                   ✓
                                 </span>
-                                Verified Partner
+                                Verified Brand Partner
                               </span>
                             )}
                           </div>
@@ -347,6 +365,17 @@ export default async function FindRetailersPage() {
                           
                           {/* Contact Info */}
                           <div className="space-y-2 mb-6">
+                            {retailer.phone && (
+                              <a
+                                href={`tel:${retailer.phone_raw || retailer.phone}`}
+                                className="flex items-center gap-3 text-gray-300 hover:text-[#D4AF37] transition-colors"
+                                data-testid={`retailer-phone-${retailer.id || index}`}
+                                itemProp="telephone"
+                              >
+                                <Phone size={16} className="text-[#D4AF37]" />
+                                {retailer.phone}
+                              </a>
+                            )}
                             {retailer.email && (
                               <a 
                                 href={`mailto:${retailer.email}`}
@@ -362,9 +391,9 @@ export default async function FindRetailersPage() {
                           {/* Action Buttons */}
                           <div className="flex flex-wrap items-center gap-3">
                             {/* WhatsApp Button */}
-                            {retailer.phone && (
+                            {(retailer.whatsapp || retailer.phone_raw) && (
                               <a
-                                href={`https://wa.me/91${retailer.phone}?text=${encodeURIComponent("Hi, I'm interested in ${BRAND.name} Fragrances")}`}
+                                href={`https://wa.me/${retailer.whatsapp || `91${retailer.phone_raw}`}?text=${encodeURIComponent(`Hi, I'm interested in ${BRAND.name} Fragrances`)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all hover:scale-105"

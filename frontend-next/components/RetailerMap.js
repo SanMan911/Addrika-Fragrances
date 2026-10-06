@@ -171,9 +171,13 @@ export default function RetailerMap({ retailers }) {
       validRetailers.forEach((r) => {
         const { lat, lng } = r.coordinates;
         const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-        const verifiedBadge = r.is_addrika_verified_partner
-          ? `<span style="display:inline-block;background:rgba(212,175,55,0.18);color:#D4AF37;border:1px solid rgba(212,175,55,0.4);padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;margin-top:6px;letter-spacing:0.5px;">VERIFIED PARTNER</span>`
-          : '';
+      const verifiedBadge = (r.verified_brand_partner || r.is_addrika_verified_partner)
+        ? `<span style="display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#f0c849 0%,#d4af37 50%,#a8842b 100%);color:#1a1410;border:1px solid rgba(26,20,16,0.25);padding:3px 9px 3px 4px;border-radius:999px;font-size:9.5px;font-weight:800;margin-top:7px;letter-spacing:0.8px;box-shadow:0 2px 8px rgba(212,175,55,0.45);"><span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#1a1410;color:#D4AF37;font-size:9px;line-height:1;">&#10003;</span>VERIFIED BRAND PARTNER</span>`
+        : '';
+      const waNumber = r.whatsapp || (r.phone_raw ? `91${r.phone_raw}` : null);
+      const phoneLine = r.phone
+        ? `<div style="margin-top:6px;font-size:12px;color:#1a1a2e;font-weight:600;">${escapeHtml(r.phone)}</div>`
+        : '';
         const fallbackNote =
           r.coordinates_source === 'pincode_fallback'
             ? `<div style="margin-top:6px;font-size:10px;color:#a3a3a3;font-style:italic;">Approximate location (by pincode)</div>`
@@ -190,6 +194,7 @@ export default function RetailerMap({ retailers }) {
         }${escapeHtml(r.state || '')} ${escapeHtml(r.pincode || '')}
             </div>
             ${verifiedBadge}
+            ${phoneLine}
             ${fallbackNote}
             <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
               <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer"
@@ -197,10 +202,8 @@ export default function RetailerMap({ retailers }) {
                 Directions →
               </a>
               ${
-                r.phone
-                  ? `<a href="https://wa.me/91${
-                      r.phone
-                    }?text=${encodeURIComponent(
+                waNumber
+                  ? `<a href="https://wa.me/${waNumber}?text=${encodeURIComponent(
                       `Hi, I'm interested in ${BRAND.name} Fragrances`
                     )}" target="_blank" rel="noopener noreferrer"
                        style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;">
