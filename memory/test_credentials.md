@@ -307,7 +307,7 @@ city/state/pincode, **phone** + whatsapp, coordinates. No GSTIN, no email, no KY
   `/app/frontend-next/public/app-preview` with it and restart the frontend.
 
 ### ITER122b — Supabase secret key wired; mobile password login is LIVE
-`SUPABASE_SERVICE_KEY=***REMOVED***` is now in `backend/.env`
+`SUPABASE_SERVICE_KEY=<read it from backend/.env -> SUPABASE_SERVICE_KEY (gitignored)>` is now in `backend/.env`
 (Supabase's new secret-key format works on the `/auth/v1/admin/*` endpoints exactly like the
 legacy service_role key). Verified end-to-end:
 - `POST /api/app/v2/auth/gstin-check` {gstin: 07AAAAA0000A1Z5} -> `password_login_ready: true`, `has_password: true`
@@ -330,3 +330,59 @@ grid and is NOT a layout regression.
 `brand_partner_verified: true` + `listed_on_locator: true` + `is_verified: true` because they were
 already publicly listed before the locator became brand-partner gated. Without this the live
 /find-retailers page would have gone empty.
+
+### ITER124 — IDSPay is LIVE (new credentials, 2026-06-06). AUTO-ONBOARDING IS ON.
+The old key was returning `403 Invalid or deactivated API key`. The user issued a **new key set**
+and crucially a **token_id**, which the old config left blank. All three are in `backend/.env`:
+`IDSPAY_ENV=prod`, `IDSPAY_API_ID`, `IDSPAY_API_KEY`, `IDSPAY_TOKEN_ID`
+(read the values from `backend/.env` — NEVER copy them into this file, see GITHUB_PUSH_NOTES.md).
+
+- **`IDSPAY_TOKEN_ID` is REQUIRED.** With it blank, PROD answers `403 Invalid or deactivated API
+  key` and UAT answers `422 The token id field is required`. That is the single most likely cause
+  if IDSPay ever "stops working" again.
+- UAT is NOT provisioned for this account (`422 Your service is not available in this
+  environment`) — only `IDSPAY_ENV=prod` works.
+- Live proof: `27AAACR5055K1Z7` → `{"mobile":"9662506520","email":"RIL.MHGST@ril.com"}`.
+- Results are cached 30 days in `db.idspay_contact_cache`; failures only 120s. **After changing
+  keys, clear it**: `db.idspay_contact_cache.delete_many({})`, else the old failure is replayed.
+- `account_issue` is now set for ANY 401/403 (not just by error wording), so a key/IP problem is
+  logged as ours and the UI degrades instead of blaming the retailer.
+
+#### ⚠️ NEVER email the real GSTIN owner from a test
+In `confirm` / `update_mobile` mode the OTP goes to the **GST-registered inbox** — for
+`27AAACR5055K1Z7` that is Reliance's real mailbox. So:
+- `test_iter124_auto_onboard.py` (25/25) stubs `services.email_service.send_email` and calls the
+  route functions **directly** — this is the only place the full
+  send-OTP → verify → register → auto-onboard chain is exercised.
+- `test_iter122_onboarding.py` (22/22) talks over HTTP and therefore sticks to paths that send NO
+  email: preview, input validation, the deny rule, register-without-session, and the brand-partner
+  / locator gate (retailer seeded straight into Mongo).
+
+#### Verified auto-onboarding matrix (iter124)
+| Flow | Verdicts | Outcome |
+|---|---|---|
+| `confirm` + certificate uploaded | email=match, mobile=match | **auto-onboarded, status `active`**, no review reason |
+| `confirm` + certificate deferred | email=match, mobile=match | `under_processing`, reason names the certificate |
+| `update_mobile` + certificate | email=match, mobile=**mismatch** | `under_processing`, `gst_contact_mismatch: true`, new mobile saved |
+| wrong email AND wrong mobile (fallback, record readable) | — | **403 denied**, logged in `db.gst_contact_denials` |
+
+**The mismatch review queue is a FLAG, not a collection**: `db.retailers` with
+`gst_contact_mismatch: true` + `gst_contact_mismatch_reviewed: false`. There is no
+`gst_contact_mismatches` collection — asserting on one will always fail.
+
+### Pod egress IP is EPHEMERAL — do not rely on IP whitelisting from preview
+Was `34.170.12.145` last session, now `8.234.132.150`. Any provider that whitelists IPs must
+whitelist **Render's** stable outbound IPs, not this pod's.
+
+### ITER124 — Android 0.5.0 APK BUILT (2026-06-06)
+EAS build `c8bf6672-030e-41c6-bc9d-a9247ad1b506` · profile `preview` · versionCode 5 · SDK 51
+- APK: https://expo.dev/artifacts/eas/PjSWsPldY61GrkT7E54Jd8x91KC0jq428vhYHIn97So.apk
+- Build page: https://expo.dev/accounts/sanman911/projects/addrika-mobile/builds/c8bf6672-030e-41c6-bc9d-a9247ad1b506
+- Expo account `sanman911` (also owns `centraders`), login amardeep.saanan@pm.me. The access token
+  is NOT stored in any file by design — ask the user for it each session (`export EXPO_TOKEN=...`).
+- **This APK calls `extra.apiBaseUrl` = https://addrika-fragrances-backend.onrender.com, which is
+  still serving OLD code.** `POST /api/app/v2/auth/gstin-check` 404s there, so the new GSTIN →
+  password login will not work on a device until Render is redeployed. `/api/health` on Render
+  returns 200 `{"version":"2.0.0"}`, so the host itself is fine — it is purely stale code.
+- Rebuild command: `cd /app/mobile && export EXPO_TOKEN=<ask user> &&
+  npx eas-cli build --platform android --profile preview --non-interactive --no-wait`

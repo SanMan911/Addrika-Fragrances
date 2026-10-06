@@ -337,6 +337,13 @@ async def gst_contact_send_otp(data: GstContactSendOtpRequest, request: Request)
     gst_mobile = result.get("mobile") if ok else None
 
     if data.mode == "fallback" and gst_email:
+        # Validate presence BEFORE comparing, so an empty form is "you missed a
+        # field" (400) and never the much scarier "your details don't match" (403).
+        if not typed_email or len(typed_phone) < 10:
+            raise HTTPException(
+                status_code=400,
+                detail="Please enter your email address and a 10-digit mobile number.",
+            )
         # The record IS readable, so hold the applicant to it: both typed
         # values contradicting the record still denies registration.
         verdict = idspay.compare_contacts(typed_email, typed_phone, result)

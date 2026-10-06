@@ -698,3 +698,8 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Live credentials captured during QA — NEVER commit (GitHub push protection)
+memory/.admin_token
+memory/.qa_refresh_token
+memory/*.token

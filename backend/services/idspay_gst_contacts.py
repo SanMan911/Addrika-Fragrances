@@ -219,9 +219,13 @@ async def _call_idspay(gstin: str, creds: dict) -> dict:
                 # provider outage so onboarding degrades gracefully instead of
                 # wrongly denying a genuine retailer.
                 low = detail.lower()
-                account_issue = any(k in low for k in (
-                    "insufficient balance", "wallet", "whitelist", "unauthorized",
-                    "invalid api", "api user", "token", "subscription", "expired", "inactive",
+                # 401/403 from IDSPay is ALWAYS about our account or our egress
+                # IP, never about the GSTIN, so classify on the status code
+                # first and only fall back to wording.
+                account_issue = r.status_code in (401, 403) or any(k in low for k in (
+                    "insufficient balance", "wallet", "whitelist", "unauthorized", "forbidden",
+                    "invalid api", "api key", "deactivated", "api user", "token",
+                    "subscription", "expired", "inactive",
                 ))
                 logger.warning(
                     f"idspay: lookup failed http={r.status_code} code={nested_code} req={req_id} "

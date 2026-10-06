@@ -490,3 +490,47 @@ sessions, otp_verifications, store_pickup_otps, payment_sessions, zoho_tokens,
    **Order of operations: redeploy the backend to Render FIRST, then run the EAS build.**
 Mobile code itself is build-ready: `npx tsc --noEmit` is clean, `app.json` is 0.5.0 / versionCode 5
 with `extra.webUrl` and the new publishable key already in place.
+
+### Update 2026-06-06 (Iter124 — IDSPay LIVE, auto-onboarding ON, GitHub push unblocked, APK queued)
+- **DONE — IDSPay is live and AUTO-ONBOARDING now actually fires.** The old key had started
+  returning `403 Invalid or deactivated API key`; the user issued a new key set whose decisive
+  difference is the **`IDSPAY_TOKEN_ID`**, which the previous config left blank (PROD answers 403
+  and UAT answers "the token id field is required" without it). New `IDSPAY_API_ID`,
+  `IDSPAY_API_KEY`, `IDSPAY_TOKEN_ID` written to `backend/.env`; the stale failure cache in
+  `db.idspay_contact_cache` was cleared. Live proof: `27AAACR5055K1Z7` returns Reliance's real
+  registered mobile + email, and `/gst-contact/preview` now answers
+  `{"status":"available","email_hint":"ri*******@ril.com","mobile_hint":"******6520"}`.
+  Verified in the browser end-to-end: the masked-confirm card, the *"Yes, my details are correct"*
+  button and the *"No, my mobile number has changed"* → **+91** reveal all render from live data,
+  with no horizontal overflow at 390px.
+- **DONE — auto-onboarding matrix proven** (`tests/test_iter124_auto_onboard.py`, 25/25):
+  confirm + certificate → **active, auto-onboarded**; confirm + deferred certificate →
+  `under_processing`; declared mobile change → `under_processing` + `gst_contact_mismatch` flag
+  with the NEW mobile saved; wrong email *and* wrong mobile → **403 denied** and audited.
+- **FIXED — error ordering**: an empty fallback form used to return `403 "your details don't
+  match"` before validating input; it now correctly returns `400 "please enter your email and
+  mobile"`. Also `account_issue` is now set for **any** IDSPay 401/403 rather than by matching
+  error wording, so "Invalid or deactivated API key" is correctly classed as our problem.
+- **REWORKED — `tests/test_iter122_onboarding.py` (22/22)** no longer drives the full registration
+  chain over HTTP, because in confirm mode the OTP goes to the **real GSTIN owner's inbox** (we
+  were about to email Reliance). It now covers only no-email paths; the full chain lives in iter124
+  with the mailer stubbed. **This constraint is permanent — see test_credentials.md.**
+- **DONE — GitHub push protection diagnosed and the working tree cleaned.** See the new
+  `memory/GITHUB_PUSH_NOTES.md` for the full audit (3,280 blobs / 384 commits). Source code was
+  always clean; the blockers were `memory/.admin_token` + `memory/.qa_refresh_token` (now untracked
+  and gitignored), a Supabase **secret key** in `memory/test_credentials.md` (scrubbed), and two
+  `AIza` Google client keys surviving only in old history. History was deliberately NOT rewritten
+  — on Emergent, commits back the checkpoint/rollback system.
+  **USER ACTION: rotate the Supabase secret key, then use GitHub's "allow secret" link to push.**
+- **IN PROGRESS — Android 0.5.0 APK**: EAS build `c8bf6672-030e-41c6-bc9d-a9247ad1b506` queued on
+  Expo (account `sanman911`, project `addrika-mobile`, profile `preview`, versionCode 5).
+  Logs/artifact: https://expo.dev/accounts/sanman911/projects/addrika-mobile/builds/c8bf6672-030e-41c6-bc9d-a9247ad1b506
+  **The APK still needs Render redeployed** before its GST login works — Render is healthy but
+  serving old code (`/api/app/v2/auth/gstin-check` → route-level 404 there).
+
+#### OPEN — needs the USER
+1. **(P0) Rotate the Supabase secret key** (it is in git history) and paste the new value.
+2. **(P0) Push to GitHub → Render redeploys**, which is what makes the APK and the new onboarding
+   live for real users.
+3. **(P2)** Storefront photos for verified partners (user said NOT NOW), reorder-in-one-tap
+   (on hold), WhatsApp/Instagram restock broadcast, real Razorpay/PineLabs webhook secrets.
