@@ -2,7 +2,7 @@
 
 ## API Base URL
 ```
-https://wholesale-aarohmm.preview.emergentagent.com/api
+https://aarohmm-stockist.preview.emergentagent.com/api
 ```
 (Replace with your production domain when deployed)
 
