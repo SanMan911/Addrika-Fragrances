@@ -7,6 +7,9 @@
     "__DEV__": "readonly",
     "globalThis": "readonly"
   },
+  "rules": {
+    "emergent/no-undef": "off"
+  },
   "ignorePatterns": [
     "**/node_modules/**",
     "**/.next/**",
@@ -15,6 +18,9 @@
     "**/build/**",
     "public/app-preview/**",
     "**/public/app-preview/**",
-    "**/_expo/**"
+    "**/_expo/**",
+    "_expo/**",
+    "**/web-build/**"
   ]
+
 }

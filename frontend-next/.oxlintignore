@@ -1,0 +1,10 @@
+**/public/app-preview/**
+public/app-preview/**
+**/_expo/**
+_expo/**
+**/node_modules/**
+**/.next/**
+**/out/**
+**/dist/**
+**/build/**
+**/web-build/**

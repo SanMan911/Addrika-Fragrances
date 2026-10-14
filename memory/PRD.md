@@ -563,6 +563,18 @@ Use **Save to Github → Force Push**. The remote still holds the old secret-bea
 normal push is rejected as a non-fast-forward.
 
 
+### Update 2026-09 (Iter127 — Object Storage auto-fallback & Render environment guide)
+- **User report**: Error toast *"Object storage is not configured on this environment. Set EMERGENT_LLM_KEY in backend/.env to enable image uploads."*
+- **Root Cause**: On Render or environments where `EMERGENT_LLM_KEY` was missing from environment variables, `services/object_storage.py` returned `is_configured() = False`, blocking product image and GST certificate uploads with HTTP 503.
+- **Code Fix (Verified, testing_agent `/app/test_reports/iteration_122.json`)**:
+  - `services/object_storage.py` updated with automatic dual-mode fallback:
+    1. **Primary**: Uses Emergent Managed Object Storage when `EMERGENT_LLM_KEY` is present.
+    2. **Fallback**: Seamlessly falls back to MongoDB binary storage (`db.object_storage_files`) when `EMERGENT_LLM_KEY` is unset.
+  - `is_configured()` now always returns `True` and `put_object`/`get_object` handle both storage backends transparently.
+  - Uploads will never throw a 503 error on Render or any external environment.
+- **Render Setup Note**: If the user prefers using Emergent Managed Object Storage on Render, they can also add `EMERGENT_LLM_KEY` to Render Dashboard -> Environment.
+
+
 ### Update 2026-09 (Iter126 — live register "couldn't read GST contact" fallback: RCA, no code bug)
 - **User report**: `https://www.centraders.com/retailer/register` Step 2 shows the amber
   "We couldn't read the contact registered against this GSTIN right now" fallback box

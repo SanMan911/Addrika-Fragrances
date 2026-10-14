@@ -1,0 +1,25 @@
+{
+  "summary": "Backend-only verification of object_storage.py MongoDB fallback and /api/admin/products/upload-image endpoint. All 4/4 pytest cases pass: (1) is_configured() returns True regardless of EMERGENT_LLM_KEY, (2) put_object/get_object succeed via Emergent Managed Object Storage when key is present, (3) put_object/get_object automatically fall back to MongoDB db.object_storage_files (bson Binary) when EMERGENT_LLM_KEY is empty, retrieving bytes identically with correct content-type, (4) end-to-end admin upload: POST /api/admin/products/upload-image (admin 2FA session via contact.us@centraders.com / PIN 050499 + OTP read from admin_2fa_tokens) returns 200 with asset_id and GET /api/products/asset/{asset_id} returns the same bytes. No 503 errors observed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_object_storage_fallback.py",
+    "/app/backend/tests/test_upload_image_endpoint.py",
+    "/app/test_reports/pytest/object_storage_fallback.xml",
+    "/app/test_reports/pytest/upload_image.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "get_object() checks MongoDB fallback FIRST even when Emergent is configured — this is fine functionally but is an extra DB round-trip for every asset read in prod. Consider checking Emergent first when key is configured, OR keeping a bool flag on the asset doc indicating backend used.",
+    "The admin upload endpoint still carries the legacy 503 branch guarded by `if not is_configured()` — since is_configured() now unconditionally returns True, that branch is dead code and can be removed for clarity."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_upload_image_endpoint.py (new)"
+  ],
+  "success_rate": {"backend": "100% (4/4 tests)", "frontend": "N/A"},
+  "test_credentials": "admin contact.us@centraders.com / PIN 050499 (OTP read from Mongo admin_2fa_tokens)",
+  "seed_data_creation": "One MongoDB object_storage_files row inserted and deleted by the fallback test. One product_asset row + one Emergent-storage object created by the upload endpoint test (not cleaned up — tiny 1x1 PNG).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Object-storage fallback is verified end-to-end. If retesting, run `pytest /app/backend/tests/test_object_storage_fallback.py /app/backend/tests/test_upload_image_endpoint.py -v`. The MongoDB-fallback branch is exercised by monkeypatching EMERGENT_LLM_KEY to empty in the first test file."
+}
