@@ -110,6 +110,12 @@ async def issue_otp(gstin: str, email: str, *, ip: str = "", business_name: Opti
     """
     from services.email_service import send_email
 
+    try:
+        _pepper()
+    except RuntimeError:
+        logger.error("gst email otp: OTP_PEPPER not configured — refusing to issue a challenge")
+        return {"ok": False, "reason": "not_configured"}
+
     t = _now()
 
     recent = await db.gst_otp_challenges.find_one({
@@ -171,7 +177,12 @@ async def verify_otp(challenge_id: str, code: str, *, ip: str = "") -> dict:
         return {"ok": False, "reason": "too_many_attempts"}
 
     submitted = "".join(ch for ch in (code or "") if ch.isdigit())
-    if not hmac.compare_digest(c["code_digest"], _digest(challenge_id, submitted)):
+    try:
+        submitted_digest = _digest(challenge_id, submitted)
+    except RuntimeError:
+        logger.error("gst email otp: OTP_PEPPER not configured — cannot verify")
+        return {"ok": False, "reason": "invalid"}
+    if not hmac.compare_digest(c["code_digest"], submitted_digest):
         await db.gst_otp_challenges.update_one({"_id": c["_id"]}, {"$inc": {"attempts": 1}})
         return {"ok": False, "reason": "invalid"}
 
