@@ -1,3 +1,11 @@
+# Changelog
+
+## 2026-09 — Iter 125: Fix "Could Not Send Verification Code" on live register
+- **Root cause**: Render production was missing `OTP_PEPPER`, so `services/gst_email_otp.py::_pepper()` raised `RuntimeError` inside `issue_otp`, producing a bare HTTP 500 (HTML). The register page then fell back to its generic toast.
+- **Fix**: `issue_otp` now probes `_pepper()` up front and returns `{"ok": False, "reason": "not_configured"}` (router → graceful 503 JSON); `verify_otp` wraps `_digest()` in try/except `RuntimeError` → `{"ok": False, "reason": "invalid"}`.
+- **Cross-verified user's Render fix**: live `/api/retailer-auth/gst-contact/config` now reports `configured: true` (IDSPay keys added ✓) but `ready: false` — `OTP_PEPPER` still missing on Render. USER ACTION: add `OTP_PEPPER` (same value as local `backend/.env`) to Render and redeploy (which also ships this code fix). If send then still fails with the graceful 503 message, `RESEND_API_KEY` on Render is the next suspect.
+- **Tests**: `backend/tests/test_iter125_gst_otp_pepper_fix.py` (3/3 pass) + report `/app/test_reports/iteration_125.json` — happy path 200 `otp_sent`, cooldown 429, registered-GSTIN 409, no-pepper graceful, UI 0 console errors.
+
 # Addrika Platform — Changelog
 
 _Chronological iteration log. Newest at top. See PRD.md for stable

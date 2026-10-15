@@ -1,0 +1,38 @@
+{
+  "summary": "Verified the GST-email-OTP send-otp 500 bug fix in /app/backend/services/gst_email_otp.py. Confirmed graceful degradation when OTP_PEPPER is unset, happy-path send-otp returns 200, cooldown returns 429, and an already-registered GSTIN returns 409. Register UI loads cleanly with 0 console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verification_results": {
+    "graceful_degradation_no_pepper": "PASS — issue_otp returned {'ok': False, 'reason': 'not_configured'}; verify_otp returned {'ok': False, 'reason': 'invalid'}. No traceback. Logger error line emitted as expected.",
+    "happy_path_send_otp_200": "PASS — POST /api/retailer-auth/gst-contact/send-otp with fresh GSTIN + mode=fallback + delivered@resend.dev returned 200 otp_sent with challenge_id, target_hint, expires_in=600.",
+    "cooldown_429": "PASS — immediate 2nd send for same GSTIN returned 429 with 'wait Ns' detail.",
+    "already_registered_409": "PASS — GSTIN 29AAAAA0000A1Z5 returned 409 with account-exists detail.",
+    "ui_loads_no_console_errors": "PASS — /retailer/register loads, 0 console errors. GSTN gate blocks synthetic GSTINs before send-otp UI, so the UI happy-path send button could not be exercised with a fake GSTIN (pre-existing design, outside bug scope)."
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter125_gst_otp_pepper_fix.py",
+    "/app/test_reports/pytest/iter125.xml"
+  ],
+  "action_items": [
+    "User action (not testable locally): add OTP_PEPPER to Render env vars and redeploy so production emits proper 503 JSON instead of the previous bare 500 HTML.",
+    "Optional UI nicety: when gst-lookup fails for a format-valid GSTIN, the register page shows only the generic 'Could not verify this GSTIN' message and never surfaces the fallback/manual path. If a provider-down branch is intended as a UX fallback, consider offering it after N retries so users with transient GSTN provider outages aren't blocked. (Pre-existing, not part of this bug.)"
+  ],
+  "critical_code_review_comments": [
+    "services/gst_email_otp.py: fix is correct — _pepper() is probed up-front in issue_otp and the only _digest() call in verify_otp is wrapped in try/except RuntimeError, so the two public async entrypoints no longer leak RuntimeError into FastAPI as a bare 500.",
+    "routers/retailer_auth.py: send-otp maps reason='send_failed' and any other non-cooldown/non-rate_limited reason to HTTP 503 with a friendly message. 'not_configured' falls into that generic 503 bucket today — functionally fine, but logging/metrics would benefit from a dedicated branch so Render-env misconfig is easier to alert on."
+  ],
+  "updated_files": [],
+  "created_files": [
+    "/app/backend/tests/test_iter125_gst_otp_pepper_fix.py"
+  ],
+  "success_rate": {"backend": "100% (3/3 pytest + graceful-degradation inline check)", "frontend": "page-load only (synthetic GSTIN gated by GSTN lookup upstream)"},
+  "test_credentials": "none required for the tested endpoints",
+  "seed_data_creation": "none — tests use fresh random valid-format GSTINs; 60s cooldown documents are expired by the collection's TTL index.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Bug was that production (Render) didn't set OTP_PEPPER, so issue_otp raised RuntimeError and the router emitted a bare 500 (HTML). Local already has OTP_PEPPER set so you cannot reproduce the raw bug without unsetting it. To re-verify, (a) run pytest backend/tests/test_iter125_gst_otp_pepper_fix.py and (b) run the inline python one-liner from the review request to confirm graceful degradation. The /retailer/register UI gates the send-otp button behind a GSTN lookup, so a random synthetic GSTIN cannot exercise the UI happy path — this is pre-existing and NOT part of this bug."
+}
