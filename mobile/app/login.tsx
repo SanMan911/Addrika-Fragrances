@@ -218,7 +218,7 @@ export default function Login() {
 
               <Pressable
                 testID="login-register-link"
-                onPress={() => openWeb('/retailer/register')}
+                onPress={() => openWeb(gstinReady ? `/retailer/register?gstin=${gstin}` : '/retailer/register')}
                 style={{ marginTop: space.md, alignItems: 'center' }}
               >
                 <Text style={{ ...type.small, color: colors.navy, fontWeight: '600' }}>
@@ -342,7 +342,7 @@ export default function Login() {
 
               <Pressable
                 testID="login-register-btn"
-                onPress={() => openWeb('/retailer/register')}
+                onPress={() => openWeb(`/retailer/register?gstin=${gstin}`)}
                 style={{
                   backgroundColor: colors.navy,
                   borderRadius: radius.pill,

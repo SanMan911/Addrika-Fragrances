@@ -46,12 +46,30 @@ async def razorpay_webhook(
         if not order_id:
             logger.error(f"razorpay webhook {event} had no order reference")
             return {"status": "ignored", "reason": "no order reference"}
+        if order_id.startswith("INT-"):
+            # Pre-payment gate: the money arrived for a cart, so the order is
+            # created only now. See services/b2b_checkout_intent.py.
+            return await _confirm_intent(order_id, payment_id, "razorpay")
         ok = await pay.mark_paid(db, order_id, payment_id)
         logger.info(f"razorpay webhook {event} for {order_id}: marked_paid={ok}")
         return {"status": "processed", "order_id": order_id, "paid": ok}
 
     logger.info(f"razorpay webhook {event} ignored")
     return {"status": "ignored", "event": event}
+
+
+async def _confirm_intent(intent_id: str, payment_id: str, provider: str) -> dict:
+    from services import b2b_checkout_intent as intents
+
+    try:
+        result = await intents.confirm_intent(
+            db, intent_id, payment_reference=payment_id, verified_by=f"{provider}:webhook"
+        )
+    except Exception as e:
+        logger.error(f"{provider} webhook could not confirm intent {intent_id}: {e}")
+        return {"status": "error", "intent_id": intent_id, "reason": str(e)}
+    logger.info(f"{provider} webhook confirmed intent {intent_id} → order {result.get('order_id')}")
+    return {"status": "processed", "intent_id": intent_id, "order_id": result.get("order_id")}
 
 
 @router.post("/pinelabs/webhook")
@@ -76,6 +94,8 @@ async def pinelabs_webhook(
         if not order_id:
             logger.error("pinelabs webhook success had no order reference")
             return {"status": "ignored", "reason": "no order reference"}
+        if order_id.startswith("INT-"):
+            return await _confirm_intent(order_id, payment_id, "pinelabs")
         ok = await pinelabs.mark_paid(db, order_id, payment_id)
         logger.info(f"pinelabs webhook for {order_id}: marked_paid={ok}")
         return {"status": "processed", "order_id": order_id, "paid": ok}

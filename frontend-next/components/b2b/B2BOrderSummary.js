@@ -33,7 +33,7 @@ const formatCurrency = (amount) =>
  * submitting:    boolean — disables the CTA while POST /order is in flight
  * onPlaceOrder:  () => void
  */
-export default function B2BOrderSummary({ orderSummary, submitting, onPlaceOrder }) {
+export default function B2BOrderSummary({ orderSummary, submitting, onPlaceOrder, payNowSelector, ctaLabel, ctaNote }) {
   if (!orderSummary) return null;
 
   return (
@@ -134,6 +134,9 @@ export default function B2BOrderSummary({ orderSummary, submitting, onPlaceOrder
           </div>
         </div>
 
+        {/* Pay-now ladder (pre-payment gate) */}
+        {payNowSelector ? <div className="mt-6">{payNowSelector}</div> : null}
+
         {/* Place Order Button */}
         <button
           onClick={onPlaceOrder}
@@ -149,12 +152,12 @@ export default function B2BOrderSummary({ orderSummary, submitting, onPlaceOrder
           ) : (
             <>
               <CreditCard size={20} />
-              Place Order - {formatCurrency(orderSummary.grand_total)}
+              {ctaLabel || `Place Order - ${formatCurrency(orderSummary.grand_total)}`}
             </>
           )}
         </button>
         <p className="text-center text-sm mt-3 text-gray-500">
-          Our team will contact you to confirm and arrange delivery
+          {ctaNote || 'Our team will contact you to confirm and arrange delivery'}
         </p>
       </div>
     </div>

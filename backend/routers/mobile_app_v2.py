@@ -400,13 +400,18 @@ async def place_order(
             status_code=403,
             detail="Your KYC is still pending. Please complete it before placing orders.",
         )
-    order, response = await order_engine.place_order(
-        db,
-        retailer,
-        order_data,
-        channel="mobile",
-        client_ref=order_data.client_ref,
-    )
+    try:
+        order, response = await order_engine.place_order(
+            db,
+            retailer,
+            order_data,
+            channel="mobile",
+            client_ref=order_data.client_ref,
+        )
+    except order_engine.OrderingBlocked as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except order_engine.PrepaymentRequired as e:
+        raise HTTPException(status_code=402, detail=str(e))
     # Push the new order into the app's read model immediately so the
     # history screen shows it without waiting for the periodic sync.
     try:
@@ -414,6 +419,104 @@ async def place_order(
     except Exception as e:
         logger.warning(f"read-model sync after order {order.get('order_id')} failed: {e}")
     return response
+
+
+# --------------------------------------------------------------------------
+# Pre-payment gate — mirrors /retailer-dashboard/b2b/{payment-gate,
+# checkout-intent,payment-proof} so the app and the web portal obey one rule.
+# --------------------------------------------------------------------------
+class CheckoutIntentIn(B2BOrderCreate):
+    payment_percent: int
+    provider: str = "razorpay"
+
+
+class PaymentProofIn(BaseModel):
+    mode: str
+    reference: str = Field(min_length=4, max_length=120)
+    paid_on: str
+    amount: float = Field(gt=0)
+    order_id: Optional[str] = None
+    note: Optional[str] = Field(None, max_length=500)
+
+
+@router.get("/payment-gate")
+async def app_payment_gate(authorization: Optional[str] = Header(None)):
+    retailer = await _retailer(authorization)
+    from services import b2b_payment_gate as gate
+
+    return await gate.gate_status(db, retailer)
+
+
+@router.post("/orders/checkout-intent")
+async def app_checkout_intent(
+    data: CheckoutIntentIn, authorization: Optional[str] = Header(None)
+):
+    retailer = await _retailer(authorization)
+    if not retailer.get("documents_complete"):
+        raise HTTPException(
+            status_code=403,
+            detail="Your KYC is still pending. Please complete it before placing orders.",
+        )
+    from services import b2b_checkout_intent as intents
+
+    order_payload = B2BOrderCreate(**data.dict(exclude={"payment_percent", "provider"}))
+    try:
+        intent = await intents.create_intent(
+            db,
+            retailer,
+            order_payload,
+            payment_percent=data.payment_percent,
+            channel="mobile",
+            provider=data.provider,
+        )
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    base = {
+        "intent_id": intent["intent_id"],
+        "payment_percent": intent["payment_percent"],
+        "grand_total": intent["grand_total"],
+        "amount_due_now": intent["amount_due_now"],
+        "balance_after_payment": intent["balance_after_payment"],
+    }
+    try:
+        session = await intents.open_payment_session(db, intent, retailer)
+    except ConnectionError as e:
+        return {**base, "payment_url": None, "awaiting_gateway": True, "message": str(e)}
+    return {**base, "payment_url": session.get("payment_url"), "awaiting_gateway": False}
+
+
+@router.post("/payment-proofs")
+async def app_submit_payment_proof(
+    data: PaymentProofIn, authorization: Optional[str] = Header(None)
+):
+    retailer = await _retailer(authorization)
+    from services import b2b_payment_gate as gate
+
+    try:
+        return await gate.submit_proof(
+            db,
+            retailer,
+            mode=data.mode,
+            reference=data.reference,
+            paid_on=data.paid_on,
+            amount=data.amount,
+            order_id=data.order_id,
+            note=data.note,
+            channel="mobile",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/payment-proofs")
+async def app_my_payment_proofs(authorization: Optional[str] = Header(None)):
+    retailer = await _retailer(authorization)
+    from services import b2b_payment_gate as gate
+
+    return {"proofs": await gate.list_proofs(db, retailer_id=retailer["retailer_id"], limit=50)}
 
 
 # --------------------------------------------------------------------------

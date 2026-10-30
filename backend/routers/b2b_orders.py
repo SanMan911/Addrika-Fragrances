@@ -218,10 +218,141 @@ async def create_b2b_order(
         raise HTTPException(status_code=401, detail="Not authenticated")
     await require_kyc_complete(retailer)
     channel = "mobile" if (request.headers.get("X-Client-Channel") or "").lower() == "mobile" else "web"
-    _order, response = await order_engine.place_order(
-        db, retailer, order_data, channel=channel, client_ref=order_data.client_ref
-    )
+    try:
+        _order, response = await order_engine.place_order(
+            db, retailer, order_data, channel=channel, client_ref=order_data.client_ref
+        )
+    except order_engine.OrderingBlocked as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except order_engine.PrepaymentRequired as e:
+        raise HTTPException(status_code=402, detail=str(e))
     return response
+
+
+# ---------------------------------------------------------------------------
+# Pre-payment gate — a cart becomes an order only once the chosen share of the
+# total has been paid and verified. See services/b2b_checkout_intent.py.
+# ---------------------------------------------------------------------------
+class CheckoutIntentCreate(B2BOrderCreate):
+    payment_percent: int = Field(..., description="How much of the total to pay now")
+    provider: str = "razorpay"
+
+
+class PaymentProofCreate(BaseModel):
+    mode: str
+    reference: str = Field(min_length=4, max_length=120)
+    paid_on: str = Field(description="YYYY-MM-DD")
+    amount: float = Field(gt=0)
+    order_id: Optional[str] = None
+    note: Optional[str] = Field(None, max_length=500)
+
+
+@router.get("/payment-gate")
+async def get_my_payment_gate(
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Pre-payment rules, cash-discount nudge and this shop's dues/lock state."""
+    await require_b2b_enabled()
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from services import b2b_payment_gate as gate
+    return await gate.gate_status(db, retailer)
+
+
+@router.post("/checkout-intent")
+async def create_checkout_intent(
+    data: CheckoutIntentCreate,
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Price the cart, lock in the pay-now share and open a payment session."""
+    await require_b2b_enabled()
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    await require_kyc_complete(retailer)
+
+    from services import b2b_checkout_intent as intents
+
+    order_payload = B2BOrderCreate(**data.dict(exclude={"payment_percent", "provider"}))
+    try:
+        intent = await intents.create_intent(
+            db,
+            retailer,
+            order_payload,
+            payment_percent=data.payment_percent,
+            channel="web",
+            provider=data.provider,
+        )
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        session = await intents.open_payment_session(db, intent, retailer)
+    except ConnectionError as e:
+        # Gateway not switched on — the cart is saved, but no order yet.
+        return {
+            "intent_id": intent["intent_id"],
+            "payment_percent": intent["payment_percent"],
+            "grand_total": intent["grand_total"],
+            "amount_due_now": intent["amount_due_now"],
+            "balance_after_payment": intent["balance_after_payment"],
+            "payment_url": None,
+            "awaiting_gateway": True,
+            "message": str(e),
+        }
+    return {
+        "intent_id": intent["intent_id"],
+        "payment_percent": intent["payment_percent"],
+        "grand_total": intent["grand_total"],
+        "amount_due_now": intent["amount_due_now"],
+        "balance_after_payment": intent["balance_after_payment"],
+        "payment_url": session.get("payment_url"),
+        "awaiting_gateway": False,
+    }
+
+
+@router.post("/payment-proof")
+async def submit_payment_proof(
+    data: PaymentProofCreate,
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    """Declare a transfer made outside the app so an admin can verify it."""
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from services import b2b_payment_gate as gate
+    try:
+        return await gate.submit_proof(
+            db,
+            retailer,
+            mode=data.mode,
+            reference=data.reference,
+            paid_on=data.paid_on,
+            amount=data.amount,
+            order_id=data.order_id,
+            note=data.note,
+            channel="web",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/payment-proofs")
+async def my_payment_proofs(
+    request: Request,
+    retailer_session: Optional[str] = Cookie(None),
+):
+    retailer = await get_current_retailer(request, retailer_session)
+    if not retailer:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from services import b2b_payment_gate as gate
+    return {"proofs": await gate.list_proofs(db, retailer_id=retailer["retailer_id"], limit=50)}
 
 
 # ---------------------------------------------------------------------------

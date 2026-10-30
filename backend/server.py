@@ -43,6 +43,7 @@ from routers.retailer_dashboard import router as retailer_dashboard_router
 from routers.b2b_orders import router as b2b_orders_router
 from routers.admin.admin_b2b import router as admin_b2b_router
 from routers.admin.admin_b2b_settings import router as admin_b2b_settings_router
+from routers.admin.admin_b2b_payments import router as admin_b2b_payments_router
 from routers.admin.admin_b2b_loyalty import router as admin_b2b_loyalty_router
 from routers.admin.admin_b2b_reports import router as admin_b2b_reports_router
 from routers.admin.admin_zoho import router as admin_zoho_router, public_router as zoho_oauth_public_router
@@ -145,6 +146,7 @@ app.include_router(cron_reminders_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(admin_b2b_router, prefix="/api")
 app.include_router(admin_b2b_settings_router, prefix="/api")
+app.include_router(admin_b2b_payments_router, prefix="/api")
 app.include_router(admin_b2b_loyalty_router, prefix="/api")
 app.include_router(admin_b2b_reports_router, prefix="/api")
 app.include_router(admin_b2b_bills_msgs_router, prefix="/api")

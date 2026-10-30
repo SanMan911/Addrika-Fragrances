@@ -67,6 +67,17 @@ export default function RetailerRegisterPage() {
     if (!isLoading && isAuthenticated) router.replace('/retailer/dashboard');
   }, [isLoading, isAuthenticated, router]);
 
+  // Deep link from the Aarohmm app: /retailer/register?gstin=29AAAAA0000A1Z5
+  // pre-fills the GSTIN so the shop never retypes what they just entered.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = new URLSearchParams(window.location.search).get('gstin');
+    if (!raw) return;
+    const gst = normalizeGstInput(raw);
+    if (!GST_REGEX.test(gst)) return;
+    setForm((f) => (f.gst_number ? f : { ...f, gst_number: gst }));
+  }, []);
+
   // Live GSTIN verification + autofill (Deepvue)
   useEffect(() => {
     const gst = (form.gst_number || '').toUpperCase();

@@ -16,6 +16,8 @@ import PincodeShippingInput from '../../../components/PincodeShippingInput';
 import B2BKycGate from '../../../components/b2b/B2BKycGate';
 import B2BCatalogueTable from '../../../components/b2b/B2BCatalogueTable';
 import B2BOrderSummary from '../../../components/b2b/B2BOrderSummary';
+import B2BPayNowSelector from '../../../components/b2b/B2BPayNowSelector';
+import B2BPaymentProofForm from '../../../components/b2b/B2BPaymentProofForm';
 import { getTierPerks } from '../../../lib/tierPerks';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const formatCurrency = (amount) => {
@@ -59,7 +61,47 @@ export default function RetailerB2BPage() {
   const [shippingQuote, setShippingQuote] = useState(null); // { shipping_charges, delivery_pincode, courier_name, etd, ... }
   const [redeemAmount, setRedeemAmount] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [paymentGate, setPaymentGate] = useState(null);
+  const [payPercent, setPayPercent] = useState(100);
+  const [myProofs, setMyProofs] = useState([]);
   const { fetchWithAuth, retailer: authRetailer } = useRetailerAuth();
+
+  const fetchPaymentGate = useCallback(async () => {
+    try {
+      const [gateRes, proofRes] = await Promise.all([
+        fetchWithAuth(`${API_URL}/api/retailer-dashboard/b2b/payment-gate`),
+        fetchWithAuth(`${API_URL}/api/retailer-dashboard/b2b/payment-proofs`).catch(() => null),
+      ]);
+      if (gateRes?.ok) {
+        const g = await gateRes.json();
+        setPaymentGate(g);
+        const options = g.allowed_payment_percents || [100];
+        setPayPercent((prev) => (options.includes(prev) ? prev : options[options.length - 1]));
+      }
+      if (proofRes?.ok) {
+        const p = await proofRes.json();
+        setMyProofs(p.proofs || []);
+      }
+    } catch {
+      /* non-fatal — gate falls back to the server's own enforcement */
+    }
+  }, [fetchWithAuth]);
+
+  const submitPaymentProof = useCallback(
+    async (payload) => {
+      const res = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/b2b/payment-proof`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Could not submit your payment details');
+      }
+      return res.json();
+    },
+    [fetchWithAuth]
+  );
 
   // If the URL contains #kyc (deep link from the recovery email), auto-expand
   // the KYC self-service section on mount.
@@ -125,7 +167,8 @@ export default function RetailerB2BPage() {
   useEffect(() => {
     fetchCatalog();
     fetchLoyalty();
-  }, [fetchCatalog, fetchLoyalty]);
+    fetchPaymentGate();
+  }, [fetchCatalog, fetchLoyalty, fetchPaymentGate]);
   useEffect(() => {
     if (activeTab === 'history') {
       fetchOrders();
@@ -229,7 +272,9 @@ export default function RetailerB2BPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items,
-          apply_cash_discount: applyCashDiscount && !voucherCode,
+          apply_cash_discount: paymentGate?.prepayment_required
+            ? payPercent === (paymentGate.cash_discount_at_percent || 100) && !voucherCode
+            : applyCashDiscount && !voucherCode,
           voucher_code: voucherCode || null,
           credit_note_code: creditNoteCode || null,
           delivery_pincode: shippingQuote?.delivery_pincode || null,
@@ -258,24 +303,42 @@ export default function RetailerB2BPage() {
         quantity_boxes: qty
       }));
     setSubmitting(true);
+    const prepay = paymentGate?.prepayment_required;
+    const endpoint = prepay
+      ? `${API_URL}/api/retailer-dashboard/b2b/checkout-intent`
+      : `${API_URL}/api/retailer-dashboard/b2b/order`;
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/retailer-dashboard/b2b/order`, {
+      const response = await fetchWithAuth(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items,
-          apply_cash_discount: applyCashDiscount && !voucherCode,
+          apply_cash_discount: prepay
+            ? payPercent === (paymentGate.cash_discount_at_percent || 100) && !voucherCode
+            : applyCashDiscount && !voucherCode,
           voucher_code: voucherCode || null,
           credit_note_code: creditNoteCode || null,
           delivery_pincode: shippingQuote?.delivery_pincode || null,
           include_shipping: !!shippingQuote?.delivery_pincode,
           redeem_rewards_inr: redeemAmount || null,
+          ...(prepay ? { payment_percent: payPercent } : {}),
         })
       });
       if (response.ok) {
         const data = await response.json();
-        toast.success(`Order ${data.order_id} placed successfully!`);
-        resetOrderForm();
+        if (!prepay) {
+          toast.success(`Order ${data.order_id} placed successfully!`);
+          resetOrderForm();
+        } else if (data.payment_url) {
+          toast.success('Redirecting you to the payment page…');
+          window.location.href = data.payment_url;
+        } else {
+          toast.info(
+            data.message ||
+              'Your cart is saved. Our team will share payment details and confirm the order.'
+          );
+          fetchPaymentGate();
+        }
       } else {
         const error = await response.json();
         toast.error(error.detail || 'Failed to place order');
@@ -357,6 +420,17 @@ export default function RetailerB2BPage() {
             onToggle={() => setShowKycCard(!showKycCard)}
             onComplete={fetchCatalog}
           />
+
+          {/* Ordering lock — unpaid dues killswitch or a manual admin lock */}
+          {paymentGate && !paymentGate.can_order && (
+            <B2BPaymentProofForm
+              block={paymentGate.block}
+              dues={paymentGate.dues}
+              proofs={myProofs}
+              onSubmit={submitPaymentProof}
+              onRefresh={fetchPaymentGate}
+            />
+          )}
 
           {/* GST Info Banner */}
           {retailerInfo && (
@@ -624,6 +698,32 @@ export default function RetailerB2BPage() {
             orderSummary={orderSummary}
             submitting={submitting}
             onPlaceOrder={submitOrder}
+            payNowSelector={
+              paymentGate?.prepayment_required && orderSummary ? (
+                <B2BPayNowSelector
+                  gate={paymentGate}
+                  grandTotal={orderSummary.grand_total}
+                  payPercent={payPercent}
+                  onChange={(pct) => {
+                    setPayPercent(pct);
+                    setOrderSummary(null);
+                  }}
+                  disabled={submitting || !paymentGate.can_order}
+                />
+              ) : null
+            }
+            ctaLabel={
+              paymentGate?.prepayment_required && orderSummary
+                ? `Pay ${formatCurrency(
+                    Math.round((orderSummary.grand_total * payPercent) / 100)
+                  )} & confirm order`
+                : undefined
+            }
+            ctaNote={
+              paymentGate?.prepayment_required
+                ? 'Your order is created only after this payment is verified.'
+                : undefined
+            }
           />
         </>
       ) : (

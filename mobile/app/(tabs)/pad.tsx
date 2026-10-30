@@ -34,6 +34,17 @@ type Calc = {
   items: any[];
 };
 
+type Gate = {
+  prepayment_required: boolean;
+  min_payment_percent: number;
+  allowed_payment_percents: number[];
+  cash_discount_percent: number;
+  cash_discount_at_percent: number;
+  can_order: boolean;
+  block?: { reason: string; kind: string } | null;
+  dues?: { outstanding_amount: number; oldest_unpaid_days: number } | null;
+};
+
 function Row({
   label,
   value,
@@ -83,6 +94,23 @@ export default function OrderPadScreen() {
   const [placing, setPlacing] = useState(false);
   const [pincode, setPincode] = useState('');
   const [notes, setNotes] = useState('');
+  const [gate, setGate] = useState<Gate | null>(null);
+  const [payPercent, setPayPercent] = useState(100);
+
+  useEffect(() => {
+    apiFetch<Gate>('/api/app/v2/payment-gate', { auth: true })
+      .then((g) => {
+        setGate(g);
+        const options = g.allowed_payment_percents || [100];
+        setPayPercent((prev) => (options.includes(prev) ? prev : options[options.length - 1]));
+      })
+      .catch(() => setGate(null));
+  }, []);
+
+  const payPct = gate?.prepayment_required ? payPercent : 100;
+  const fullPct = gate?.cash_discount_at_percent ?? 100;
+  const amountNow = Math.round(((calc?.grand_total || 0) * payPct) / 100);
+  const balanceLater = Math.max(0, Math.round(calc?.grand_total || 0) - amountNow);
 
   const payload = useCallback(
     () => ({
@@ -90,8 +118,9 @@ export default function OrderPadScreen() {
       include_shipping: pincode.trim().length === 6,
       delivery_pincode: pincode.trim().length === 6 ? pincode.trim() : null,
       notes: notes.trim() || null,
+      apply_cash_discount: gate?.prepayment_required ? payPercent === fullPct : false,
     }),
-    [lines, pincode, notes]
+    [lines, pincode, notes, gate, payPercent, fullPct]
   );
 
   // The server is the only authority on price — recompute whenever the pad
@@ -125,8 +154,51 @@ export default function OrderPadScreen() {
 
   async function onPlace() {
     if (placing || calcBusy || !calc) return;
+    if (gate && !gate.can_order) {
+      Alert.alert(
+        'Ordering is paused',
+        gate.block?.reason || 'Please contact the Aarohmm wholesale desk.',
+        [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'I have paid', onPress: () => router.push('/payment-details') },
+        ]
+      );
+      return;
+    }
     setPlacing(true);
     try {
+      if (gate?.prepayment_required) {
+        const res = await apiFetch<{
+          intent_id: string;
+          amount_due_now: number;
+          payment_url?: string | null;
+          awaiting_gateway?: boolean;
+          message?: string;
+        }>('/api/app/v2/orders/checkout-intent', {
+          method: 'POST',
+          auth: true,
+          body: JSON.stringify({ ...payload(), payment_percent: payPercent }),
+        });
+        if (res.payment_url) {
+          await clear();
+          router.push({
+            pathname: '/pay',
+            params: {
+              orderId: res.intent_id,
+              orderNumber: res.intent_id,
+              amount: String(res.amount_due_now ?? ''),
+            },
+          });
+        } else {
+          Alert.alert(
+            'Order awaiting payment',
+            res.message ||
+              'Your cart is saved. Our team will share payment details and confirm the order.'
+          );
+        }
+        return;
+      }
+
       const res = await apiFetch<{ order_id: string; order_number?: string }>(
         '/api/app/v2/orders',
         {
@@ -197,6 +269,38 @@ export default function OrderPadScreen() {
       style={{ flex: 1, backgroundColor: colors.parchment }}
       contentContainerStyle={{ padding: space.md, paddingBottom: space.xxl }}
     >
+      {gate && !gate.can_order ? (
+        <View
+          testID="pad-ordering-blocked"
+          style={{
+            backgroundColor: colors.dangerBg,
+            borderRadius: radius.md,
+            padding: space.md,
+            marginBottom: space.md,
+            borderWidth: 1,
+            borderColor: colors.danger,
+          }}
+        >
+          <Text style={{ ...type.label, color: colors.danger }}>Ordering is paused</Text>
+          <Text style={{ ...type.small, color: colors.text, marginTop: 4, lineHeight: 18 }}>
+            {gate.block?.reason}
+          </Text>
+          <Pressable
+            testID="pad-declare-payment-btn"
+            onPress={() => router.push('/payment-details')}
+            style={{
+              marginTop: space.md,
+              backgroundColor: colors.navy,
+              borderRadius: radius.pill,
+              paddingVertical: space.sm + 4,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ ...type.label, color: colors.gold }}>I have already paid</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {lines.map((l) => (
         <View
           key={l.sku}
@@ -427,6 +531,87 @@ export default function OrderPadScreen() {
         )}
       </View>
 
+      {gate?.prepayment_required && calc ? (
+        <View
+          testID="pad-pay-now-selector"
+          style={{
+            backgroundColor: colors.white,
+            borderRadius: radius.md,
+            padding: space.md,
+            marginTop: space.md,
+            ...shadow.card,
+          }}
+        >
+          <Text style={{ ...type.h2, color: colors.text }}>How much to pay now?</Text>
+          <Text style={{ ...type.small, color: colors.textMuted, marginTop: 3, lineHeight: 17 }}>
+            Minimum {gate.min_payment_percent}% upfront. The order is confirmed once this payment
+            is verified.
+          </Text>
+
+          <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.md }}>
+            {(gate.allowed_payment_percents || [100]).map((pct) => {
+              const selected = payPercent === pct;
+              const full = pct === fullPct;
+              return (
+                <Pressable
+                  key={pct}
+                  testID={`pad-pay-percent-${pct}`}
+                  onPress={() => setPayPercent(pct)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: space.sm + 4,
+                    borderRadius: radius.sm,
+                    alignItems: 'center',
+                    backgroundColor: selected ? colors.navy : colors.parchment,
+                    borderWidth: 1,
+                    borderColor: selected ? colors.navy : colors.parchmentDim,
+                  }}
+                >
+                  <Text
+                    style={{
+                      ...type.label,
+                      color: selected ? colors.gold : colors.textMuted,
+                    }}
+                  >
+                    {full ? 'All' : `${pct}%`}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={{ marginTop: space.md }}>
+            <Row label={`Paying now (${payPercent}%)`} value={inr(amountNow)} strong />
+            <Row label="Balance on credit terms" value={inr(balanceLater)} muted />
+          </View>
+
+          <View
+            testID={
+              payPercent === fullPct ? 'pad-cash-discount-applied' : 'pad-cash-discount-nudge'
+            }
+            style={{
+              marginTop: space.sm,
+              backgroundColor: payPercent === fullPct ? colors.successBg : colors.warnBg,
+              borderRadius: radius.sm,
+              padding: space.sm + 2,
+            }}
+          >
+            <Text
+              style={{
+                ...type.small,
+                color: payPercent === fullPct ? colors.success : colors.warn,
+                fontWeight: '700',
+                lineHeight: 17,
+              }}
+            >
+              {payPercent === fullPct
+                ? `Cash discount of ${gate.cash_discount_percent}% is applied to this order.`
+                : `Pay the full amount to unlock the ${gate.cash_discount_percent}% cash discount.`}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
       <Pressable
         testID="pad-place-order-btn"
         disabled={placing || calcBusy || !calc}
@@ -449,10 +634,26 @@ export default function OrderPadScreen() {
               color: calc && !calcBusy ? colors.gold : colors.textMuted,
             }}
           >
-            Place order{calc ? ` · ${inr(calc.grand_total)}` : ''}
+            {gate?.prepayment_required
+              ? `Pay ${inr(amountNow)} & confirm order`
+              : `Place order${calc ? ` · ${inr(calc.grand_total)}` : ''}`}
           </Text>
         )}
       </Pressable>
+
+      {gate?.prepayment_required ? (
+        <Text
+          style={{
+            ...type.small,
+            color: colors.textMuted,
+            textAlign: 'center',
+            marginTop: space.sm,
+            lineHeight: 17,
+          }}
+        >
+          Your order is created only after this payment is verified.
+        </Text>
+      ) : null}
 
       <Pressable testID="pad-clear-btn" onPress={clear} style={{ marginTop: space.md, alignItems: 'center' }}>
         <Text style={{ ...type.small, color: colors.textMuted, fontWeight: '600' }}>

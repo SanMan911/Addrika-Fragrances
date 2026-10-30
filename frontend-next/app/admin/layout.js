@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Package, TrendingUp, Users, Tag, MessageSquare,
   Boxes, FileText, Settings, ChevronLeft, ChevronRight, LogOut,
-  ShieldCheck, Menu, X, Moon, Sun, Store, Briefcase, FileEdit, Activity, TreePine, Bell, Sparkles, KeyRound, Webhook, MailCheck, LifeBuoy, ShieldAlert
+  ShieldCheck, Menu, X, Moon, Sun, Store, Briefcase, FileEdit, Activity, TreePine, Bell, Sparkles, KeyRound, Webhook, MailCheck, LifeBuoy, ShieldAlert, IndianRupee
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
@@ -40,6 +40,7 @@ const navItems = [
   { path: '/admin/retailer-activity', label: 'Retailer Activity', icon: Activity },
   { path: '/admin/profile-tickets', label: 'Profile Tickets', icon: FileEdit },
   { path: '/admin/b2b', label: 'B2B Wholesale', icon: Briefcase },
+  { path: '/admin/b2b-payments', label: 'Payments & Credit', icon: IndianRupee },
   { path: '/admin/marketing', label: 'Marketing', icon: Tag },
   { path: '/admin/content', label: 'Content', icon: FileText },
   { path: '/admin/content/auto-blog', label: 'Auto-Blog', icon: Sparkles },

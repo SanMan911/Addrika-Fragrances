@@ -41,6 +41,18 @@ RESERVE_AT_PLACEMENT_METHODS = {"credit", "pay_later", "razorpay_link"}
 CANCELLABLE_STATUSES = {"ordered", "confirmed", "processing", "modified"}
 
 
+class OrderingBlocked(PermissionError):
+    """This shop is locked out of ordering (manual lock or unpaid dues)."""
+
+    def __init__(self, message: str, block: dict):
+        super().__init__(message)
+        self.block = block
+
+
+class PrepaymentRequired(PermissionError):
+    """The pre-payment gate is on and no verified upfront payment was supplied."""
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -130,6 +142,9 @@ async def place_order(
     payment_mode: Optional[str] = None,
     placed_by: Optional[dict] = None,
     client_ref: Optional[str] = None,
+    prepaid_amount: Optional[float] = None,
+    payment_percent: Optional[int] = None,
+    payment_reference: Optional[str] = None,
 ) -> tuple[dict, dict]:
     """Create a B2B order and run every placement side-effect.
 
@@ -138,8 +153,25 @@ async def place_order(
         "pay_later"       → credit; admin confirms payment offline; stock reserved now
         "razorpay_link"   → hosted payment link sent to retailer; stock reserved now
 
+    `prepaid_amount` is set ONLY by the checkout-intent path, which proves the
+    shop has already paid that much. When the pre-payment gate is on, an order
+    without it is refused — see `services.b2b_payment_gate`.
+
     Returns (order_doc, api_response).
     """
+    from services import b2b_payment_gate as gate
+
+    block = await gate.ordering_block(db, retailer)
+    if block:
+        raise OrderingBlocked(block["reason"], block)
+
+    gate_settings = await gate.get_settings(db)
+    if gate_settings["prepayment_required"] and prepaid_amount is None:
+        raise PrepaymentRequired(
+            f"Orders now need at least {gate_settings['min_payment_percent']}% paid upfront. "
+            "Choose how much to pay and complete the payment to confirm this order."
+        )
+
     if client_ref:
         dup = await db.b2b_orders.find_one({"client_ref": client_ref, "retailer_id": retailer["retailer_id"]}, {"_id": 0})
         if dup:
@@ -197,6 +229,9 @@ async def place_order(
         "terms_accepted_at": now.isoformat() if calculation.get("is_preorder") else None,
         "payment_method": payment_method,
         "payment_status": "pending",
+        "amount_paid": round(float(prepaid_amount or 0), 2),
+        "upfront_payment_percent": int(payment_percent) if payment_percent else None,
+        "upfront_payment_reference": payment_reference,
         "razorpay_order_id": None,
         "razorpay_payment_id": None,
         "payment_link_id": None,
@@ -213,9 +248,15 @@ async def place_order(
         "updated_at": now.isoformat(),
     }
 
+    if prepaid_amount is not None:
+        total = float(calculation["grand_total"] or 0)
+        order["payment_status"] = "paid" if order["amount_paid"] >= total - 0.01 else "partially_paid"
+        order["balance_outstanding"] = round(max(0.0, total - order["amount_paid"]), 2)
+        order["paid_at"] = now.isoformat()
+
     charge_amount = float(order["token_amount_inr"]) if order["is_preorder"] else float(calculation["grand_total"])
     razorpay_order = None
-    if charge_amount > 0:
+    if charge_amount > 0 and prepaid_amount is None:
         if payment_method == "razorpay_link":
             link = _create_razorpay_payment_link(order, retailer, charge_amount)
             if link:
