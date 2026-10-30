@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import {
   ActivityIndicator,
   Alert,
@@ -181,14 +182,10 @@ export default function OrderPadScreen() {
         });
         if (res.payment_url) {
           await clear();
-          router.push({
-            pathname: '/pay',
-            params: {
-              orderId: res.intent_id,
-              orderNumber: res.intent_id,
-              amount: String(res.amount_due_now ?? ''),
-            },
-          });
+          // The intent is NOT a b2b_order yet, so /pay (which looks orders up
+          // by id) cannot price it — open the hosted page directly.
+          await WebBrowser.openBrowserAsync(res.payment_url);
+          router.replace('/orders');
         } else {
           Alert.alert(
             'Order awaiting payment',
@@ -654,6 +651,18 @@ export default function OrderPadScreen() {
           Your order is created only after this payment is verified.
         </Text>
       ) : null}
+
+        {gate?.prepayment_required ? (
+          <Pressable
+            testID="pad-payment-help-btn"
+            onPress={() => router.push('/payment-details')}
+            style={{ marginTop: space.sm, alignItems: 'center', paddingVertical: space.sm }}
+          >
+            <Text style={{ ...type.small, color: colors.navy, fontWeight: '600' }}>
+              Paid outside the app? Share the details
+            </Text>
+          </Pressable>
+        ) : null}
 
       <Pressable testID="pad-clear-btn" onPress={clear} style={{ marginTop: space.md, alignItems: 'center' }}>
         <Text style={{ ...type.small, color: colors.textMuted, fontWeight: '600' }}>

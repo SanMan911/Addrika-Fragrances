@@ -1,0 +1,59 @@
+{
+  "summary": "Tested B2B pre-payment gate, checkout intents, dues killswitch, manual lock, payment proofs, admin desk, register deep link and mobile v2 endpoints. NOTE: the public preview URL (https://8ae831b6-...preview.emergentagent.com) returned 'Preview Unavailable' / 404 for /api during this run, so ALL testing used http://localhost:3000 (Next.js prod, rewrites to backend) and http://localhost:8001. Backend: 15/15 new pytest cases pass (gate status, 402 on direct order, 400 on 50%/75%, 70%/100% intents with forged amount/apply_cash_discount ignored, no b2b_orders row created by an intent, admin confirm 70%->partially_paid and 100%->paid, idempotent confirm, killswitch 403, manual lock + proof verify unlock, proof reject + validation, gate-off classic order). Mobile /api/app/v2 payment-gate, orders (402), checkout-intent (400 on 50%, forged amount ignored), payment-proofs POST/GET all OK. UI: ladder, read-only amount, nudge/applied notes, CTA label, checkout-intent call + 'desk will confirm' toast, blocked banner, proof form + history, admin desk 3 tabs, verify proof, lock/unlock, confirm intent, register ?gstin prefill (valid/lowercase prefilled, invalid ignored), gate-off regression all work. Main issues: (1) clicking any pay-percent button wipes the order summary so the ladder disappears until 'Calculate Order' is pressed again (amount does NOT auto-update in place); (2) admin intent confirm accepts any 'amount' incl. negative/zero -> order created with amount_paid -5; (3) verifying a proof does not reopen a killswitch (dues) lock although the toast says 'ordering reopened'; (4) admin cannot confirm a paid intent while the shop is locked (403).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/admin/b2b-payments/intents/{id}/confirm", "issue": "IntentConfirm.amount is unvalidated. Repro: create 70% intent, confirm with {payment_reference:'X', amount:-5} -> 200, order B2B-20261030-993723 created with payment_status 'partially_paid', amount_paid -5, balance_outstanding 1065.5. amount 0 or 1 would likewise create an order without the required upfront share, breaking the 'no order without verified >= min% payment' rule. Fix: Field(gt=0) and reject amount < intent.amount_due_now (or < min% of grand_total), or drop the override.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/admin/b2b-payments/proofs/{id}/review", "issue": "Approving a proof only clears the MANUAL lock. A shop locked by the dues killswitch stays locked (verified PAY-E4EE73473B -> gate still can_order=false kind=dues) unless the proof carried an order_id that settles the overdue orders; general-settlement proofs never reduce dues. Admin UI toast still says 'Payment verified — ordering reopened' (misleading). Needs a business decision: apply proof amount to oldest unpaid orders (FIFO) or add a per-shop killswitch exemption/override."},
+      {"endpoint": "services/b2b_checkout_intent.confirm_intent", "issue": "place_order re-checks ordering_block, so an intent whose money has been received cannot be confirmed while the shop is locked (killswitch or manual) -> 403. Same applies to the Razorpay/PineLabs webhook: _confirm_intent swallows the error and returns 200, so a captured payment would leave no order and no retry. Consider bypassing the lock for intents created before the lock / already paid, and flagging failed webhook confirms for admin."},
+      {"endpoint": "services/b2b_payment_gate.submit_proof/_credit_order", "issue": "proof.order_id is not validated against the submitting retailer; on approve _credit_order credits ANY b2b order by id (cross-shop). Validate ownership at submit time."},
+      {"endpoint": "services/b2b_checkout_intent.confirm_intent", "issue": "expires_at (60-min TTL) is never enforced and there is no atomic claim (find -> place_order -> update), so two concurrent confirms rely only on client_ref dedupe. Also price/stock is recalculated at confirm time, so the order grand_total can differ from the intent's grand_total the shop paid against."},
+      {"endpoint": "GET /api/admin/b2b-payments/retailers", "issue": "Only lists shops with outstanding > 0 or already blocked, so an admin cannot manually lock a shop that has no dues from the desk."},
+      {"endpoint": "POST /api/retailer-dashboard/b2b/checkout-intent", "issue": "No de-duplication: repeated clicks create multiple awaiting_payment intents for the same cart (desk sees duplicates)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "B2BPayNowSelector onChange (app/retailer/b2b/page.js ~L707)", "issue": "onChange calls setOrderSummary(null); since the selector only renders when orderSummary exists, clicking pay-percent-70/80/90/100 makes the whole Order Summary + ladder + CTA disappear. User must press Calculate Order again. Requirement says rupee amount auto-changes with the percentage. Fix: keep summary and auto-trigger calculateOrder() (only needed when crossing the 100% cash-discount boundary) — mobile pad.tsx already auto-recalcs.", "selector": "[data-testid^='pay-percent-']", "priority": "HIGH"},
+      {"component": "Place order CTA while ordering is blocked", "issue": "When paymentGate.can_order=false the ladder buttons are disabled but place-order-btn stays enabled; clicking just produces a 403 toast. Disable the CTA when blocked.", "selector": "[data-testid='place-order-btn']", "priority": "MEDIUM"},
+      {"component": "Legacy cash-discount toggle", "issue": "In prepay mode the old 'Pay Now & Save 1.5%' toggle (cash-discount-toggle) is still shown but has no effect (discount is driven by 100% selection). Hide it when prepayment_required.", "selector": "[data-testid='cash-discount-toggle']", "priority": "MEDIUM"},
+      {"component": "After checkout-intent saved", "issue": "Only a transient toast; cart, summary and CTA remain unchanged so the shop can resubmit and create duplicate intents. Show a persistent 'Awaiting payment — ref INT-xxx' state and clear/disable the cart.", "selector": "[data-testid='place-order-btn']", "priority": "MEDIUM"},
+      {"component": "Amount rounding", "issue": "Ladder/CTA show Math.round rupees (₹742) while server amount_due_now is 742.35 — show paise or match server rounding.", "selector": "[data-testid='pay-now-amount']", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Mobile pad -> /pay when gateway goes live", "issue": "pad.tsx pushes /pay with orderId=intent_id and discards res.payment_url; pay.tsx then calls /api/app/v2/payments/{intent_id} and /payments/create which look up b2b_orders -> 404 'Order not found'. Latent today (gateway off) but will break the moment keys are live. Open res.payment_url directly or make /pay intent-aware.", "affected_selectors": ["mobile/app/(tabs)/pad.tsx onPlace", "mobile/app/pay.tsx"]}
+    ],
+    "design_issues": [
+      {"screen": "/admin/b2b-payments header", "issues": ["Title 'Payments & Credit Control' uses text-[#2B3A4A] on the dark navy admin background — nearly invisible."]},
+      {"screen": "/admin/b2b-payments Shops & dues cards", "issues": ["'Outstanding ₹x' segment is near-invisible (very light text on white)."]},
+      {"screen": "/retailer/b2b Order Summary", "issues": ["Item names and Subtotal/GST values render in near-white text on white (no explicit color) — likely pre-existing but now sits right above the new ladder."]},
+      {"screen": "/retailer/b2b product table", "issues": ["Product thumbnails via /_next/image from customer-assets are broken in this env."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_b2b_prepayment_gate.py", "/app/backend/tests/_admin_cli.py", "/app/test_reports/pytest/iter127_prepay.xml"],
+  "action_items": [
+    "Validate IntentConfirm.amount (gt=0 and >= intent.amount_due_now / min% share) in admin_b2b_payments.confirm_checkout_intent",
+    "Web ladder: do not null orderSummary on percent change; auto-recalculate so amount/balance/CTA update in place",
+    "Decide how a verified proof unlocks a killswitch (dues) lock — apply amount to oldest unpaid orders or per-shop override; fix misleading 'ordering reopened' toast",
+    "Allow confirming already-paid intents for locked shops (and surface webhook confirm failures)",
+    "Validate proof.order_id belongs to the submitting retailer",
+    "Disable place-order-btn when can_order=false; hide legacy cash-discount toggle in prepay mode; show persistent awaiting-payment state after intent",
+    "Mobile: open intent payment_url directly instead of routing intent_id into /pay",
+    "Fix low-contrast admin page title and dues 'Outstanding' text"
+  ],
+  "critical_code_review_comments": [
+    "Server-side pricing is sound: forged amount/amount_due_now/grand_total ignored, apply_cash_discount overridden by payment_percent==100.",
+    "confirm_intent lacks atomic status claim (use find_one_and_update status awaiting_payment->confirming) and TTL enforcement.",
+    "app/retailer/b2b/page.js is ~1000 lines — split order form/summary state into hooks/components.",
+    "Admin desk uses window.prompt for lock reason and payment reference — replace with a modal (no validation, poor UX, can't be cancelled cleanly)."
+  ],
+  "updated_files": ["/app/backend/tests/test_b2b_prepayment_gate.py", "/app/backend/tests/_admin_cli.py"],
+  "success_rate": {"backend": "93% (15/15 pytest + mobile checks pass; 1 HIGH validation bug found via ad-hoc test)", "frontend": "80% (all flows reachable; ladder collapse bug + blocked CTA enabled)"},
+  "test_credentials": "Used /app/memory/test_credentials.md (retailer GSTIN 07AAAAA0000A1Z5, admin PIN+OTP from admin_2fa_tokens, mobile QA refresh token — rotated value written back to /app/memory/.qa_refresh_token).",
+  "seed_data_creation": "Created TEST_ proofs (PAY-E4EE73473B verified, TEST_UTR_REJ rejected, TEST_UTR_PROOF1 verified, PAY-20923CB6FF mobile rejected), intents (INT-1A6F8259E089 confirmed -> B2B-20261030-3E8D9A; INT-839E0FF58E01 confirmed -> B2B-20261030-993723 with amount_paid -5, manually set order_status=cancelled; INT-EFEEC6EAA98A and INT-9D50E0F5721F left awaiting_payment), classic order B2B-20261030-9D4075 (gate-off regression) plus pytest-created orders for RTL_TEST_B2B. Settings restored: prepayment_required=true, min 70, killswitch=false, grace 30; RTL_TEST_B2B ordering_blocked=false.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Public preview URL was down ('Preview Unavailable', /api 404) — use http://localhost:3000 for browser and REACT_APP_BACKEND_URL=http://localhost:8001 for pytest: `cd /app/backend && REACT_APP_BACKEND_URL=http://localhost:8001 pytest tests/test_b2b_prepayment_gate.py`. tests/_admin_cli.py METHOD PATH [JSON] performs admin PIN+OTP login and calls an admin endpoint. browser_automation can run mongosh via subprocess to read admin OTP. regal-rose-b2b product row: '[data-testid=product-row-regal-rose-b2b] button:visible' last = plus (2 clicks = 1 box). RTL_TEST_B2B has ~₹2.56L dues 188 days old, so killswitch with grace 30 locks it immediately. Admin intent confirm takes ~3-4s.",
+  "rca of the issue": "Ladder collapse: B2BPayNowSelector onChange -> setPayPercent + setOrderSummary(null); B2BOrderSummary/ladder render conditional on orderSummary, so the component unmounts itself. Negative amount: IntentConfirm.amount: Optional[float] with no bounds, passed straight to place_order(prepaid_amount=...) which sets amount_paid and payment_status from it."
+}

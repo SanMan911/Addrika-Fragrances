@@ -33,7 +33,7 @@ const formatCurrency = (amount) =>
  * submitting:    boolean — disables the CTA while POST /order is in flight
  * onPlaceOrder:  () => void
  */
-export default function B2BOrderSummary({ orderSummary, submitting, onPlaceOrder, payNowSelector, ctaLabel, ctaNote }) {
+export default function B2BOrderSummary({ orderSummary, submitting, onPlaceOrder, payNowSelector, ctaLabel, ctaNote, ctaDisabled }) {
   if (!orderSummary) return null;
 
   return (
@@ -140,7 +140,7 @@ export default function B2BOrderSummary({ orderSummary, submitting, onPlaceOrder
         {/* Place Order Button */}
         <button
           onClick={onPlaceOrder}
-          disabled={submitting}
+          disabled={submitting || ctaDisabled}
           className="w-full mt-6 py-4 text-lg font-semibold bg-green-600 text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
           data-testid="place-order-btn"
         >

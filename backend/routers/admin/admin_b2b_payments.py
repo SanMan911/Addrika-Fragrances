@@ -44,7 +44,7 @@ class BlockUpdate(BaseModel):
 
 class IntentConfirm(BaseModel):
     payment_reference: str = Field(min_length=3, max_length=120)
-    amount: Optional[float] = None
+    amount: Optional[float] = Field(None, gt=0)
 
 
 @router.get("/settings")
@@ -138,7 +138,9 @@ async def confirm_checkout_intent(
 
 
 @router.get("/retailers")
-async def list_retailer_dues(request: Request, session_token: Optional[str] = Cookie(None)):
+async def list_retailer_dues(
+    request: Request, include_all: bool = False, session_token: Optional[str] = Cookie(None)
+):
     """Every active shop with its outstanding balance and lock state."""
     await require_admin(request, session_token)
     settings = await gate.get_settings(db)
@@ -158,7 +160,11 @@ async def list_retailer_dues(request: Request, session_token: Optional[str] = Co
     )
     async for retailer in cursor:
         dues = await gate.dues_summary(db, retailer["retailer_id"])
-        if dues["outstanding_amount"] <= 0 and not retailer.get("ordering_blocked"):
+        if (
+            not include_all
+            and dues["outstanding_amount"] <= 0
+            and not retailer.get("ordering_blocked")
+        ):
             continue
         rows.append(
             {

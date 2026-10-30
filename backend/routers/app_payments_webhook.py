@@ -66,7 +66,19 @@ async def _confirm_intent(intent_id: str, payment_id: str, provider: str) -> dic
             db, intent_id, payment_reference=payment_id, verified_by=f"{provider}:webhook"
         )
     except Exception as e:
+        # A captured payment with no order is the worst failure mode — flag it
+        # loudly so an admin can confirm the intent by hand.
         logger.error(f"{provider} webhook could not confirm intent {intent_id}: {e}")
+        await db.b2b_order_intents.update_one(
+            {"intent_id": intent_id},
+            {
+                "$set": {
+                    "confirm_failed": True,
+                    "confirm_error": str(e),
+                    "paid_payment_reference": payment_id,
+                }
+            },
+        )
         return {"status": "error", "intent_id": intent_id, "reason": str(e)}
     logger.info(f"{provider} webhook confirmed intent {intent_id} → order {result.get('order_id')}")
     return {"status": "processed", "intent_id": intent_id, "order_id": result.get("order_id")}

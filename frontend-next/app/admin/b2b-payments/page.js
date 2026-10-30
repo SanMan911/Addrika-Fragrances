@@ -168,8 +168,8 @@ export default function AdminB2BPaymentsPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-[#2B3A4A]">Payments & Credit Control</h1>
-            <p className="text-gray-500 text-sm mt-0.5">
+            <h1 className="text-2xl font-bold text-white">Payments & Credit Control</h1>
+            <p className="text-gray-400 text-sm mt-0.5">
               Upfront payment rules, the dues killswitch and declared payments awaiting verification
             </p>
           </div>
@@ -373,8 +373,8 @@ export default function AdminB2BPaymentsPage() {
                       {r.gst_number || '—'}
                       {r.city ? ` · ${r.city}` : ''}
                     </p>
-                    <p className="text-sm mt-1">
-                      Outstanding <strong>{money(r.outstanding_amount)}</strong>
+                    <p className="text-sm mt-1 text-gray-700">
+                      Outstanding <strong className="text-[#2B3A4A]">{money(r.outstanding_amount)}</strong>
                       {r.overdue_amount > 0 && (
                         <span className="text-red-600">
                           {' '}

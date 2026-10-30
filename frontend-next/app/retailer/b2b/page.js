@@ -63,6 +63,7 @@ export default function RetailerB2BPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [paymentGate, setPaymentGate] = useState(null);
   const [payPercent, setPayPercent] = useState(100);
+  const [awaitingIntent, setAwaitingIntent] = useState(null);
   const [myProofs, setMyProofs] = useState([]);
   const { fetchWithAuth, retailer: authRetailer } = useRetailerAuth();
 
@@ -253,7 +254,20 @@ export default function RetailerB2BPage() {
       return { ...prev, [productId]: newVal };
     });
     setOrderSummary(null);
+    setAwaitingIntent(null);
   };
+
+  // Re-price in place when the pay-now share changes — crossing 100% toggles
+  // the cash discount, so the grand total itself moves.
+  const payPercentRef = useRef(payPercent);
+  useEffect(() => {
+    if (payPercentRef.current === payPercent) return;
+    payPercentRef.current = payPercent;
+    if (!orderSummary || !paymentGate?.prepayment_required) return;
+    calculateOrder();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payPercent]);
+
   const calculateOrder = async () => {
     const items = Object.entries(quantities)
       .filter(([_, qty]) => qty > 0)
@@ -333,6 +347,11 @@ export default function RetailerB2BPage() {
           toast.success('Redirecting you to the payment page…');
           window.location.href = data.payment_url;
         } else {
+          setAwaitingIntent({
+            intent_id: data.intent_id,
+            amount_due_now: data.amount_due_now,
+            payment_percent: data.payment_percent,
+          });
           toast.info(
             data.message ||
               'Your cart is saved. Our team will share payment details and confirm the order.'
@@ -349,8 +368,7 @@ export default function RetailerB2BPage() {
       setSubmitting(false);
     }
   };
-  const resetOrderForm = () => {
-    setQuantities({});
+  const resetOrderForm = () => {    setQuantities({});
     setOrderSummary(null);
     setVoucherCode('');
     setCreditNoteCode('');
@@ -580,7 +598,8 @@ export default function RetailerB2BPage() {
               />
             );
           })()}
-          {/* Cash Discount Toggle */}
+          {/* Cash Discount Toggle — in prepay mode the 100% option drives it */}
+          {!paymentGate?.prepayment_required && (
           <div className={`p-4 rounded-xl bg-green-50 border border-green-200 flex items-center justify-between ${voucherCode ? 'opacity-50' : ''}`}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-600">
@@ -608,6 +627,7 @@ export default function RetailerB2BPage() {
               <div className="w-14 h-7 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50"></div>
             </label>
           </div>
+          )}
           {/* Voucher Code Input */}
           <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
             <div className="flex items-center gap-3 mb-3">
@@ -704,23 +724,25 @@ export default function RetailerB2BPage() {
                   gate={paymentGate}
                   grandTotal={orderSummary.grand_total}
                   payPercent={payPercent}
-                  onChange={(pct) => {
-                    setPayPercent(pct);
-                    setOrderSummary(null);
-                  }}
-                  disabled={submitting || !paymentGate.can_order}
+                  onChange={(pct) => setPayPercent(pct)}
+                  disabled={submitting || calculating || !paymentGate.can_order}
                 />
               ) : null
             }
+            ctaDisabled={paymentGate ? !paymentGate.can_order : false}
             ctaLabel={
-              paymentGate?.prepayment_required && orderSummary
+              awaitingIntent
+                ? `Awaiting payment · ${awaitingIntent.intent_id}`
+                : paymentGate?.prepayment_required && orderSummary
                 ? `Pay ${formatCurrency(
                     Math.round((orderSummary.grand_total * payPercent) / 100)
                   )} & confirm order`
                 : undefined
             }
             ctaNote={
-              paymentGate?.prepayment_required
+              awaitingIntent
+                ? 'Our wholesale desk will confirm this order once your payment is verified.'
+                : paymentGate?.prepayment_required
                 ? 'Your order is created only after this payment is verified.'
                 : undefined
             }

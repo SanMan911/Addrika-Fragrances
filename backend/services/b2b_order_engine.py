@@ -145,6 +145,7 @@ async def place_order(
     prepaid_amount: Optional[float] = None,
     payment_percent: Optional[int] = None,
     payment_reference: Optional[str] = None,
+    bypass_ordering_block: bool = False,
 ) -> tuple[dict, dict]:
     """Create a B2B order and run every placement side-effect.
 
@@ -161,9 +162,10 @@ async def place_order(
     """
     from services import b2b_payment_gate as gate
 
-    block = await gate.ordering_block(db, retailer)
-    if block:
-        raise OrderingBlocked(block["reason"], block)
+    if not bypass_ordering_block:
+        block = await gate.ordering_block(db, retailer)
+        if block:
+            raise OrderingBlocked(block["reason"], block)
 
     gate_settings = await gate.get_settings(db)
     if gate_settings["prepayment_required"] and prepaid_amount is None:

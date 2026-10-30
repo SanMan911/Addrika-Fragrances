@@ -287,12 +287,20 @@ async def submit_proof(
     if not _parse_date_only(paid_on):
         raise ValueError("Enter the payment date as YYYY-MM-DD")
 
+    order_ref = (order_id or "").strip() or None
+    if order_ref:
+        owned = await db.b2b_orders.find_one(
+            {"order_id": order_ref, "retailer_id": retailer["retailer_id"]}, {"_id": 1}
+        )
+        if not owned:
+            raise ValueError("That order number does not belong to your account")
+
     proof = {
         "proof_id": f"PAY-{uuid.uuid4().hex[:10].upper()}",
         "retailer_id": retailer["retailer_id"],
         "retailer_business_name": retailer.get("business_name") or retailer.get("trade_name"),
         "retailer_gst": retailer.get("gst_number"),
-        "order_id": (order_id or "").strip() or None,
+        "order_id": order_ref,
         "mode": mode,
         "reference": reference,
         "paid_on": paid_on,
@@ -376,9 +384,15 @@ async def review_proof(
     )
 
     credited_order = None
+    settled = []
     if approve:
         if proof.get("order_id"):
             credited_order = await _credit_order(db, proof["order_id"], proof["amount"])
+        else:
+            # General settlement — apply it to the oldest unpaid orders first,
+            # so a verified transfer actually reduces the dues the killswitch
+            # watches instead of only clearing a manual lock.
+            settled = await _settle_oldest_first(db, proof["retailer_id"], proof["amount"])
         # A verified settlement clears any manual lock on that shop.
         await db.retailers.update_one(
             {"retailer_id": proof["retailer_id"]},
@@ -394,7 +408,43 @@ async def review_proof(
         )
 
     proof.update({"status": status, "reviewed_by": admin_email})
-    return {"proof": proof, "credited_order": credited_order}
+    retailer = await db.retailers.find_one(
+        {"retailer_id": proof["retailer_id"]}, {"_id": 0, "retailer_id": 1, "ordering_blocked": 1}
+    ) or {}
+    still_blocked = await ordering_block(db, retailer) if approve else None
+    return {
+        "proof": proof,
+        "credited_order": credited_order,
+        "settled_orders": settled,
+        "can_order_now": still_blocked is None if approve else None,
+        "still_blocked": still_blocked,
+    }
+
+
+async def _settle_oldest_first(db, retailer_id: str, amount: float) -> list[dict]:
+    """Apply a verified payment to this shop's oldest unpaid orders (FIFO)."""
+    remaining = round(float(amount), 2)
+    settled: list[dict] = []
+    cursor = (
+        db.b2b_orders.find(
+            {"retailer_id": retailer_id, "payment_status": {"$nin": list(SETTLED_PAYMENT_STATUSES)}},
+            {"_id": 0, "order_id": 1, "grand_total": 1, "amount_paid": 1, "payment_status": 1,
+             "order_status": 1, "created_at": 1},
+        )
+        .sort("created_at", 1)
+    )
+    async for order in cursor:
+        if remaining <= 0.01:
+            break
+        due = order_outstanding(order)
+        if due <= 0:
+            continue
+        applied = min(due, remaining)
+        result = await _credit_order(db, order["order_id"], applied)
+        remaining = round(remaining - applied, 2)
+        if result:
+            settled.append({**result, "applied": applied})
+    return settled
 
 
 async def _credit_order(db, order_id: str, amount: float) -> Optional[dict]:

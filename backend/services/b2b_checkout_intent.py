@@ -10,6 +10,7 @@ total has been verified. Until then the priced cart sits here, in
 """
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -61,11 +62,34 @@ async def create_intent(
         raise ValueError("This cart has nothing payable in it")
     amount_now = round(grand_total * int(payment_percent) / 100, 2)
 
+    # One live intent per identical cart — repeated taps must not litter the
+    # admin desk with duplicates.
+    cart_signature = json.dumps(
+        sorted(
+            (str(i.get("product_id")), float(i.get("quantity_boxes") or 0))
+            for i in order_data.dict().get("items", [])
+        ),
+        separators=(",", ":"),
+    )
+    existing = await db.b2b_order_intents.find_one(
+        {
+            "retailer_id": retailer["retailer_id"],
+            "status": "awaiting_payment",
+            "cart_signature": cart_signature,
+            "payment_percent": int(payment_percent),
+            "expires_at": {"$gt": _now_iso()},
+        },
+        {"_id": 0},
+    )
+    if existing:
+        return existing
+
     intent = {
         "intent_id": f"INT-{uuid.uuid4().hex[:12].upper()}",
         "retailer_id": retailer["retailer_id"],
         "channel": channel,
         "payment_percent": int(payment_percent),
+        "cart_signature": cart_signature,
         "grand_total": grand_total,
         "amount_due_now": amount_now,
         "balance_after_payment": round(grand_total - amount_now, 2),
@@ -141,33 +165,65 @@ async def confirm_intent(
     db, intent_id: str, *, payment_reference: str, verified_by: str, amount: Optional[float] = None
 ) -> dict:
     """A verified payment landed → place the real order. Idempotent."""
-    intent = await db.b2b_order_intents.find_one({"intent_id": intent_id}, {"_id": 0})
+    # Atomic claim: whoever flips awaiting_payment → confirming owns this
+    # intent, so a webhook retry racing an admin click cannot double-place.
+    claimed = await db.b2b_order_intents.find_one_and_update(
+        {"intent_id": intent_id, "status": "awaiting_payment"},
+        {"$set": {"status": "confirming", "claimed_at": _now_iso()}},
+        return_document=True,
+    )
+    intent = claimed or await db.b2b_order_intents.find_one({"intent_id": intent_id}, {"_id": 0})
     if not intent:
         raise ValueError("Checkout session not found")
-    if intent["status"] == "confirmed" and intent.get("order_id"):
-        existing = await db.b2b_orders.find_one({"order_id": intent["order_id"]}, {"_id": 0})
-        return {"order_id": intent["order_id"], "already_confirmed": True, "order": existing}
+    if not claimed:
+        if intent.get("status") == "confirmed" and intent.get("order_id"):
+            existing = await db.b2b_orders.find_one({"order_id": intent["order_id"]}, {"_id": 0})
+            return {"order_id": intent["order_id"], "already_confirmed": True, "order": existing}
+        raise ValueError("This checkout session is already being confirmed")
+
+    paid_now = round(float(amount if amount is not None else intent["amount_due_now"]), 2)
+    # Never create an order for less than the share the shop committed to —
+    # that is the whole point of the gate.
+    if paid_now < float(intent["amount_due_now"]) - 0.01:
+        await db.b2b_order_intents.update_one(
+            {"intent_id": intent_id}, {"$set": {"status": "awaiting_payment"}}
+        )
+        raise ValueError(
+            f"₹{paid_now:,.2f} is less than the ₹{float(intent['amount_due_now']):,.2f} "
+            f"({intent['payment_percent']}%) this order requires upfront."
+        )
 
     retailer = await db.retailers.find_one({"retailer_id": intent["retailer_id"]})
     if not retailer:
+        await db.b2b_order_intents.update_one(
+            {"intent_id": intent_id}, {"$set": {"status": "awaiting_payment"}}
+        )
         raise ValueError("Retailer not found")
 
     from routers.b2b_orders import B2BOrderCreate
 
     order_data = B2BOrderCreate(**intent["order_payload"])
-    paid_now = round(float(amount if amount is not None else intent["amount_due_now"]), 2)
 
-    order, response = await order_engine.place_order(
-        db,
-        retailer,
-        order_data,
-        channel=intent.get("channel", "web"),
-        payment_mode="pay_later",
-        client_ref=intent["intent_id"],
-        prepaid_amount=paid_now,
-        payment_percent=intent["payment_percent"],
-        payment_reference=payment_reference,
-    )
+    try:
+        order, response = await order_engine.place_order(
+            db,
+            retailer,
+            order_data,
+            channel=intent.get("channel", "web"),
+            payment_mode="pay_later",
+            client_ref=intent["intent_id"],
+            prepaid_amount=paid_now,
+            payment_percent=intent["payment_percent"],
+            payment_reference=payment_reference,
+            # The money is already in — a lock applied after the shop paid
+            # must not strand their payment.
+            bypass_ordering_block=True,
+        )
+    except Exception:
+        await db.b2b_order_intents.update_one(
+            {"intent_id": intent_id}, {"$set": {"status": "awaiting_payment"}}
+        )
+        raise
 
     await db.b2b_order_intents.update_one(
         {"intent_id": intent_id},
