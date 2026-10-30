@@ -39,7 +39,7 @@ export default function Header() {
     { label: 'Blog', href: '/blog', type: 'route' },
     { label: 'Find Retailers', href: '/find-retailers', type: 'route' },
     { label: 'Wholesale', href: '/wholesale', type: 'route', accent: true },
-    { label: 'Track Order', href: 'https://www.centraders.com/track-order', type: 'external' },
+    { label: 'Track Order', href: '/track-order', type: 'route' },
     { label: 'Contact', href: '#contact', type: 'scroll' }
   ];
 

@@ -86,7 +86,7 @@ export default function Footer() {
             <h4 className="text-lg font-semibold mb-4 text-white">Support</h4>
             <ul className="space-y-2">
               {[
-                { label: 'Track Order', href: 'https://www.centraders.com/track-order', external: true },
+                { label: 'Track Order', href: '/track-order' },
                 { label: 'Shipping Policy', href: '/shipping-returns' },
                 { label: 'Find Retailers', href: '/find-retailers' },
                 { label: 'Privacy Policy', href: '/privacy-policy' },

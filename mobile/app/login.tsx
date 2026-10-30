@@ -215,6 +215,16 @@ export default function Login() {
                   </Text>
                 )}
               </Pressable>
+
+              <Pressable
+                testID="login-register-link"
+                onPress={() => openWeb('/retailer/register')}
+                style={{ marginTop: space.md, alignItems: 'center' }}
+              >
+                <Text style={{ ...type.small, color: colors.navy, fontWeight: '600' }}>
+                  New stockist? Register here
+                </Text>
+              </Pressable>
             </>
           ) : step === 'password' ? (
             <>

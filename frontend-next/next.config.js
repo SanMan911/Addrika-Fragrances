@@ -69,16 +69,6 @@ const nextConfig = {
         destination: '/why-choose-aarohmm',
         permanent: true,
       },
-      {
-        source: '/track-order',
-        destination: 'https://www.centraders.com/track-order',
-        permanent: true,
-      },
-      {
-        source: '/track-order/:path*',
-        destination: 'https://www.centraders.com/track-order',
-        permanent: true,
-      },
     ];
   },
 };
