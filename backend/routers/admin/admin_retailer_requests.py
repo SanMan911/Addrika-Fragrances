@@ -203,6 +203,18 @@ async def _apply_status(
 
     updated = await db.retailers.find_one({"retailer_id": retailer_id}, {"_id": 0, "password_hash": 0})
 
+    # Approved → welcome email with login ID + app link (only the first time)
+    if new_status == "verified" and updated and not updated.get("welcome_email_sent_at"):
+        try:
+            from services.retailer_welcome import send_retailer_welcome_email
+
+            await send_retailer_welcome_email(db, updated, admin_email=admin_email)
+            updated = await db.retailers.find_one(
+                {"retailer_id": retailer_id}, {"_id": 0, "password_hash": 0}
+            )
+        except Exception as e:  # never block the approval on email failure
+            logger.error(f"Welcome email on approval failed for {retailer_id}: {e}")
+
     # Keep Supabase mirror in sync with the new status / is_verified flag.
     try:
         from services.supabase_sync import mirror_user_upsert
@@ -217,6 +229,57 @@ async def _apply_status(
 
 class _StatusBody(BaseModel):
     reason: Optional[str] = Field(None, max_length=500)
+
+
+@router.post("/welcome-blast")
+async def send_welcome_to_approved(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+    force: bool = Query(False),
+):
+    """Email every verified retailer. By default only shops that have never
+    received the welcome email; `force=true` resends to all approved shops."""
+    admin = await require_admin(request, session_token)
+    from services.retailer_welcome import send_retailer_welcome_email
+
+    q: dict = {"self_registered": True, "status": "verified"}
+    if not force:
+        q["welcome_email_sent_at"] = {"$exists": False}
+    cursor = db.retailers.find(q, {"_id": 0, "password_hash": 0})
+
+    sent, failed, skipped = 0, [], []
+    async for r in cursor:
+        if not (r.get("email") or "").strip():
+            skipped.append(r.get("retailer_id"))
+            continue
+        ok = await send_retailer_welcome_email(db, r, admin_email=admin.get("email", "admin"))
+        if ok:
+            sent += 1
+        else:
+            failed.append(r.get("retailer_id"))
+    return {"sent": sent, "failed": failed, "skipped_no_email": skipped, "force": force}
+
+
+@router.post("/{retailer_id}/welcome-email")
+async def resend_welcome_email(
+    retailer_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Manually (re)send the welcome email to one approved retailer."""
+    admin = await require_admin(request, session_token)
+    r = await db.retailers.find_one({"retailer_id": retailer_id}, {"_id": 0, "password_hash": 0})
+    if not r:
+        raise HTTPException(status_code=404, detail="Retailer not found")
+    if r.get("status") != "verified":
+        raise HTTPException(status_code=400, detail="Only approved (verified) shops get welcome emails")
+
+    from services.retailer_welcome import send_retailer_welcome_email
+
+    ok = await send_retailer_welcome_email(db, r, admin_email=admin.get("email", "admin"))
+    if not ok:
+        raise HTTPException(status_code=502, detail="Email could not be sent — check Resend configuration")
+    return {"sent": True, "email": r.get("email")}
 
 
 @router.post("/{retailer_id}/approve")

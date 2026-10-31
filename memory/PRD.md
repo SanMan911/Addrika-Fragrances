@@ -672,4 +672,31 @@ normal push is rejected as a non-fast-forward.
   stale payment intent (`setAwaitingIntent(null)`); 28/28 prepay-gate tests pass.
 - **BLOCKING USER ACTION**: turn the retailer portal back ON in live admin, or
   no one can register on the website.
+
+### Update 2026-10-31c (Iter131 — Welcome emails to approved shops)
+- **New `services/retailer_welcome.py`.** Branded welcome email for approved B2B
+  retailers: shop name + GSTIN as login ID (password never emailed — retailers
+  use the one they set at registration), Partner Portal sign-in link, Aarohmm
+  app APK download link (`APP_APK_URL` env, defaults to the current 0.5.0 EAS
+  artifact), and a 4-step getting-started guide. On success stamps
+  `welcome_email_sent_at`/`welcome_email_sent_by` + an audit note.
+- **Auto-send on approval.** `_apply_status` in
+  `routers/admin/admin_retailer_requests.py` sends the welcome email when a
+  retailer transitions to `verified` and has no `welcome_email_sent_at` yet;
+  email failure never blocks the approval.
+- **Manual endpoints.** `POST /api/admin/retailer-requests/{id}/welcome-email`
+  (resend to one approved shop; 400 unless verified) and
+  `POST /api/admin/retailer-requests/welcome-blast[?force=true]` (all verified
+  self-registered shops; by default skips already-emailed ones, returns
+  sent/failed/skipped counts).
+- **Admin UI** (`/admin/retailer-requests`): gold "Email approved shops" bulk
+  button in the header and a per-row "Welcome" button on verified shops.
+- **Tested end-to-end locally:** seeded a fake self-registered shop → approved
+  via admin API → real Resend email sent, flag + audit note stamped → resend
+  endpoint OK → blast skips already-sent (sent:0) and `force=true` resends
+  (sent:1). Test doc deleted after. Frontend rebuilt; both buttons present in
+  the production bundle.
+- Reminder: production shop approval lives behind the portal switch — once the
+  portal is ON and shops are approved, the blast button catches any shop
+  approved before this feature existed.
   Razorpay/PineLabs webhook secrets.

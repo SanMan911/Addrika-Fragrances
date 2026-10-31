@@ -156,6 +156,22 @@ export default function AdminRetailerRequestsPage() {
     doAction(`/${r.retailer_id}`, { method: 'DELETE' }, 'Retailer deleted');
   };
 
+  const sendWelcome = (r) =>
+    confirm(`Send the welcome email to ${r.business_name}?\n\nIt includes their GSTIN login and the Aarohmm app download link.`) &&
+    doAction(`/${r.retailer_id}/welcome-email`, { method: 'POST' }, `Welcome email sent to ${r.email}`);
+
+  const welcomeBlast = () =>
+    confirm(
+      'Send welcome emails to ALL approved shops that have not received one yet?\n\n(Shops already emailed are skipped.)'
+    ) &&
+    doAction('/welcome-blast', { method: 'POST' }, 'Welcome emails sent to pending approved shops').then(
+      (d) =>
+        d &&
+        toast.success(
+          `Sent: ${d.sent} · Failed: ${d.failed.length} · No email on file: ${d.skipped_no_email.length}`
+        )
+    );
+
   const viewCertificate = (r) => {
     // Uses admin session cookie — opens in a new tab
     window.open(`${API_URL}/api/admin/retailer-requests/${r.retailer_id}/certificate`, '_blank', 'noopener');
@@ -182,15 +198,26 @@ export default function AdminRetailerRequestsPage() {
               Self-registered retailers awaiting manual verification. Approve to grant dashboard access.
             </p>
           </div>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-            data-testid="refresh-btn"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={welcomeBlast}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#D4AF37] text-[#1a252f] font-semibold hover:opacity-90"
+              data-testid="welcome-blast-btn"
+              title="Email every approved shop that has not received a welcome email yet"
+            >
+              <Mail className="w-4 h-4" />
+              Email approved shops
+            </button>
+            <button
+              onClick={fetchData}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+              data-testid="refresh-btn"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Status pills */}
@@ -304,6 +331,16 @@ export default function AdminRetailerRequestsPage() {
                             data-testid={`approve-${r.retailer_id}`}
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                          </button>
+                        )}
+                        {r.status === 'verified' && (
+                          <button
+                            onClick={() => sendWelcome(r)}
+                            title="Send / resend the welcome email (GSTIN login + app download link)"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs bg-[#D4AF37]/15 text-[#8a6d1c] border border-[#D4AF37]/40 hover:bg-[#D4AF37]/25"
+                            data-testid={`welcome-email-${r.retailer_id}`}
+                          >
+                            <Mail className="w-3.5 h-3.5" /> Welcome
                           </button>
                         )}
                         {r.status === 'verified' && (
