@@ -113,10 +113,15 @@ async def get_admin_notification_count(
 async def delete_user(
     user_id: str,
     request: Request,
+    confirm_email: Optional[str] = None,
     session_token: Optional[str] = Cookie(None),
     admin: dict = Depends(require_admin)
 ):
-    """Delete a specific user by ID (admin only)"""
+    """Permanently delete a user.
+
+    Requires `confirm_email` to match the account exactly, and refuses to run
+    when the account has real orders so sales history is never orphaned.
+    """
     from bson import ObjectId
     from bson.errors import InvalidId
     
@@ -143,6 +148,28 @@ async def delete_user(
         
         user_email = user.get("email", "Unknown")
         user_id_field = user.get("user_id", str(mongo_id))
+
+        if (confirm_email or "").strip().lower() != str(user_email).strip().lower():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Type the exact email ({user_email}) to confirm this deletion.",
+            )
+
+        id_variants = [user_id, user_id_field, str(mongo_id)]
+        order_count = await db.orders.count_documents({
+            "$or": [
+                {"user_id": {"$in": id_variants}},
+                {"shipping.email": user_email},
+            ]
+        })
+        if order_count:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"{user_email} has {order_count} order(s) on record. "
+                    "Users with real orders cannot be deleted — your sales history stays intact."
+                ),
+            )
         
         # Delete user sessions (try both _id string and user_id)
         await db.user_sessions.delete_many({"user_id": {"$in": [user_id, user_id_field, str(mongo_id)]}})

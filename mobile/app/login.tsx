@@ -174,7 +174,7 @@ export default function Login() {
                 autoCapitalize="characters"
                 autoCorrect={false}
                 placeholder="29AAAAA0000A1Z5"
-                placeholderTextColor="#b4ada0"
+                placeholderTextColor={colors.inputPlaceholder}
                 maxLength={15}
                 style={{
                   ...inputStyle,
@@ -257,7 +257,7 @@ export default function Login() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 placeholder="Your password"
-                placeholderTextColor="#b4ada0"
+                placeholderTextColor={colors.inputPlaceholder}
                 style={{
                   ...inputStyle,
                   borderColor: password ? colors.gold : colors.parchmentDim,
@@ -393,7 +393,7 @@ export default function Login() {
                 onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
                 keyboardType="number-pad"
                 placeholder="000000"
-                placeholderTextColor="#b4ada0"
+                placeholderTextColor={colors.inputPlaceholder}
                 maxLength={6}
                 style={{
                   ...inputStyle,

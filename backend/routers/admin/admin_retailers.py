@@ -379,6 +379,23 @@ async def admin_update_grievance_status(
     return {"message": "Grievance updated", "new_status": update_data.status}
 
 
+@router.delete("/retailers/grievances/{complaint_id}")
+async def admin_delete_grievance(
+    complaint_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None)
+):
+    """Permanently remove a web-portal grievance (fake / non-serious entries)."""
+    user = await require_admin(request, session_token)
+
+    result = await db.retailer_complaints.delete_one({"complaint_id": complaint_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Grievance not found")
+
+    logger.info(f"Admin {user.get('email', 'admin')} deleted grievance {complaint_id}")
+    return {"message": "Grievance deleted", "complaint_id": complaint_id}
+
+
 # ============================================================================
 # Retailer Activity Dashboard - Abandoned Carts & Self-Pickup Performance
 # ============================================================================

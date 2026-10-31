@@ -414,7 +414,7 @@ export default function OrderPadScreen() {
           onChangeText={(t) => setPincode(t.replace(/\D/g, '').slice(0, 6))}
           keyboardType="number-pad"
           placeholder="560001"
-          placeholderTextColor="#b4ada0"
+          placeholderTextColor={colors.inputPlaceholder}
           style={{
             backgroundColor: colors.parchment,
             borderRadius: radius.sm,
@@ -433,7 +433,7 @@ export default function OrderPadScreen() {
           onChangeText={setNotes}
           multiline
           placeholder="e.g. deliver after Diwali week"
-          placeholderTextColor="#b4ada0"
+          placeholderTextColor={colors.inputPlaceholder}
           style={{
             backgroundColor: colors.parchment,
             borderRadius: radius.sm,

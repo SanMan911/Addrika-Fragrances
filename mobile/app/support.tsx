@@ -72,7 +72,7 @@ export default function SupportScreen() {
             value={subject}
             onChangeText={setSubject}
             placeholder="e.g. Dispatch date for my last order"
-            placeholderTextColor="#b4ada0"
+            placeholderTextColor={colors.inputPlaceholder}
             style={{
               backgroundColor: colors.parchment,
               borderRadius: radius.sm,
@@ -92,7 +92,7 @@ export default function SupportScreen() {
             onChangeText={setMessage}
             multiline
             placeholder="Type your message"
-            placeholderTextColor="#b4ada0"
+            placeholderTextColor={colors.inputPlaceholder}
             style={{
               backgroundColor: colors.parchment,
               borderRadius: radius.sm,

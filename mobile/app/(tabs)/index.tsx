@@ -166,7 +166,7 @@ export default function StockScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Search fragrance or category"
-          placeholderTextColor="#b4ada0"
+          placeholderTextColor={colors.inputPlaceholder}
           style={{
             marginTop: space.sm,
             backgroundColor: colors.white,

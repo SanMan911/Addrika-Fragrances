@@ -33,6 +33,49 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Readable text fields everywhere.
+   Base-layer defaults only — any explicit Tailwind utility on a field still wins,
+   so this just guarantees a field never inherits an unreadable colour pair. */
+@layer base {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']),
+  textarea,
+  select {
+    background-color: #ffffff;
+    color: #0f172a;
+    color-scheme: light;
+  }
+
+  .dark input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']),
+  .dark textarea,
+  .dark select {
+    background-color: #0f172a;
+    color: #f8fafc;
+    color-scheme: dark;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #64748b;
+    opacity: 1;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+  }
+
+  /* Native date/number spinners follow the field, not the OS */
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator {
+    filter: none;
+  }
+  .dark input[type='date']::-webkit-calendar-picker-indicator,
+  .dark input[type='time']::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;

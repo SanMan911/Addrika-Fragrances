@@ -1125,6 +1125,56 @@ async def admin_review_profile_change_ticket(
     }
 
 
+@router.delete("/admin/profile-change-tickets/{ticket_id}")
+async def admin_delete_profile_change_ticket(
+    ticket_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None)
+):
+    """Permanently remove one profile change ticket."""
+    admin = await require_admin(request, session_token)
+
+    result = await db.profile_change_tickets.delete_one({"ticket_id": ticket_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    logger.info(f"Admin {admin.get('email', 'admin')} deleted profile ticket {ticket_id}")
+    return {"message": "Ticket deleted", "ticket_id": ticket_id}
+
+
+@router.post("/admin/profile-change-tickets/reset")
+async def admin_reset_profile_change_tickets(
+    request: Request,
+    scope: str = "reviewed",
+    confirm: str = "",
+    session_token: Optional[str] = Cookie(None)
+):
+    """Clear profile change tickets.
+
+    scope='reviewed' (default) drops only approved/rejected tickets; scope='all'
+    wipes every ticket including the pending ones. Both need confirm='RESET'.
+    """
+    admin = await require_admin(request, session_token)
+
+    if confirm.strip().upper() != "RESET":
+        raise HTTPException(status_code=400, detail="Type RESET to confirm clearing the tickets.")
+    if scope not in ("reviewed", "all"):
+        raise HTTPException(status_code=400, detail="scope must be 'reviewed' or 'all'")
+
+    query = {} if scope == "all" else {"status": {"$in": ["approved", "rejected"]}}
+    result = await db.profile_change_tickets.delete_many(query)
+
+    logger.info(
+        f"Admin {admin.get('email', 'admin')} reset profile tickets "
+        f"(scope={scope}, removed={result.deleted_count})"
+    )
+    return {
+        "message": f"Cleared {result.deleted_count} ticket(s)",
+        "scope": scope,
+        "deleted_count": result.deleted_count,
+    }
+
+
 # ===================== Admin: Get Retailer Details =====================
 
 @router.get("/admin/{retailer_id}")
@@ -1154,12 +1204,14 @@ async def admin_delete_retailer(
     retailer_id: str,
     request: Request,
     permanent: bool = False,
+    confirm_name: Optional[str] = None,
     session_token: Optional[str] = Cookie(None)
 ):
     """
     Admin deletes/removes a retailer.
     - permanent=False: Soft delete (marks as 'deleted' status, retains data)
-    - permanent=True: Hard delete (permanently removes from database)
+    - permanent=True: Hard delete. Requires `confirm_name` to match the shop's
+      business name exactly, and refuses to run when the shop has real orders.
     """
     admin = await require_admin(request, session_token)
     
@@ -1170,8 +1222,33 @@ async def admin_delete_retailer(
     now = datetime.now(timezone.utc)
     
     if permanent:
-        # Hard delete - permanently remove
+        business_name = retailer.get("business_name") or retailer.get("trade_name") or retailer_id
+        if (confirm_name or "").strip().lower() != str(business_name).strip().lower():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Type the exact shop name (“{business_name}”) to confirm this deletion.",
+            )
+
+        order_count = await db.b2b_orders.count_documents({"retailer_id": retailer_id})
+        order_count += await db.orders.count_documents({"retailer_id": retailer_id})
+        if order_count:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"“{business_name}” has {order_count} order(s) on record. "
+                    "Shops with real orders cannot be deleted — your sales history stays intact. "
+                    "Suspend the account instead."
+                ),
+            )
+
+        # Hard delete - permanently remove, plus the shop's own non-financial records
         await db.retailers.delete_one({"retailer_id": retailer_id})
+        for coll in (
+            "retailer_sessions", "retailer_complaints", "retailer_messages",
+            "retailer_admin_messages", "retailer_admin_threads", "profile_change_tickets",
+            "retailer_password_resets", "retailer_login_attempts", "b2b_order_intents",
+        ):
+            await db[coll].delete_many({"retailer_id": retailer_id})
         logger.info(f"Admin permanently deleted retailer: {retailer_id} by {admin.get('email', 'admin')}")
         
         # Log the deletion event for audit

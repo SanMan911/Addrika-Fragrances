@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Users, Search, RefreshCw, Mail, Phone, Calendar, ShoppingBag } from 'lucide-react';
+import { Users, Search, RefreshCw, Mail, Phone, Calendar, ShoppingBag, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
+import ConfirmDeleteDialog from '../../../components/admin/ConfirmDeleteDialog';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -19,6 +20,22 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleting, setDeleting] = useState(null);
+
+  const deleteUser = async () => {
+    const id = deleting.id || deleting.email;
+    const res = await authFetch(
+      `${API_URL}/api/admin/users/${encodeURIComponent(id)}?confirm_email=${encodeURIComponent(deleting.email)}`,
+      { method: 'DELETE' }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(data.detail || 'Could not delete this user');
+      throw new Error(data.detail || 'delete failed');
+    }
+    toast.success(`${deleting.email} removed`);
+    setUsers((prev) => prev.filter((u) => (u.id || u.email) !== id));
+  };
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -129,11 +146,29 @@ export default function AdminUsersPage() {
                     </p>
                   )}
                 </div>
+                <button
+                  onClick={() => setDeleting(user)}
+                  className="mt-3 flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  data-testid={`user-delete-btn-${user.id || user.email}`}
+                >
+                  <Trash2 size={14} />
+                  Delete
+                </button>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      <ConfirmDeleteDialog
+        open={!!deleting}
+        title="Delete this user permanently?"
+        description="The account and its sessions are erased for good. Users with real orders cannot be deleted."
+        confirmValue={deleting?.email || ''}
+        onConfirm={deleteUser}
+        onClose={() => setDeleting(null)}
+        testId="user-confirm-delete"
+      />
 
       {filteredUsers.length === 0 && (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center text-slate-500 dark:text-slate-400">

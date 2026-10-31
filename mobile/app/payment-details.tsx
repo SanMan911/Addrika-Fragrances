@@ -179,7 +179,7 @@ export default function PaymentDetailsScreen() {
             onChangeText={setReference}
             autoCapitalize="characters"
             placeholder="428193756201"
-            placeholderTextColor="#b4ada0"
+            placeholderTextColor={colors.inputPlaceholder}
             style={inputStyle}
           />
 
@@ -191,7 +191,7 @@ export default function PaymentDetailsScreen() {
             value={paidOn}
             onChangeText={(t) => setPaidOn(t.replace(/[^\d-]/g, '').slice(0, 10))}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor="#b4ada0"
+            placeholderTextColor={colors.inputPlaceholder}
             style={inputStyle}
           />
 
@@ -204,7 +204,7 @@ export default function PaymentDetailsScreen() {
             onChangeText={(t) => setAmount(t.replace(/[^\d.]/g, ''))}
             keyboardType="decimal-pad"
             placeholder="25000"
-            placeholderTextColor="#b4ada0"
+            placeholderTextColor={colors.inputPlaceholder}
             style={inputStyle}
           />
 
@@ -216,7 +216,7 @@ export default function PaymentDetailsScreen() {
             value={note}
             onChangeText={setNote}
             placeholder="Paid from our HDFC current account"
-            placeholderTextColor="#b4ada0"
+            placeholderTextColor={colors.inputPlaceholder}
             style={inputStyle}
           />
 

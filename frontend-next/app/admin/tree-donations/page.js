@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { TreePine, TrendingUp, Users, Calendar, RefreshCw, Download, ChevronDown, ChevronUp, DollarSign, Gift, Search } from 'lucide-react';
+import { TreePine, TrendingUp, Users, Calendar, RefreshCw, Download, ChevronDown, ChevronUp, DollarSign, Gift, Search, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 import BRAND from '../../../lib/brand.config';
+import ConfirmDeleteDialog from '../../../components/admin/ConfirmDeleteDialog';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -17,6 +18,26 @@ export default function AdminTreeDonationsPage() {
   });
   const [days, setDays] = useState(30);
   const [expandedSection, setExpandedSection] = useState('summary');
+  const [resetScope, setResetScope] = useState(null); // 'customer' | 'platform'
+  const [donorEmail, setDonorEmail] = useState('');
+
+  const runReset = async () => {
+    const qs =
+      resetScope === 'customer'
+        ? `scope=customer&email=${encodeURIComponent(donorEmail.trim())}&confirm=RESET`
+        : 'scope=platform&confirm=RESET';
+    const res = await authFetch(`${API_URL}/api/admin/tree-donations/reset?${qs}`, {
+      method: 'POST',
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(result.detail || 'Could not reset donations');
+      throw new Error(result.detail || 'reset failed');
+    }
+    toast.success(result.message || 'Donations reset');
+    setDonorEmail('');
+    fetchData();
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -203,6 +224,43 @@ export default function AdminTreeDonationsPage() {
         </div>
       </div>
 
+      {/* Reset controls */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+        <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+          <RotateCcw size={16} className="text-amber-500" />
+          Reset donations
+        </h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-3">
+          Clears the donation tally only — the orders, their items and their totals stay exactly as they are.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="email"
+            value={donorEmail}
+            onChange={(e) => setDonorEmail(e.target.value)}
+            placeholder="donor@email.com"
+            className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm w-60"
+            data-testid="tree-reset-email"
+          />
+          <button
+            onClick={() => setResetScope('customer')}
+            disabled={!donorEmail.trim()}
+            className="px-4 py-2 rounded-lg text-sm font-semibold border border-amber-300 text-amber-700 dark:text-amber-400 dark:border-amber-900/60 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:opacity-40"
+            data-testid="tree-reset-one"
+          >
+            Reset this donor
+          </button>
+          <span className="text-sm text-slate-400">or</span>
+          <button
+            onClick={() => setResetScope('platform')}
+            className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700"
+            data-testid="tree-reset-all"
+          >
+            Reset whole platform total
+          </button>
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5">
@@ -380,6 +438,25 @@ export default function AdminTreeDonationsPage() {
           </p>
         </div>
       )}
+
+      <ConfirmDeleteDialog
+        open={!!resetScope}
+        title={
+          resetScope === 'platform'
+            ? 'Reset every tree donation?'
+            : `Reset donations for ${donorEmail.trim()}?`
+        }
+        description={
+          resetScope === 'platform'
+            ? "Every donor's tally goes back to zero and the public tree counter restarts from nothing."
+            : "This donor's tree tally goes back to zero. Everyone else is untouched."
+        }
+        confirmValue="RESET"
+        confirmLabel="Reset now"
+        onConfirm={runReset}
+        onClose={() => setResetScope(null)}
+        testId="tree-confirm-reset"
+      />
     </div>
   );
 }

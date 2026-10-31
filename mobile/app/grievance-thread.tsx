@@ -223,7 +223,7 @@ export default function GrievanceThread() {
                   onChangeText={setBody}
                   multiline
                   placeholder="Write a reply…"
-                  placeholderTextColor="#b4ada0"
+                  placeholderTextColor={colors.inputPlaceholder}
                   style={{
                     backgroundColor: colors.parchment,
                     borderRadius: radius.sm,

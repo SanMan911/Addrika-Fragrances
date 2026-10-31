@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { MessageSquare, Tag, BookOpen, RefreshCw, Send, CheckCircle2, Lock } from 'lucide-react';
+import { MessageSquare, Tag, BookOpen, RefreshCw, Send, CheckCircle2, Lock, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
+import ConfirmDeleteDialog from '../../../components/admin/ConfirmDeleteDialog';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -16,7 +17,7 @@ const STATUS_STYLES = {
 const fmtDate = (v) =>
   v ? new Date(v).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 
-function Thread({ ticket, onReplied }) {
+function Thread({ ticket, onReplied, onDelete }) {
   const [body, setBody] = useState('');
   const [closing, setClosing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -75,6 +76,17 @@ function Thread({ ticket, onReplied }) {
         >
           {ticket.status}
         </span>
+      </div>
+
+      <div className="pt-3 flex justify-end">
+        <button
+          onClick={() => onDelete(ticket)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20"
+          data-testid={`grievance-delete-${ticket.id}`}
+        >
+          <Trash2 size={14} />
+          Delete ticket
+        </button>
       </div>
 
       <div className="py-4 space-y-3 max-h-[26rem] overflow-y-auto" data-testid="grievance-messages">
@@ -163,6 +175,22 @@ function Grievances() {
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+
+  const deleteTicket = async () => {
+    const res = await authFetch(
+      `${API_URL}/api/admin/app-support/grievances/${deleting.id}?confirm=DELETE`,
+      { method: 'DELETE' }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(data.detail || 'Could not delete this ticket');
+      throw new Error(data.detail || 'delete failed');
+    }
+    toast.success('Grievance deleted');
+    setSelected(null);
+    load();
+  };
 
   const load = useCallback(async () => {
     try {
@@ -263,7 +291,11 @@ function Grievances() {
 
       <div>
         {selected ? (
-          <Thread ticket={selected} onReplied={() => open(selected.id)} />
+          <Thread
+            ticket={selected}
+            onReplied={() => open(selected.id)}
+            onDelete={setDeleting}
+          />
         ) : (
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-10 text-center">
             <MessageSquare className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600" />
@@ -273,6 +305,16 @@ function Grievances() {
           </div>
         )}
       </div>
+
+      <ConfirmDeleteDialog
+        open={!!deleting}
+        title="Delete this grievance permanently?"
+        description="The ticket, every reply on it and any attached photos are erased for good."
+        confirmValue="DELETE"
+        onConfirm={deleteTicket}
+        onClose={() => setDeleting(null)}
+        testId="grievance-confirm-delete"
+      />
     </div>
   );
 }

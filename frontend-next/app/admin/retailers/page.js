@@ -5,6 +5,7 @@ import { Store, Search, RefreshCw, MapPin, Phone, Mail, CheckCircle, XCircle, Ed
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
 import RetailerEditModal from '../../../components/RetailerEditModal';
+import ConfirmDeleteDialog from '../../../components/admin/ConfirmDeleteDialog';
 
 const API_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -51,6 +52,25 @@ export default function AdminRetailersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState(null);  // holds the retailer currently being edited
   const [kycAtRiskOnly, setKycAtRiskOnly] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+
+  const retailerName = (r) => r?.business_name || r?.trade_name || r?.store_name || r?.retailer_id || r?.id || '';
+
+  const deleteRetailer = async () => {
+    const id = deleting.retailer_id || deleting.id;
+    const name = retailerName(deleting);
+    const res = await authFetch(
+      `${API_URL}/api/retailers/admin/${encodeURIComponent(id)}?permanent=true&confirm_name=${encodeURIComponent(name)}`,
+      { method: 'DELETE' }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(data.detail || 'Could not delete this shop');
+      throw new Error(data.detail || 'delete failed');
+    }
+    toast.success(`${name} removed permanently`);
+    setRetailers((prev) => prev.filter((r) => (r.retailer_id || r.id) !== id));
+  };
 
   // "About to be suspended": matches the kyc-autosuspend cron's scope exactly —
   // only active/under_processing accounts with KYC incomplete and <=7 days left.
@@ -533,10 +553,28 @@ export default function AdminRetailersPage() {
               >
                 B2B Orders / Bills / Chat
               </a>
+              <button
+                onClick={() => setDeleting(retailer)}
+                className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-lg text-sm hover:bg-red-100 dark:hover:bg-red-900/30"
+                data-testid={`retailer-delete-btn-${retailer.retailer_id || retailer.id}`}
+              >
+                <Trash2 size={14} />
+                Delete
+              </button>
             </div>
           </div>
         ))}
       </div>
+
+      <ConfirmDeleteDialog
+        open={!!deleting}
+        title="Delete this shop permanently?"
+        description="The shop and its tickets, messages and sessions are erased for good. Shops with real orders cannot be deleted — suspend them instead."
+        confirmValue={retailerName(deleting)}
+        onConfirm={deleteRetailer}
+        onClose={() => setDeleting(null)}
+        testId="retailer-confirm-delete"
+      />
 
       {filteredRetailers.length === 0 && (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center text-slate-500 dark:text-slate-400">

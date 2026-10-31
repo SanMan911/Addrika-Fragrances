@@ -163,7 +163,7 @@ export default function GrievanceScreen() {
             value={subject}
             onChangeText={setSubject}
             placeholder="e.g. 3 boxes crushed in transit"
-            placeholderTextColor="#b4ada0"
+            placeholderTextColor={colors.inputPlaceholder}
             style={{
               backgroundColor: colors.parchment,
               borderRadius: radius.sm,
@@ -182,7 +182,7 @@ export default function GrievanceScreen() {
             value={orderNumber}
             onChangeText={setOrderNumber}
             placeholder="B2B-20260627-A1B2C3"
-            placeholderTextColor="#b4ada0"
+            placeholderTextColor={colors.inputPlaceholder}
             autoCapitalize="characters"
             style={{
               backgroundColor: colors.parchment,
@@ -203,7 +203,7 @@ export default function GrievanceScreen() {
             onChangeText={setMessage}
             multiline
             placeholder="Describe the issue in a few lines"
-            placeholderTextColor="#b4ada0"
+            placeholderTextColor={colors.inputPlaceholder}
             style={{
               backgroundColor: colors.parchment,
               borderRadius: radius.sm,

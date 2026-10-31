@@ -17,6 +17,8 @@ export const colors = {
   textMuted: '#6b6357',
   textOnDark: '#f3ece0',
   textOnDarkMuted: '#a9bccd',
+  // Placeholder text that still clears 4.5:1 against the parchment fields
+  inputPlaceholder: '#6f675a',
   success: '#16794a',
   successBg: '#e4f3ea',
   warn: '#b45309',

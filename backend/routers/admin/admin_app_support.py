@@ -133,6 +133,32 @@ async def change_status(
     return {"status": payload.status}
 
 
+@router.delete("/grievances/{grievance_id}")
+async def delete_grievance(
+    grievance_id: str,
+    request: Request,
+    confirm: str = "",
+    session_token: Optional[str] = Cookie(None),
+):
+    """Permanently erase a ticket, its replies and its photos.
+
+    Needs confirm='DELETE' so a mis-tap cannot wipe a genuine complaint.
+    """
+    admin = await require_admin(request, session_token)
+    if confirm.strip().upper() != "DELETE":
+        raise HTTPException(status_code=400, detail="Type DELETE to confirm removing this ticket.")
+
+    removed = await grievances.delete_grievance(grievance_id)
+    if removed is None:
+        raise HTTPException(status_code=404, detail="Grievance not found")
+
+    logger.info(
+        "Admin %s deleted grievance %s (%s)",
+        admin.get("email", "admin"), grievance_id, removed.get("subject"),
+    )
+    return {"message": "Grievance deleted", "grievance_id": grievance_id}
+
+
 async def _signed_urls(paths: list[str]) -> list[str]:
     """Signed URLs for private grievance attachments (1 hour)."""
     import os

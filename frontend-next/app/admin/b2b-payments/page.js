@@ -24,7 +24,10 @@ const MODE_LABELS = {
 const money = (n) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 
-const CARD = 'bg-white rounded-xl border border-gray-200 p-5';
+const CARD =
+  'bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5';
+const HEADING = 'text-slate-800 dark:text-white';
+const MUTED = 'text-slate-500 dark:text-slate-400';
 
 export default function AdminB2BPaymentsPage() {
   const [loading, setLoading] = useState(true);
@@ -167,7 +170,7 @@ export default function AdminB2BPaymentsPage() {
     <div className="space-y-6" data-testid="admin-b2b-payments-page">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/admin/settings" className="p-2 rounded-lg hover:bg-gray-100">
+          <Link href="/admin/settings" className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
             <ArrowLeft size={20} />
           </Link>
           <div>
@@ -179,7 +182,7 @@ export default function AdminB2BPaymentsPage() {
         </div>
         <button
           onClick={load}
-          className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium flex items-center gap-2"
+          className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm font-medium flex items-center gap-2"
           data-testid="payments-refresh"
         >
           <RefreshCw size={15} /> Refresh
@@ -188,11 +191,11 @@ export default function AdminB2BPaymentsPage() {
 
       {/* Rules */}
       <div className={CARD} data-testid="payment-rules-card">
-        <h2 className="font-bold text-[#2B3A4A] flex items-center gap-2 mb-4">
+        <h2 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
           <IndianRupee size={18} className="text-[#D4AF37]" /> Order payment rules
         </h2>
 
-        <label className="flex items-start gap-3 py-3 border-b border-gray-100 cursor-pointer">
+        <label className="flex items-start gap-3 py-3 border-b border-slate-200 dark:border-slate-700 cursor-pointer">
           <input
             type="checkbox"
             checked={!!settings?.prepayment_required}
@@ -202,17 +205,17 @@ export default function AdminB2BPaymentsPage() {
             data-testid="toggle-prepayment"
           />
           <span>
-            <span className="font-semibold text-[#2B3A4A] block">Require payment before an order exists</span>
-            <span className="text-xs text-gray-500">
+            <span className="font-semibold text-slate-800 dark:text-white block">Require payment before an order exists</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               A cart becomes an order only after the chosen share is paid and verified. Nothing is
               reserved before that.
             </span>
           </span>
         </label>
 
-        <div className="py-4 border-b border-gray-100">
-          <label className="block font-semibold text-[#2B3A4A] mb-1">Minimum paid upfront</label>
-          <p className="text-xs text-gray-500 mb-2">
+        <div className="py-4 border-b border-slate-200 dark:border-slate-700">
+          <label className="block font-semibold text-slate-800 dark:text-white mb-1">Minimum paid upfront</label>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
             Shops pick from this value upward. Paying 100% earns the cash discount.
           </p>
           <div className="flex gap-2">
@@ -224,7 +227,7 @@ export default function AdminB2BPaymentsPage() {
                 className={`px-4 py-2 rounded-lg font-bold text-sm ${
                   settings?.min_payment_percent === pct
                     ? 'bg-[#2B3A4A] text-[#D4AF37]'
-                    : 'bg-gray-50 text-gray-600 border border-gray-200'
+                    : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                 }`}
                 data-testid={`min-percent-${pct}`}
               >
@@ -234,7 +237,7 @@ export default function AdminB2BPaymentsPage() {
           </div>
         </div>
 
-        <label className="flex items-start gap-3 py-3 border-b border-gray-100 cursor-pointer">
+        <label className="flex items-start gap-3 py-3 border-b border-slate-200 dark:border-slate-700 cursor-pointer">
           <input
             type="checkbox"
             checked={!!settings?.dues_killswitch_enabled}
@@ -244,10 +247,10 @@ export default function AdminB2BPaymentsPage() {
             data-testid="toggle-killswitch"
           />
           <span>
-            <span className="font-semibold text-[#2B3A4A] flex items-center gap-2">
+            <span className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
               <ShieldAlert size={15} className="text-red-500" /> Dues killswitch
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               Lock every shop whose outstanding amount is older than the grace period below.
             </span>
           </span>
@@ -255,7 +258,7 @@ export default function AdminB2BPaymentsPage() {
 
         <div className="py-4 flex items-end gap-3">
           <div>
-            <label className="block font-semibold text-[#2B3A4A] mb-1 text-sm">Grace period (days)</label>
+            <label className="block font-semibold text-slate-800 dark:text-white mb-1 text-sm">Grace period (days)</label>
             <input
               type="number"
               min="0"
@@ -265,11 +268,11 @@ export default function AdminB2BPaymentsPage() {
                 const v = Number(e.target.value);
                 if (v !== settings?.dues_grace_days) saveSettings({ dues_grace_days: v });
               }}
-              className="w-28 px-3 py-2 rounded-lg border border-gray-300 text-sm"
+              className="w-28 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm"
               data-testid="grace-days-input"
             />
           </div>
-          <p className="text-xs text-gray-500 pb-2">
+          <p className="text-xs text-slate-500 dark:text-slate-400 pb-2">
             Dues newer than this never trigger an automatic lock.
           </p>
         </div>
@@ -286,7 +289,7 @@ export default function AdminB2BPaymentsPage() {
             key={key}
             onClick={() => setTab(key)}
             className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-              tab === key ? 'bg-white border-2 border-[#D4AF37] text-[#2B3A4A]' : 'text-gray-500'
+              tab === key ? 'bg-white dark:bg-slate-800 border-2 border-[#D4AF37] text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-400'
             }`}
             data-testid={`payments-tab-${key}`}
           >
@@ -298,7 +301,7 @@ export default function AdminB2BPaymentsPage() {
       {tab === 'proofs' && (
         <div className="space-y-3" data-testid="proofs-list">
           {proofs.length === 0 ? (
-            <div className={`${CARD} text-center text-gray-500 text-sm`}>
+            <div className={`${CARD} text-center text-slate-500 dark:text-slate-400 text-sm`}>
               No payment confirmations submitted yet.
             </div>
           ) : (
@@ -306,19 +309,19 @@ export default function AdminB2BPaymentsPage() {
               <div key={p.proof_id} className={CARD} data-testid={`proof-${p.proof_id}`}>
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
-                    <p className="font-bold text-[#2B3A4A]">
+                    <p className="font-bold text-slate-800 dark:text-white">
                       {p.retailer_business_name || p.retailer_id}
                     </p>
-                    <p className="text-xs text-gray-500">{p.retailer_gst || '—'}</p>
-                    <div className="mt-2 text-sm text-gray-700 space-y-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{p.retailer_gst || '—'}</p>
+                    <div className="mt-2 text-sm text-slate-700 dark:text-slate-300 space-y-0.5">
                       <p>
                         <strong>{money(p.amount)}</strong> via {MODE_LABELS[p.mode] || p.mode}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         Ref {p.reference} · paid {p.paid_on}
                         {p.order_id ? ` · against ${p.order_id}` : ' · general settlement'}
                       </p>
-                      {p.note && <p className="text-xs italic text-gray-500">“{p.note}”</p>}
+                      {p.note && <p className="text-xs italic text-slate-500 dark:text-slate-400">“{p.note}”</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -373,7 +376,7 @@ export default function AdminB2BPaymentsPage() {
             Show all shops (including those with no dues)
           </label>
           {retailers.length === 0 ? (
-            <div className={`${CARD} text-center text-gray-500 text-sm`}>
+            <div className={`${CARD} text-center text-slate-500 dark:text-slate-400 text-sm`}>
               No shop currently carries an outstanding balance.
             </div>
           ) : (
@@ -381,13 +384,13 @@ export default function AdminB2BPaymentsPage() {
               <div key={r.retailer_id} className={CARD} data-testid={`dues-${r.retailer_id}`}>
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div>
-                    <p className="font-bold text-[#2B3A4A]">{r.business_name || r.retailer_id}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-bold text-slate-800 dark:text-white">{r.business_name || r.retailer_id}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {r.gst_number || '—'}
                       {r.city ? ` · ${r.city}` : ''}
                     </p>
-                    <p className="text-sm mt-1 text-gray-700">
-                      Outstanding <strong className="text-[#2B3A4A]">{money(r.outstanding_amount)}</strong>
+                    <p className="text-sm mt-1 text-slate-700 dark:text-slate-300">
+                      Outstanding <strong className="text-slate-800 dark:text-white">{money(r.outstanding_amount)}</strong>
                       {r.overdue_amount > 0 && (
                         <span className="text-red-600">
                           {' '}
@@ -431,7 +434,7 @@ export default function AdminB2BPaymentsPage() {
       {tab === 'intents' && (
         <div className="space-y-3" data-testid="intents-list">
           {intents.length === 0 ? (
-            <div className={`${CARD} text-center text-gray-500 text-sm`}>
+            <div className={`${CARD} text-center text-slate-500 dark:text-slate-400 text-sm`}>
               No carts are waiting for payment.
             </div>
           ) : (
@@ -439,10 +442,10 @@ export default function AdminB2BPaymentsPage() {
               <div key={i.intent_id} className={CARD} data-testid={`intent-${i.intent_id}`}>
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div>
-                    <p className="font-bold text-[#2B3A4A] flex items-center gap-2">
+                    <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                       <Clock size={15} className="text-amber-500" /> {i.intent_id}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {i.retailer_id} · {i.channel} · opened {i.created_at?.slice(0, 16).replace('T', ' ')}
                     </p>
                     <p className="text-sm mt-1">

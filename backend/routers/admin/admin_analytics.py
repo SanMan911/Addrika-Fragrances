@@ -383,3 +383,69 @@ async def get_tree_donation_metrics(
             "end": end_date or datetime.now(timezone.utc).isoformat()
         }
     }
+
+
+@router.post("/tree-donations/reset")
+async def reset_tree_donations(
+    request: Request,
+    scope: str = "customer",
+    email: Optional[str] = None,
+    confirm: str = "",
+    session_token: Optional[str] = Cookie(None),
+):
+    """Zero out tree-donation tallies.
+
+    scope='customer' clears one donor's donations (matched on their billing
+    email); scope='platform' clears every donation AND resets the public tree
+    counter. The order itself, its items and its total are untouched — only the
+    `pricing.tree_donation` figure is zeroed.
+    """
+    admin = await require_admin(request, session_token)
+
+    if confirm.strip().upper() != "RESET":
+        raise HTTPException(status_code=400, detail="Type RESET to confirm clearing the donations.")
+    if scope not in ("customer", "platform"):
+        raise HTTPException(status_code=400, detail="scope must be 'customer' or 'platform'")
+
+    if scope == "customer":
+        donor = (email or "").strip().lower()
+        if not donor:
+            raise HTTPException(status_code=400, detail="An email is required to reset one donor.")
+        query = {
+            "pricing.tree_donation": {"$gt": 0},
+            "$or": [{"billing.email": donor}, {"shipping.email": donor}],
+        }
+    else:
+        query = {"pricing.tree_donation": {"$gt": 0}}
+
+    matched = await db.orders.count_documents(query)
+    result = await db.orders.update_many(query, {"$set": {"pricing.tree_donation": 0}})
+
+    counter_reset = False
+    if scope == "platform":
+        await db.settings.update_one(
+            {"_id": "tree_counter"},
+            {"$set": {
+                "base_trees": 0,
+                "manual_boost": 0,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True,
+        )
+        counter_reset = True
+
+    logger.info(
+        f"Admin {admin.get('email', 'admin')} reset tree donations "
+        f"(scope={scope}, email={email}, orders={result.modified_count})"
+    )
+    return {
+        "message": (
+            f"Cleared tree donations on {result.modified_count} order(s)"
+            + (" and reset the public tree counter" if counter_reset else "")
+        ),
+        "scope": scope,
+        "email": email,
+        "matched": matched,
+        "orders_reset": result.modified_count,
+        "public_counter_reset": counter_reset,
+    }

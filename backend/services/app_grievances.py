@@ -191,6 +191,34 @@ async def set_status(grievance_id: str, status: str, actor: str) -> bool:
         await conn.close()
 
 
+async def delete_grievance(grievance_id: str) -> Optional[dict]:
+    """Permanently remove a ticket and everything hanging off it.
+
+    Returns the deleted row (subject/business) so the caller can log it, or
+    None when the ticket does not exist.
+    """
+    conn = await _connect()
+    if conn is None:
+        return None
+    try:
+        row = await conn.fetchrow(
+            "select id, retailer_id, subject from public.app_grievances where id = $1",
+            grievance_id,
+        )
+        if row is None:
+            return None
+        await conn.execute(
+            "delete from public.app_grievance_messages where grievance_id = $1", grievance_id
+        )
+        await conn.execute(
+            "delete from public.app_grievance_images where grievance_id = $1", grievance_id
+        )
+        await conn.execute("delete from public.app_grievances where id = $1", grievance_id)
+        return dict(row)
+    finally:
+        await conn.close()
+
+
 async def mark_read(grievance_id: str, side: str, retailer_id: Optional[str] = None) -> bool:
     column = "unread_for_retailer" if side == "retailer" else "unread_for_admin"
     conn = await _connect()
