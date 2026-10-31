@@ -21,6 +21,27 @@ const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'
 
 const INPUT = 'px-3 py-2 rounded-lg border border-gray-300 bg-white text-[#2B3A4A] focus:border-[#D4AF37] outline-none';
 
+// FastAPI sends `detail` as a string for business errors but as an ARRAY of
+// {loc,msg,type} objects for 422 validation errors. Rendering that array gave
+// retailers a useless "[object Object]" toast.
+const detailText = (detail, fallback) => {
+  if (!detail) return fallback;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    const msgs = detail
+      .map((d) => {
+        const field = Array.isArray(d?.loc) ? d.loc[d.loc.length - 1] : null;
+        const msg = typeof d === 'string' ? d : d?.msg;
+        if (!msg) return null;
+        return field && field !== 'body' ? `${String(field).replace(/_/g, ' ')}: ${msg}` : msg;
+      })
+      .filter(Boolean);
+    if (msgs.length) return msgs.join(' · ');
+  }
+  if (typeof detail === 'object' && typeof detail.msg === 'string') return detail.msg;
+  return fallback;
+};
+
 export default function RetailerRegisterPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading, checkAuth } = useRetailerAuth();
@@ -37,6 +58,9 @@ export default function RetailerRegisterPage() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [onboardingSession, setOnboardingSession] = useState('');
   const [busy, setBusy] = useState(false);
+  // The whole flow ends in a 403 when an admin has switched the retailer
+  // portal off, so tell the applicant up front instead of after the OTP.
+  const [portalEnabled, setPortalEnabled] = useState(true);
 
   const [form, setForm] = useState({
     business_name: '',
@@ -66,6 +90,22 @@ export default function RetailerRegisterPage() {
   useEffect(() => {
     if (!isLoading && isAuthenticated) router.replace('/retailer/dashboard');
   }, [isLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/retailer-auth/portal-status`);
+        const data = await res.json();
+        if (!cancelled) setPortalEnabled(data?.enabled !== false);
+      } catch {
+        /* keep the form usable if the probe itself fails */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Deep link from the Aarohmm app: /retailer/register?gstin=29AAAAA0000A1Z5
   // pre-fills the GSTIN so the shop never retypes what they just entered.
@@ -140,7 +180,7 @@ export default function RetailerRegisterPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 409) {
-        setPreview({ state: 'already_registered', message: data.detail });
+        setPreview({ state: 'already_registered', message: detailText(data.detail, 'This GSTIN is already registered.') });
         return;
       }
       if (!res.ok) {
@@ -202,11 +242,11 @@ export default function RetailerRegisterPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 403) {
-        setOtp({ state: 'denied', message: data.detail });
+        setOtp({ state: 'denied', message: detailText(data.detail, 'Your details do not match this GSTIN.') });
         toast.error('Your mobile and email do not match this GSTIN');
         return;
       }
-      if (!res.ok) throw new Error(data.detail || 'Could not send the verification code');
+      if (!res.ok) throw new Error(detailText(data.detail, 'Could not send the verification code'));
       setContactMode(mode);
       setOtp({
         state: 'sent',
@@ -236,7 +276,7 @@ export default function RetailerRegisterPage() {
         body: JSON.stringify({ challenge_id: otp.challenge_id, code: otpCode }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'Verification failed');
+      if (!res.ok) throw new Error(detailText(data.detail, 'Verification failed'));
       setEmailVerified(true);
       setOnboardingSession(data.onboarding_session);
       setOtp((s) => ({ ...s, state: 'verified', target_hint: data.email_hint || s.target_hint }));
@@ -328,7 +368,9 @@ export default function RetailerRegisterPage() {
       const data = ctype.includes('application/json')
         ? await res.json().catch(() => ({}))
         : { detail: (await res.text().catch(() => '')).slice(0, 200) };
-      if (!res.ok) throw new Error(data.detail || `Registration failed (HTTP ${res.status})`);
+      if (!res.ok) {
+        throw new Error(detailText(data.detail, `Registration failed (HTTP ${res.status})`));
+      }
 
       if (data.token && typeof window !== 'undefined') {
         try { localStorage.setItem('retailer_token', data.token); } catch { /* ignore */ }
@@ -396,6 +438,25 @@ export default function RetailerRegisterPage() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4" data-testid="retailer-register-form">
+          {!portalEnabled && (
+            <div
+              className="rounded-lg p-4 border border-amber-300 bg-amber-50 flex items-start gap-3"
+              data-testid="register-portal-disabled"
+            >
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-semibold text-amber-900">
+                  New partner sign-ups are paused right now
+                </p>
+                <p className="text-amber-800 mt-0.5">
+                  Our wholesale desk has temporarily closed registrations, so this form cannot be
+                  submitted at the moment. Please write to {BRAND.contact.email} and we will
+                  onboard you directly.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Step 1 — GSTIN */}
           <div className="rounded-lg p-4 border-2 border-[#D4AF37]/40 bg-white/60">
             <label className="block text-xs font-semibold text-[#2B3A4A] uppercase tracking-wider mb-2">

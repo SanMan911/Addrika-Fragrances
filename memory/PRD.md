@@ -628,4 +628,48 @@ normal push is rejected as a non-fast-forward.
 - **OPEN (user action)**: nothing blocking. Pending from before: rotate the
   Supabase secret key (in git history) → Save to Github (Force Push) → Render
   redeploy; `eas build` for mobile 0.5.0 (needs `EXPO_TOKEN` in pod); real
+
+### Update 2026-10-31b (Iter130 — register `[object Object]` RCA, APK 0.5.0 shipped)
+- **ROOT CAUSE of the user's screenshot error (`[object Object]` toast).** The
+  GSTIN `10AAKCC0327P1ZS` is valid and verified fine (my earlier `...1ZF` read
+  was a misread of the screenshot). The real failure: `/retailer/register`
+  rendered FastAPI's `detail` straight into `new Error(...)`. FastAPI returns
+  `detail` as a **string** for business errors but as an **array of
+  `{loc,msg,type}`** for 422 validation errors — `String([{...}])` →
+  `"[object Object]"`, which is exactly what the retailer saw.
+  **Fix:** added a `detailText(detail, fallback)` normalizer in
+  `frontend-next/app/retailer/register/page.js` handling string | array |
+  `{msg}` | null, joining multi-field errors as `field: msg · field: msg`.
+  Wired into all 5 `detail` consumers (register submit, send-otp, verify-otp,
+  409 already-registered, 403 otp-denied). Verified with 6 cases incl. the exact
+  production payload — **no `[object Object]` leaks**.
+- **SECOND root cause — production portal killswitch is OFF.** Live
+  `GET /api/retailer-auth/portal-status` → `{"enabled":false}`, so
+  `POST /api/retailer-auth/register` **403s for every applicant** ("Retailer
+  portal is currently unavailable"). It also blocks the *web* login
+  `/api/retailer-auth/login`. This is production **data**, not code — an admin
+  must flip it at `/admin/settings/b2b` (or `/admin/b2b`). Added a proactive
+  amber banner (`data-testid="register-portal-disabled"`) that probes
+  portal-status on page load and warns up front, instead of letting someone
+  complete GSTIN + OTP + the whole form only to fail at submit.
+  **Mobile login is NOT affected** — the app uses
+  `/api/app/v2/auth/password-login`, which is outside the killswitch and
+  responds correctly on live (verified).
+- **Deep-link GSTIN pre-fill: already complete** (was built earlier, now
+  verified end-to-end). `mobile/app/login.tsx` opens
+  `{webUrl}/retailer/register?gstin=<GSTIN>` and the web page reads the param
+  and auto-verifies. Confirmed live: visiting `?gstin=10AAKCC0327P1ZS`
+  pre-fills, verifies, and auto-fills CENTSIBL TRADERS PRIVATE LIMITED,
+  Bhagalpur/Bihar/812002.
+- **Android APK 0.5.0 built and verified.** `EXPO_TOKEN` now set (account
+  `amardeep.saanan@pm.me` / `sanman911`). `eas build -p android --profile
+  preview` → **FINISHED**, 71 MB valid APK (1252 entries, manifest + dex).
+  Embedded `assets/app.config` confirms `apiBaseUrl` = Render backend,
+  `webUrl` = centraders.com, Supabase URL/anon key, version 0.5.0 / vCode 5.
+  Download: https://expo.dev/artifacts/eas/L-GoJZZZqsK0NQTOfucQ3vt6mTcH-kJvpOaGPbIxtyM.apk
+  Build page: https://expo.dev/accounts/sanman911/projects/addrika-mobile/builds/cf5ba6ce-9925-401d-a038-6e371d5e1cb3
+- Also closed the last iter128 gap: voucher & credit-note changes now clear the
+  stale payment intent (`setAwaitingIntent(null)`); 28/28 prepay-gate tests pass.
+- **BLOCKING USER ACTION**: turn the retailer portal back ON in live admin, or
+  no one can register on the website.
   Razorpay/PineLabs webhook secrets.
