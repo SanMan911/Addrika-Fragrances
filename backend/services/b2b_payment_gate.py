@@ -364,15 +364,11 @@ async def _notify_admin_of_proof(db, proof: dict, retailer: dict):
 async def review_proof(
     db, proof_id: str, *, approve: bool, admin_email: str, admin_note: str = ""
 ) -> dict:
-    proof = await db.b2b_payment_proofs.find_one({"proof_id": proof_id}, {"_id": 0})
-    if not proof:
-        raise ValueError("Payment confirmation not found")
-    if proof["status"] != "pending":
-        raise ValueError("This payment confirmation has already been reviewed")
-
     status = "verified" if approve else "rejected"
-    await db.b2b_payment_proofs.update_one(
-        {"proof_id": proof_id},
+    # Atomic pending → final transition, so two concurrent approvals of the
+    # same proof cannot credit the money twice.
+    proof = await db.b2b_payment_proofs.find_one_and_update(
+        {"proof_id": proof_id, "status": "pending"},
         {
             "$set": {
                 "status": status,
@@ -381,7 +377,14 @@ async def review_proof(
                 "admin_note": (admin_note or "").strip() or None,
             }
         },
+        projection={"_id": 0},
+        return_document=True,
     )
+    if not proof:
+        exists = await db.b2b_payment_proofs.find_one({"proof_id": proof_id}, {"_id": 0, "status": 1})
+        if not exists:
+            raise ValueError("Payment confirmation not found")
+        raise ValueError("This payment confirmation has already been reviewed")
 
     credited_order = None
     settled = []

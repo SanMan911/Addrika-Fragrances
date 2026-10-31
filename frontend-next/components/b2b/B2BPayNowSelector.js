@@ -23,6 +23,7 @@ export default function B2BPayNowSelector({
   payPercent,
   onChange,
   disabled,
+  repricing,
 }) {
   if (!gate?.prepayment_required) return null;
 
@@ -79,11 +80,13 @@ export default function B2BPayNowSelector({
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-500">Paying now ({payPercent}%)</span>
           <span
-            className="text-xl font-bold text-[#2B3A4A]"
+            className={`text-xl font-bold text-[#2B3A4A] transition-opacity ${
+              repricing ? 'opacity-40' : 'opacity-100'
+            }`}
             data-testid="pay-now-amount"
             aria-readonly="true"
           >
-            {formatCurrency(amountNow)}
+            {repricing ? 'Re-pricing…' : formatCurrency(amountNow)}
           </span>
         </div>
         <div className="flex justify-between items-center">
@@ -101,8 +104,7 @@ export default function B2BPayNowSelector({
         >
           <Info size={15} className="text-green-700 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-green-800">
-            Cash discount of {gate.cash_discount_percent}% is applied — recalculate to see your
-            new total.
+            Cash discount of {gate.cash_discount_percent}% is applied to this order.
           </p>
         </div>
       ) : (

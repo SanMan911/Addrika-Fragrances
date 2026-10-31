@@ -597,3 +597,35 @@ normal push is rejected as a non-fast-forward.
   (or ask IDSPay for an IP-independent token) — Render free tier has no static outbound IP.
 - **Suggestion logged (not built)**: admin-dashboard banner that pings `/gst-contact/config`
   and warns when `configured:false` in prod, so silent misconfigurations surface immediately.
+
+### Update 2026-10-31 (Iter129 — register "error" diagnosed + iter128 fixes verified live)
+- **The user's screenshot error was NOT a bug — it was a typo'd GSTIN.** On
+  `https://www.centraders.com/retailer/register` the GSTIN `10AAKCC0327P1ZF`
+  showed "✗ Could not verify this GSTIN with GSTN records." Root cause (verified
+  two ways): the 15th character fails the **GSTIN checksum** — computed check
+  digit is `S`, not `F` — so the number cannot exist in GSTN. Both the live
+  Render backend and local correctly return `GSTIN not found`. This is the
+  intended graceful rejection, not a regression.
+- **Render live deployment is healthy and GST auto-fetch is NOT falling back.**
+  `GET /api/retailer-auth/gst-contact/config` on the live Render backend →
+  `{"configured":true,"environment":"prod","ready":true}` (IDSPay). A real
+  GSTIN (`27AAACR5055K1Z7` → Reliance) returns full autofill via live Render.
+  This closes the long-standing "verify Render live keys" open item — Render
+  has the correct env vars and the integration is live.
+- **Iter128 fixes verified already in place + one gap closed.** The HIGH
+  stale-price intent bug was already fixed: `b2b_checkout_intent.create_intent`
+  `cart_signature` now includes `include_shipping`, `delivery_pincode`,
+  `voucher_code`, `credit_note_code`, `redeem_rewards_inr`, `is_preorder`,
+  `channel`, `provider`, `grand_total`; `confirm_intent` has stale-claim
+  recovery (`claimed_at` + 5-min cutoff). Admin `/admin/b2b-payments` light-mode
+  title fixed (`text-slate-800 dark:text-white`) and the `include_all`
+  "Show all shops" toggle added. `B2BOrderSummary` already has `text-gray-900`
+  on the card. The place-order CTA is disabled while awaiting. **Closed gap:**
+  voucher & credit-note onChange/Clear now also `setAwaitingIntent(null)`
+  (previously only quantity & pay-percent cleared the stale intent).
+  Frontend rebuilt (`yarn build`) + restarted; **28/28** prepay-gate backend
+  tests pass (`test_b2b_prepayment_gate.py` + `test_b2b_prepay_fixes_iter128.py`).
+- **OPEN (user action)**: nothing blocking. Pending from before: rotate the
+  Supabase secret key (in git history) → Save to Github (Force Push) → Render
+  redeploy; `eas build` for mobile 0.5.0 (needs `EXPO_TOKEN` in pod); real
+  Razorpay/PineLabs webhook secrets.

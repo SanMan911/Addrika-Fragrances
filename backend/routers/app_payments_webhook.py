@@ -67,7 +67,12 @@ async def _confirm_intent(intent_id: str, payment_id: str, provider: str) -> dic
         )
     except Exception as e:
         # A captured payment with no order is the worst failure mode — flag it
-        # loudly so an admin can confirm the intent by hand.
+        # loudly so an admin can confirm the intent by hand. A lost race against
+        # another confirm is NOT a failure, so don't mark it as one.
+        message = str(e)
+        if "already being confirmed" in message or "already" in message.lower():
+            logger.info(f"{provider} webhook for intent {intent_id} lost a confirm race: {message}")
+            return {"status": "ignored", "intent_id": intent_id, "reason": message}
         logger.error(f"{provider} webhook could not confirm intent {intent_id}: {e}")
         await db.b2b_order_intents.update_one(
             {"intent_id": intent_id},

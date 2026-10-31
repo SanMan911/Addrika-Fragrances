@@ -35,6 +35,7 @@ export default function AdminB2BPaymentsPage() {
   const [intents, setIntents] = useState([]);
   const [busyId, setBusyId] = useState(null);
   const [tab, setTab] = useState('proofs');
+  const [showAllShops, setShowAllShops] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,7 +43,9 @@ export default function AdminB2BPaymentsPage() {
       const [s, p, r, i] = await Promise.all([
         authFetch(`${API_URL}/api/admin/b2b-payments/settings`),
         authFetch(`${API_URL}/api/admin/b2b-payments/proofs`),
-        authFetch(`${API_URL}/api/admin/b2b-payments/retailers`),
+        authFetch(
+          `${API_URL}/api/admin/b2b-payments/retailers${showAllShops ? '?include_all=true' : ''}`
+        ),
         authFetch(`${API_URL}/api/admin/b2b-payments/intents`),
       ]);
       if (s.ok) setSettings(await s.json());
@@ -54,7 +57,7 @@ export default function AdminB2BPaymentsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showAllShops]);
 
   useEffect(() => {
     load();
@@ -168,8 +171,8 @@ export default function AdminB2BPaymentsPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">Payments & Credit Control</h1>
-            <p className="text-gray-400 text-sm mt-0.5">
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Payments & Credit Control</h1>
+            <p className="text-slate-500 dark:text-gray-400 text-sm mt-0.5">
               Upfront payment rules, the dues killswitch and declared payments awaiting verification
             </p>
           </div>
@@ -359,6 +362,16 @@ export default function AdminB2BPaymentsPage() {
 
       {tab === 'retailers' && (
         <div className="space-y-3" data-testid="retailer-dues-list">
+          <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={showAllShops}
+              onChange={(e) => setShowAllShops(e.target.checked)}
+              className="w-4 h-4"
+              data-testid="show-all-shops"
+            />
+            Show all shops (including those with no dues)
+          </label>
           {retailers.length === 0 ? (
             <div className={`${CARD} text-center text-gray-500 text-sm`}>
               No shop currently carries an outstanding balance.

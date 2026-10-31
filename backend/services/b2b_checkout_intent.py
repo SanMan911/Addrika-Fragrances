@@ -32,6 +32,11 @@ def _now_iso() -> str:
     return _now().isoformat()
 
 
+def _stale_claim_cutoff() -> str:
+    """A 'confirming' claim older than this was abandoned mid-flight."""
+    return (_now() - timedelta(minutes=5)).isoformat()
+
+
 async def create_intent(
     db,
     retailer: dict,
@@ -62,14 +67,29 @@ async def create_intent(
         raise ValueError("This cart has nothing payable in it")
     amount_now = round(grand_total * int(payment_percent) / 100, 2)
 
-    # One live intent per identical cart — repeated taps must not litter the
-    # admin desk with duplicates.
+    # One live intent per identical PRICED cart — repeated taps must not litter
+    # the admin desk with duplicates. Every input that moves the price has to be
+    # in the key, or a cart priced differently would reuse a stale intent.
+    payload_dict = order_data.dict()
     cart_signature = json.dumps(
-        sorted(
-            (str(i.get("product_id")), float(i.get("quantity_boxes") or 0))
-            for i in order_data.dict().get("items", [])
-        ),
+        {
+            "items": sorted(
+                (str(i.get("product_id")), float(i.get("quantity_boxes") or 0))
+                for i in payload_dict.get("items", [])
+            ),
+            "include_shipping": bool(payload_dict.get("include_shipping")),
+            "delivery_pincode": payload_dict.get("delivery_pincode") or None,
+            "voucher_code": payload_dict.get("voucher_code") or None,
+            "credit_note_code": payload_dict.get("credit_note_code") or None,
+            "redeem_rewards_inr": float(payload_dict.get("redeem_rewards_inr") or 0),
+            "is_preorder": bool(payload_dict.get("is_preorder")),
+            "channel": channel,
+            "provider": provider,
+            "grand_total": grand_total,
+        },
         separators=(",", ":"),
+        sort_keys=True,
+        default=str,
     )
     existing = await db.b2b_order_intents.find_one(
         {
@@ -168,7 +188,14 @@ async def confirm_intent(
     # Atomic claim: whoever flips awaiting_payment → confirming owns this
     # intent, so a webhook retry racing an admin click cannot double-place.
     claimed = await db.b2b_order_intents.find_one_and_update(
-        {"intent_id": intent_id, "status": "awaiting_payment"},
+        {
+            "intent_id": intent_id,
+            "$or": [
+                {"status": "awaiting_payment"},
+                # Recover a claim abandoned by a crashed worker.
+                {"status": "confirming", "claimed_at": {"$lt": _stale_claim_cutoff()}},
+            ],
+        },
         {"$set": {"status": "confirming", "claimed_at": _now_iso()}},
         return_document=True,
     )

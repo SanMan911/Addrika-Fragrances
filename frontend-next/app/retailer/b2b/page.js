@@ -263,6 +263,7 @@ export default function RetailerB2BPage() {
   useEffect(() => {
     if (payPercentRef.current === payPercent) return;
     payPercentRef.current = payPercent;
+    setAwaitingIntent(null);
     if (!orderSummary || !paymentGate?.prepayment_required) return;
     calculateOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -648,6 +649,7 @@ export default function RetailerB2BPage() {
                 onChange={(e) => {
                   setVoucherCode(e.target.value.toUpperCase());
                   setOrderSummary(null);
+                  setAwaitingIntent(null);
                   if (e.target.value) setApplyCashDiscount(false);
                 }}
                 placeholder="Enter voucher code"
@@ -656,7 +658,7 @@ export default function RetailerB2BPage() {
               />
               {voucherCode && (
                 <button
-                  onClick={() => { setVoucherCode(''); setOrderSummary(null); }}
+                  onClick={() => { setVoucherCode(''); setOrderSummary(null); setAwaitingIntent(null); }}
                   className="px-4 py-2 bg-amber-200 text-amber-800 rounded-lg hover:bg-amber-300"
                 >
                   Clear
@@ -682,6 +684,7 @@ export default function RetailerB2BPage() {
                 onChange={(e) => {
                   setCreditNoteCode(e.target.value.toUpperCase());
                   setOrderSummary(null);
+                  setAwaitingIntent(null);
                 }}
                 placeholder="Enter credit note code (CN-XXXXXXXX)"
                 className="flex-1 px-4 py-2 rounded-lg border-2 border-blue-300 focus:border-blue-500 focus:outline-none uppercase"
@@ -689,7 +692,7 @@ export default function RetailerB2BPage() {
               />
               {creditNoteCode && (
                 <button
-                  onClick={() => { setCreditNoteCode(''); setOrderSummary(null); }}
+                  onClick={() => { setCreditNoteCode(''); setOrderSummary(null); setAwaitingIntent(null); }}
                   className="px-4 py-2 bg-blue-200 text-blue-800 rounded-lg hover:bg-blue-300"
                 >
                   Clear
@@ -726,10 +729,11 @@ export default function RetailerB2BPage() {
                   payPercent={payPercent}
                   onChange={(pct) => setPayPercent(pct)}
                   disabled={submitting || calculating || !paymentGate.can_order}
+                  repricing={calculating}
                 />
               ) : null
             }
-            ctaDisabled={paymentGate ? !paymentGate.can_order : false}
+            ctaDisabled={(paymentGate ? !paymentGate.can_order : false) || !!awaitingIntent}
             ctaLabel={
               awaitingIntent
                 ? `Awaiting payment · ${awaitingIntent.intent_id}`

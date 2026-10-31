@@ -37,11 +37,11 @@ export default function B2BOrderSummary({ orderSummary, submitting, onPlaceOrder
   if (!orderSummary) return null;
 
   return (
-    <div className="rounded-xl overflow-hidden bg-white border-2 border-[#D4AF37]">
+    <div className="rounded-xl overflow-hidden bg-white border-2 border-[#D4AF37] text-gray-900">
       <div className="px-6 py-4 bg-[#D4AF37] text-white">
         <h3 className="text-lg font-bold">Order Summary</h3>
       </div>
-      <div className="p-6">
+      <div className="p-6 text-gray-900">
         {/* Items */}
         <div className="space-y-3 mb-6">
           {orderSummary.items.map((item, idx) => (
