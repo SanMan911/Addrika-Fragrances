@@ -85,7 +85,9 @@ async def admin_login_initiate(request: Request):
     email_sent = await send_admin_2fa_otp(email, otp)
     
     if not email_sent:
-        logger.warning(f"Failed to send 2FA email to {email}, but continuing for testing")
+        logger.error(f"Failed to send 2FA email to {email}")
+        await delete_2fa_token(token_id)
+        raise HTTPException(status_code=502, detail="Could not send the verification email. Please try again or contact support.")
     
     logger.info(f"Admin 2FA initiated for {email}, token_id: {token_id[:10]}...")
     
