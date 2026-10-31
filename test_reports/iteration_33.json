@@ -89,15 +89,15 @@
   "context_for_next_testing_agent": "Admin panel refactored to modular structure. Test session created: ***REMOVED***. To test admin UI, set this token in localStorage (addrika_session_token) and cookies (session_token). All 9 admin pages under /admin route: Overview, Orders, Analytics, Users, Marketing, Content, Inventory, Inquiries, Settings.",
 
   "tested_urls": [
-    "https://aarohmm-stockist.preview.emergentagent.com/admin",
-    "https://aarohmm-stockist.preview.emergentagent.com/admin/login",
-    "https://aarohmm-stockist.preview.emergentagent.com/admin/orders",
-    "https://aarohmm-stockist.preview.emergentagent.com/admin/analytics",
-    "https://aarohmm-stockist.preview.emergentagent.com/admin/users",
-    "https://aarohmm-stockist.preview.emergentagent.com/admin/marketing",
-    "https://aarohmm-stockist.preview.emergentagent.com/admin/content",
-    "https://aarohmm-stockist.preview.emergentagent.com/admin/inventory",
-    "https://aarohmm-stockist.preview.emergentagent.com/admin/inquiries",
-    "https://aarohmm-stockist.preview.emergentagent.com/admin/settings"
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin",
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin/login",
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin/orders",
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin/analytics",
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin/users",
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin/marketing",
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin/content",
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin/inventory",
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin/inquiries",
+    "https://aarohmm-partner--18pkutrq.preview.emergentagent.com/admin/settings"
   ]
 }

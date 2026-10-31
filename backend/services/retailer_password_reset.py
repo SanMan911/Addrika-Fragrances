@@ -51,7 +51,7 @@ def password_problems(password: str) -> list[str]:
 def portal_url() -> str:
     return os.environ.get(
         "FRONTEND_PUBLIC_URL",
-        "https://aarohmm-stockist.preview.emergentagent.com",
+        "https://aarohmm-partner--18pkutrq.preview.emergentagent.com",
     ).rstrip("/")
 
 

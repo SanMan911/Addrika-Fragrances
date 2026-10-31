@@ -12,7 +12,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://aarohmm-stockist.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://aarohmm-partner--18pkutrq.preview.emergentagent.com')
 
 class TestProductsAPI:
     """Test products API endpoints"""

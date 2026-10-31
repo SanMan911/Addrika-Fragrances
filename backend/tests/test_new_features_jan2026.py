@@ -9,7 +9,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://aarohmm-stockist.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://aarohmm-partner--18pkutrq.preview.emergentagent.com')
 
 
 class TestRoyalKewdaProduct:
