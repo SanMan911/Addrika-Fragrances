@@ -10,7 +10,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('NEXT_PUBLIC_BACKEND_URL', 'https://aarohmm-partner--18pkutrq.preview.emergentagent.com')
+BASE_URL = os.environ.get('NEXT_PUBLIC_BACKEND_URL', 'https://aarohmm-admin--0s9v6q3a.preview.emergentagent.com')
 
 # Test credentials from test_credentials.md
 ADMIN_EMAIL = "contact.us@centraders.com"

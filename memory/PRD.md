@@ -700,3 +700,20 @@ normal push is rejected as a non-fast-forward.
   portal is ON and shops are approved, the blast button catches any shop
   approved before this feature existed.
   Razorpay/PineLabs webhook secrets.
+
+### Update 2026-09 (Iter130 wrap-up — admin deletions/resets shipped + test seed data cleaned)
+- **DONE (previous session, verified this session)**: admin permanent-delete for
+  retailers (`DELETE /api/admin/retailers/{id}`, blocked when `b2b_orders` exist
+  for the shop), users (`DELETE /api/admin/users/{id}`), and grievances
+  (`DELETE /api/admin/app-support/grievances/{id}`); reset endpoints for tree
+  donations (`POST /api/admin/tree-donations/reset`) and profile tickets
+  (`POST /api/retailers/admin/profile-change-tickets/reset`); shared
+  `ConfirmDeleteDialog.jsx` requiring exact string type-match; B2B Payments
+  dark-mode fix; `colors.inputPlaceholder` contrast fixes across web + mobile.
+- **DONE — DB cleanup**: interrupted testing-agent seed data (TEST_UI_USER,
+  RTL_TEST_UI_DEL, PCT-TESTUI*, TEST_TREE_UI_* orders) removed via
+  `backend/tests/_iter130_ui_seed.py cleanup`; `state` confirms all zero.
+  Backend healthy (`/api/health` 200).
+- **NOTE**: full testing-agent verification of the destructive actions was
+  interrupted last session (credit exhaustion); user opted for cleanup-only,
+  so those features carry manual/curl verification only.

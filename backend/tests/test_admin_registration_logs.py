@@ -5,7 +5,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://aarohmm-partner--18pkutrq.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://aarohmm-admin--0s9v6q3a.preview.emergentagent.com').rstrip('/')
 
 
 class TestAdminEndpoints:
