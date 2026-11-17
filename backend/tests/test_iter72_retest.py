@@ -14,7 +14,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 from pymongo import MongoClient
 
-BASE_URL = os.environ.get("BACKEND_URL", "https://aarohmm-admin--0s9v6q3a.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("BACKEND_URL", "https://aarohmm-pad--1ksu8b2n.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "addrika_db")

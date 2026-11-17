@@ -17,7 +17,7 @@ import time
 # Get BASE_URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://aarohmm-admin--0s9v6q3a.preview.emergentagent.com"
+    BASE_URL = "https://aarohmm-pad--1ksu8b2n.preview.emergentagent.com"
 
 # Admin credentials
 ADMIN_EMAIL = "contact.us@centraders.com"

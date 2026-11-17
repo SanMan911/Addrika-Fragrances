@@ -1527,7 +1527,7 @@ async def retailer_register(
         panel_link = (
             _os.environ.get(
                 "FRONTEND_PUBLIC_URL",
-                "https://aarohmm-admin--0s9v6q3a.preview.emergentagent.com",
+                "https://aarohmm-pad--1ksu8b2n.preview.emergentagent.com",
             ).rstrip("/")
             + "/admin/retailer-requests"
         )

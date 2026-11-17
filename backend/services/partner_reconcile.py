@@ -124,7 +124,7 @@ async def record_outbound_attempt(
 def _base_url() -> str:
     return os.environ.get(
         "AMARDEEP_API_BASE",
-        "https://aarohmm-admin--0s9v6q3a.preview.emergentagent.com",
+        "https://aarohmm-pad--1ksu8b2n.preview.emergentagent.com",
     ).rstrip("/")
 
 

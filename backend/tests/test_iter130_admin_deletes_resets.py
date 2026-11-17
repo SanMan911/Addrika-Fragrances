@@ -10,7 +10,7 @@ import pytest
 import requests
 from pymongo import MongoClient
 
-BASE_URL = "https://aarohmm-admin--0s9v6q3a.preview.emergentagent.com"
+BASE_URL = "https://aarohmm-pad--1ksu8b2n.preview.emergentagent.com"
 ADMIN_EMAIL = "contact.us@centraders.com"
 ADMIN_PIN = "050499"
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")

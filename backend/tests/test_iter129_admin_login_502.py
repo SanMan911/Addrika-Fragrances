@@ -11,7 +11,7 @@ import pytest
 import requests
 from pymongo import MongoClient
 
-PREVIEW = "https://aarohmm-admin--0s9v6q3a.preview.emergentagent.com"
+PREVIEW = "https://aarohmm-pad--1ksu8b2n.preview.emergentagent.com"
 PROD = "https://www.centraders.com"
 ADMIN_EMAIL = "contact.us@centraders.com"
 ADMIN_PIN = "050499"
