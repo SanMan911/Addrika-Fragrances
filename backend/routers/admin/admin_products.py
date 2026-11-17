@@ -54,6 +54,7 @@ class ProductInput(BaseModel):
     comingSoon: bool = False
     bambooless: Optional[bool] = None
     isActive: bool = True
+    hide_price: bool = False
 
 
 def slugify(name: str) -> str:
@@ -205,6 +206,25 @@ async def admin_toggle_active(product_id: str, admin=Depends(require_admin)):
     await refresh_products_cache()
 
     return {"message": f"Product {'activated' if new_status else 'deactivated'}", "isActive": new_status}
+
+
+@router.patch("/products/{product_id}/toggle-hide-price")
+async def admin_toggle_hide_price(product_id: str, admin=Depends(require_admin)):
+    """Toggle this product's price visibility on the public storefront."""
+    from routers.products import refresh_products_cache
+
+    existing = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    new_status = not existing.get("hide_price", False)
+    await db.products.update_one(
+        {"id": product_id},
+        {"$set": {"hide_price": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    await refresh_products_cache()
+
+    return {"message": f"Price {'hidden' if new_status else 'visible'}", "hide_price": new_status}
 
 
 @router.patch("/products/{product_id}/toggle-coming-soon")

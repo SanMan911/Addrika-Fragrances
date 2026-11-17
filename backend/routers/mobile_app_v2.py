@@ -364,8 +364,10 @@ async def password_login(payload: PasswordLoginIn):
 @router.get("/me")
 async def me(authorization: Optional[str] = Header(None)):
     r = await _retailer(authorization)
+    from services.price_visibility import is_b2b_price_visible
     return {
         "retailer_id": r["retailer_id"],
+        "prices_visible": await is_b2b_price_visible(db),
         "gstin": r.get("gst_number"),
         "business_name": r.get("business_name") or r.get("trade_name"),
         "contact_name": r.get("name"),
@@ -399,6 +401,12 @@ async def place_order(
         raise HTTPException(
             status_code=403,
             detail="Your KYC is still pending. Please complete it before placing orders.",
+        )
+    from services.price_visibility import is_b2b_price_visible
+    if not await is_b2b_price_visible(db):
+        raise HTTPException(
+            status_code=409,
+            detail="Wholesale ordering is paused while prices are being updated. Please try again shortly."
         )
     try:
         order, response = await order_engine.place_order(
@@ -459,6 +467,12 @@ async def app_checkout_intent(
         )
     from services import b2b_checkout_intent as intents
 
+    from services.price_visibility import is_b2b_price_visible
+    if not await is_b2b_price_visible(db):
+        raise HTTPException(
+            status_code=409,
+            detail="Wholesale ordering is paused while prices are being updated. Please try again shortly."
+        )
     order_payload = B2BOrderCreate(**data.dict(exclude={"payment_percent", "provider"}))
     try:
         intent = await intents.create_intent(

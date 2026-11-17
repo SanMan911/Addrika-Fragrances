@@ -184,6 +184,7 @@ class B2BProductPayload(BaseModel):
     gst_rate: int = Field(..., ge=0, le=28)
     hsn_code: Optional[str] = Field(None, max_length=12)
     is_active: bool = True
+    hide_price: bool = False
 
 
 @router.get("/products")
@@ -208,6 +209,25 @@ async def admin_upsert_b2b_product(
     product = payload.model_dump(exclude_none=True)
     await upsert_b2b_product(db, product)
     return {"ok": True, "product": product}
+
+
+@router.patch("/products/{product_id}/toggle-hide-price")
+async def admin_toggle_b2b_hide_price(
+    product_id: str,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Toggle price visibility for a single B2B SKU (retailer surfaces)."""
+    await require_admin(request, session_token)
+    from services.b2b_catalog import upsert_b2b_product, refresh_b2b_catalog
+
+    doc = await db.b2b_products.find_one({"id": product_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Product not found")
+    doc["hide_price"] = not doc.get("hide_price", False)
+    await upsert_b2b_product(db, doc)
+    await refresh_b2b_catalog(db)
+    return {"id": product_id, "hide_price": doc["hide_price"]}
 
 
 @router.delete("/products/{product_id}")

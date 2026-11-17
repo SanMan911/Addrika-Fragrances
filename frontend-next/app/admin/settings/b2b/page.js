@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Briefcase, Save, Plus, Trash2, RefreshCw, Power } from 'lucide-react';
+import { ArrowLeft, Briefcase, Save, Plus, Trash2, RefreshCw, Power, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../../layout';
 
@@ -17,6 +17,33 @@ export default function AdminB2BSettingsPage() {
   const [grandfathering, setGrandfathering] = useState(false);
   const [products, setProducts] = useState([]);
   const [savingTiersFor, setSavingTiersFor] = useState(null);
+  const [priceVisible, setPriceVisible] = useState({ price_visible_b2c: true, price_visible_b2b: true });
+  const [savingVisibility, setSavingVisibility] = useState(null);
+
+  const fetchPriceVisibility = useCallback(async () => {
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/b2b-settings/price-visibility`);
+      if (res.ok) setPriceVisible(await res.json());
+    } catch (e) { /* non-fatal */ }
+  }, []);
+
+  const togglePriceVisibility = async (scope) => {
+    setSavingVisibility(scope);
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/b2b-settings/price-visibility`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [scope]: !priceVisible[scope] }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      setPriceVisible(await res.json());
+      toast.success('Price visibility updated');
+    } catch (e) {
+      toast.error(e.message || 'Failed to update price visibility');
+    } finally {
+      setSavingVisibility(null);
+    }
+  };
 
   const grandfatherKYC = async () => {
     if (
@@ -73,7 +100,8 @@ export default function AdminB2BSettingsPage() {
 
   useEffect(() => {
     fetchSettings();
-  }, [fetchSettings]);
+    fetchPriceVisibility();
+  }, [fetchSettings, fetchPriceVisibility]);
 
   const saveCore = async (next) => {
     setSaving(true);
@@ -253,6 +281,48 @@ export default function AdminB2BSettingsPage() {
           >
             {enabled ? 'Disable Portal' : 'Enable Portal'}
           </button>
+        </div>
+      </section>
+
+      {/* Price Visibility */}
+      <section className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6" data-testid="price-visibility-section">
+        <h2 className="text-lg font-semibold text-slate-800 dark:text-white mb-2 flex items-center gap-2">
+          <Eye size={18} /> Price Visibility
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-2xl">
+          Master switches for showing prices. When hidden, the public shop shows a
+          &quot;Become a stockist&quot; button instead of prices, and the retailer
+          order pad pauses ordering until prices are visible again. You can also
+          hide individual products from the Products and B2B Catalogue panels.
+        </p>
+        <div className="space-y-3">
+          {[
+            { scope: 'price_visible_b2c', label: 'Public shop prices (D2C)', desc: 'Product grid, product pages, cart and checkout' },
+            { scope: 'price_visible_b2b', label: 'Retailer prices (B2B)', desc: 'Web order pad and Aarohmm app ordering' },
+          ].map(({ scope, label, desc }) => {
+            const on = priceVisible[scope] !== false;
+            return (
+              <div key={scope} className="flex items-center justify-between gap-4 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                <div>
+                  <p className="font-medium text-slate-800 dark:text-white flex items-center gap-2">
+                    {on ? <Eye size={16} className="text-emerald-600" /> : <EyeOff size={16} className="text-slate-400" />}
+                    {label}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{desc}</p>
+                </div>
+                <button
+                  onClick={() => togglePriceVisibility(scope)}
+                  disabled={savingVisibility === scope}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium text-white min-w-[120px] ${
+                    on ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                  } disabled:opacity-50`}
+                  data-testid={`toggle-${scope}`}
+                >
+                  {savingVisibility === scope ? 'Saving…' : on ? 'Hide prices' : 'Show prices'}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </section>
 

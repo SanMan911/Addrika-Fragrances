@@ -45,20 +45,22 @@ export async function generateMetadata({ params }) {
     };
   }
   
-  const lowestPrice = Math.min(...product.sizes.map(s => s.price));
+  const priceValues = (product.sizes || []).map(s => s.price).filter(p => typeof p === 'number');
+  const lowestPrice = priceValues.length ? Math.min(...priceValues) : null;
+  const priceBlurb = lowestPrice ? ` Starting from ₹${lowestPrice}.` : '';
   
   const categoryLabel = product.category === 'bakhoor' ? 'Arabian Bakhoor' : product.category === 'dhoop' ? 'Bambooless Dhoop' : 'Agarbatti';
   
   return {
     title: `${product.name} - Premium ${categoryLabel} by ${BRAND.name} | Buy Online`,
-    description: `Buy ${product.name} from ${BRAND.name} Fragrances. ${product.tagline}. ${product.description.slice(0, 120)}... Charcoal-free, over 60% less smoke. Starting from ₹${lowestPrice}. Free shipping above ₹499 across India.`,
+    description: `Buy ${product.name} from ${BRAND.name} Fragrances. ${product.tagline}. ${product.description.slice(0, 120)}... Charcoal-free, over 60% less smoke.${priceBlurb} Free shipping above ₹499 across India.`,
     keywords: [product.name, ...product.notes, BRAND.name.toLowerCase(), `${BRAND.name.toLowerCase()} fragrances`, `premium ${categoryLabel.toLowerCase()}`, 'charcoal-free incense', 'low smoke', 'buy online india', 'meditation incense', 'luxury home fragrance'].join(', '),
     alternates: {
       canonical: `https://centraders.com/products/${params.slug}`,
     },
     openGraph: {
       title: `${product.name} | ${BRAND.name} Premium Incense - Buy Online`,
-      description: `${product.description} Starting from ₹${lowestPrice}.`,
+      description: `${product.description}${priceBlurb}`,
       images: [{ url: product.image, width: 1200, height: 630, alt: `${product.name} - ${BRAND.name} Premium Incense` }],
       type: 'website',
       url: `https://centraders.com/products/${params.slug}`,
@@ -66,7 +68,7 @@ export async function generateMetadata({ params }) {
     twitter: {
       card: 'summary_large_image',
       title: `${product.name} | ${BRAND.name}`,
-      description: `${product.tagline}. Starting ₹${lowestPrice}. Zero charcoal, low smoke.`,
+      description: `${product.tagline}.${priceBlurb} Zero charcoal, low smoke.`,
       images: [product.image],
     },
   };
@@ -111,6 +113,7 @@ async function getAllProducts() {
 
 // Product structured data for SEO
 function ProductStructuredData({ product }) {
+  const priceValues = (product.sizes || []).map(s => s.price).filter(p => typeof p === 'number');
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -159,11 +162,12 @@ function ProductStructuredData({ product }) {
         "value": (product.notes || []).join(', ')
       }
     ],
+    ...(priceValues.length > 0 && {
     "offers": {
       "@type": "AggregateOffer",
       "priceCurrency": "INR",
-      "lowPrice": Math.min(...product.sizes.map(s => s.price)),
-      "highPrice": Math.max(...product.sizes.map(s => s.price)),
+      "lowPrice": Math.min(...priceValues),
+      "highPrice": Math.max(...priceValues),
       "offerCount": product.sizes.length,
       "availability": product.comingSoon ? "https://schema.org/PreOrder" : "https://schema.org/InStock",
       "seller": {
@@ -178,6 +182,7 @@ function ProductStructuredData({ product }) {
         "doesNotShip": false
       }
     }
+    })
   };
 
   // Only add aggregateRating if product actually has reviews

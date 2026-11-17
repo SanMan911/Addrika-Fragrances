@@ -424,6 +424,14 @@ async def ensure_products_loaded():
         await refresh_products_cache()
 
 
+@router.get("/products/price-visibility")
+async def get_price_visibility_public():
+    """Public: which storefront surfaces currently show prices."""
+    from services.price_visibility import get_price_visibility
+    vis = await get_price_visibility(db)
+    return {"b2c": vis["price_visible_b2c"], "b2b": vis["price_visible_b2b"]}
+
+
 @router.get("/products")
 async def get_products(preview: Optional[str] = None):
     """Get all active products with unified stock from the B2B inventory pool.
@@ -438,6 +446,7 @@ async def get_products(preview: Optional[str] = None):
     )
     preview_pid = verify_preview_token(preview) if preview else None
 
+    import copy
     result = []
     hints = []
     for p in PRODUCTS:
@@ -447,16 +456,22 @@ async def get_products(preview: Optional[str] = None):
             # SKU is in the hidden window — only surface if the caller has a
             # valid preview token that matches this exact product_id.
             if preview_pid == p["id"]:
-                result.append(p)
+                result.append(copy.deepcopy(p))
             else:
                 hints.append(early_access_hint(p))
             continue
-        result.append(p)
+        result.append(copy.deepcopy(p))
 
     try:
         from services.product_sync import enrich_b2c_products_with_stock
         b2b_rows = await db.b2b_products.find({}, {"_id": 0}).to_list(500)
         enrich_b2c_products_with_stock(result, b2b_rows)
+    except Exception:
+        pass
+
+    try:
+        from services.price_visibility import is_b2c_price_visible, strip_d2c_prices
+        strip_d2c_prices(result, await is_b2c_price_visible(db))
     except Exception:
         pass
 
@@ -483,8 +498,10 @@ async def get_product(product_id: str, preview: Optional[str] = None):
     a valid `preview` token for this product is supplied."""
     await ensure_products_loaded()
     from services.product_launch import is_in_early_access, verify_preview_token
+    import copy
     for product in PRODUCTS:
         if product["id"] == product_id:
+            product = copy.deepcopy(product)
             if is_in_early_access(product):
                 if verify_preview_token(preview) != product_id:
                     raise HTTPException(status_code=404, detail="Product not found")
@@ -494,6 +511,11 @@ async def get_product(product_id: str, preview: Optional[str] = None):
                     {"product_id": product_id}, {"_id": 0}
                 ).to_list(50)
                 enrich_b2c_products_with_stock([product], b2b_rows)
+            except Exception:
+                pass
+            try:
+                from services.price_visibility import is_b2c_price_visible, strip_d2c_prices
+                strip_d2c_prices([product], await is_b2c_price_visible(db))
             except Exception:
                 pass
             return product
@@ -624,6 +646,13 @@ async def add_to_cart(session_id: str, item: CartItem):
     product = next((p for p in PRODUCTS if p["id"] == item.productId), None)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+
+    from services.price_visibility import is_b2c_price_visible
+    if product.get("hide_price") or not await is_b2c_price_visible(db):
+        raise HTTPException(
+            status_code=409,
+            detail="This product is not available for direct purchase right now. Please contact us to place an order."
+        )
 
     if product.get("comingSoon"):
         raise HTTPException(status_code=400, detail="This product is coming soon and cannot be added to cart yet")

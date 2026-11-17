@@ -4,14 +4,17 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, Heart, Loader2, AlertCircle, Eye } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
+import { usePriceVisibility, isPriceVisible } from '../context/PriceVisibilityContext';
 import QuickViewModal from './QuickViewModal';
+import PartnershipCTAButton from './PartnershipCTAButton';
 
 // Product Card Component - Premium Dark Theme
-function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading, onQuickView }) {
+function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading, onQuickView, pricesVisible }) {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const isComingSoon = product.comingSoon === true;
+  const showPrice = isPriceVisible(pricesVisible, product);
   // Shared inventory: `stock` per size. Number = tracked; undefined = not tracked.
   const trackedSizes = (product.sizes || []).filter(s => typeof s.stock === 'number');
   // D2C storefront: items are always shown as available (produced on demand),
@@ -42,10 +45,12 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
     return images;
   }, [product]);
   
-  // Get the lowest starting price
-  const lowestPrice = Math.min(...(product.sizes?.map(s => s.price) || [0]));
-  const lowestMRP = Math.min(...(product.sizes?.map(s => s.mrp) || [0]));
-  const hasDiscount = lowestMRP > lowestPrice;
+  // Get the lowest starting price (only from real numeric prices)
+  const priceVals = (product.sizes?.map(s => s.price) || []).filter(v => typeof v === 'number');
+  const mrpVals = (product.sizes?.map(s => s.mrp) || []).filter(v => typeof v === 'number');
+  const lowestPrice = priceVals.length ? Math.min(...priceVals) : 0;
+  const lowestMRP = mrpVals.length ? Math.min(...mrpVals) : 0;
+  const hasDiscount = lowestMRP > lowestPrice && lowestPrice > 0;
   const discountPercent = hasDiscount ? Math.round(((lowestMRP - lowestPrice) / lowestMRP) * 100) : 0;
   
   // Auto-rotate images
@@ -238,7 +243,8 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
         </p>
 
         {/* Price */}
-        <div className="flex items-baseline gap-2">
+        {showPrice && priceVals.length > 0 ? (
+        <div className="flex items-baseline gap-2" data-testid={`price-block-${product.id}`}>
           <span 
             className="text-xl font-bold"
             style={{ color: '#D4AF37' }}
@@ -252,6 +258,14 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
           )}
           <span className="text-xs text-gray-500">{isComingSoon ? 'MRP' : 'onwards'}</span>
         </div>
+        ) : (
+          <div className="mt-1" data-testid={`stockist-cta-${product.id}`}>
+            <PartnershipCTAButton
+              label="Become a stockist"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105"
+            />
+          </div>
+        )}
 
         {/* Hover accent line */}
         <div 
@@ -266,6 +280,7 @@ function ProductCard({ product, onWishlistToggle, isWishlisted, wishlistLoading,
 // Main FragranceGrid Component - Accepts pre-fetched products with client-side fallback
 export default function FragranceGridServer({ initialProducts = [] }) {
   const { addToWishlist, isInWishlist, removeFromWishlist } = useWishlist();
+  const { b2cVisible } = usePriceVisibility();
   const [fragrances, setFragrances] = useState(initialProducts);
   const [loading, setLoading] = useState(!initialProducts || initialProducts.length === 0);
   const [error, setError] = useState(null);
@@ -457,6 +472,7 @@ export default function FragranceGridServer({ initialProducts = [] }) {
                 isWishlisted={isInWishlist(product.id, product.sizes?.[0]?.size)}
                 wishlistLoading={wishlistLoading[`${product.id}-${product.sizes?.[0]?.size}`]}
                 onQuickView={handleQuickView}
+                pricesVisible={b2cVisible}
               />
             ))}
           </div>

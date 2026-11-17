@@ -42,6 +42,7 @@ const formatDate = (dateStr) => {
 
 export default function RetailerB2BPage() {
   const [catalog, setCatalog] = useState([]);
+  const [pricesVisible, setPricesVisible] = useState(true);
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
@@ -130,6 +131,7 @@ export default function RetailerB2BPage() {
       if (response.ok) {
         const data = await response.json();
         setCatalog(data.products || []);
+        setPricesVisible(data.prices_visible !== false);
         setRetailerInfo({
           gst: data.retailer_gst,
           address: data.retailer_address
@@ -568,6 +570,19 @@ export default function RetailerB2BPage() {
               </div>
             );
           })()}
+          {/* Prices-hidden notice */}
+          {!pricesVisible && (
+            <div
+              className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm"
+              data-testid="b2b-prices-hidden-notice"
+            >
+              <p className="font-semibold">Prices are being updated</p>
+              <p className="mt-1">
+                Wholesale ordering is temporarily paused while our team refreshes the
+                price list. You can still browse the catalogue — please check back shortly.
+              </p>
+            </div>
+          )}
           {/* Product Table */}
           <B2BCatalogueTable
             catalog={catalog}
@@ -575,6 +590,7 @@ export default function RetailerB2BPage() {
             categoryFilter={categoryFilter}
             loading={loading}
             onQuantityChange={handleQuantityChange}
+            pricesVisible={pricesVisible}
           />
           {/* Distance-based shipping quote (Shiprocket-powered) */}
           <PincodeShippingInput
@@ -703,7 +719,7 @@ export default function RetailerB2BPage() {
           {/* Calculate Button */}
           <button
             onClick={calculateOrder}
-            disabled={totalItems === 0 || calculating}
+            disabled={totalItems === 0 || calculating || !pricesVisible}
             className="w-full py-4 text-lg font-semibold bg-[#2B3A4A] text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
             data-testid="calculate-btn"
           >

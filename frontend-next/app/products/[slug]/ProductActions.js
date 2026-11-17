@@ -5,9 +5,13 @@ import { ShoppingCart, Heart, Plus, Minus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '../../../context/CartContext';
 import { useWishlist } from '../../../context/WishlistContext';
+import { usePriceVisibility, isPriceVisible } from '../../../context/PriceVisibilityContext';
 import NotifyMeButton from '../../../components/NotifyMeButton';
+import PartnershipCTAButton from '../../../components/PartnershipCTAButton';
 
 export default function ProductActions({ product }) {
+  const { b2cVisible } = usePriceVisibility();
+  const showPrice = isPriceVisible(b2cVisible, product);
   const [selectedSize, setSelectedSize] = useState(product.sizes[0]);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -114,9 +118,13 @@ export default function ProductActions({ product }) {
               data-testid={`size-${size.size}`}
             >
               <span className="font-semibold block text-white">{size.size}</span>
-              <span className="text-lg font-bold text-[#D4AF37]">₹{size.price}</span>
-              {size.mrp > size.price && (
-                <span className="text-xs text-gray-500 line-through ml-1">₹{size.mrp}</span>
+              {showPrice && (
+                <>
+                  <span className="text-lg font-bold text-[#D4AF37]">₹{size.price}</span>
+                  {size.mrp > size.price && (
+                    <span className="text-xs text-gray-500 line-through ml-1">₹{size.mrp}</span>
+                  )}
+                </>
               )}
               {sizeStock(size) !== null && sizeStock(size) > 0 && sizeStock(size) <= 12 && (
                 <span className="block text-[10px] uppercase tracking-wide text-amber-400 mt-1" data-testid={`size-${size.size}-low`}>Only {sizeStock(size)} left</span>
@@ -157,7 +165,7 @@ export default function ProductActions({ product }) {
             </button>
           </div>
           
-          {selectedSize && (
+          {selectedSize && showPrice && (
             <div className="text-right">
               <span className="text-sm text-gray-400 block">Total</span>
               <span className="text-2xl font-bold text-[#D4AF37]">
@@ -170,7 +178,14 @@ export default function ProductActions({ product }) {
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-4 pt-4">
-        {isComingSoon || isOutOfStock ? (
+        {!showPrice ? (
+          <div className="flex-1" data-testid="pdp-price-hidden-cta">
+            <PartnershipCTAButton
+              label="Become a stockist"
+              className="w-full py-4 px-6 text-lg font-semibold rounded-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
+            />
+          </div>
+        ) : isComingSoon || isOutOfStock ? (
           <div className="flex-1 space-y-2">
             {isOutOfStock && !isComingSoon && (
               <p className="text-sm text-rose-300" data-testid="out-of-stock-msg">

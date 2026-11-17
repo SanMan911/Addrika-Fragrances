@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Package, Plus, Edit2, Trash2, Eye, EyeOff, Clock, Check,
-  ChevronDown, ChevronUp, X, Save, Loader2, AlertTriangle, Upload, Rocket
+  ChevronDown, ChevronUp, X, Save, Loader2, AlertTriangle, Upload, Rocket, IndianRupee
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authFetch } from '../layout';
@@ -406,7 +406,7 @@ function ProductFormModal({ product, onClose, onSaved }) {
 }
 
 // ===================== Product Row =====================
-function ProductRow({ product, onEdit, onDelete, onToggle, onLaunch, launching }) {
+function ProductRow({ product, onEdit, onDelete, onToggle, onToggleHidePrice, onLaunch, launching }) {
   const [expanded, setExpanded] = useState(false);
   const lowestPrice = Math.min(...(product.sizes || []).map(s => s.price));
 
@@ -436,6 +436,14 @@ function ProductRow({ product, onEdit, onDelete, onToggle, onLaunch, launching }
             {!product.isActive && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">
                 Inactive
+              </span>
+            )}
+            {product.hide_price && (
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-300 font-medium"
+                data-testid={`hide-price-badge-${product.id}`}
+              >
+                Price hidden
               </span>
             )}
             {product.early_access_until && new Date(product.early_access_until) > new Date() && (
@@ -478,6 +486,18 @@ function ProductRow({ product, onEdit, onDelete, onToggle, onLaunch, launching }
             data-testid={`toggle-product-${product.id}`}
           >
             {product.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
+          <button
+            onClick={() => onToggleHidePrice(product.id)}
+            className={`p-2 rounded-lg transition-colors ${
+              product.hide_price
+                ? 'bg-amber-900/30 text-amber-400'
+                : 'hover:bg-slate-700 text-slate-400 hover:text-white'
+            }`}
+            title={product.hide_price ? 'Price hidden on storefront — click to show' : 'Hide price on storefront'}
+            data-testid={`toggle-hide-price-${product.id}`}
+          >
+            <IndianRupee size={16} />
           </button>
           <button
             onClick={() => onDelete(product.id, product.name)}
@@ -635,6 +655,7 @@ export default function AdminProductsPage() {
   const handleToggle = async (productId) => {
     try {
       const res = await authFetch(`${API_URL}/api/admin/products/${productId}/toggle-active`, { method: 'PATCH' });
+
       if (res.ok) {
         const data = await res.json();
         toast.success(data.message);
@@ -642,6 +663,21 @@ export default function AdminProductsPage() {
       }
     } catch (err) {
       toast.error('Failed to toggle product');
+    }
+  };
+
+  const handleToggleHidePrice = async (productId) => {
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/products/${productId}/toggle-hide-price`, { method: 'PATCH' });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message || 'Price visibility updated');
+        fetchProducts();
+      } else {
+        toast.error('Failed to toggle price visibility');
+      }
+    } catch (err) {
+      toast.error('Failed to toggle price visibility');
     }
   };
 
@@ -759,6 +795,7 @@ export default function AdminProductsPage() {
               onEdit={handleEdit}
               onDelete={(id, name) => setDeleteConfirm({ id, name })}
               onToggle={handleToggle}
+              onToggleHidePrice={handleToggleHidePrice}
               onLaunch={launchProduct}
               launching={launching}
             />

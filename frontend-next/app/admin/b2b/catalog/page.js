@@ -121,6 +121,17 @@ export default function AdminB2BCatalogPage() {
     }
   };
 
+  const handleToggleHidePrice = async (productId) => {
+    try {
+      const res = await authFetch(`${API_URL}/api/admin/b2b/products/${productId}/toggle-hide-price`, { method: 'PATCH' });
+      if (!res.ok) throw new Error('Failed');
+      toast.success('Price visibility updated');
+      fetchProducts();
+    } catch (e) {
+      toast.error('Failed to toggle price visibility');
+    }
+  };
+
   const handleDelete = async (productId, name) => {
     if (!confirm(`Delete "${name}" from B2B catalog?\n\nThis affects future orders only — existing order history is preserved.`))
       return;
@@ -387,9 +398,29 @@ export default function AdminB2BCatalogPage() {
                     >
                       {p.is_active === false ? 'Inactive' : 'Active'}
                     </span>
+                    {p.hide_price && (
+                      <span
+                        className="ml-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-500/20 text-slate-500"
+                        data-testid={`b2b-hide-price-badge-${p.id}`}
+                      >
+                        Price hidden
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-1">
+                      <button
+                        onClick={() => handleToggleHidePrice(p.id)}
+                        className={`p-1.5 rounded-md ${
+                          p.hide_price
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}
+                        title={p.hide_price ? 'Price hidden from retailers — click to show' : 'Hide price from retailers'}
+                        data-testid={`catalog-toggle-hide-price-${p.id}`}
+                      >
+                        <IndianRupee size={14} />
+                      </button>
                       <button
                         onClick={() => setEditing({ ...p })}
                         className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"

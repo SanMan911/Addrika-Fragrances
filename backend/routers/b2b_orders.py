@@ -116,21 +116,25 @@ async def get_b2b_catalog(
     # Live stock straight from Mongo so every channel sees the same number
     live_stock = {
         d["id"]: d async for d in db.b2b_products.find(
-            {}, {"_id": 0, "id": 1, "stock_pieces": 1, "stock_status": 1, "restock_eta_days": 1, "restock_note": 1}
+            {}, {"_id": 0, "id": 1, "stock_pieces": 1, "stock_status": 1, "restock_eta_days": 1, "restock_note": 1, "hide_price": 1}
         )
     }
+    from services.price_visibility import is_b2b_price_visible
+    b2b_prices_visible = await is_b2b_price_visible(db)
     products_with_tiers = []
     for p in B2B_PRODUCTS:
         p_copy = dict(p)
         p_copy.update(live_stock.get(p["id"], {}))
         p_copy = _enrich_carton_fields(p_copy)
         p_copy["pricing_tiers"] = tiers_map.get(p["id"], [])
+        p_copy["price_hidden"] = (not b2b_prices_visible) or bool(p_copy.get("hide_price"))
         products_with_tiers.append(p_copy)
 
     cash_discount_percent = await get_cash_discount_percent(db)
 
     return {
         "products": products_with_tiers,
+        "prices_visible": b2b_prices_visible,
         "cash_discount_percent": cash_discount_percent,
         "retailer_gst": retailer.get("gst_number"),
         "retailer_address": {
@@ -217,6 +221,12 @@ async def create_b2b_order(
     if not retailer:
         raise HTTPException(status_code=401, detail="Not authenticated")
     await require_kyc_complete(retailer)
+    from services.price_visibility import is_b2b_price_visible
+    if not await is_b2b_price_visible(db):
+        raise HTTPException(
+            status_code=409,
+            detail="Wholesale ordering is paused while prices are being updated. Please try again shortly or contact us."
+        )
     channel = "mobile" if (request.headers.get("X-Client-Channel") or "").lower() == "mobile" else "web"
     try:
         _order, response = await order_engine.place_order(

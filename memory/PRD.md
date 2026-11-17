@@ -717,3 +717,40 @@ normal push is rejected as a non-fast-forward.
 - **NOTE**: full testing-agent verification of the destructive actions was
   interrupted last session (credit exhaustion); user opted for cleanup-only,
   so those features carry manual/curl verification only.
+### Update 2026-11 (Iter132 — admin price-visibility control, hide prices across surfaces)
+- **User ask**: make prices hide-able/viewable from the admin panel (global master
+  switch + per-product switch); ensure the admin panel still allows editing prices.
+  Public shop shows "Nothing at all" + a "Become a stockist" button where prices were.
+  Prices hidden on BOTH public pages and the retailer order pad.
+- **NEW `services/price_visibility.py`**: two `admin_settings` flags —
+  `price_visible_b2c` (public storefront) and `price_visible_b2b` (retailer web +
+  Aarohmm app). Per-product overrides via `hide_price` on `products` (D2C) and
+  `b2b_products` (B2B SKU). Money safety enforced server-side: when a scope is
+  hidden, the public product payload is stripped of mrp/price AND order-persisting
+  endpoints refuse with 409 (cart add, B2B order create, checkout intent).
+- **Endpoints**: `GET /api/products/price-visibility` (public boot flag);
+  `GET/PUT /api/admin/b2b-settings/price-visibility` (global switches);
+  `PATCH /api/admin/products/{id}/toggle-hide-price` (D2C per-product);
+  `PATCH /api/admin/b2b/products/{id}/toggle-hide-price` (B2B per-product).
+  B2B `/catalog` now returns `prices_visible` + per-SKU `price_hidden`.
+  Mobile `/api/app/v2/me` returns `prices_visible`.
+- **Admin UI**: new "Price Visibility" section on `/admin/settings/b2b` (two
+  master switches); ₹ toggle + "Price hidden" badge on `/admin/products` rows and
+  `/admin/b2b/catalog` rows. Admin price editing (D2C `sizes[].price`,
+  B2B `price_per_box`) untouched.
+- **Storefront**: `context/PriceVisibilityContext.js` boot flag; product grid,
+  PDP (`ProductActions`), and `QuickViewModal` hide prices and show a gold
+  "Become a stockist" CTA (`PartnershipCTAButton` → partnership modal). SEO
+  metadata + structured data made price-safe (no NaN when prices stripped).
+- **BUG FIXED during testing**: `strip_d2c_prices` mutated the in-memory
+  `PRODUCTS` cache so prices never came back after re-showing — fixed by
+  deep-copying products in `get_products`/`get_product` before stripping.
+- **Retailer surfaces**: web B2B pad shows an amber "Prices are being updated —
+  ordering paused" notice, hides per-SKU prices, disables Calculate/Place Order;
+  mobile Stock screen shows "Price on update", pad shows the same notice and
+  hides the summary/place-order. New `mobile/lib/prices.ts` session-cached flag.
+- **Verified (curl + Playwright)**: global B2C off → prices stripped + cart add
+  409 + storefront shows stockist CTA; back on → prices restore. Per-product
+  D2C + B2B toggles; B2B global off → order create 409. Build clean,
+  `tsc --noEmit` clean, PDP 200. No horizontal overflow.
+- Portal killswitch left as the user instructed ("Please Ignore") — not changed.

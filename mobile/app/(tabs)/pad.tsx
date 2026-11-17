@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { apiFetch } from '../../lib/api';
 import { usePad } from '../../lib/pad';
+import { fetchPricesVisible } from '../../lib/prices';
 import { colors, inr, radius, shadow, space, type } from '../../lib/theme';
 
 type Calc = {
@@ -97,6 +98,11 @@ export default function OrderPadScreen() {
   const [notes, setNotes] = useState('');
   const [gate, setGate] = useState<Gate | null>(null);
   const [payPercent, setPayPercent] = useState(100);
+  const [pricesVisible, setPricesVisible] = useState(true);
+
+  useEffect(() => {
+    fetchPricesVisible().then(setPricesVisible);
+  }, []);
 
   useEffect(() => {
     apiFetch<Gate>('/api/app/v2/payment-gate', { auth: true })
@@ -316,7 +322,8 @@ export default function OrderPadScreen() {
                 {l.name}
               </Text>
               <Text style={{ ...type.small, color: colors.textMuted, marginTop: 2 }}>
-                {l.sizeLabel || l.sku} · {inr(l.indicativePricePerBox)}/box
+                {l.sizeLabel || l.sku}
+                {pricesVisible ? ` · ${inr(l.indicativePricePerBox)}/box` : ''}
               </Text>
             </View>
             <Pressable testID={`pad-remove-${l.sku}`} onPress={() => remove(l.sku)}>
@@ -389,9 +396,11 @@ export default function OrderPadScreen() {
               </Pressable>
               <Text style={{ ...type.small, color: colors.textMuted }}>boxes</Text>
             </View>
-            <Text style={{ ...type.label, color: colors.navy }}>
-              {inr(l.indicativePricePerBox * l.boxes)}
-            </Text>
+            {pricesVisible ? (
+              <Text style={{ ...type.label, color: colors.navy }}>
+                {inr(l.indicativePricePerBox * l.boxes)}
+              </Text>
+            ) : null}
           </View>
         </View>
       ))}
@@ -447,6 +456,27 @@ export default function OrderPadScreen() {
         />
       </View>
 
+      {!pricesVisible ? (
+        <View
+          testID="pad-prices-hidden-notice"
+          style={{
+            backgroundColor: colors.warnBg,
+            borderRadius: radius.md,
+            padding: space.md,
+            marginTop: space.md,
+          }}
+        >
+          <Text style={{ ...type.label, color: colors.warn, fontWeight: '700' }}>
+            Prices are being updated
+          </Text>
+          <Text style={{ ...type.small, color: colors.textMuted, marginTop: 4, lineHeight: 17 }}>
+            Wholesale ordering is temporarily paused while our team refreshes the price list.
+            You can still review your pad — please check back shortly.
+          </Text>
+        </View>
+      ) : null}
+
+      {pricesVisible ? (
       <View
         testID="pad-summary"
         style={{
@@ -527,6 +557,7 @@ export default function OrderPadScreen() {
           <Row label="Indicative subtotal" value={inr(indicativeSubtotal)} muted />
         )}
       </View>
+      ) : null}
 
       {gate?.prepayment_required && calc ? (
         <View

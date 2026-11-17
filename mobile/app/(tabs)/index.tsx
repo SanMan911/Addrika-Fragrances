@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { fetchProducts, type Product } from '../../lib/data';
 import { usePad } from '../../lib/pad';
+import { fetchPricesVisible } from '../../lib/prices';
 import { colors, inr, radius, shadow, space, type } from '../../lib/theme';
 
 function StockPill({ pieces, perCarton }: { pieces: number; perCarton: number }) {
@@ -42,7 +43,7 @@ function StockPill({ pieces, perCarton }: { pieces: number; perCarton: number })
   );
 }
 
-function QtyStepper({ product }: { product: Product }) {
+function QtyStepper({ product, pricesVisible }: { product: Product; pricesVisible: boolean }) {
   const { boxesFor, setBoxes } = usePad();
   const boxes = boxesFor(product.sku);
   const oos = product.stock_pieces <= 0;
@@ -53,7 +54,7 @@ function QtyStepper({ product }: { product: Product }) {
         sku: product.sku,
         name: product.name,
         sizeLabel: product.size_label,
-        indicativePricePerBox: Number(product.b2b_price || 0),
+        indicativePricePerBox: pricesVisible ? Number(product.b2b_price || 0) : 0,
         imageUrl: product.image_url,
       },
       boxes + delta
@@ -110,6 +111,7 @@ function QtyStepper({ product }: { product: Product }) {
 
 export default function StockScreen() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [pricesVisible, setPricesVisible] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +120,9 @@ export default function StockScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      setProducts(await fetchProducts());
+      const [prods, visible] = await Promise.all([fetchProducts(), fetchPricesVisible()]);
+      setProducts(prods);
+      setPricesVisible(visible);
     } catch (e: any) {
       setError(e?.message || 'Could not load stock.');
     }
@@ -255,14 +259,20 @@ export default function StockScreen() {
                 }}
               >
                 <View>
-                  <Text style={{ ...type.label, color: colors.navy }}>
-                    {inr(item.b2b_price)} <Text style={{ ...type.small, color: colors.textMuted }}>/box</Text>
-                  </Text>
+                  {pricesVisible ? (
+                    <Text style={{ ...type.label, color: colors.navy }} testID={`stock-price-${item.sku}`}>
+                      {inr(item.b2b_price)} <Text style={{ ...type.small, color: colors.textMuted }}>/box</Text>
+                    </Text>
+                  ) : (
+                    <Text style={{ ...type.small, color: colors.textMuted }} testID={`stock-price-hidden-${item.sku}`}>
+                      Price on update
+                    </Text>
+                  )}
                   <Text style={{ ...type.small, color: colors.textMuted }}>
                     {item.pieces_per_carton} pcs/carton
                   </Text>
                 </View>
-                <QtyStepper product={item} />
+                <QtyStepper product={item} pricesVisible={pricesVisible} />
               </View>
             </View>
           </View>

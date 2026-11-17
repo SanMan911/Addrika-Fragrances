@@ -41,6 +41,7 @@ export default function B2BCatalogueTable({
   categoryFilter,
   loading,
   onQuantityChange,
+  pricesVisible = true,
 }) {
   if (loading) {
     return (
@@ -73,6 +74,7 @@ export default function B2BCatalogueTable({
         {rows.map((product) => {
           const qty = quantities[product.id] || 0;
           const preorder = isPreorderAvailable(product);
+          const showPrice = pricesVisible && !product.price_hidden;
           return (
             <div
               key={product.id}
@@ -92,9 +94,13 @@ export default function B2BCatalogueTable({
                     <p className="text-xs text-gray-500">
                       {product.units_per_box} units/box • {product.net_weight}
                     </p>
-                    <p className="text-sm font-medium text-[#D4AF37]">
-                      {formatCurrency(product.price_per_box)}/box
-                    </p>
+                    {showPrice ? (
+                      <p className="text-sm font-medium text-[#D4AF37]">
+                        {formatCurrency(product.price_per_box)}/box
+                      </p>
+                    ) : (
+                      <p className="text-sm font-medium text-gray-400" data-testid={`price-hidden-${product.id}`}>Price hidden</p>
+                    )}
                     {preorder && (
                       <span
                         className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300"
@@ -147,7 +153,7 @@ export default function B2BCatalogueTable({
                       PRE-ORDER AVAILABLE
                     </span>
                   )}
-                  {product.pricing_tiers?.length > 0 && (
+                  {showPrice && product.pricing_tiers?.length > 0 && (
                     <p
                       className="text-[11px] text-green-700 mt-1 font-medium"
                       data-testid={`tiers-${product.id}`}
@@ -165,10 +171,10 @@ export default function B2BCatalogueTable({
                   </span>
                 </div>
                 <div className="col-span-2 text-center font-bold text-[#D4AF37]">
-                  {formatCurrency(product.price_per_box)}
+                  {showPrice ? formatCurrency(product.price_per_box) : <span className="text-gray-400 text-sm font-medium">—</span>}
                 </div>
                 <div className="col-span-2 text-center font-medium text-[#2B3A4A]">
-                  {formatCurrency(product.price_per_half_box)}
+                  {showPrice ? formatCurrency(product.price_per_half_box) : <span className="text-gray-400 text-sm font-medium">—</span>}
                 </div>
                 <div className="col-span-3 flex items-center justify-center gap-3">
                   <button

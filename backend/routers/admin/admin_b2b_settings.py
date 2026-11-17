@@ -141,3 +141,44 @@ async def admin_update_pricing_tiers(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"b2b_product_id": b2b_product_id, "tiers": tiers}
+
+
+
+# ---------------------------------------------------------------------------
+# Price visibility (global show/hide of prices on public + retailer surfaces)
+# ---------------------------------------------------------------------------
+from services.price_visibility import get_price_visibility, set_price_visibility
+
+VALID_PRICE_SCOPES = ("price_visible_b2c", "price_visible_b2b")
+
+
+@router.get("/price-visibility")
+async def admin_get_price_visibility(
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Return the global price-visibility flags."""
+    await require_admin(request, session_token)
+    return await get_price_visibility(db)
+
+
+class PriceVisibilityUpdate(BaseModel):
+    price_visible_b2c: Optional[bool] = None
+    price_visible_b2b: Optional[bool] = None
+
+
+@router.put("/price-visibility")
+async def admin_update_price_visibility(
+    data: PriceVisibilityUpdate,
+    request: Request,
+    session_token: Optional[str] = Cookie(None),
+):
+    """Flip the global B2C (public storefront) and/or B2B (retailer) price
+    visibility switches. Per-product overrides still apply on top."""
+    admin = await require_admin(request, session_token)
+    admin_email = admin.get("email", "admin")
+    for scope in VALID_PRICE_SCOPES:
+        value = getattr(data, scope)
+        if value is not None:
+            await set_price_visibility(db, scope, value, admin_email)
+    return await get_price_visibility(db)

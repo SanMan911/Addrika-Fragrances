@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { X, Minus, Plus, Star, ShoppingCart, Heart, ExternalLink, Loader2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { usePriceVisibility, isPriceVisible } from '../context/PriceVisibilityContext';
 import { toast } from 'sonner';
 import NotifyMeButton from './NotifyMeButton';
+import PartnershipCTAButton from './PartnershipCTAButton';
 
 export default function QuickViewModal({ product, isOpen, onClose }) {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { b2cVisible } = usePriceVisibility();
   
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -43,6 +46,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
 
   if (!isOpen || !product) return null;
 
+  const showPrice = isPriceVisible(b2cVisible, product);
   const isComingSoon = product.comingSoon === true;
   const selectedStock = typeof selectedSize?.stock === 'number' ? selectedSize.stock : null;
   // D2C storefront: always orderable (produced on demand) — OOS gating disabled.
@@ -260,7 +264,9 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                       data-testid={`quick-view-size-${size.size}`}
                     >
                       <span className="block font-semibold">{size.size}</span>
-                      <span className="block text-sm opacity-80">₹{size.price}</span>
+                      {showPrice && (
+                        <span className="block text-sm opacity-80">₹{size.price}</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -292,15 +298,24 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                   </div>
                 </div>
                 
+                {showPrice && (
                 <div className="text-right">
                   <span className="text-sm text-gray-500 block">Total</span>
                   <span className="text-2xl font-bold text-[#D4AF37]">₹{totalPrice}</span>
                 </div>
+                )}
               </div>
               
               {/* Actions */}
               <div className="flex gap-3 mt-auto">
-                {isComingSoon || isOutOfStock ? (
+                {!showPrice ? (
+                  <div className="flex-1" data-testid="quickview-price-hidden-cta">
+                    <PartnershipCTAButton
+                      label="Become a stockist"
+                      className="w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                    />
+                  </div>
+                ) : isComingSoon || isOutOfStock ? (
                   <div className="flex-1">
                     {isOutOfStock && !isComingSoon && (
                       <p className="text-xs text-rose-300 mb-2" data-testid="quick-view-oos">Out of stock — notify me when it&apos;s back</p>
