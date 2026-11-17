@@ -754,3 +754,28 @@ normal push is rejected as a non-fast-forward.
   D2C + B2B toggles; B2B global off → order create 409. Build clean,
   `tsc --noEmit` clean, PDP 200. No horizontal overflow.
 - Portal killswitch left as the user instructed ("Please Ignore") — not changed.
+
+### Update 2026-11 (Iter133 — mobile APK v0.6.0 built + standalone/migration guide)
+- **APK built** via EAS (`preview` profile): v0.6.0 / versionCode 6, bundle
+  `com.centraders.aaroviah`, slug `addrika-mobile`, SDK 51. Build ID
+  `183ccbe9-89b0-4a4c-ad37-f6a0d09f458d`. This build bundles the new
+  price-visibility states from Iter132 ("Price on update" on the Stock screen and
+  the paused-ordering notice on the pad) plus the refreshed EXPO_TOKEN auth.
+- **Build fix**: `expo-image-picker` drifted to `15.0.7` vs SDK-51 expected
+  `~15.1.0` → `npx expo install expo-image-picker` brought doctor to 17/17 clean.
+- **Token rotation**: old EXPO_TOKEN was expired ("bearer token is invalid");
+  user supplied a fresh Personal Access Token via the secrets card. IMPORTANT —
+  new tokens are injected into the **process environment**, NOT written to
+  `backend/.env`; read it as `$EXPO_TOKEN` (shell env), never `grep .env`.
+- **NEW `mobile/MIGRATION.md`**: standalone + migration guide. Documents the
+  READ (Supabase, direct, anon key) / WRITE (FastAPI→MongoDB source of truth)
+  split, every table the app touches (`app_products`, `app_schemes`,
+  `app_brochures(+items)`, `app_retailers`, `app_orders`, `app_grievances(+images)`),
+  the 3-layer config resolution (`EXPO_PUBLIC_*` → `app.json→expo.extra` → URL
+  safety), and a step-by-step full-move checklist (new backend host, optional new
+  Supabase, `mongodump/mongorestore`, edit `app.json→expo.extra` or EAS secrets,
+  rebuild). No secrets baked into the APK except the public, RLS-guarded anon key.
+- **Migration model**: app is host-agnostic — one `app.json→expo.extra` edit (or
+  EAS secrets) + rebuild redirects it. Supabase is a rebuildable mirror of Mongo,
+  so the only data that must be preserved is MongoDB.
+- Verified: APK download URL returns HTTP 200.

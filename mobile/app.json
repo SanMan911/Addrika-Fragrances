@@ -2,7 +2,7 @@
   "expo": {
     "name": "Aarohmm",
     "slug": "addrika-mobile",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "orientation": "portrait",
     "scheme": "aaroviah",
     "userInterfaceStyle": "light",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.centraders.aaroviah",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1e3a52"
