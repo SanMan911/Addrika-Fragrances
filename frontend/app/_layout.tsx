@@ -1,35 +1,41 @@
+import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { LogBox, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { queryClient } from "@/src/query-client";
+import { AuthProvider } from "@/src/auth";
+import { CartProvider } from "@/src/cart";
 
-// Disable logbox errors etc so that users can see the app
-// and agent works as expected.
-LogBox.ignoreAllLogs(true)
+// Prewarm icon assets so Android Expo Go doesn't show blank icons.
+void (MaterialDesignIcons as any).getImageSource?.("home", 24, "#000").catch(() => {});
+
+LogBox.ignoreAllLogs(true);
 
 export default function RootLayout() {
-  // One app level ErrorBoundary; a render crash shows a reload screen
-  // instead of a blank app. GestureHandlerRootView must wrap the whole tree
-  // or any gesture/swipe/drawer screen crashes in Expo Go.
   return (
     <GestureHandlerRootView style={styles.root}>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <KeyboardProvider>
-            <Stack screenOptions={{ headerShown: false }} />
-          </KeyboardProvider>
-        </QueryClientProvider>
-      </ErrorBoundary>
+      <SafeAreaProvider>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <KeyboardProvider>
+              <AuthProvider>
+                <CartProvider>
+                  <Stack screenOptions={{ headerShown: false }} />
+                </CartProvider>
+              </AuthProvider>
+            </KeyboardProvider>
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  root: { flex: 1 },
 });

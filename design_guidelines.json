@@ -1,0 +1,155 @@
+{
+  "app_name": "Aarohmm Pad",
+  "personality": "1 iOS-Native Clean (Fusion: B2B High-Density Utility + Earthy Natural Palette)",
+  "personality_one_liner": "A crisp, trustworthy B2B order-punching tool with the calm, earthy warmth of natural incense.",
+  "color": {
+    "surface": "#F9F8F6",
+    "onSurface": "#1C1B1A",
+    "surfaceSecondary": "#FFFFFF",
+    "onSurfaceSecondary": "#1C1B1A",
+    "surfaceTertiary": "#F2EFEA",
+    "onSurfaceTertiary": "#4A4846",
+    "surfaceInverse": "#2A2D2A",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#4F6354",
+    "onBrand": "#FFFFFF",
+    "brandPrimary": "#4F6354",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#B88E75",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#E3E8E4",
+    "onBrandTertiary": "#3A4A3E",
+    "success": "#3E7B5B",
+    "onSuccess": "#FFFFFF",
+    "warning": "#D99C41",
+    "onWarning": "#FFFFFF",
+    "error": "#C2544A",
+    "onError": "#FFFFFF",
+    "info": "#6B6965",
+    "onInfo": "#FFFFFF",
+    "border": "#E6E3DE",
+    "borderStrong": "#C9C5BE",
+    "divider": "#E6E3DE",
+    "muted": "#73706C"
+  },
+  "typography": {
+    "displayFontFamily": "Satoshi",
+    "textFontFamily": "Satoshi",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous outer padding (lg) to frame the app comfortably, with tight, high-utility inner spacing (sm/md) for order punching lists.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "1",
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use glass for the bottom tab bar when content scrolls behind it",
+      "Use glass for sticky cart summary at the bottom of the catalog screen",
+      "Use glass for sticky headers over scrollable order history lists"
+    ],
+    "dont's": [
+      "Never blur product catalog rows or actionable task cards",
+      "Do not use glass for form inputs or standard dashboard cards"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Login_Register",
+      "purpose": "Onboard users quickly using GST numbers, assigning distinct roles securely.",
+      "states": {
+        "loading": "Centered brand-colored spinner.",
+        "empty": "N/A",
+        "error": "Toast or inline text under GST input explaining invalid format."
+      },
+      "layout": "Hero image at the top (incense / nature) with a bottom-heavy surfaceSecondary card containing the GST input, Role Picker (segmented control), and a sticky full-width primary CTA."
+    },
+    {
+      "name": "Dashboard_Home",
+      "purpose": "Role-specific command center showing order metrics and actionable tasks.",
+      "states": {
+        "loading": "Skeleton cards for metrics and task list.",
+        "empty": "Illustration of an empty warehouse shelf + 'No pending tasks'.",
+        "error": "Error banner with 'Retry connection'."
+      },
+      "layout": "Top sticky header with role indicator badge (e.g., 'Retailer'). Row of two stat cards (Pending, Completed). Below that, a list of 'Actionable Tasks' (orders from subordinates needing attention). Floating Action Button (FAB) or sticky CTA to 'Punch New Order'."
+    },
+    {
+      "name": "Catalog_OrderPunching",
+      "purpose": "Dense, high-speed ordering interface with live stock visibility.",
+      "states": {
+        "loading": "Skeleton list items.",
+        "empty": "Illustration + 'No products available currently'.",
+        "error": "Error banner + 'Failed to load catalog. Retry'."
+      },
+      "layout": "Search/Filter bar pinned at top. List view (not grid) of products. Each row displays Product Name, SKU, Live Stock badge (color-coded), Price, and an inline +/- stepper control. Bottom of screen holds a glass-styled fixed Cart Summary bar showing Total Value and 'Review Order' button."
+    },
+    {
+      "name": "Order_History",
+      "purpose": "Track the status of all placed and received orders.",
+      "states": {
+        "loading": "Skeleton timeline rows.",
+        "empty": "Illustration + 'No order history found'.",
+        "error": "Error banner + Retry button."
+      },
+      "layout": "Filter tabs (All, Pending, Dispatched). Scrollable list of order cards. Tapping a card opens a Bottom Sheet showing the order details and a vertical timeline (Placed -> Confirmed -> Dispatched -> Delivered)."
+    }
+  ],
+  "images": {
+    "login_hero": {
+      "url": "https://images.unsplash.com/photo-1640775670963-7d5d67de6bcc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwzfHxpbmNlbnNlJTIwc3RpY2tzJTIwbmF0dXJhbHxlbnwwfHx8fDE3OTUwOTI0NDF8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Natural incense sticks burning"
+    },
+    "catalog_hero": {
+      "url": "https://images.pexels.com/photos/5505645/pexels-photo-5505645.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "alt": "A close-up view of incense sticks aligned in a manufacturing setting"
+    },
+    "empty_tasks": {
+      "url": "https://images.unsplash.com/photo-1790891526007-fb2aa1af1df0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwyfHxib3hlcyUyMHdhcmVob3VzZSUyMGIyYnxlbnwwfHx8fDE3OTUwOTI0NDZ8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Warehouse shelving with boxes"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Ensure UI remains strictly LIGHT MODE as per constraints, using the provided earthy palette (Sage Green primary, Sand/Off-white surfaces) to inject brand warmth without losing enterprise crispness.",
+    "Implement distinct Dashboard views checking the user's role (Retailer vs. Distributor vs. Admin) to conditionally render Actionable Tasks. Distributors only see orders from Retailers. Admins see orders from Distributors.",
+    "In the Catalog screen, favor list-density. Use inline +/- steppers on the product rows instead of a multi-step add-to-cart modal, enabling rapid multi-product order punching.",
+    "Live stock data must be displayed directly on the product row in the catalog, mapped from Supabase, so users don't try to punch out-of-stock items.",
+    "For the Order History timeline, implement a vertical stepper UI inside a bottom sheet or detail screen (Placed -> Confirmed -> Dispatched -> Delivered).",
+    "Keep the primary 'Punch Order' CTA sticky at the bottom of the catalog screen (using glassmorphism) so the user never has to scroll to submit their order.",
+    "Do not use generic blue/indigo anywhere; adhere strictly to the provided natural palette (Brand: #4F6354).",
+    "Architect the checkout flow modularly so a payment gateway step can be inserted before order confirmation in the future."
+  ]
+}
